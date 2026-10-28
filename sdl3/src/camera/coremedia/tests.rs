@@ -2,7 +2,10 @@
 // upstream's C: CoreMediaFormatToSDL(), GatherCameraSpecs() and
 // COREMEDIA_OpenDevice()'s format choice copied into a C program over fake
 // formats, compiled against the macOS SDK and upstream's headers, and the
-// SDK's constants and structure layouts printed by another.
+// SDK's constants and structure layouts printed by another; on iOS,
+// COREMEDIA_AcquireFrame()'s rotation tables and COREMEDIA_OpenDevice()'s
+// orientation guess copied into a C program run on the iOS Simulator, with
+// upstream's C SDL there.
 
 use std::mem::{offset_of, size_of};
 use std::time::{Duration, Instant};
@@ -69,6 +72,8 @@ fn constants_and_layouts_match_the_sdk() {
             string_from_ns(AVCaptureSessionPresetHigh).as_deref(),
             Some("AVCaptureSessionPresetHigh")
         );
+        // (macOS's: the iOS device types are checked below)
+        #[cfg(target_os = "macos")]
         assert_eq!(
             string_from_ns(weak_ns_string_constant(
                 c"AVCaptureDeviceTypeExternalUnknown"
@@ -335,6 +340,11 @@ fn lists_cameras_and_their_specs() {
     assert_eq!(cameras().unwrap().len(), ids.len());
     init::quit_subsystem(InitFlags::CAMERA);
     if ids.is_empty() {
+        // (the simulator has none: no_camera_on_the_simulator() checks
+        // what the driver does then)
+        if cfg!(target_abi = "sim") {
+            return;
+        }
         crate::test_support::skip("camera", "AVFoundation found no camera");
     }
 }
@@ -344,6 +354,12 @@ fn lists_cameras_and_their_specs() {
 /// ask the user, so this skips instead.
 #[test]
 fn opens_a_camera_when_access_is_granted() {
+    if cfg!(target_abi = "sim") {
+        // (no camera there, and a spawned process can't be granted one:
+        // no_camera_on_the_simulator() and tests/uikit_camera.rs check
+        // that)
+        return;
+    }
     let _l = crate::test_support::test_lock();
     let status = video_authorization_status();
     if status != AV_AUTHORIZATION_STATUS_AUTHORIZED {
@@ -396,4 +412,348 @@ fn opens_a_camera_when_access_is_granted() {
 fn hardware_capture_from_the_first_camera() {
     let _l = crate::test_support::test_lock();
     crate::camera::tests::hardware_capture("coremedia", "camera");
+}
+
+// ---------------------------------------------------------------------------
+// iOS
+
+/// The device types the iOS build's discovery session asks for, with their
+/// constants' values (upstream's C, on the iOS Simulator).
+#[cfg(target_os = "ios")]
+#[test]
+fn ios_device_types_match_the_sdk() {
+    let names: Vec<_> = DEVICE_TYPES
+        .iter()
+        .map(|name| {
+            let value = weak_ns_string_constant(name);
+            assert!(!value.is_null(), "{name:?}");
+            // SAFETY: an NSString constant of AVFoundation.
+            unsafe { string_from_ns(value) }.unwrap()
+        })
+        .collect();
+    assert_eq!(names, IOS_DEVICE_TYPES);
+}
+
+/// The values of the device types' constants, from upstream's C.
+#[cfg(target_os = "ios")]
+const IOS_DEVICE_TYPES: [&str; 6] = [
+    "AVCaptureDeviceTypeBuiltInTelephotoCamera",
+    "AVCaptureDeviceTypeBuiltInDualCamera",
+    "AVCaptureDeviceTypeBuiltInDualWideCamera",
+    "AVCaptureDeviceTypeBuiltInTripleCamera",
+    "AVCaptureDeviceTypeBuiltInUltraWideCamera",
+    "AVCaptureDeviceTypeBuiltInWideAngleCamera",
+];
+
+/// `COREMEDIA_AcquireFrame()`'s rotations and `COREMEDIA_OpenDevice()`'s
+/// guess of the device orientation, against upstream's (copied into a C
+/// program run on the iOS Simulator, with the SDK's orientation values).
+#[cfg(target_os = "ios")]
+#[test]
+fn rotations_match_the_c_driver() {
+    use crate::core::apple::uikit::device_orientation_is_valid_interface_orientation;
+    use crate::video::drivers::uikit::sys::{
+        UIInterfaceOrientationLandscapeLeft, UIInterfaceOrientationLandscapeRight,
+        UIInterfaceOrientationPortrait, UIInterfaceOrientationPortraitUpsideDown,
+    };
+    let mut trace = vec![format!(
+        "interface orientations: portrait={UIInterfaceOrientationPortrait} \
+         upside_down={UIInterfaceOrientationPortraitUpsideDown} \
+         landscape_left={UIInterfaceOrientationLandscapeLeft} \
+         landscape_right={UIInterfaceOrientationLandscapeRight}"
+    )];
+    for d in -1..=7 {
+        trace.push(format!(
+            "valid device orientation {d}: {}",
+            device_orientation_is_valid_interface_orientation(d) as i32
+        ));
+    }
+    for (name, position) in [
+        ("back", CameraPosition::BackFacing),
+        ("front", CameraPosition::FrontFacing),
+    ] {
+        for u in 1..=4 {
+            for d in 1..=4 {
+                trace.push(format!(
+                    "rotation {name} ui={u} device={d}: {}",
+                    frame_rotation(position, u, d)
+                ));
+            }
+        }
+    }
+    for u in -1..=6 {
+        trace.push(format!(
+            "guess ui={u}: {}",
+            device_orientation_from_interface(u)
+        ));
+    }
+    compare(&trace, ROTATIONS_EXPECTED);
+
+    // Out of upstream's tables (which it would read outside of): no
+    // rotation. An unknown position is the front camera's, as upstream's.
+    for (u, d) in [(0, 1), (5, 1), (-1, 2), (1, 0), (1, 5), (2, 6)] {
+        assert_eq!(frame_rotation(CameraPosition::BackFacing, u, d), 0.0);
+        assert_eq!(frame_rotation(CameraPosition::FrontFacing, u, d), 0.0);
+    }
+    for u in 1..=4 {
+        for d in 1..=4 {
+            assert_eq!(
+                frame_rotation(CameraPosition::Unknown, u, d),
+                frame_rotation(CameraPosition::FrontFacing, u, d)
+            );
+        }
+    }
+}
+
+/// Upstream's trace of `rotations_match_the_c_driver()`.
+#[cfg(target_os = "ios")]
+const ROTATIONS_EXPECTED: &str = "\
+interface orientations: portrait=1 upside_down=2 landscape_left=4 landscape_right=3
+valid device orientation -1: 0
+valid device orientation 0: 0
+valid device orientation 1: 1
+valid device orientation 2: 1
+valid device orientation 3: 1
+valid device orientation 4: 1
+valid device orientation 5: 0
+valid device orientation 6: 0
+valid device orientation 7: 0
+rotation back ui=1 device=1: 90
+rotation back ui=1 device=2: 90
+rotation back ui=1 device=3: 90
+rotation back ui=1 device=4: 90
+rotation back ui=2 device=1: 270
+rotation back ui=2 device=2: 270
+rotation back ui=2 device=3: 270
+rotation back ui=2 device=4: 270
+rotation back ui=3 device=1: 0
+rotation back ui=3 device=2: 0
+rotation back ui=3 device=3: 0
+rotation back ui=3 device=4: 0
+rotation back ui=4 device=1: 180
+rotation back ui=4 device=2: 180
+rotation back ui=4 device=3: 180
+rotation back ui=4 device=4: 180
+rotation front ui=1 device=1: 90
+rotation front ui=1 device=2: 90
+rotation front ui=1 device=3: 270
+rotation front ui=1 device=4: 270
+rotation front ui=2 device=1: 270
+rotation front ui=2 device=2: 270
+rotation front ui=2 device=3: 90
+rotation front ui=2 device=4: 90
+rotation front ui=3 device=1: 0
+rotation front ui=3 device=2: 0
+rotation front ui=3 device=3: 180
+rotation front ui=3 device=4: 180
+rotation front ui=4 device=1: 180
+rotation front ui=4 device=2: 180
+rotation front ui=4 device=3: 0
+rotation front ui=4 device=4: 0
+guess ui=-1: 1
+guess ui=0: 1
+guess ui=1: 1
+guess ui=2: 2
+guess ui=3: 3
+guess ui=4: 4
+guess ui=5: 1
+guess ui=6: 1
+";
+
+/// Compare a trace with upstream's, printing it, with the first line that
+/// differs.
+#[cfg(target_os = "ios")]
+fn compare(trace: &[String], expected: &str) {
+    for line in trace {
+        println!("trace: {line}");
+    }
+    let expected: Vec<&str> = expected.lines().collect();
+    let first_difference = (0..trace.len().max(expected.len()))
+        .find(|&i| trace.get(i).map(String::as_str) != expected.get(i).copied());
+    if let Some(i) = first_difference {
+        panic!(
+            "the trace differs from upstream's at line {}: {:?}, expected {:?}",
+            i + 1,
+            trace.get(i),
+            expected.get(i)
+        );
+    }
+}
+
+/// The camera's checks in a process of the simulated device (spawned):
+/// the drivers, CoreMedia starting with no camera, opening cameras that
+/// aren't there, their formats, names and positions, the dummy driver,
+/// and the camera access AVFoundation reports, against upstream's C
+/// spawned the same way. (`tests/uikit_camera.rs` checks the same in an
+/// app the runner grants or denies the camera.)
+#[cfg(target_abi = "sim")]
+#[test]
+fn no_camera_on_the_simulator() {
+    let _l = crate::test_support::test_lock();
+    let mut trace = Vec::new();
+    autoreleasepool(|| {
+        // SAFETY: in a pool; the devices are autoreleased into it.
+        let devices = unsafe { video_devices() };
+        trace.push(format!("discovery session devices: {}", devices.len()));
+    });
+    trace.push(format!("UIDevice orientation: {}", uidevice_orientation()));
+    trace.push(format!(
+        "status bar orientation: {}",
+        crate::video::drivers::uikit::get_interface_orientation()
+    ));
+    trace.extend(camera_checks("spawned"));
+    compare(&trace, SPAWNED_EXPECTED);
+}
+
+/// Upstream's trace of `no_camera_on_the_simulator()` (an iPhone 16
+/// simulator with iOS 18.5).
+#[cfg(target_abi = "sim")]
+const SPAWNED_EXPECTED: &str = "\
+discovery session devices: 0
+UIDevice orientation: 0
+status bar orientation: 0
+spawned: authorization status: 2
+spawned: camera drivers: coremedia, dummy
+spawned: init camera: ok
+spawned: camera driver: coremedia
+spawned: cameras: 0
+spawned: camera events: (none)
+spawned: open 0: Invalid camera device instance ID
+spawned: open 0 with a spec: Invalid camera device instance ID
+spawned: supported formats 0: Invalid camera device instance ID count=0
+spawned: name 0: Invalid camera device instance ID
+spawned: position 0: 0
+spawned: open 12345: Invalid camera device instance ID
+spawned: open 12345 with a spec: Invalid camera device instance ID
+spawned: supported formats 12345: Invalid camera device instance ID count=0
+spawned: name 12345: Invalid camera device instance ID
+spawned: position 12345: 0
+spawned: camera events: (none)
+spawned: quit camera: driver=(null)
+spawned: dummy: init ok driver=dummy cameras=0
+spawned: coremedia again: init ok driver=coremedia cameras=0
+spawned: authorization status: 2
+";
+
+/// The camera events queued: "A(id), B(id)" or "(none)".
+#[cfg(target_abi = "sim")]
+fn camera_event_names() -> String {
+    use crate::events::{get_events, Event, EventType};
+    pump();
+    let events: Vec<String> = get_events(
+        EventType::CAMERA_DEVICE_FIRST,
+        EventType::CAMERA_DEVICE_LAST,
+        100,
+    )
+    .unwrap()
+    .into_iter()
+    .map(|e| match e {
+        Event::CameraDevice(e) => {
+            let name = match e.event_type {
+                EventType::CAMERA_DEVICE_ADDED => "CAMERA_DEVICE_ADDED",
+                EventType::CAMERA_DEVICE_REMOVED => "CAMERA_DEVICE_REMOVED",
+                EventType::CAMERA_DEVICE_APPROVED => "CAMERA_DEVICE_APPROVED",
+                _ => "CAMERA_DEVICE_DENIED",
+            };
+            format!("{name}({})", e.which)
+        }
+        other => panic!("unexpected event {other:?}"),
+    })
+    .collect();
+    if events.is_empty() {
+        "(none)".into()
+    } else {
+        events.join(", ")
+    }
+}
+
+/// What the C programs' `camera_checks()` traces (as `tests/uikit_camera.rs`
+/// does; the test driver this build has first is left out of the list).
+#[cfg(target_abi = "sim")]
+fn camera_checks(label: &str) -> Vec<String> {
+    let mut trace = Vec::new();
+    let mut t = |line: String| trace.push(format!("{label}: {line}"));
+    let driver = || current_camera_driver().unwrap_or("(null)");
+    let message = |r: Result<()>| r.err().map_or("ok".into(), |e| e.message().to_string());
+    t(format!(
+        "authorization status: {}",
+        video_authorization_status()
+    ));
+    let drivers: Vec<&str> = (0..crate::camera::num_camera_drivers())
+        .map(|i| crate::camera::camera_driver(i).unwrap())
+        .filter(|&name| name != "test")
+        .collect();
+    t(format!("camera drivers: {}", drivers.join(", ")));
+    let r = init::init_subsystem(InitFlags::CAMERA);
+    t(format!("init camera: {}", message(r)));
+    t(format!("camera driver: {}", driver()));
+    let ids = cameras();
+    t(format!(
+        "cameras: {}",
+        ids.as_ref().map_or(-1, |ids| ids.len() as i32)
+    ));
+    for (i, &id) in ids.iter().flatten().enumerate() {
+        t(format!(
+            "camera {i}: {} position={} formats={}",
+            camera_name(id).unwrap_or_default(),
+            camera_position(id) as i32,
+            camera_supported_formats(id).map_or(-1, |s| s.len() as i32)
+        ));
+    }
+    t(format!("camera events: {}", camera_event_names()));
+
+    for id in [0, 12345] {
+        let opened = |r: Result<Camera>| match r {
+            Ok(_) => "opened".to_string(),
+            Err(e) => e.message().to_string(),
+        };
+        t(format!("open {id}: {}", opened(Camera::open(id, None))));
+        let spec = CameraSpec {
+            format: PixelFormat::NV12,
+            colorspace: Colorspace::BT709_LIMITED,
+            width: 640,
+            height: 480,
+            framerate_numerator: 30,
+            framerate_denominator: 1,
+        };
+        t(format!(
+            "open {id} with a spec: {}",
+            opened(Camera::open(id, Some(&spec)))
+        ));
+        let formats = camera_supported_formats(id);
+        t(format!(
+            "supported formats {id}: {} count={}",
+            formats
+                .as_ref()
+                .map_or_else(|e| e.message().to_string(), |_| "a list".into()),
+            formats.as_ref().map_or(0, |f| f.len())
+        ));
+        t(format!(
+            "name {id}: {}",
+            camera_name(id).unwrap_or_else(|e| e.message().to_string())
+        ));
+        t(format!("position {id}: {}", camera_position(id) as i32));
+    }
+    t(format!("camera events: {}", camera_event_names()));
+    init::quit_subsystem(InitFlags::CAMERA);
+    t(format!("quit camera: driver={}", driver()));
+
+    for (name, label) in [("dummy", "dummy"), ("coremedia", "coremedia again")] {
+        hints::set(hints::CAMERA_DRIVER, name).unwrap();
+        let r = init::init_subsystem(InitFlags::CAMERA);
+        let ids = cameras();
+        t(format!(
+            "{label}: init {} driver={} cameras={}",
+            message(r),
+            driver(),
+            ids.as_ref().map_or(-1, |ids| ids.len() as i32)
+        ));
+        init::quit_subsystem(InitFlags::CAMERA);
+        hints::reset(hints::CAMERA_DRIVER);
+    }
+    t(format!(
+        "authorization status: {}",
+        video_authorization_status()
+    ));
+    trace
 }

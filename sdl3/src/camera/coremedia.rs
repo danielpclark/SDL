@@ -11,12 +11,17 @@
 //! itself (`ProvidesOwnCallbackThread`). AVFoundation, CoreMedia and
 //! CoreVideo are linked, as upstream links them.
 //!
-//! Only the macOS build is translated: the iOS device types and the UIKit
-//! device rotation (`USE_UIKIT_DEVICE_ROTATION`) are left out, so frames
-//! are never rotated. Like upstream, the driver has no hotplug (its
-//! `FIXME`s say how it could) and never asks for camera access itself:
-//! starting a capture session makes the system ask, and frames are dropped
-//! until the user has decided.
+//! It is built on macOS and iOS, as upstream's CMake build has it (not on
+//! tvOS or visionOS, as `SDL_build_config_ios.h`). On iOS
+//! (`SDL_PLATFORM_IOS` in this file) the discovery session asks for the
+//! built-in telephoto, dual, dual wide, triple and ultra wide cameras where
+//! macOS asks for external ones, the session doesn't configure the device
+//! for wide color, and each frame is given the rotation that makes it
+//! upright (`USE_UIKIT_DEVICE_ROTATION`): from the interface's orientation
+//! and the device's, which `UIDevice` tracks while a camera is open. Like
+//! upstream, the driver has no hotplug (its `FIXME`s say how it could) and
+//! never asks for camera access itself: starting a capture session makes
+//! the system ask, and frames are dropped until the user has decided.
 //!
 //! Upstream needs this in the app's Info.plist:
 //!
@@ -30,6 +35,8 @@
 mod sys;
 
 use std::ffi::CString;
+#[cfg(target_os = "ios")]
+use std::sync::atomic::{AtomicIsize, Ordering};
 use std::sync::{Arc, Mutex, Weak};
 
 use self::sys::*;
@@ -44,7 +51,19 @@ use crate::core::apple::objc::{
     autoreleasepool, class, imp, ivar_ptr, msg_send, msg_send_super, responds_to, sel, Bool, Class,
     ClassBuilder, DeclaredClass, Id, NSInteger, NSUInteger, Sel, StrongPtr,
 };
+#[cfg(target_os = "ios")]
+use crate::core::apple::uikit::{
+    current_device, device_orientation_is_valid_interface_orientation, UIDeviceOrientation,
+    UI_DEVICE_ORIENTATION_LANDSCAPE_LEFT, UI_DEVICE_ORIENTATION_LANDSCAPE_RIGHT,
+    UI_DEVICE_ORIENTATION_PORTRAIT, UI_DEVICE_ORIENTATION_PORTRAIT_UPSIDE_DOWN,
+};
 use crate::error::{Error, Result};
+#[cfg(target_os = "ios")]
+use crate::video::drivers::uikit::sys::{
+    UIInterfaceOrientation, UIInterfaceOrientationLandscapeLeft,
+    UIInterfaceOrientationLandscapeRight, UIInterfaceOrientationPortrait,
+    UIInterfaceOrientationPortraitUpsideDown,
+};
 use crate::video::{Colorspace, PixelFormat};
 
 /// Translation of `CoreMediaFormatToSDL()`.
@@ -261,6 +280,7 @@ fn video_authorization_status() -> NSInteger {
 fn check_camera_permissions(device: &Arc<CameraDevice>) -> bool {
     if device.permission() == CameraPermissionState::Pending {
         // still expecting a permission result.
+        // (upstream names macOS only: on iOS this is always taken)
         if available!(macos(14)) {
             let status = video_authorization_status();
             if status != AV_AUTHORIZATION_STATUS_NOT_DETERMINED {
@@ -273,6 +293,94 @@ fn check_camera_permissions(device: &Arc<CameraDevice>) -> bool {
     }
 
     device.permission() > CameraPermissionState::Pending
+}
+
+// ---------------------------------------------------------------------------
+// USE_UIKIT_DEVICE_ROTATION (iOS)
+
+/// The device orientation `COREMEDIA_OpenDevice()` starts from when
+/// `UIDevice` doesn't know one yet (the accelerometer isn't ready, or the
+/// phone lies flat): a guess from how the interface is oriented.
+#[cfg(target_os = "ios")]
+#[allow(non_upper_case_globals)] // (the SDK's names)
+fn device_orientation_from_interface(ui: UIInterfaceOrientation) -> UIDeviceOrientation {
+    // accelerometer isn't ready yet or the phone is laying flat or something. Just try to guess from how the UI is oriented at the moment.
+    match ui {
+        UIInterfaceOrientationPortrait => UI_DEVICE_ORIENTATION_PORTRAIT,
+        UIInterfaceOrientationPortraitUpsideDown => UI_DEVICE_ORIENTATION_PORTRAIT_UPSIDE_DOWN,
+        UIInterfaceOrientationLandscapeLeft => UI_DEVICE_ORIENTATION_LANDSCAPE_RIGHT, // Apple docs say UI and device orientations are reversed in landscape.
+        UIInterfaceOrientationLandscapeRight => UI_DEVICE_ORIENTATION_LANDSCAPE_LEFT,
+        _ => UI_DEVICE_ORIENTATION_PORTRAIT, // oh well.
+    }
+}
+
+/// The rotation, in degrees clockwise, that makes a frame of a camera at
+/// `position` upright, with the interface in `ui_orientation` and the
+/// device in `device_orientation` (a valid interface orientation).
+/// `COREMEDIA_AcquireFrame()`'s tables.
+///
+/// `FIXME (upstream)`: the tables are indexed with the orientations less
+/// one, unchecked: an unknown interface orientation (what
+/// `UIKit_GetInterfaceOrientation()` answers on iOS 27 without an active
+/// window scene, and in a process that isn't an app) reads before the
+/// table. Here the frame keeps no rotation (0) then.
+///
+/// `Note (upstream)`: the rows' comments call the last two "landscape
+/// left" and "landscape right", but `UIInterfaceOrientationLandscapeLeft`
+/// is 4 and `UIInterfaceOrientationLandscapeRight` 3, so the third row is
+/// landscape right's (where the back camera's sensor is upright: 0) and
+/// the fourth landscape left's. The values are upstream's, row by row.
+#[cfg(target_os = "ios")]
+fn frame_rotation(
+    position: CameraPosition,
+    ui_orientation: UIInterfaceOrientation,
+    device_orientation: UIDeviceOrientation,
+) -> f32 {
+    // there is probably math for this, but this is easy to slap into a table.
+    // rotation = rotations[uiorientation-1][devorientation-1];
+    const BACK_ROTATIONS: [[u16; 4]; 4] = [
+        [90, 90, 90, 90],     // ui portrait
+        [270, 270, 270, 270], // ui portrait upside down
+        [0, 0, 0, 0],         // ui landscape left (by value: right)
+        [180, 180, 180, 180], // ui landscape right (by value: left)
+    ];
+    const FRONT_ROTATIONS: [[u16; 4]; 4] = [
+        [90, 90, 270, 270], // ui portrait
+        [270, 270, 90, 90], // ui portrait upside down
+        [0, 0, 180, 180],   // ui landscape left (by value: right)
+        [180, 180, 0, 0],   // ui landscape right (by value: left)
+    ];
+    let table = if position == CameraPosition::BackFacing {
+        &BACK_ROTATIONS
+    } else {
+        &FRONT_ROTATIONS
+    };
+    let row = usize::try_from(ui_orientation - 1).ok();
+    let column = usize::try_from(device_orientation - 1).ok();
+    match (row, column) {
+        (Some(row), Some(column)) if row < 4 && column < 4 => table[row][column] as f32,
+        _ => 0.0, // (outside upstream's tables)
+    }
+}
+
+/// `[UIDevice currentDevice].orientation`.
+#[cfg(target_os = "ios")]
+fn uidevice_orientation() -> UIDeviceOrientation {
+    // SAFETY: a UIDevice property.
+    unsafe { msg_send![current_device(), orientation] }
+}
+
+/// `[[UIDevice currentDevice] endGeneratingDeviceOrientationNotifications]`,
+/// ending what `COREMEDIA_OpenDevice()` began.
+#[cfg(target_os = "ios")]
+fn end_generating_device_orientation_notifications() {
+    // SAFETY: a UIDevice method without arguments.
+    unsafe {
+        let _: () = msg_send![
+            current_device(),
+            endGeneratingDeviceOrientationNotifications
+        ];
+    }
 }
 
 /// A device's handle: its `AVCaptureDevice` (upstream's
@@ -302,6 +410,9 @@ struct CoreMediaCamera {
     session: Mutex<StrongPtr>,
     delegate: Mutex<StrongPtr>,
     current_sample: Mutex<SampleBuffer>,
+    /// The last valid device orientation (iOS).
+    #[cfg(target_os = "ios")]
+    last_device_orientation: AtomicIsize,
 }
 
 impl CoreMediaCamera {
@@ -472,13 +583,34 @@ extern "C" fn delegate_dealloc(this: Id, _sel: Sel) {
 
 // ---------------------------------------------------------------------------
 
+#[cfg(target_os = "ios")]
+impl CoreMediaCamera {
+    /// The rotation of the frame `COREMEDIA_AcquireFrame()` gives
+    /// (`USE_UIKIT_DEVICE_ROTATION`).
+    fn rotation(&self, device: &CameraDevice) -> f32 {
+        let mut device_orientation = uidevice_orientation();
+        if !device_orientation_is_valid_interface_orientation(device_orientation) {
+            // possible the phone is laying flat or something went wrong, just stay with the last known-good orientation.
+            device_orientation = self.last_device_orientation.load(Ordering::Relaxed);
+        } else {
+            // update the last known-good orientation for later.
+            self.last_device_orientation
+                .store(device_orientation, Ordering::Relaxed);
+        }
+
+        let ui_orientation = crate::video::drivers::uikit::get_interface_orientation();
+
+        frame_rotation(device.position, ui_orientation, device_orientation)
+    }
+}
+
 impl CameraBackend for CoreMediaCamera {
     fn wait_device(&self, _device: &CameraDevice) -> bool {
         // Translation of `COREMEDIA_WaitDevice()`.
         true // this isn't used atm, since we run our own thread out of Grand Central Dispatch.
     }
 
-    fn acquire_frame(&self, _device: &CameraDevice) -> CameraFrameResult {
+    fn acquire_frame(&self, device: &CameraDevice) -> CameraFrameResult {
         // Translation of `COREMEDIA_AcquireFrame()`.
         let sample_buffer = self.take_current_sample();
         crate::sdl_assert!(!sample_buffer.is_null()); // should only have been called from our delegate with a new frame.
@@ -559,11 +691,19 @@ impl CameraBackend for CoreMediaCamera {
 
             CVPixelBufferUnlockBaseAddress(image, 0);
 
+            #[cfg(target_os = "ios")]
+            let rotation = self.rotation(device);
+            #[cfg(not(target_os = "ios"))]
+            let rotation = {
+                let _ = device;
+                0.0 // (USE_UIKIT_DEVICE_ROTATION is iOS only)
+            };
+
             result.unwrap_or(CameraFrameResult::Ready(AcquiredFrame {
                 pixels,
                 pitch,
                 timestamp_ns,
-                rotation: 0.0, // (USE_UIKIT_DEVICE_ROTATION is iOS only)
+                rotation,
             }))
         }
     }
@@ -577,6 +717,9 @@ impl CameraBackend for CoreMediaCamera {
     fn close_device(&self, _device: &CameraDevice) {
         // Translation of `COREMEDIA_CloseDevice()`.
         autoreleasepool(|| {
+            #[cfg(target_os = "ios")]
+            end_generating_device_orientation_notifications();
+
             let session =
                 std::mem::take(&mut *self.session.lock().unwrap_or_else(|e| e.into_inner()));
             if !session.is_nil() {
@@ -693,7 +836,11 @@ fn open_device(device: &Arc<CameraDevice>, spec: &CameraSpec) -> Result<Arc<Core
         }
 
         let _: () = msg_send![session, setSessionPreset: AVCaptureSessionPresetHigh];
-        // (the iOS build turns off automaticallyConfiguresCaptureDeviceForWideColor)
+        #[cfg(target_os = "ios")]
+        if available!(ios(10, 0), tvos(17, 0)) {
+            let _: () =
+                msg_send![session, setAutomaticallyConfiguresCaptureDeviceForWideColor: Bool::NO];
+        }
 
         let mut error: Id = std::ptr::null_mut();
         let input: Id = msg_send![class!(AVCaptureDeviceInput), deviceInputWithDevice: avdevice
@@ -734,6 +881,8 @@ fn open_device(device: &Arc<CameraDevice>, spec: &CameraSpec) -> Result<Arc<Core
             session: Mutex::new(StrongPtr::nil()),
             delegate: Mutex::new(StrongPtr::nil()),
             current_sample: Mutex::new(SampleBuffer(std::ptr::null())),
+            #[cfg(target_os = "ios")]
+            last_device_orientation: AtomicIsize::new(0),
         });
 
         let delegate = new_delegate(DelegateTarget {
@@ -776,7 +925,25 @@ fn open_device(device: &Arc<CameraDevice>, spec: &CameraSpec) -> Result<Arc<Core
         *hidden.delegate.lock().unwrap_or_else(|e| e.into_inner()) = delegate;
         hidden.set_current_sample(std::ptr::null());
 
-        // (USE_UIKIT_DEVICE_ROTATION's orientation tracking is iOS only)
+        #[cfg(target_os = "ios")]
+        {
+            // When using a camera, we turn on device orientation tracking. The docs note that this turns on
+            // the device's accelerometer, so I assume this burns power, so we don't leave this running all
+            // the time. These calls nest, so we just need to call the matching `end` message when we close.
+            // You _can_ get an actual events through this mechanism, but we just want to be able to call
+            // -[UIDevice orientation], which will update with real info while notifications are enabled.
+            let uidevice = current_device();
+            let _: () = msg_send![uidevice, beginGeneratingDeviceOrientationNotifications];
+            let mut last = uidevice_orientation();
+            if !device_orientation_is_valid_interface_orientation(last) {
+                last = device_orientation_from_interface(
+                    crate::video::drivers::uikit::get_interface_orientation(),
+                );
+            }
+            hidden
+                .last_device_orientation
+                .store(last, Ordering::Relaxed);
+        }
 
         let _: () = msg_send![session, startRunning]; // !!! FIXME: docs say this can block while camera warms up and shouldn't be done on main thread. Maybe push through `queue`?
 
@@ -839,6 +1006,25 @@ unsafe fn maybe_add_device(avdevice: Id) {
     }
 }
 
+/// The device types `COREMEDIA_DetectDevices()`'s discovery session asks
+/// for, by their constants' names (looked up at run time, as upstream's
+/// references to the newer ones are weak).
+const DEVICE_TYPES: &[&std::ffi::CStr] = &[
+    #[cfg(target_os = "ios")]
+    c"AVCaptureDeviceTypeBuiltInTelephotoCamera",
+    #[cfg(target_os = "ios")]
+    c"AVCaptureDeviceTypeBuiltInDualCamera",
+    #[cfg(target_os = "ios")]
+    c"AVCaptureDeviceTypeBuiltInDualWideCamera",
+    #[cfg(target_os = "ios")]
+    c"AVCaptureDeviceTypeBuiltInTripleCamera",
+    #[cfg(target_os = "ios")]
+    c"AVCaptureDeviceTypeBuiltInUltraWideCamera",
+    #[cfg(not(target_os = "ios"))]
+    c"AVCaptureDeviceTypeExternalUnknown",
+    c"AVCaptureDeviceTypeBuiltInWideAngleCamera",
+];
+
 /// The video capture devices (`COREMEDIA_DetectDevices()`'s list).
 ///
 /// # Safety
@@ -852,15 +1038,11 @@ unsafe fn video_devices() -> Vec<Id> {
             // kind of annoying that there isn't a "give me anything that looks like a camera" option,
             // so this list will need to be updated when Apple decides to add
             // AVCaptureDeviceTypeBuiltInQuadrupleCamera some day.
-            // (the iOS build lists its telephoto, dual, triple and ultra
-            // wide cameras here instead of external ones)
-            let device_types: Vec<Id> = [
-                weak_ns_string_constant(c"AVCaptureDeviceTypeExternalUnknown"),
-                weak_ns_string_constant(c"AVCaptureDeviceTypeBuiltInWideAngleCamera"),
-            ]
-            .into_iter()
-            .filter(|t| !t.is_null())
-            .collect();
+            let device_types: Vec<Id> = DEVICE_TYPES
+                .iter()
+                .map(|name| weak_ns_string_constant(name))
+                .filter(|t| !t.is_null())
+                .collect();
             let device_types: Id = msg_send![class!(NSArray), arrayWithObjects: device_types.as_ptr()
                                                              count: device_types.len() as NSUInteger];
 
