@@ -143,8 +143,7 @@ they are used (there is no build script to make aliases):
   GPU API's Metal backend) and the dummy ones upstream uses there; a
   macOS-only backend (Cocoa, IOKit, LaunchServices) is
   `target_os = "macos"`, and so is an Apple-wide one until its UIKit half
-  is translated (CoreAudio, MFi, the Metal renderer, CoreMedia, the
-  notifications). Until then a subsystem falls back to what else is built,
+  is translated (CoreAudio, MFi, CoreMedia, the notifications). Until then a subsystem falls back to what else is built,
   as upstream would without the piece (the offscreen and dummy video
   drivers, the dummy audio driver...). The UIKit pieces that backends
   other than the video driver share (UIDevice, UIApplication, the form
@@ -217,6 +216,25 @@ they are used (there is no build script to make aliases):
   the bootstrap's message box, as the driver, only shows one in an app,
   on its main thread (`Note`), and fails with upstream's "Could not show
   message box." elsewhere.
+* Metal views are upstream's `SDL_uikitmetalview`, a subclass of the
+  run-time `SDL_uikitview` (so it becomes the window's view as any of
+  them does). The Metal renderer and the GPU API's blit shaders take
+  upstream's precompiled libraries for the platform, generated from its
+  headers (`tools/gen_metal_render_shaders.py PLATFORM`,
+  `tools/gen_metal_shaders.py PLATFORM`) into a file each, the module
+  chosen by `cfg` (`#[path]`) as upstream's `#if` chain chooses the
+  header: the renderer's tests macOS, then tvOS (simulator, device), then
+  the rest (simulator, device), while `Metal_Blit.h` tests
+  `SDL_PLATFORM_IOS` first, so tvOS takes the iOS blit libraries and its
+  own are never used (`FIXME (upstream)`; they aren't generated). The
+  renderer's other UIKit branches are `cfg`s too (`CONSTANT_ALIGN()`,
+  256 on macOS, the simulators and Mac Catalyst, the type's alignment on
+  the devices; vsync, which only Mac layers can turn off; the iOS and
+  tvOS feature sets' maximum texture size; no EDR on tvOS). visionOS's
+  RealityKit paths are the Swift bridge's and aren't translated. Until
+  OpenGL ES is translated, a UIKit window that asks for no graphics API
+  gets the Metal flag (`SDL_DefaultGraphicsBackends()`'s next choice),
+  where upstream's gets the OpenGL one.
 
 ## Testing
 
