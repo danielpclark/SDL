@@ -327,6 +327,10 @@ def write_bundle(program, macho, app, identifier):
         "CADisableMinimumFrameDurationOnPhone": True,
         "NSCameraUsageDescription": "The SDL tests check the camera.",
         "NSMicrophoneUsageDescription": "The SDL tests check audio recording.",
+        # (CoreBluetooth, which HIDAPI's Steam Controller backend starts,
+        # ends an app without them)
+        "NSBluetoothAlwaysUsageDescription": "The SDL tests check Bluetooth Steam Controllers.",
+        "NSBluetoothPeripheralUsageDescription": "The SDL tests check Bluetooth Steam Controllers.",
         # (the bundle identifier as a URL scheme the app handles and may
         # ask about, for its own URLs)
         "CFBundleURLTypes": [{"CFBundleURLName": identifier, "CFBundleURLSchemes": [identifier]}],
