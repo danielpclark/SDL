@@ -35,9 +35,11 @@
 //! The expected trace is upstream's C SDL's, from the same program in C
 //! run the same way on the same simulator (an iPhone 16 with iOS 18.5).
 //! Upstream gives every window that asks for no graphics API the OpenGL
-//! flag on UIKit (OpenGL ES isn't translated yet), so the flags are traced
-//! without it; upstream's window pointer property is a pointer, here a
-//! number (as the other drivers' are), traced as `(pointer)` both ways; the
+//! flag on UIKit; OpenGL ES isn't translated yet, so here such a window
+//! gets the Metal flag, upstream's next default
+//! (`SDL_DefaultGraphicsBackends()`), and the flags are traced without
+//! either; upstream's window pointer property is a pointer, here a number
+//! (as the other drivers' are), traced as `(pointer)` both ways; the
 //! mice's device events are left out. Elsewhere this program does
 //! nothing.
 
@@ -494,7 +496,8 @@ quit
             w.pixel_density().unwrap_or_default(),
             w.display_scale().unwrap_or_default()
         ));
-        let flags = w.flags().unwrap_or_default().0 & !WindowFlags::OPENGL.0;
+        let flags =
+            w.flags().unwrap_or_default().0 & !(WindowFlags::OPENGL.0 | WindowFlags::METAL.0);
         t(format!(
             "{label}: flags={flags:#x} safe_area={},{} {}x{} display={}",
             safe.x,
