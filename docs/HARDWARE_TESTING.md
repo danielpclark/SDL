@@ -52,7 +52,7 @@ Every skip names one *capability* (the list is `CAPABILITIES` in
 | `desktop` | Windows | an interactive desktop the windows video driver can open windows on (and move the cursor on) |
 | `cocoa` | macOS | a login session whose window server shows windows (Aqua), for the main-thread programs `cargo test -p sdl3 --test cocoa`, `--test cocoa_shell` and `--test cocoa_metal` (and `cargo test -p sdl3-shadercross --test metal`) |
 | `coreaudio` | macOS, iOS Simulator | CoreAudio with a default playback and a default recording device (on the simulator, the Mac's audio, through the app's audio session) |
-| `metal` | macOS, iOS Simulator | a Metal device (`MTLCreateSystemDefaultDevice()`): the GPU API's Metal backend, the GPU renderer on it, and the Metal renderer |
+| `metal` | macOS, iOS, tvOS and visionOS Simulators | a Metal device (`MTLCreateSystemDefaultDevice()`): the GPU API's Metal backend, the GPU renderer on it, and the Metal renderer (on the visionOS Simulator, the GPU API's indirect draws and dispatches too, which its device hasn't) |
 | `gles` | iOS Simulator | OpenGL ES through EAGL (`EAGLContext`, which Apple deprecated; the simulator's renderer is "Apple Software Renderer"), for `uikit_gles`'s contexts and the OpenGL ES 2 renderer on UIKit windows |
 | `gamecontroller` | iOS Simulator | GameController's on-screen virtual controller (`GCVirtualController`, iOS 15), which `uikit_gamepad` connects as a controller |
 | `idb` | iOS Simulator | idb (fb-idb's `idb` client, a Python program, and its `idb_companion`, in `PATH` or `SDL3_IOS_IDB`), through which `tools/ios_run.py` touches the simulator's screen and presses its keyboard's keys, for `uikit_input`'s real taps and swipes, `uikit_keyboard`'s real keys and text and `uikit_messagebox`'s tap on a button (see [below](#ios-simulator)) |
@@ -1225,6 +1225,92 @@ system's focus engine need an Apple TV (or a person at the simulator's
 remote window): the presses and swipes the remote sends are stand-ins
 here.
 
+## visionOS Simulator
+
+The sdl3 crate's tests run on the visionOS Simulator the same way, built
+for `aarch64-apple-visionos-sim` (a tier 2 target), on a Mac with Xcode
+and a visionOS Simulator runtime: the runner tells a visionOS program by
+its Mach-O file's build version, and runs it on an Apple Vision Pro
+simulator (`SDL3_VISIONOS_SIMULATOR`, else a booted one, else
+`sdl3-TYPE-RUNTIME`, made of `SDL3_VISIONOS_DEVICE_TYPE` on
+`SDL3_VISIONOS_RUNTIME`; by default the Apple Vision Pro on the newest
+visionOS runtime, whose identifiers say `xrOS`), as a process of it or as
+an app whose bundle is a visionOS app's (`UIDeviceFamily` 7, the
+`XRSimulator` platform, no orientations):
+
+```sh
+rustup target add aarch64-apple-visionos-sim
+export SDL3_VISIONOS_SIMULATOR=$(tools/ios_run.py --boot visionos)
+cargo test -p sdl3 --target aarch64-apple-visionos-sim
+```
+
+(The other crates are pure code there, as on iOS; `--workspace` runs
+them too.) The simulated Apple Vision Pro is a 1280x720-point window
+scene (visionOS has no screen: the display is upstream's fake one, of
+density 2 at 90 Hz, its HDR on with a headroom of 2), whose windows are
+the size they ask for (the scene is asked for it), with no safe area
+margins, orientations or status bar. Its Metal device ("Apple xrOS
+simulator GPU") has only the Apple1 and Apple2 families: the Metal
+renderer works, and so does the GPU API, which upstream takes on any
+visionOS device, but for the indirect draws and dispatches the device
+hasn't (Metal's validation would end the process: those tests skip,
+`metal`, "no indirect draws or dispatches"); every renderer's output is
+linear sRGB, as upstream's (`SDL_SetupRendererColorspace()`), so the
+software renderer can't be made there. There's the Mac's audio, the
+built-in "Gamepad" controller and the coalesced keyboard ("Keyboard"),
+no battery (the power state is unknown), no CoreMotion sensors, no
+camera (none is built), no MoltenVK, and no virtual joysticks (upstream's
+CMake build has none without HIDAPI, which it doesn't build there).
+Processes are POSIX (the host's `/bin/sh` runs). The `background`
+request brings the Settings app (`com.apple.Preferences`) to the front.
+The UIKit programs for iOS and tvOS alone are empty there, and the
+visionOS ones are:
+
+* `uikit_visionos`: the platform name ("visionOS"), the drivers (no
+  OpenGL ES), the form factor (a headset), the power state, the pref
+  path (in Application Support) and user folders, a relative path's file,
+  a process (`/bin/sh`'s output and exit status), the sensors, the
+  virtual joysticks' error and the status bar's (unsupported), everything
+  the display answers, windows (made, hidden and shown, borderless,
+  fullscreen, resized through the window scene, with animation callbacks,
+  one made with visionOS settings, a curved window upstream with its
+  Swift code, a flat one here whose settings are kept: their sizes,
+  flags, `UIWindow`, root view controller, its orientations and container
+  background style, the view's gesture recognizers and interactions, the
+  properties), the clipboard, and the renderers' colorspace (the Metal
+  renderer's linear output whatever is asked for, its clears read back as
+  RGBA64 floats, the software renderer's and the window surface's);
+* `uikit_visionos_input`: the view's presses (stand-ins for `UIPress`,
+  `UIKey` and `UIPressesEvent`: the arrows, select as Return, menu as
+  Escape, play/pause as Pause, and a key), with the coalesced keyboard
+  posted as disconnected; text input through the hidden text field (typed
+  in-process); and a stand-in extended gamepad (`+[GCController
+  controllerWithExtendedGamepad]`) posted as connected, opened as a
+  gamepad (while it's open the presses without a key are nothing), its
+  d-pad and buttons set, closed and disconnected;
+* `uikit_callbacks`, `uikit_main`, `uikit_metal` and `uikit_input`, which
+  run on visionOS too: the main callbacks; the app delegate, the
+  lifecycle, the event pump and URLs, without the status bar's
+  notification; the Metal views and renderer, each scene's hash compared
+  with upstream's alone (no software renderer, and the custom blend mode
+  blends in linear sRGB), where nothing turns; the touches, the pointer,
+  the Pencil, the pinch gesture and the game controllers' mice given to
+  the view's handlers as stand-ins, without idb (which isn't set up for
+  the visionOS Simulator: its real touches skip, `idb`).
+
+Each compares its trace with upstream's C SDL's, from the same program in
+C run the same way on the CI's simulator (an Apple Vision Pro with
+visionOS 2.5), built from upstream's CMake build for the visionOS
+Simulator. That build needs two changes to compile: the Swift code's
+generated header, which `SDL_uikitviewcontroller.m` imports and only
+Xcode makes, is an empty stand-in (`SDL3/SDL3-Swift.h`: the Swift code
+isn't built, as in the translation), and `SDL_UIKitBridge.m`'s
+`SDL_UIKit_HideCurvedWindow()` returns `nil` from a `void` function,
+which clang rejects (`FIXME (upstream)`; plain returns). Neither changes
+what a flat window does. A real Apple Vision Pro, its eyes and hands
+(the touches are the system's), curved windows and immersive spaces need
+a device and upstream's Swift code, out of scope here.
+
 ## CI
 
 The ubuntu test jobs install the packages above, start the private
@@ -1270,7 +1356,17 @@ device build, with the iOS job's skip check (no idb: the tvOS programs
 don't use it); `tvos_only` and `tvos_test_args` run it alone, with other
 arguments. The Linux clippy job lints the tvOS builds too (the device, the
 arm64 Simulator, and the x86-64 Simulator, a tier 3 target whose standard
-library it builds with `-Zbuild-std`). The
+library it builds with `-Zbuild-std`). The visionOS job, on the same
+image, Xcode and visionOS 2.5 runtime, runs the sdl3 crate's library
+tests and its visionOS programs (`uikit_visionos`,
+`uikit_visionos_input`, `uikit_main`, `uikit_callbacks`, `uikit_metal`
+and `uikit_input`) on an Apple Vision Pro simulator as
+[above](#visionos-simulator) (the other crates are pure code the iOS and
+tvOS jobs run), and links the sdl3 crate's device build, failing on any
+skip but those of `vulkan`, `egl`, `idb` and the simulator's indirect
+draws (`metal`); `visionos_only` and `visionos_test_args` run it alone,
+with other arguments. The Linux clippy job lints the visionOS builds too
+(the device and the arm64 Simulator). The
 Emscripten job runs the tests under node as [above](#emscripten-under-node),
 with emsdk and emcc's sysroot libraries cached, and the browser programs
 (`emscripten_browser`, `emscripten_video`, `emscripten_events`,
