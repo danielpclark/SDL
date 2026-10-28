@@ -604,6 +604,13 @@ jobs:
           grep -E -B30 "process didn't exit" "$RUNNER_TEMP/test.log" | cut -c1-400 | head -1000 || true
           xcrun simctl spawn "$SDL3_TVOS_SIMULATOR" log show --last 30m --style compact \
             --predicate 'processImagePath CONTAINS "/target/" OR processImagePath CONTAINS "/Containers/Bundle/Application/"' | tail -300 || true
+      - name: Upstream C reference (diag)
+        if: always()
+        shell: bash
+        env:
+          UPSTREAM_COMMIT: ea7a2dabfd1ab6b0a5720568ffd207f5825e47f1
+          REF_PROGRAMS: session_spawn_ref uikit_tvos_ref
+        run: bash tvos-ref/run.sh 2>&1
 
   doc:
     name: rustdoc
