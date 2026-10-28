@@ -265,6 +265,10 @@ pub(crate) mod test_support {
             "OpenGL ES through EAGL (EAGLContext) on iOS and tvOS",
         ),
         (
+            "gamecontroller",
+            "GameController's on-screen virtual controller (GCVirtualController, iOS 15) on the iOS Simulator",
+        ),
+        (
             "idb",
             "idb (fb-idb and idb_companion), through which tools/ios_run.py touches the iOS Simulator's screen",
         ),
