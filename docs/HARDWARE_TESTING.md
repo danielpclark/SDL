@@ -53,6 +53,7 @@ Every skip names one *capability* (the list is `CAPABILITIES` in
 | `cocoa` | macOS | a login session whose window server shows windows (Aqua), for the main-thread programs `cargo test -p sdl3 --test cocoa`, `--test cocoa_shell` and `--test cocoa_metal` (and `cargo test -p sdl3-shadercross --test metal`) |
 | `coreaudio` | macOS | CoreAudio with a default playback and a default recording device |
 | `metal` | macOS, iOS Simulator | a Metal device (`MTLCreateSystemDefaultDevice()`): the GPU API's Metal backend, the GPU renderer on it, and the Metal renderer |
+| `gles` | iOS Simulator | OpenGL ES through EAGL (`EAGLContext`, which Apple deprecated; the simulator's renderer is "Apple Software Renderer"), for `uikit_gles`'s contexts and the OpenGL ES 2 renderer on UIKit windows |
 | `idb` | iOS Simulator | idb (fb-idb's `idb` client, a Python program, and its `idb_companion`, in `PATH` or `SDL3_IOS_IDB`), through which `tools/ios_run.py` touches the simulator's screen and presses its keyboard's keys, for `uikit_input`'s real taps and swipes, `uikit_keyboard`'s real keys and text and `uikit_messagebox`'s tap on a button (see [below](#ios-simulator)) |
 | `browser` | Emscripten | a browser the program runs in: headless Chrome or Chromium, through `tools/emscripten_run.py` (see [below](#emscripten-browser)) |
 | `webgl` | Emscripten | WebGL contexts in that browser (without a GPU, SwiftShader, which the runner's flags allow): `emscripten_browser.rs`'s probe and `emscripten_gl.rs` |
@@ -915,10 +916,35 @@ the scenes the other renderers' tests draw (each read back and hashed,
 and compared with the software renderer's), its drawable following the
 window as it turns, and the renderer made again on the window's Metal
 view; and it asks the GPU API for a Metal device and a "gpu" renderer,
-which the simulator can't have (below). All nine compare a trace with
-upstream's C SDL's, from the same programs in C run the same way on the
-CI's simulator (an iPhone 16 with iOS 18.5); `uikit_metal`'s hashes are
-of the same pixels. The simulator's Metal device is in the Apple1
+which the simulator can't have (below); `uikit_gles` makes OpenGL ES
+contexts (EAGL, `gles`) on a window that asks for no graphics API, for
+OpenGL ES 2.0, 3.0 and 1.1 (and 3.1 and 4.0, which EAGL hasn't): what's
+current, the GL strings, the attributes read back, the window's
+`SDL_PROP_WINDOW_UIKIT_OPENGL_*_NUMBER` properties against the bindings,
+the `SDL_uikitopenglview` and its `CAEAGLLayer`, a clear read back, a
+swap and the swap interval (which UIKit doesn't set); contexts sharing a
+share group or not; sRGB (asked for, and forced either way by the hint),
+RGB565, depth and stencil, a drawable that isn't retained, and
+multisampling with OpenGL ES 2.0 and 3.0; the current context restored
+by the event pump, before the animation callbacks and by raising the
+window, after another EAGL context was made current; the battery
+monitoring the swaps turn off (upstream's assertion that it was on fails
+on the simulator, which keeps it off: C and Rust both count the failures
+with an assertion handler that ignores them, the runner's `SDL_ASSERT=abort`
+being the default handler's); a high-density window's renderbuffers
+following it as it turns; then the OpenGL ES 2 renderer on it (its
+state, the scenes `uikit_metal` draws, each read back, hashed and
+compared with the software renderer's, vsync, the output following the
+window as it turns), on a Metal window (made again with the OpenGL
+flag), and the default renderer (Metal) on a window that asks for no
+graphics API (made again with the Metal flag). All ten compare a trace
+with upstream's C SDL's, from the same programs in C run the same way on
+the CI's simulator (an iPhone 16 with iOS 18.5); `uikit_metal`'s and
+`uikit_gles`'s hashes are of the same pixels (`uikit_gles`'s C program is
+built on an upstream whose GLES2 program cache keeps its list's tail,
+which upstream's loses, freeing an entry twice when the renderer is
+destroyed: the `Note (upstream)` on the Rust cache). The simulator's Metal
+device is in the Apple1
 family, so the renderer lists the packed 16-bit formats, but its Metal
 refuses them (an assertion ends the process, upstream's too), so they
 aren't drawn there.
@@ -934,8 +960,9 @@ skip `vulkan`. The
 offscreen driver has no EGL there, as on macOS (`egl`). The UIKit video
 driver only starts in an app, so the spawned programs use the offscreen
 and dummy drivers there, as elsewhere (and so its message boxes only
-show in an app); its windows' OpenGL ES and Vulkan views, and the iOS
-halves of CoreAudio, MFi and the camera, aren't translated yet.
+show in an app); its windows' Vulkan views, the OpenGL ES 1 renderer,
+and the iOS halves of CoreAudio, MFi and the camera, aren't translated
+yet.
 
 ## CI
 
@@ -972,7 +999,8 @@ programs build), links the device build without running it, and makes its
 skip log from the notes the programs print (`tools/ci/skips_from_log.py`,
 as the Emscripten job does, so that the apps' skips, written in their
 own containers, are listed too), failing on any skip but the simulator's
-of `metal`, `vulkan` and `egl` (above: so `idb` is required); a manual run
+of `metal`, `vulkan` and `egl` (above: so `idb` and `gles` are
+required); a manual run
 of the workflow can run that job alone (`ios_only`) and pass it other
 `cargo test` arguments (`ios_test_args`). The
 Emscripten job runs the tests under node as [above](#emscripten-under-node),
