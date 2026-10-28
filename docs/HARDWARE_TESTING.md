@@ -51,7 +51,7 @@ Every skip names one *capability* (the list is `CAPABILITIES` in
 | `controller` | any | a connected game controller (only the hardware checks need one) |
 | `desktop` | Windows | an interactive desktop the windows video driver can open windows on (and move the cursor on) |
 | `cocoa` | macOS | a login session whose window server shows windows (Aqua), for the main-thread programs `cargo test -p sdl3 --test cocoa`, `--test cocoa_shell` and `--test cocoa_metal` (and `cargo test -p sdl3-shadercross --test metal`) |
-| `coreaudio` | macOS | CoreAudio with a default playback and a default recording device |
+| `coreaudio` | macOS, iOS Simulator | CoreAudio with a default playback and a default recording device (on the simulator, the Mac's audio, through the app's audio session) |
 | `metal` | macOS, iOS Simulator | a Metal device (`MTLCreateSystemDefaultDevice()`): the GPU API's Metal backend, the GPU renderer on it, and the Metal renderer |
 | `gles` | iOS Simulator | OpenGL ES through EAGL (`EAGLContext`, which Apple deprecated; the simulator's renderer is "Apple Software Renderer"), for `uikit_gles`'s contexts and the OpenGL ES 2 renderer on UIKit windows |
 | `idb` | iOS Simulator | idb (fb-idb's `idb` client, a Python program, and its `idb_companion`, in `PATH` or `SDL3_IOS_IDB`), through which `tools/ios_run.py` touches the simulator's screen and presses its keyboard's keys, for `uikit_input`'s real taps and swipes, `uikit_keyboard`'s real keys and text and `uikit_messagebox`'s tap on a button (see [below](#ios-simulator)) |
@@ -961,8 +961,32 @@ offscreen driver has no EGL there, as on macOS (`egl`). The UIKit video
 driver only starts in an app, so the spawned programs use the offscreen
 and dummy drivers there, as elsewhere (and so its message boxes only
 show in an app); its windows' Vulkan views, the OpenGL ES 1 renderer,
-and the iOS halves of CoreAudio, MFi and the camera, aren't translated
-yet.
+and the iOS halves of MFi and the camera, aren't translated yet.
+
+CoreAudio runs there as on a device, its audio going to the Mac's
+output and coming from its input (the runner's are a "Speaker" and a
+built-in microphone, and its queues play and record). A spawned program
+has an audio session too (the CoreAudio tests open and close devices
+there, and read back the session's category, against upstream's C
+spawned the same way, whose `SDL_Init()` throws outside an app as it
+registers its notification delegate, so its program stands in a nil
+`UNUserNotificationCenter`); `uikit_audio`, an app the runner grants the
+microphone (the word `privacy=microphone`), traces the session's
+category, options and mode (read back from `[AVAudioSession
+sharedInstance]`) for each value of `SDL_HINT_AUDIO_CATEGORY`, with and
+without `SDL_HINT_AUDIO_DUCK_OTHERS`, as the default playback device
+opens and closes, then recording alone, with playback (play and record)
+and in the playback category (where it can't open: upstream's error is
+"Device not found", the `FIXME (upstream)` in the driver), and
+interruptions posted in-process (`AVAudioSessionInterruptionNotification`
+beginning and ending, without a type or without the session, ended by
+the app becoming active or coming to the foreground, with the device
+paused, closed and reopened), each checked by whether the devices'
+postmix callbacks run, then a stream's tone played to its end, and
+compares the trace with upstream's C SDL's (the same program in C, on the
+same simulator). Upstream
+leaves the session active, in its category, when the last device closes
+(the closing device still counts as open), which the trace shows too.
 
 ## CI
 
