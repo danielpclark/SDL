@@ -1263,6 +1263,15 @@ fn vulkan_releases_the_loader() {
         }
     };
     assert_eq!(loaded(), before + 1);
+    // The loss is simulated on a device that works, so its work is finished
+    // first, as a lost device's is: VULKAN_DestroyAll() destroys the device
+    // without waiting. The new renderer has work in flight (MoltenVK
+    // signals the semaphore of the first image acquired with a Metal
+    // command buffer of its own); destroyed under it, MoltenVK fails that
+    // command buffer, whose completion handler then reads the freed queue.
+    // SAFETY: the renderer's device.
+    let idle = unsafe { (data.dev().device_wait_idle)(data.device) };
+    assert_eq!(idle, VK_SUCCESS);
     assert!(data.handle_device_lost());
     let _ = crate::events::queue::get_events(EventType::FIRST, EventType::LAST, 100);
     assert_eq!(loaded(), before + 1);
