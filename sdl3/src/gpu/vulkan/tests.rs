@@ -3213,6 +3213,54 @@ fn diag_stress_free_then_destroy() {
     eprintln!("DIAG-STRESS done: {n} devices");
 }
 
+/// (diagnostic) host-visible memory allocated, a wait (a Metal command
+/// buffer while it's resident), the memory freed, a wait again: DIAG_N
+/// devices of DIAG_M cycles.
+#[test]
+#[ignore = "diagnostic"]
+fn diag_stress_alloc_wait_free_wait() {
+    let var = |name: &str, default: usize| -> usize {
+        std::env::var(name)
+            .ok()
+            .and_then(|s| s.parse().ok())
+            .unwrap_or(default)
+    };
+    let (n, m) = (var("DIAG_N", 10), var("DIAG_M", 200));
+    let _l = crate::test_support::test_lock();
+    let _v = Video::init();
+    for _ in 0..n {
+        let Some(r) = renderer() else {
+            return;
+        };
+        let props = &r.memory_properties;
+        let wanted = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+        let index = (0..props.memory_type_count as usize)
+            .find(|&i| props.memory_types[i].property_flags & wanted == wanted)
+            .unwrap() as u32;
+        for _ in 0..m {
+            let info = VkMemoryAllocateInfo {
+                s_type: VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+                p_next: std::ptr::null(),
+                allocation_size: 65536,
+                memory_type_index: index,
+            };
+            let mut memory = VK_NULL_HANDLE;
+            // SAFETY: the device's functions, a valid allocate info.
+            unsafe {
+                assert_eq!(
+                    (r.dev.allocate_memory)(r.logical_device, &info, null(), &mut memory),
+                    VK_SUCCESS
+                );
+                assert_eq!((r.dev.device_wait_idle)(r.logical_device), VK_SUCCESS);
+                (r.dev.free_memory)(r.logical_device, memory, null());
+                assert_eq!((r.dev.device_wait_idle)(r.logical_device), VK_SUCCESS);
+            }
+        }
+        drop(r);
+    }
+    eprintln!("DIAG-STRESS done: {n} devices of {m} cycles");
+}
+
 /// `vkEndCommandBuffer` that always fails.
 unsafe extern "system" fn failing_end_command_buffer(_command_buffer: VkCommandBuffer) -> VkResult {
     VK_ERROR_OUT_OF_DEVICE_MEMORY

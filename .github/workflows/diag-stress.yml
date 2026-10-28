@@ -52,23 +52,24 @@ jobs:
       - name: Alternate the variants
         shell: bash
         env:
-          DIAG_N: "100"
+          DIAG_N: "40"
+          DIAG_M: "100"
         run: |
           set +e
           start=$(date +%s)
           i=0
           touch "$RUNNER_TEMP/marker"
-          for v in heap_unmappable noheap_unmappable heap_buffer noheap_buffer; do
+          for v in heap_unmappable noheap_unmappable heap_awfw noheap_awfw; do
             eval "runs_$v=0 fails_$v=0 crashes_$v=0"
           done
-          while [ $(( $(date +%s) - start )) -lt 2100 ]; do
+          while [ $(( $(date +%s) - start )) -lt 1800 ]; do
             i=$((i + 1))
-            for v in heap_unmappable noheap_unmappable heap_buffer noheap_buffer; do
+            for v in heap_unmappable noheap_unmappable heap_awfw noheap_awfw; do
               rm -rf "$(getconf DARWIN_USER_CACHE_DIR)"com.apple.metal* 2>/dev/null
               case $v in noheap_*) export MVK_CONFIG_USE_MTLHEAP=0 ;; *) unset MVK_CONFIG_USE_MTLHEAP ;; esac
-              case $v in *_buffer) export DIAG_MODE=buffer ;; *) unset DIAG_MODE ;; esac
+              case $v in *_awfw) t=gpu::vulkan::tests::diag_stress_alloc_wait_free_wait ;; *) t=gpu::vulkan::tests::diag_stress_free_then_destroy ;; esac
               log="$RUNNER_TEMP/$v-$i.log"
-              cargo test -q -p sdl3 --lib -- --ignored --exact gpu::vulkan::tests::diag_stress_free_then_destroy > "$log" 2>&1
+              cargo test -q -p sdl3 --lib -- --ignored --exact $t > "$log" 2>&1
               rc=$?
               eval "runs_$v=\$((runs_$v + 1))"
               if [ $rc -ne 0 ]; then
@@ -92,7 +93,53 @@ jobs:
               fi
             done
           done
-          for v in heap_unmappable noheap_unmappable heap_buffer noheap_buffer; do
+          for v in heap_unmappable noheap_unmappable heap_awfw noheap_awfw; do
             eval "line=\"SUMMARY ${{ matrix.toolchain }} ${{ matrix.n }} $v: \$runs_$v processes of $DIAG_N devices, \$fails_$v failed, \$crashes_$v crashed\""
             echo "$line"; echo "$line" >> "$GITHUB_STEP_SUMMARY"
           done
+
+  full-noheap:
+    name: full lib tests without MTLHeaps (${{ matrix.toolchain }})
+    strategy:
+      fail-fast: false
+      matrix:
+        toolchain: ["1.87"]
+    runs-on: macos-latest
+    timeout-minutes: 60
+    env:
+      RUST_TEST_NOCAPTURE: 1
+      MVK_CONFIG_USE_MTLHEAP: 0
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ matrix.toolchain }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: diag-${{ matrix.toolchain }}
+          save-if: false
+      - name: Install MoltenVK
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/moltenvk.tar" "https://github.com/KhronosGroup/MoltenVK/releases/download/$MOLTENVK_VERSION/MoltenVK-macos.tar"
+          echo "$MOLTENVK_SHA256  $RUNNER_TEMP/moltenvk.tar" | shasum -a 256 -c
+          tar xf "$RUNNER_TEMP/moltenvk.tar" -C "$RUNNER_TEMP" MoltenVK/MoltenVK/dynamic/dylib/macOS/libMoltenVK.dylib
+          sudo mkdir -p /usr/local/lib
+          sudo cp "$RUNNER_TEMP/MoltenVK/MoltenVK/dynamic/dylib/macOS/libMoltenVK.dylib" /usr/local/lib/
+      - run: cargo test -p sdl3 --lib --no-run
+      - name: The lib tests five times, and the render states without the debug layer
+        shell: bash
+        env:
+          SDL3_TEST_SKIP_LOG: ${{ runner.temp }}/skips.tsv
+        run: |
+          set +e
+          fails=0
+          for i in 1 2 3 4 5; do
+            cargo test -q -p sdl3 --lib > "$RUNNER_TEMP/t$i.log" 2>&1
+            rc=$?
+            echo "run $i: rc=$rc $(grep -E '^test result:' "$RUNNER_TEMP/t$i.log")"
+            if [ $rc -ne 0 ]; then fails=$((fails + 1)); grep -A6 "panicked at" "$RUNNER_TEMP/t$i.log" | head -40; grep -E "^    [a-z_:]+$" "$RUNNER_TEMP/t$i.log" | head; fi
+          done
+          MTL_DEBUG_LAYER=0 SDL3_TEST_REQUIRE=vulkan cargo test -q -p sdl3 --lib render::gpu::tests::gpu_render_states -- --exact > "$RUNNER_TEMP/rs.log" 2>&1
+          echo "render states without the debug layer: rc=$? $(grep -E '^test result:' "$RUNNER_TEMP/rs.log")"
+          echo "skips:"; sort "$SDL3_TEST_SKIP_LOG" | uniq -c | cut -c1-200
+          [ $fails -eq 0 ]
