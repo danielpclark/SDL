@@ -41,9 +41,11 @@ use crate::core::apple::block::RcBlock;
 #[cfg(not(target_os = "visionos"))]
 use crate::core::apple::foundation::CGRect;
 use crate::core::apple::foundation::{available, ns_array_items, ns_string, string_from_ns};
+#[cfg(not(target_os = "tvos"))]
+use crate::core::apple::objc::NSUInteger;
 use crate::core::apple::objc::{
     autoreleasepool, class, encoding, imp, ivar_ptr, msg_send, msg_send_super, sel, Bool, Class,
-    ClassBuilder, DeclaredClass, Id, NSUInteger, Sel, StrongPtr, NIL, NO, YES,
+    ClassBuilder, DeclaredClass, Id, Sel, StrongPtr, NIL, NO, YES,
 };
 use crate::events::window::{send_drop_complete, send_drop_file};
 
@@ -177,7 +179,7 @@ fn main_bundle() -> Id {
 }
 
 /// `[UIImage imageNamed:name]`.
-#[cfg(not(target_os = "visionos"))]
+#[cfg(not(any(target_os = "tvos", target_os = "visionos")))]
 fn image_named(name: &str) -> Id {
     let name = ns_string(name);
     // SAFETY: UIImage's class method taking an NSString.

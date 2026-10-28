@@ -12,7 +12,11 @@
 //! ([`handle_pen_hover`], iOS 13, with the distance from iOS 16.1 and the
 //! angles from iOS 16.4) send its position, pressure, tilt (from the
 //! azimuth and altitude angles), rotation (the roll angle) and distance.
-//! Not on tvOS.
+//! Not on tvOS, where the view's touches are never the Pencil's (but for
+//! the hovering, the module is built there all the same, as upstream's).
+
+// (on tvOS the view doesn't call the touches' handlers)
+#![cfg_attr(target_os = "tvos", allow(dead_code))]
 
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::Arc;

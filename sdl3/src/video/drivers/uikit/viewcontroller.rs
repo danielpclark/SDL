@@ -49,6 +49,7 @@
 
 use std::cell::{Cell, RefCell};
 use std::ffi::{c_char, c_void, CStr};
+#[cfg(not(target_os = "tvos"))]
 use std::sync::atomic::{AtomicI32, Ordering};
 use std::time::Duration;
 
@@ -65,7 +66,9 @@ use crate::events::keyboard::{
     hardware_keyboard_key_pressed, has_keyboard, send_keyboard_key, send_keyboard_key_auto_release,
     send_keyboard_text, send_keyboard_unicode_code, Scancode, GLOBAL_KEYBOARD_ID,
 };
-use crate::events::window::{send_window_event, WindowFlags};
+use crate::events::window::send_window_event;
+#[cfg(not(target_os = "tvos"))]
+use crate::events::window::WindowFlags;
 use crate::events::{EventType, WindowID};
 use crate::properties::Properties;
 use crate::video::core::with_window;
@@ -484,7 +487,8 @@ extern "C" fn vc_dealloc(this: Id, _sel: Sel) {
     // it removes the hint's callback and releases the display link.
     unsafe {
         let slot = state_ivar(this);
-        let state = std::mem::replace(&mut *slot, std::ptr::null_mut());
+        let state = *slot;
+        *slot = std::ptr::null_mut();
         if !state.is_null() {
             drop(Box::from_raw(state));
         }

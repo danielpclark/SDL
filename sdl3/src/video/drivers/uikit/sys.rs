@@ -143,6 +143,7 @@ pub(crate) const UIImageOrientationLeft: UIImageOrientation = 2;
 pub(crate) const UIImageOrientationRight: UIImageOrientation = 3;
 
 /// `UIUserInterfaceIdiom`'s values are in [`crate::core::apple::uikit`].
+#[cfg(not(target_os = "tvos"))]
 pub(crate) use crate::core::apple::uikit::{
     UI_USER_INTERFACE_IDIOM_PAD as UIUserInterfaceIdiomPad,
     UI_USER_INTERFACE_IDIOM_PHONE as UIUserInterfaceIdiomPhone,
@@ -177,6 +178,18 @@ pub(crate) const UIGestureRecognizerStateChanged: UIGestureRecognizerState = 2;
 pub(crate) const UIGestureRecognizerStateEnded: UIGestureRecognizerState = 3;
 pub(crate) const UIGestureRecognizerStateCancelled: UIGestureRecognizerState = 4;
 pub(crate) const UIGestureRecognizerStateFailed: UIGestureRecognizerState = 5;
+
+/// `UISwipeGestureRecognizerDirection` (tvOS's swipes on the Siri Remote).
+#[cfg(target_os = "tvos")]
+pub(crate) type UISwipeGestureRecognizerDirection = crate::core::apple::objc::NSUInteger;
+#[cfg(target_os = "tvos")]
+pub(crate) const UISwipeGestureRecognizerDirectionRight: UISwipeGestureRecognizerDirection = 1 << 0;
+#[cfg(target_os = "tvos")]
+pub(crate) const UISwipeGestureRecognizerDirectionLeft: UISwipeGestureRecognizerDirection = 1 << 1;
+#[cfg(target_os = "tvos")]
+pub(crate) const UISwipeGestureRecognizerDirectionUp: UISwipeGestureRecognizerDirection = 1 << 2;
+#[cfg(target_os = "tvos")]
+pub(crate) const UISwipeGestureRecognizerDirectionDown: UISwipeGestureRecognizerDirection = 1 << 3;
 
 /// `UIEventButtonMask` (iOS 13.4): the buttons of the pointer pressed
 /// during an event (`UIEventButtonMaskPrimary` is bit 0, and so on).

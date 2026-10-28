@@ -33,7 +33,9 @@ use super::sys::*;
 use super::tables::*;
 use super::{lock, MetalRenderer};
 use crate::core::apple::foundation::{available, CGSize};
-use crate::core::apple::objc::{msg_send, Bool, Id, StrongPtr, NIL};
+#[cfg(not(target_os = "tvos"))]
+use crate::core::apple::objc::Bool;
+use crate::core::apple::objc::{msg_send, Id, StrongPtr, NIL};
 use crate::error::{Error, Result};
 use crate::gpu::sysgpu::{BackendObject, BackendSwapchainTexture, MAX_FRAMES_IN_FLIGHT};
 use crate::gpu::{

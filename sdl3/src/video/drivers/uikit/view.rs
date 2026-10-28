@@ -34,10 +34,11 @@
 //! buttons of the Apple TV Remote and the game controllers are the
 //! arrows, Return, Escape and Pause while no joystick is open. While text
 //! input is active they also go on to `UIView`'s handling (to the next
-//! responder).
-//!
-//! Not translated yet: tvOS's swipe gestures, and its remote's presses
-//! when the remote is opened as a joystick, which come with tvOS.
+//! responder). On tvOS the Siri Remote's buttons are those keys only
+//! while no remote is opened as a joystick (the game controllers send no
+//! presses there), and the swipes on its touch surface (four
+//! `UISwipeGestureRecognizer`s, one for each direction) are presses of the
+//! arrow keys, released at once, likewise.
 //!
 //! [`set_window_safe_area_insets`]: crate::video::core::set_window_safe_area_insets
 
@@ -128,6 +129,12 @@ pub(crate) fn uikitview_class() -> Class {
                 sel!(pressesChanged:withEvent:),
                 imp!(view_presses_changed as extern "C" fn(Id, Sel, Id, Id)),
                 c"v@:@@",
+            );
+            #[cfg(target_os = "tvos")]
+            b.add_method(
+                sel!(swipeGesture:),
+                imp!(view_swipe_gesture as extern "C" fn(Id, Sel, Id)),
+                c"v@:@",
             );
             #[cfg(not(target_os = "tvos"))]
             {
@@ -226,8 +233,23 @@ extern "C" fn view_init_with_frame(this: Id, _sel: Sel, frame: CGRect) -> Id {
     unsafe {
         let this: Id = msg_send_super![this, uikitview_class(), initWithFrame: frame];
         if !this.is_null() {
-            // (tvOS's swipe gestures for the Apple TV Remote's touch surface
-            // come with tvOS)
+            #[cfg(target_os = "tvos")]
+            {
+                // Apple TV Remote touchpad swipe gestures.
+                for direction in [
+                    UISwipeGestureRecognizerDirectionUp,
+                    UISwipeGestureRecognizerDirectionDown,
+                    UISwipeGestureRecognizerDirectionLeft,
+                    UISwipeGestureRecognizerDirectionRight,
+                ] {
+                    let swipe: Id = msg_send![class!(UISwipeGestureRecognizer), alloc];
+                    let swipe = StrongPtr::from_owned(msg_send![swipe,
+                        initWithTarget: this
+                        action: sel!(swipeGesture:)]);
+                    let () = msg_send![swipe.get(), setDirection: direction];
+                    let () = msg_send![this, addGestureRecognizer: swipe.get()];
+                }
+            }
 
             #[cfg(not(target_os = "tvos"))]
             {
@@ -817,6 +839,38 @@ extern "C" fn view_presses_changed(this: Id, _sel: Sel, presses: Id, event: Id) 
         unsafe {
             let () =
                 msg_send_super![this, uikitview_class(), pressesChanged: presses withEvent: event];
+        }
+    }
+}
+
+/// Translation of `-[SDL_uikitview swipeGesture:]`: a swipe on the Siri
+/// Remote's touch surface, an arrow key pressed and released, while no
+/// remote is opened as a joystick.
+#[cfg(target_os = "tvos")]
+extern "C" fn view_swipe_gesture(_this: Id, _sel: Sel, gesture: Id) {
+    // SAFETY: UISwipeGestureRecognizer's properties.
+    let (state, direction): (UIGestureRecognizerState, UISwipeGestureRecognizerDirection) =
+        unsafe { (msg_send![gesture, state], msg_send![gesture, direction]) };
+    // Swipe gestures don't trigger begin states.
+    if state == UIGestureRecognizerStateEnded {
+        // tvOS doesn't send these for game controllers, but does for the Siri remote
+        let controller_opened = crate::joystick::apple::APPLE_TV_REMOTE_OPENED_AS_JOYSTICK
+            .load(std::sync::atomic::Ordering::Relaxed)
+            > 0;
+        if !controller_opened {
+            /* Send arrow key presses for now, as we don't have an external API
+             * which better maps to swipe gestures. */
+            let scancode = match direction {
+                UISwipeGestureRecognizerDirectionUp => Scancode::UP,
+                UISwipeGestureRecognizerDirectionDown => Scancode::DOWN,
+                UISwipeGestureRecognizerDirectionLeft => Scancode::LEFT,
+                UISwipeGestureRecognizerDirectionRight => Scancode::RIGHT,
+                _ => return,
+            };
+            crate::events::keyboard::send_keyboard_key_auto_release(
+                std::time::Duration::ZERO,
+                scancode,
+            );
         }
     }
 }
