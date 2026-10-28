@@ -250,3 +250,11 @@ harness = false
 [[test]]
 name = "uikit_gamepad"
 harness = false
+
+[[test]]
+name = "uikit_hidapi"
+harness = false
+
+[[test]]
+name = "uikit_hidapi_ble"
+harness = false
