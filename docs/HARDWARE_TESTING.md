@@ -906,22 +906,36 @@ frames (none while a box is up), then dismisses it and calls the chosen
 action's handler (`handler`, a private property: test programs only);
 and one is answered by a real tap on its button through idb (the
 middle of the button's label, `idb`; without idb the trace is compared
-without those lines). All eight compare a trace with upstream's C SDL's,
-from the same programs in C run the same way on the CI's simulator (an
-iPhone 16 with iOS 18.5).
+without those lines); `uikit_metal` makes Metal views on a Metal window
+and on a high-density one, which it turns to landscape and back (their
+layers' drawable sizes against the windows' sizes in pixels, the views'
+resize events), then draws with the Metal renderer on it: its name,
+output size, maximum texture size, formats, vsync, device and layer,
+the scenes the other renderers' tests draw (each read back and hashed,
+and compared with the software renderer's), its drawable following the
+window as it turns, and the renderer made again on the window's Metal
+view; and it asks the GPU API for a Metal device and a "gpu" renderer,
+which the simulator can't have (below). All nine compare a trace with
+upstream's C SDL's, from the same programs in C run the same way on the
+CI's simulator (an iPhone 16 with iOS 18.5); `uikit_metal`'s hashes are
+of the same pixels. The simulator's Metal device is in the Apple1
+family, so the renderer lists the packed 16-bit formats, but its Metal
+refuses them (an assertion ends the process, upstream's too), so they
+aren't drawn there.
 
 The simulator has no GPU the GPU API can use: its Metal device supports
 only the Apple2 and Common1 families, below the Apple3 upstream's Metal
 backend asks for ("Device does not meet the hardware requirements for
 SDL_GPU Metal", as upstream's C says there too), and there's no MoltenVK,
-so the GPU API's Metal tests skip `metal`, and the Vulkan renderer's, the
-GPU API's Vulkan backend's and the GPU renderer's tests skip `vulkan`. The
+so the GPU API's Metal tests skip `metal` (the CI job allows no other
+`metal` skip: the Metal renderer has a device there), and the Vulkan
+renderer's, the GPU API's Vulkan backend's and the GPU renderer's tests
+skip `vulkan`. The
 offscreen driver has no EGL there, as on macOS (`egl`). The UIKit video
 driver only starts in an app, so the spawned programs use the offscreen
 and dummy drivers there, as elsewhere (and so its message boxes only
-show in an app); its windows' graphics views, and the iOS halves of
-CoreAudio, MFi, the Metal renderer and the camera, aren't translated
-yet.
+show in an app); its windows' OpenGL ES and Vulkan views, and the iOS
+halves of CoreAudio, MFi and the camera, aren't translated yet.
 
 ## CI
 
