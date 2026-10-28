@@ -25,6 +25,8 @@
 
 use std::io::Write;
 
+pub mod scenes;
+
 /// The runner's exit line: `sdl3-ios-runner: exit STATUS`, flushed, then
 /// `exit(STATUS)`.
 pub fn exit(status: i32) -> ! {
