@@ -7,16 +7,24 @@
 //!
 //! A [`Sensor`] is an open sensor; it is closed when the last handle to it
 //! is dropped (upstream reference counts `SDL_OpenSensor()` calls). The
-//! sensor drivers are platform backends: the Windows Sensor API driver on
-//! Windows, the `devicemotion` driver on Emscripten, and the dummy driver,
-//! which reports no sensors, elsewhere.
+//! sensor drivers are platform backends: the CoreMotion driver on iOS and
+//! visionOS, the Windows Sensor API driver on Windows, the `devicemotion`
+//! driver on Emscripten, and the dummy driver, which reports no sensors,
+//! elsewhere.
 //!
 //! Sensor data is in SI units: m/s² for accelerometers (a device at rest
 //! reports [`STANDARD_GRAVITY`] away from the center of the earth) and
 //! radians per second for gyroscopes, with the axes of the device in its
 //! natural orientation (see `SDL_sensor.h`).
 
-#[cfg(not(any(windows, target_os = "emscripten")))]
+#[cfg(any(target_os = "ios", target_os = "visionos"))]
+mod coremotion;
+#[cfg(not(any(
+    windows,
+    target_os = "emscripten",
+    target_os = "ios",
+    target_os = "visionos"
+)))]
 mod dummy;
 #[cfg(target_os = "emscripten")]
 mod emscripten;
@@ -174,12 +182,20 @@ pub(crate) trait SensorDriver: Send + Sync {
 
 /// The available sensor drivers. Translation of `SDL_sensor_drivers`.
 static SENSOR_DRIVERS: &[&dyn SensorDriver] = &[
+    // (SDL_SENSOR_COREMOTION: CMake's IOS, VISIONOS and WATCHOS)
+    #[cfg(any(target_os = "ios", target_os = "visionos"))]
+    &coremotion::COREMOTION_SENSOR_DRIVER,
     #[cfg(windows)]
     &windows::WINDOWS_SENSOR_DRIVER,
     #[cfg(target_os = "emscripten")]
     &emscripten::EMSCRIPTEN_SENSOR_DRIVER,
     // (SDL_SENSOR_DUMMY: where there's no other driver)
-    #[cfg(not(any(windows, target_os = "emscripten")))]
+    #[cfg(not(any(
+        windows,
+        target_os = "emscripten",
+        target_os = "ios",
+        target_os = "visionos"
+    )))]
     &dummy::DUMMY_SENSOR_DRIVER,
 ];
 
@@ -596,7 +612,12 @@ pub fn update_sensors() {
 mod tests {
     use super::*;
 
-    #[cfg(not(any(windows, target_os = "emscripten")))]
+    #[cfg(not(any(
+        windows,
+        target_os = "emscripten",
+        target_os = "ios",
+        target_os = "visionos"
+    )))]
     #[test]
     fn dummy_driver_has_no_sensors() {
         // (SENSOR implies EVENTS, whose events thread is the thread that
@@ -618,6 +639,57 @@ mod tests {
         assert!(Sensor::from_id(3).is_none());
         assert!(!sensors_opened());
         update_sensors();
+        init::quit_subsystem(InitFlags::SENSOR);
+    }
+
+    /// What CoreMotion reports (none on the iOS Simulator, which has no
+    /// accelerometer or gyroscope): the sensors' names, types and data, and
+    /// the motion manager's updates started and stopped.
+    #[cfg(any(target_os = "ios", target_os = "visionos"))]
+    #[test]
+    fn coremotion_driver_sensors() {
+        let _l = crate::test_support::test_lock();
+        init::set_main_ready();
+        init::init_subsystem(InitFlags::SENSOR).unwrap();
+        let ids = sensors();
+        println!("CoreMotion sensors: {}", ids.len());
+        for &id in &ids {
+            let sensor_type = sensor_type_for_id(id).unwrap();
+            assert!(matches!(sensor_type, SensorType::Accel | SensorType::Gyro));
+            assert_eq!(
+                sensor_non_portable_type_for_id(id).unwrap(),
+                sensor_type as i32
+            );
+            let name = sensor_name_for_id(id).unwrap().unwrap();
+            assert_eq!(
+                name,
+                if sensor_type == SensorType::Accel {
+                    "Accelerometer"
+                } else {
+                    "Gyro"
+                }
+            );
+            let sensor = Sensor::open(id).unwrap();
+            assert_eq!(sensor.sensor_type(), sensor_type);
+            std::thread::sleep(Duration::from_millis(100));
+            update_sensors();
+            let mut data = [0f32; 3];
+            sensor.data(&mut data).unwrap();
+            println!("{name}: {data:?}");
+            drop(sensor);
+        }
+        assert!(!sensors_opened());
+        assert_eq!(
+            sensor_name_for_id(0).unwrap_err().to_string(),
+            "Sensor 0 not found"
+        );
+        assert!(Sensor::open(0).is_err());
+        init::quit_subsystem(InitFlags::SENSOR);
+
+        // The same sensors after a restart (new instance IDs, the same
+        // motion manager)
+        init::init_subsystem(InitFlags::SENSOR).unwrap();
+        assert_eq!(sensors().len(), ids.len());
         init::quit_subsystem(InitFlags::SENSOR);
     }
 
