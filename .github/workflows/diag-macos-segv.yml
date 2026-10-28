@@ -30,9 +30,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { toolchain: "1.87", name: vulkan-a, args: "vulkan", lldb: false }
-          - { toolchain: "1.87", name: vulkan-b, args: "vulkan", lldb: false }
-          - { toolchain: "1.99", name: vulkan-pinned, args: "vulkan", lldb: false }
+          - { toolchain: "1.87", name: gpu-cold, args: "gpu::", lldb: false, cold: true }
+          - { toolchain: "1.99", name: vulkan-cold, args: "vulkan", lldb: false, cold: true }
+          - { toolchain: "1.87", name: full-cold, args: "", lldb: false, cold: true }
     runs-on: macos-latest
     timeout-minutes: 120
     env:
@@ -64,6 +64,7 @@ jobs:
           SDL3_TEST_SKIP_LOG: ${{ runner.temp }}/skips.tsv
           ARGS: ${{ matrix.args }}
           USE_LLDB: ${{ matrix.lldb }}
+          COLD: ${{ matrix.cold }}
           MINUTES: ${{ inputs.minutes || '75' }}
         run: |
           set +e
@@ -78,6 +79,11 @@ jobs:
           while [ $(( $(date +%s) - start )) -lt $(( MINUTES * 60 )) ]; do
             i=$((i + 1))
             log="$RUNNER_TEMP/logs/run-$i.log"
+            if [ "$COLD" = true ]; then
+              # (Metal's shader caches emptied: each run compiles as the first does)
+              [ $i -eq 1 ] && du -sh "$(getconf DARWIN_USER_CACHE_DIR)"com.apple.metal* 2>/dev/null
+              rm -rf "$(getconf DARWIN_USER_CACHE_DIR)"com.apple.metal* 2>/dev/null
+            fi
             t0=$(date +%s)
             if [ "$USE_LLDB" = true ]; then
               (cd sdl3 && CARGO_MANIFEST_DIR="$PWD" lldb --batch \
