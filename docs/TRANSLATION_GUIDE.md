@@ -235,8 +235,10 @@ they are used (there is no build script to make aliases):
   renderer's other UIKit branches are `cfg`s too (`CONSTANT_ALIGN()`,
   256 on macOS, the simulators and Mac Catalyst, the type's alignment on
   the devices; vsync, which only Mac layers can turn off; the iOS and
-  tvOS feature sets' maximum texture size; no EDR on tvOS). visionOS's
-  RealityKit paths are the Swift bridge's and aren't translated.
+  tvOS feature sets' maximum texture size; no EDR on tvOS), and so are
+  visionOS's RealityKit paths (a curved window's texture, through the
+  Swift bridge's stand-ins: below). visionOS takes the iOS libraries of
+  both (upstream has none of its own).
 * OpenGL ES (EAGL) is upstream's on iOS and tvOS, not on visionOS or Mac
   Catalyst: the `cfg` is `all(any(target_os = "ios", target_os =
   "tvos"), not(target_abi = "macabi"))`, as the Xcode project's
@@ -326,6 +328,36 @@ they are used (there is no build script to make aliases):
   with `RUSTC_BOOTSTRAP=1`). They're all tier 3 for the minimum supported
   Rust, which has no standard library for them, so tvOS isn't checked
   with it.
+* visionOS (`target_os = "visionos"`, flat windows only) builds what
+  upstream's CMake visionOS build has: the UIKit pieces, each upstream
+  `SDL_PLATFORM_VISIONOS` branch a `cfg` (no `UIScreen`: one fake
+  1280x720-point display, `SDL_XR_SCREENWIDTH` by `SDL_XR_SCREENHEIGHT`,
+  of density 2 at 90 Hz; a window the size it asks for, the window
+  scene asked for that size through a `UIWindowSceneGeometryPreferencesVision`
+  when the window is made and resized; no status bar, interface
+  orientation or screen notifications; GCMouse scrolls clamped to a tick),
+  no OpenGL ES, no HIDAPI, and so no virtual joystick driver either (CMake's
+  `SDL_VIRTUAL_JOYSTICK` needs `SDL_HIDAPI`: the virtual joystick
+  functions fail with upstream's "SDL not built with virtual-joystick
+  support"; `Note (upstream)`: the Xcode project builds it there), the
+  MFi driver alone, CoreMotion, POSIX processes, no camera; no depth clip
+  mode in the GPU API (always clipped, as upstream asserts); and every
+  renderer's output colorspace linear sRGB (`SDL_SetupRendererColorspace()`,
+  `render::setup_renderer_colorspace()`), so the software renderer can't be
+  made there, as upstream's can't. Upstream's Swift code (curved windows
+  and their RealityKit texture, the pointer mode, the settings and HDR
+  headroom sliders) isn't translated: SwiftUI and RealityKit have no
+  Objective-C interface. Its bridge (`SDL_UIKitBridge.m`) is
+  `video/drivers/uikit/bridge.rs`, whose functions the driver and the
+  Metal renderer call are stand-ins with what upstream's answer without a
+  curved window (`SDL_UIKit_HasCurvedWindow()` is false, the curved
+  texture nil, `initializeVisionOSCurvedUI` does nothing; `Note`), so a
+  window's settings (`SDL_PROP_WINDOW_CREATE_VISIONOS_SETTINGS_STRING`)
+  are kept and given back, but every window is a flat one; the bridge's
+  functions only the Swift code calls aren't translated.
+  `aarch64-apple-visionos` and `aarch64-apple-visionos-sim` are tier 2
+  targets of the pinned toolchain (there's no x86-64 visionOS Simulator),
+  tier 3 for the minimum supported Rust, so visionOS isn't checked with it.
 * The CoreMotion sensor driver (`sensor/coremotion.rs`) is built on iOS
   and visionOS, as upstream's CMake builds it, first in the sensor driver
   list (no dummy driver there); CoreMotion is linked.
