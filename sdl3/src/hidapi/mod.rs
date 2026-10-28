@@ -14,10 +14,11 @@
 //! The backends are the platform's own HID interfaces: `hidraw` on Linux
 //! (devices found through libudev, which is loaded at run time), the HID
 //! class driver on Windows (`hid.dll` and `cfgmgr32.dll`, loaded at run
-//! time) and the IOHIDManager on macOS (IOKit, linked as upstream links
-//! it). The libusb, Android and iOS backends of upstream are not
-//! translated: on other platforms there are no devices, as in an SDL built
-//! without a HID backend.
+//! time), the IOHIDManager on macOS (IOKit, linked as upstream links
+//! it), and on iOS and tvOS Valve's Steam Controllers over Bluetooth LE
+//! (CoreBluetooth, loaded at run time: see [`ble_scan`]). The libusb and
+//! Android backends of upstream are not translated: on other platforms
+//! there are no devices, as in an SDL built without a HID backend.
 //!
 //! Every function initializes the library on first use; [`init`] and
 //! [`exit`] are counted, like upstream's `SDL_hid_init()` and
@@ -29,8 +30,12 @@
 //! small performance cost, until distributions have granted access to
 //! /dev/hidraw*
 
+#[cfg(any(target_os = "ios", target_os = "tvos", test))]
+pub(crate) mod ble;
 #[cfg(any(windows, test))]
 mod descriptor_reconstruct;
+#[cfg(any(target_os = "ios", target_os = "tvos"))]
+mod ios;
 #[cfg(target_os = "linux")]
 mod linux;
 #[cfg(target_os = "macos")]
@@ -47,6 +52,8 @@ use crate::hints;
 use crate::joystick::usb_ids::*;
 use crate::properties::Properties;
 
+#[cfg(any(target_os = "ios", target_os = "tvos"))]
+use ios as platform;
 #[cfg(target_os = "linux")]
 use linux as platform;
 #[cfg(target_os = "macos")]
@@ -59,7 +66,13 @@ pub(crate) use windows::find_interface_path;
 
 /// The platform backend of a system without one (upstream's build without
 /// `HAVE_PLATFORM_BACKEND`): no devices, and nothing can be opened.
-#[cfg(not(any(target_os = "linux", target_os = "macos", windows)))]
+#[cfg(not(any(
+    target_os = "linux",
+    target_os = "macos",
+    windows,
+    target_os = "ios",
+    target_os = "tvos"
+)))]
 mod platform {
     use super::DeviceInfo;
     use crate::error::{Error, Result};
@@ -869,7 +882,13 @@ fn requires_libusb(vendor: u16, product: u16, libusb_xbox: bool) -> bool {
 /// Translation of `SDL_HINT_HIDAPI_LIBUSB_WHITELIST_DEFAULT`: there is a
 /// platform backend where one is translated, so the whitelist is used to
 /// get the devices where libusb is preferred.
-const LIBUSB_WHITELIST_DEFAULT: bool = cfg!(any(target_os = "linux", target_os = "macos", windows));
+const LIBUSB_WHITELIST_DEFAULT: bool = cfg!(any(
+    target_os = "linux",
+    target_os = "macos",
+    windows,
+    target_os = "ios",
+    target_os = "tvos"
+));
 
 /// Translation of `use_libusb_whitelist`.
 static USE_LIBUSB_WHITELIST: AtomicBool = AtomicBool::new(LIBUSB_WHITELIST_DEFAULT);
@@ -883,7 +902,13 @@ static IGNORED_DEVICES: Mutex<Option<String>> = Mutex::new(None);
 /// Whether a device should be left out of the enumeration.
 /// Translation of `SDL_HIDAPI_ShouldIgnoreDevice()`.
 #[cfg_attr(
-    not(any(windows, target_os = "linux", target_os = "macos")),
+    not(any(
+        target_os = "linux",
+        target_os = "macos",
+        windows,
+        target_os = "ios",
+        target_os = "tvos"
+    )),
     allow(dead_code)
 )] // (used by the platform backends)
 pub(crate) fn should_ignore_device(
@@ -1029,9 +1054,21 @@ fn init_locked(state: &mut HidapiState) -> Result<()> {
 
     // (the libusb backend isn't translated, which leaves the platform
     // backend's attempt)
-    #[cfg(any(target_os = "linux", target_os = "macos", windows))]
+    #[cfg(any(
+        target_os = "linux",
+        target_os = "macos",
+        windows,
+        target_os = "ios",
+        target_os = "tvos"
+    ))]
     let (attempts, success) = (1, i32::from(platform::hid_init().is_ok()));
-    #[cfg(not(any(target_os = "linux", target_os = "macos", windows)))]
+    #[cfg(not(any(
+        target_os = "linux",
+        target_os = "macos",
+        windows,
+        target_os = "ios",
+        target_os = "tvos"
+    )))]
     let (attempts, success) = (0, 0);
 
     if attempts > 0 && success == 0 {
@@ -1067,9 +1104,21 @@ pub fn exit() -> Result<()> {
 
     shutdown_discovery(&mut state);
 
-    #[cfg(any(target_os = "linux", target_os = "macos", windows))]
+    #[cfg(any(
+        target_os = "linux",
+        target_os = "macos",
+        windows,
+        target_os = "ios",
+        target_os = "tvos"
+    ))]
     let result = platform::hid_exit();
-    #[cfg(not(any(target_os = "linux", target_os = "macos", windows)))]
+    #[cfg(not(any(
+        target_os = "linux",
+        target_os = "macos",
+        windows,
+        target_os = "ios",
+        target_os = "tvos"
+    )))]
     let result = Ok(());
 
     state.hint_watches.clear();
@@ -1116,9 +1165,21 @@ pub fn enumerate(vendor_id: u16, product_id: u16) -> Result<Vec<DeviceInfo>> {
     // Collect the available devices
     // (the libusb and Steam Xbox driver backends aren't translated, which
     // leaves the platform's devices, in their order)
-    #[cfg(any(target_os = "linux", target_os = "macos", windows))]
+    #[cfg(any(
+        target_os = "linux",
+        target_os = "macos",
+        windows,
+        target_os = "ios",
+        target_os = "tvos"
+    ))]
     let raw_devs = platform::hid_enumerate(vendor_id, product_id);
-    #[cfg(not(any(target_os = "linux", target_os = "macos", windows)))]
+    #[cfg(not(any(
+        target_os = "linux",
+        target_os = "macos",
+        windows,
+        target_os = "ios",
+        target_os = "tvos"
+    )))]
     let raw_devs: Vec<DeviceInfo> = {
         let _ = (vendor_id, product_id);
         Vec::new()
@@ -1130,8 +1191,20 @@ pub fn enumerate(vendor_id: u16, product_id: u16) -> Result<Vec<DeviceInfo>> {
 
 /// Start or stop a Bluetooth LE scan on iOS and tvOS to pair Steam
 /// Controllers (a no-op elsewhere). Translation of `SDL_hid_ble_scan()`.
+///
+/// On iOS and tvOS the HID devices are Valve's Steam Controllers over
+/// Bluetooth LE, and only when [`hints::JOYSTICK_HIDAPI_STEAM`] is set
+/// when the library (or this function) is first used: Bluetooth then
+/// starts, which asks the user for permission (the app's Info.plist must
+/// say why, with `NSBluetoothAlwaysUsageDescription`). It scans for
+/// controllers for 20 seconds once Bluetooth is on and each time the app
+/// becomes active; a scan started here lasts until it is stopped here
+/// (they are counted: as many stops as starts). Controllers are
+/// enumerated once paired and connected.
 pub fn ble_scan(active: bool) {
-    // (the iOS backend isn't translated)
+    #[cfg(any(target_os = "ios", target_os = "tvos"))]
+    platform::hid_ble_scan(active);
+    #[cfg(not(any(target_os = "ios", target_os = "tvos")))]
     let _ = active;
 }
 
