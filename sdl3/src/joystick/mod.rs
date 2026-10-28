@@ -14,9 +14,11 @@
 //! [`gamepad`] module maps joystick inputs to named buttons and axes.
 //!
 //! The joystick drivers are platform backends. So far the HIDAPI driver
-//! (on Linux, Windows and macOS: game controllers talked to directly over HID,
-//! through [`crate::hidapi`], with the Xbox 360, Xbox One, PS4, PS5 and
-//! Nintendo Switch device drivers), the Linux driver (evdev devices, found
+//! (on Linux, Windows, macOS, iOS and tvOS: game controllers talked to
+//! directly over HID, through [`crate::hidapi`], with the Xbox 360, Xbox
+//! One, PS4, PS5 and Nintendo Switch device drivers; on iOS and tvOS only
+//! Bluetooth Steam Controllers, and it is off unless
+//! [`crate::hints::JOYSTICK_HIDAPI`] turns it on), the Linux driver (evdev devices, found
 //! through libudev or inotify), the Windows drivers (RawInput; DirectInput
 //! and XInput; Windows.Gaming.Input), the IOKit driver (macOS), the MFi
 //! (GameController) driver (every Apple platform), the Emscripten driver
@@ -42,7 +44,13 @@ mod dummy;
 mod emscripten;
 pub mod gamepad;
 mod gamepad_db;
-#[cfg(any(windows, target_os = "linux", target_os = "macos"))]
+#[cfg(any(
+    windows,
+    target_os = "linux",
+    target_os = "macos",
+    target_os = "ios",
+    target_os = "tvos"
+))]
 pub(crate) mod hidapi;
 #[cfg(target_os = "linux")]
 pub(crate) mod linux;
@@ -428,7 +436,13 @@ impl JoystickData {
 
     /// Update the data rate of a sensor. Translation of `SDL_PrivateJoystickSensorRate()`.
     #[cfg_attr(
-        not(any(windows, target_os = "linux", target_os = "macos")),
+        not(any(
+            windows,
+            target_os = "linux",
+            target_os = "macos",
+            target_os = "ios",
+            target_os = "tvos"
+        )),
         allow(dead_code)
     )] // (used by the HIDAPI drivers)
     pub(crate) fn set_sensor_rate(&mut self, sensor_type: SensorType, rate: f32) {
@@ -443,7 +457,13 @@ impl JoystickData {
 
     /// Add a capacitive sensor. Translation of `SDL_PrivateJoystickAddCapSense()`.
     #[cfg_attr(
-        not(any(windows, target_os = "linux", target_os = "macos")),
+        not(any(
+            windows,
+            target_os = "linux",
+            target_os = "macos",
+            target_os = "ios",
+            target_os = "tvos"
+        )),
         allow(dead_code)
     )] // (used by the HIDAPI drivers)
     pub(crate) fn add_capsense(&mut self, capsense_type: GamepadCapSenseType) {
@@ -559,7 +579,13 @@ pub(crate) const JOYSTICK_MFI: bool = true;
 
 /// The index of the HIDAPI driver in [`JOYSTICK_DRIVERS`] (the highest
 /// priority driver for supported devices).
-#[cfg(any(windows, target_os = "linux", target_os = "macos"))]
+#[cfg(any(
+    windows,
+    target_os = "linux",
+    target_os = "macos",
+    target_os = "ios",
+    target_os = "tvos"
+))]
 const HIDAPI_DRIVER_INDEX: usize = 0;
 
 /// The index of the GameInput driver in [`JOYSTICK_DRIVERS`].
@@ -588,10 +614,16 @@ const LINUX_DRIVER_INDEX: usize = 1;
 const DARWIN_DRIVER_INDEX: usize = 1;
 
 /// The index of the MFi (GameController) driver in [`JOYSTICK_DRIVERS`]
-/// (after the HIDAPI and IOKit drivers on macOS; first on the UIKit
-/// platforms, where those aren't built).
+/// (after the HIDAPI and IOKit drivers on macOS, after the HIDAPI driver
+/// on iOS and tvOS, and first on visionOS, which has neither).
 #[cfg(target_vendor = "apple")]
-pub(crate) const MFI_DRIVER_INDEX: usize = if cfg!(target_os = "macos") { 2 } else { 0 };
+pub(crate) const MFI_DRIVER_INDEX: usize = if cfg!(target_os = "macos") {
+    2
+} else if cfg!(any(target_os = "ios", target_os = "tvos")) {
+    1
+} else {
+    0
+};
 
 /// The index of the Emscripten (Gamepad API) driver in [`JOYSTICK_DRIVERS`]
 /// (for the driver order's test: nothing else compares with it).
@@ -599,11 +631,14 @@ pub(crate) const MFI_DRIVER_INDEX: usize = if cfg!(target_os = "macos") { 2 } el
 const EMSCRIPTEN_DRIVER_INDEX: usize = 0;
 
 /// The index of the virtual driver in [`JOYSTICK_DRIVERS`] (after the
-/// HIDAPI and platform drivers, if there are).
+/// HIDAPI and platform drivers, if there are: on iOS and tvOS the HIDAPI
+/// and MFi drivers, on visionOS the MFi driver).
 const VIRTUAL_DRIVER_INDEX: usize = if cfg!(windows) {
     5
 } else if cfg!(target_os = "macos") {
     3
+} else if cfg!(any(target_os = "ios", target_os = "tvos")) {
+    2
 } else if cfg!(target_vendor = "apple") {
     1
 } else if cfg!(target_os = "linux") {
@@ -618,7 +653,15 @@ const VIRTUAL_DRIVER_INDEX: usize = if cfg!(windows) {
 /// `SDL_joystick_drivers`; the dummy driver is only there without a
 /// platform driver, as upstream builds it.
 static JOYSTICK_DRIVERS: &[&dyn JoystickDriver] = &[
-    #[cfg(any(windows, target_os = "linux", target_os = "macos"))]
+    // (SDL_JOYSTICK_HIDAPI: not on visionOS, where upstream builds no
+    // HIDAPI)
+    #[cfg(any(
+        windows,
+        target_os = "linux",
+        target_os = "macos",
+        target_os = "ios",
+        target_os = "tvos"
+    ))]
     &hidapi::HIDAPI_JOYSTICK_DRIVER,
     // Higher priority than other Windows drivers
     #[cfg(windows)]
@@ -2578,7 +2621,13 @@ pub fn update_joysticks() {
     }
 
     // Special function for HIDAPI devices, as a single device can provide multiple SDL_Joysticks
-    #[cfg(any(windows, target_os = "linux", target_os = "macos"))]
+    #[cfg(any(
+        windows,
+        target_os = "linux",
+        target_os = "macos",
+        target_os = "ios",
+        target_os = "tvos"
+    ))]
     hidapi::update_devices();
 
     let open: Vec<(JoystickID, usize)> = with_state(|s| {
@@ -2899,7 +2948,13 @@ pub(crate) fn send_joystick_sensor(
 /// Deliver a capacitive sensor touch or release.
 /// Translation of `SDL_SendJoystickCapSense()`.
 #[cfg_attr(
-    not(any(windows, target_os = "linux", target_os = "macos")),
+    not(any(
+        windows,
+        target_os = "linux",
+        target_os = "macos",
+        target_os = "ios",
+        target_os = "tvos"
+    )),
     allow(dead_code)
 )] // (used by the HIDAPI drivers)
 pub(crate) fn send_joystick_capsense(

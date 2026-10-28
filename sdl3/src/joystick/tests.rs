@@ -546,7 +546,13 @@ fn virtual_joystick_without_gamepads() {
 fn driver_order() {
     // The HIDAPI driver comes first, then the platform drivers and the
     // virtual driver, as upstream lists them
-    #[cfg(any(windows, target_os = "linux", target_os = "macos"))]
+    #[cfg(any(
+        windows,
+        target_os = "linux",
+        target_os = "macos",
+        target_os = "ios",
+        target_os = "tvos"
+    ))]
     {
         let hidapi_driver: &dyn JoystickDriver = &hidapi::HIDAPI_JOYSTICK_DRIVER;
         assert!(std::ptr::addr_eq(
@@ -620,8 +626,9 @@ fn driver_order() {
     }
     #[cfg(all(target_vendor = "apple", not(target_os = "macos")))]
     {
-        // MFi, then the virtual driver (no IOKit driver, and the HIDAPI
-        // driver comes with its Bluetooth backend); no dummy driver
+        // (HIDAPI on iOS and tvOS,) MFi, then the virtual driver (no IOKit
+        // driver, and upstream builds no HIDAPI on visionOS); no dummy
+        // driver
         let mfi_driver: &dyn JoystickDriver = &apple::MFI_JOYSTICK_DRIVER;
         assert!(std::ptr::addr_eq(
             JOYSTICK_DRIVERS[MFI_DRIVER_INDEX],
@@ -630,6 +637,14 @@ fn driver_order() {
         const {
             assert!(MFI_DRIVER_INDEX < VIRTUAL_DRIVER_INDEX);
         }
+        #[cfg(any(target_os = "ios", target_os = "tvos"))]
+        {
+            const {
+                assert!(HIDAPI_DRIVER_INDEX < MFI_DRIVER_INDEX);
+            }
+            assert_eq!(JOYSTICK_DRIVERS.len(), 3);
+        }
+        #[cfg(target_os = "visionos")]
         assert_eq!(JOYSTICK_DRIVERS.len(), 2);
     }
     #[cfg(target_os = "emscripten")]

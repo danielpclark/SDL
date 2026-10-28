@@ -290,14 +290,17 @@ fn rumble_results_keep_the_last_error() {
 
 /// The driver starts (there being no controller here is fine, and nothing
 /// waits for GameController's discovery), is placed after the IOKit driver
-/// on macOS (first on the UIKit platforms), and quits.
+/// on macOS (after the HIDAPI driver on iOS and tvOS, first on visionOS),
+/// and quits.
 #[test]
 fn driver_starts_and_quits() {
     use crate::joystick::{lock_joysticks, JOYSTICK_DRIVERS, MFI_DRIVER_INDEX};
     let _l = crate::test_support::test_lock();
     #[cfg(target_os = "macos")]
     assert_eq!(MFI_DRIVER_INDEX, crate::joystick::DARWIN_DRIVER_INDEX + 1);
-    #[cfg(not(target_os = "macos"))]
+    #[cfg(any(target_os = "ios", target_os = "tvos"))]
+    assert_eq!(MFI_DRIVER_INDEX, crate::joystick::HIDAPI_DRIVER_INDEX + 1);
+    #[cfg(target_os = "visionos")]
     assert_eq!(MFI_DRIVER_INDEX, 0);
     assert!(std::ptr::eq(
         JOYSTICK_DRIVERS[MFI_DRIVER_INDEX] as *const dyn JoystickDriver as *const u8,

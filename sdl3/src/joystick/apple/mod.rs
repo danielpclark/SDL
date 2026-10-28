@@ -667,10 +667,9 @@ unsafe fn set_system_gesture_state(controller: Id, state: NSInteger) {
 }
 
 /// Whether one of the HIDAPI drivers handles the controller, the long
-/// condition of `IOS_AddMFIJoystickDevice()` (`SDL_JOYSTICK_HIDAPI`: on
-/// macOS, where the HIDAPI driver is built; on UIKit it comes with its
-/// Bluetooth backend).
-#[cfg(target_os = "macos")]
+/// condition of `IOS_AddMFIJoystickDevice()` (`SDL_JOYSTICK_HIDAPI`: where
+/// the HIDAPI driver is built, macOS, iOS and tvOS, not visionOS).
+#[cfg(any(target_os = "macos", target_os = "ios", target_os = "tvos"))]
 fn hidapi_handles(device: &MfiDevice, name: &str) -> bool {
     use super::gamepad::GamepadType;
     use super::hidapi::{is_device_present, is_device_type_present};
@@ -788,7 +787,7 @@ unsafe fn add_mfi_joystick_device(device: &mut MfiDevice, controller: Id) -> boo
         device.is_backbone_one = is_controller_backbone_one(controller);
         device.is_switch_joycon_l = is_controller_switch_joycon_l(controller);
         device.is_switch_joycon_r = is_controller_switch_joycon_r(controller);
-        #[cfg(target_os = "macos")]
+        #[cfg(any(target_os = "macos", target_os = "ios", target_os = "tvos"))]
         if hidapi_handles(device, &name) {
             // The HIDAPI driver is taking care of this device
             return false;
