@@ -42,27 +42,32 @@
 //! `uikit_support::scenes`, which `uikit_gles` draws too.
 //!
 //! It runs on the tvOS Simulator too (an Apple TV 4K (3rd generation) with
-//! tvOS 18.5), where nothing turns (`turn` only traces that), against
-//! upstream's C there. Elsewhere this program does nothing.
+//! tvOS 18.5), where nothing turns (`turn` only traces that), and on the
+//! visionOS Simulator (an Apple Vision Pro with visionOS 2.5), where
+//! nothing turns either, the renderers' output is linear sRGB (read back
+//! as RGBA64 floats), and the scenes are compared with upstream's hashes
+//! alone (the software renderer can't be made there: its output can't be
+//! linear, as upstream's), each against upstream's C there. Elsewhere this
+//! program does nothing.
 
-#[cfg(not(any(target_os = "ios", target_os = "tvos")))]
+#[cfg(not(any(target_os = "ios", target_os = "tvos", target_os = "visionos")))]
 fn main() {}
 
 /// The runner's words: run as an app.
-#[cfg(any(target_os = "ios", target_os = "tvos"))]
+#[cfg(any(target_os = "ios", target_os = "tvos", target_os = "visionos"))]
 #[used]
 #[link_section = "__DATA,__sdl3_runner"]
 static RUNNER: [u8; 4] = *b"app\0";
 
-#[cfg(any(target_os = "ios", target_os = "tvos"))]
+#[cfg(any(target_os = "ios", target_os = "tvos", target_os = "visionos"))]
 mod uikit_support;
 
-#[cfg(any(target_os = "ios", target_os = "tvos"))]
+#[cfg(any(target_os = "ios", target_os = "tvos", target_os = "visionos"))]
 fn main() {
     ios::main()
 }
 
-#[cfg(any(target_os = "ios", target_os = "tvos"))]
+#[cfg(any(target_os = "ios", target_os = "tvos", target_os = "visionos"))]
 mod ios {
     use std::sync::Mutex;
     use std::time::{Duration, Instant};
@@ -327,6 +332,132 @@ H: destroyed: events: H:WINDOW_DESTROYED(0,0)
 quit
 ";
 
+    /// Upstream's trace on visionOS (the C program, on an Apple Vision Pro
+    /// simulator with visionOS 2.5).
+    #[cfg(target_os = "visionos")]
+    const EXPECTED: &str = "\
+init video: ok
+video driver: uikit
+application state: 0
+M: create 320x480 metal: ok
+M: created: events: M:WINDOW_MOUSE_ENTER(0,0), M:WINDOW_FOCUS_GAINED(0,0), M:WINDOW_SHOWN(0,0), M:WINDOW_PIXEL_SIZE_CHANGED(320,480)
+M: created: size=320x480 pixels=320x480 density=1 flags=0x20000600 metal_view_tag=255
+M: created: root view: SDL_uikitview tag=0 frame=0,0 320x480
+M: layer of no view: Parameter 'view' is invalid
+M: create view: ok
+M: view: events: (none)
+M: view: view: SDL_uikitmetalview super=SDL_uikitview tag=255 root=yes frame=0,0 320x480
+M: view: layer: CAMetalLayer same=yes scale=1 drawable=320x480 pixels=320x480 format=80 framebuffer_only=yes device=yes
+M: view: size=320x480 pixels=320x480 density=1 flags=0x20000600 metal_view_tag=255
+M: view: root view: SDL_uikitmetalview tag=255 frame=0,0 320x480
+M: view destroyed
+M: view destroyed: events: (none)
+M: view destroyed: size=320x480 pixels=320x480 density=1 flags=0x20000600 metal_view_tag=255
+M: view destroyed: root view: SDL_uikitview tag=0 frame=0,0 320x480
+M: destroyed
+M: destroyed: events: M:WINDOW_DESTROYED(0,0)
+H: create 320x480 metal resizable high-density: ok
+H: created: events: H:WINDOW_MOUSE_ENTER(0,0), H:WINDOW_FOCUS_GAINED(0,0), H:WINDOW_SHOWN(0,0), H:WINDOW_PIXEL_SIZE_CHANGED(640,960), H:WINDOW_DISPLAY_SCALE_CHANGED(0,0)
+H: created: size=320x480 pixels=640x960 density=2 flags=0x20002620 metal_view_tag=255
+H: created: root view: SDL_uikitview tag=0 frame=0,0 320x480
+H: create view: ok
+H: view: events: (none)
+H: view: view: SDL_uikitmetalview super=SDL_uikitview tag=255 root=yes frame=0,0 320x480
+H: view: layer: CAMetalLayer same=yes scale=2 drawable=640x960 pixels=640x960 format=80 framebuffer_only=yes device=yes
+H: landscape right: not turned (no orientations on visionOS)
+H: landscape right: events: (none)
+H: landscape right: view: SDL_uikitmetalview super=SDL_uikitview tag=255 root=yes frame=0,0 320x480
+H: landscape right: layer: CAMetalLayer same=yes scale=2 drawable=640x960 pixels=640x960 format=80 framebuffer_only=yes device=yes
+H: portrait: not turned (no orientations on visionOS)
+H: portrait: events: (none)
+H: portrait: view: SDL_uikitmetalview super=SDL_uikitview tag=255 root=yes frame=0,0 320x480
+H: portrait: layer: CAMetalLayer same=yes scale=2 drawable=640x960 pixels=640x960 format=80 framebuffer_only=yes device=yes
+H: view destroyed
+H: view destroyed: events: (none)
+H: view destroyed: size=320x480 pixels=640x960 density=2 flags=0x20002620 metal_view_tag=255
+H: view destroyed: root view: SDL_uikitview tag=0 frame=0,0 320x480
+H: create renderer: ok
+H: renderer: events: (none)
+H: renderer: name=metal output=640x960 pixels=640x960 max_texture_size=8192 vsync=0
+H: renderer: formats: SDL_PIXELFORMAT_ARGB8888, SDL_PIXELFORMAT_ABGR8888, SDL_PIXELFORMAT_ABGR2101010, SDL_PIXELFORMAT_RGBA64_FLOAT, SDL_PIXELFORMAT_RGBA128_FLOAT, SDL_PIXELFORMAT_RGB565, SDL_PIXELFORMAT_RGBA5551, SDL_PIXELFORMAT_ARGB1555, SDL_PIXELFORMAT_RGBA4444, SDL_PIXELFORMAT_INDEX8, SDL_PIXELFORMAT_YV12, SDL_PIXELFORMAT_IYUV, SDL_PIXELFORMAT_I444, SDL_PIXELFORMAT_NV12, SDL_PIXELFORMAT_NV21, SDL_PIXELFORMAT_P010, SDL_PIXELFORMAT_I0FL, SDL_PIXELFORMAT_I4FL
+H: renderer: device=Apple xrOS simulator GPU queue=yes queue device=yes
+H: renderer: layer: CAMetalLayer drawable=640x960 format=115 framebuffer_only=no device=yes window flags=0x20002620
+H: renderer: root view: SDL_uikitmetalview tag=255 layer=yes
+H: renderer: command encoder: yes
+scene clear and fill: 64x48 56ee9d2e
+scene points and lines: 64x48 d2aec6b4
+scene viewport and clip: 64x48 c7b74525
+scene blend modes: 64x48 99e3e84d
+scene texture SDL_PIXELFORMAT_ARGB8888: 64x48 0cc61cee
+scene texture SDL_PIXELFORMAT_ABGR8888: 64x48 0cc61cee
+scene texture SDL_PIXELFORMAT_RGB24: 64x48 70c81ae4
+scene texture SDL_PIXELFORMAT_XRGB8888: 64x48 70c81ae4
+scene streaming texture: 64x48 0b14a44a
+scene render target: 64x48 a5c947c5
+packed 16-bit formats: listed, not drawn
+scene packed SDL_PIXELFORMAT_ABGR2101010: 64x48 cea77265
+scene packed SDL_PIXELFORMAT_RGBA64_FLOAT: 64x48 f1ce2a15
+scene packed SDL_PIXELFORMAT_RGBA128_FLOAT: 64x48 8a681c9d
+scene palette texture: 64x48 25b35185
+scene yuv SDL_PIXELFORMAT_IYUV: 64x48 c59c8c6d
+scene yuv SDL_PIXELFORMAT_YV12: 64x48 c59c8c6d
+scene yuv SDL_PIXELFORMAT_NV12: 64x48 c59c8c6d
+scene yuv SDL_PIXELFORMAT_NV21: 64x48 c59c8c6d
+scene IYUV planes: 64x48 c59c8c6d
+scene NV12 planes: 64x48 c59c8c6d
+scene locked texture: 64x48 27e0c88d
+scene locked NV12 texture: 64x48 c59c8c6d
+scene custom blend mode: 64x48 cad97545
+scene wrapping geometry: 64x48 f51678a5
+scene colored geometry: 64x48 0cd39867
+scene linear scaling: 64x48 c3735428
+scene debug text: 64x48 81c0befc
+partial read: 8x8 3693eb65
+target read: 20x10 da6561f5
+H: vsync 1: ok, vsync=1
+H: vsync 0: ok, vsync=0
+H: vsync 2: error: That operation is not supported, vsync=0
+H: vsync -1: error: That operation is not supported, vsync=0
+H: scenes: events: (none)
+H: renderer landscape right: not turned (no orientations on visionOS)
+H: renderer landscape right: events: (none)
+H: renderer landscape right: name=metal output=640x960 pixels=640x960 max_texture_size=8192 vsync=0
+H: renderer landscape right: formats: SDL_PIXELFORMAT_ARGB8888, SDL_PIXELFORMAT_ABGR8888, SDL_PIXELFORMAT_ABGR2101010, SDL_PIXELFORMAT_RGBA64_FLOAT, SDL_PIXELFORMAT_RGBA128_FLOAT, SDL_PIXELFORMAT_RGB565, SDL_PIXELFORMAT_RGBA5551, SDL_PIXELFORMAT_ARGB1555, SDL_PIXELFORMAT_RGBA4444, SDL_PIXELFORMAT_INDEX8, SDL_PIXELFORMAT_YV12, SDL_PIXELFORMAT_IYUV, SDL_PIXELFORMAT_I444, SDL_PIXELFORMAT_NV12, SDL_PIXELFORMAT_NV21, SDL_PIXELFORMAT_P010, SDL_PIXELFORMAT_I0FL, SDL_PIXELFORMAT_I4FL
+H: renderer landscape right: device=Apple xrOS simulator GPU queue=yes queue device=yes
+H: renderer landscape right: layer: CAMetalLayer drawable=640x960 format=115 framebuffer_only=no device=yes window flags=0x20002620
+H: renderer landscape right: root view: SDL_uikitmetalview tag=255 layer=yes
+H: renderer landscape right corner: 64x48 9a471dc5
+H: renderer portrait: not turned (no orientations on visionOS)
+H: renderer portrait: events: (none)
+H: renderer portrait: name=metal output=640x960 pixels=640x960 max_texture_size=8192 vsync=0
+H: renderer portrait: formats: SDL_PIXELFORMAT_ARGB8888, SDL_PIXELFORMAT_ABGR8888, SDL_PIXELFORMAT_ABGR2101010, SDL_PIXELFORMAT_RGBA64_FLOAT, SDL_PIXELFORMAT_RGBA128_FLOAT, SDL_PIXELFORMAT_RGB565, SDL_PIXELFORMAT_RGBA5551, SDL_PIXELFORMAT_ARGB1555, SDL_PIXELFORMAT_RGBA4444, SDL_PIXELFORMAT_INDEX8, SDL_PIXELFORMAT_YV12, SDL_PIXELFORMAT_IYUV, SDL_PIXELFORMAT_I444, SDL_PIXELFORMAT_NV12, SDL_PIXELFORMAT_NV21, SDL_PIXELFORMAT_P010, SDL_PIXELFORMAT_I0FL, SDL_PIXELFORMAT_I4FL
+H: renderer portrait: device=Apple xrOS simulator GPU queue=yes queue device=yes
+H: renderer portrait: layer: CAMetalLayer drawable=640x960 format=115 framebuffer_only=no device=yes window flags=0x20002620
+H: renderer portrait: root view: SDL_uikitmetalview tag=255 layer=yes
+scene again clear and fill: 64x48 56ee9d2e
+H: renderer destroyed
+H: renderer destroyed: events: (none)
+H: renderer destroyed: size=320x480 pixels=640x960 density=2 flags=0x20002620 metal_view_tag=255
+H: renderer destroyed: root view: SDL_uikitmetalview tag=255 frame=0,0 320x480
+H: create metal renderer again: ok
+H: renderer again: same view=yes
+H: renderer again: name=metal output=640x960 pixels=640x960 max_texture_size=8192 vsync=0
+H: renderer again: formats: SDL_PIXELFORMAT_ARGB8888, SDL_PIXELFORMAT_ABGR8888, SDL_PIXELFORMAT_ABGR2101010, SDL_PIXELFORMAT_RGBA64_FLOAT, SDL_PIXELFORMAT_RGBA128_FLOAT, SDL_PIXELFORMAT_RGB565, SDL_PIXELFORMAT_RGBA5551, SDL_PIXELFORMAT_ARGB1555, SDL_PIXELFORMAT_RGBA4444, SDL_PIXELFORMAT_INDEX8, SDL_PIXELFORMAT_YV12, SDL_PIXELFORMAT_IYUV, SDL_PIXELFORMAT_I444, SDL_PIXELFORMAT_NV12, SDL_PIXELFORMAT_NV21, SDL_PIXELFORMAT_P010, SDL_PIXELFORMAT_I0FL, SDL_PIXELFORMAT_I4FL
+H: renderer again: device=Apple xrOS simulator GPU queue=yes queue device=yes
+H: renderer again: layer: CAMetalLayer drawable=640x960 format=115 framebuffer_only=no device=yes window flags=0x20002620
+H: renderer again: root view: SDL_uikitmetalview tag=255 layer=yes
+scene renderer again clear and fill: 64x48 56ee9d2e
+H: renderer again destroyed
+H: renderer again destroyed: events: (none)
+gpu: supports MSL on metal: yes
+gpu: create metal device: ok
+H: create gpu renderer: ok
+H: gpu: events: (none)
+H: destroyed
+H: destroyed: events: H:WINDOW_DESTROYED(0,0)
+quit
+";
+
     fn yes_no(b: bool) -> &'static str {
         if b {
             "yes"
@@ -537,9 +668,16 @@ quit
     /// Ask the window's scene to turn to an orientation (a
     /// `UIInterfaceOrientationMask`), and trace the events that come.
     fn turn(w: &Window, label: &str, mask: usize) {
-        if cfg!(target_os = "tvos") {
+        if cfg!(any(target_os = "tvos", target_os = "visionos")) {
             let _ = (w, mask);
-            t(format!("{label}: not turned (no orientations on tvOS)"));
+            t(format!(
+                "{label}: not turned (no orientations on {})",
+                if cfg!(target_os = "tvos") {
+                    "tvOS"
+                } else {
+                    "visionOS"
+                }
+            ));
             trace_events(label, 500);
             return;
         }

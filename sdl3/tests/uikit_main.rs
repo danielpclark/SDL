@@ -24,27 +24,29 @@
 //! Simulator too (an Apple TV 4K (3rd generation) with tvOS 18.5: the
 //! runner's background is the Apple TV's Settings app), without the
 //! battery monitoring and the status bar's notification, which tvOS
-//! hasn't, against upstream's C there. Elsewhere this program does
-//! nothing.
+//! hasn't, and on the visionOS Simulator (an Apple Vision Pro with
+//! visionOS 2.5: its background is the Settings app), without the status
+//! bar's notification, each against upstream's C there. Elsewhere this
+//! program does nothing.
 
-#[cfg(not(any(target_os = "ios", target_os = "tvos")))]
+#[cfg(not(any(target_os = "ios", target_os = "tvos", target_os = "visionos")))]
 fn main() {}
 
 /// The runner's words: run as an app.
-#[cfg(any(target_os = "ios", target_os = "tvos"))]
+#[cfg(any(target_os = "ios", target_os = "tvos", target_os = "visionos"))]
 #[used]
 #[link_section = "__DATA,__sdl3_runner"]
 static RUNNER: [u8; 4] = *b"app\0";
 
-#[cfg(any(target_os = "ios", target_os = "tvos"))]
+#[cfg(any(target_os = "ios", target_os = "tvos", target_os = "visionos"))]
 mod uikit_support;
 
-#[cfg(any(target_os = "ios", target_os = "tvos"))]
+#[cfg(any(target_os = "ios", target_os = "tvos", target_os = "visionos"))]
 fn main() {
     ios::main()
 }
 
-#[cfg(any(target_os = "ios", target_os = "tvos"))]
+#[cfg(any(target_os = "ios", target_os = "tvos", target_os = "visionos"))]
 mod ios {
     use std::sync::atomic::{AtomicBool, Ordering};
     use std::sync::{Arc, Mutex};
@@ -141,6 +143,51 @@ open_url unknown scheme: No handler registered for this type of URL
 open_url own scheme: ok
 own scheme opened: DROP_BEGIN, DROP_FILE(SCHEME://open-url-test), DROP_COMPLETE
 background and back: WILL_ENTER_BACKGROUND, WILL_ENTER_BACKGROUND, DID_ENTER_BACKGROUND, DID_ENTER_BACKGROUND, WILL_ENTER_FOREGROUND, WILL_ENTER_FOREGROUND, DID_ENTER_FOREGROUND, DID_ENTER_FOREGROUND
+application state: 0
+main returns
+after main returned: application state: 0
+after main returned: posted memory warning: (none)
+quit
+";
+
+    /// Upstream's trace on visionOS (the C program, on an Apple Vision Pro
+    /// simulator with visionOS 2.5).
+    #[cfg(target_os = "visionos")]
+    const EXPECTED: &str = "\
+main: argc=1
+main thread: yes
+before run_app: yes
+app delegate: SDLUIKitSceneDelegate
+scenes: 1 UIWindowScene, delegate SDLUIKitSceneDelegate, the app delegate: no
+cwd is the bundle's resource path: yes
+form factor: SDL_FORMFACTOR_HEADSET
+power: state=0 secs=-1 pct=-1
+battery monitoring: no
+platform: visionOS
+init video: ok
+video driver: uikit
+system theme: 0
+displays: 1
+display: bounds=0,0 1280x720 natural=1 current=1
+desktop mode: 1280x720 fmt=SDL_PIXELFORMAT_ABGR8888 density=2 refresh=90
+events: KEYBOARD_ADDED
+activation: application state 0, (none)
+posted will resign active: WILL_ENTER_BACKGROUND
+posted did enter background: DID_ENTER_BACKGROUND
+posted will enter foreground: WILL_ENTER_FOREGROUND
+posted did become active: DID_ENTER_FOREGROUND
+posted memory warning: LOW_MEMORY
+posted will terminate: TERMINATING
+pump off: main queue ran: no
+pump off: posted memory warning: (none)
+pump on: main queue ran: yes
+pump on: posted memory warning: LOW_MEMORY
+handleURL file: DROP_BEGIN, DROP_FILE(/tmp/sdl3 drop.txt), DROP_COMPLETE
+handleURL https: DROP_BEGIN, DROP_FILE(https://libsdl.org/?q=1), DROP_COMPLETE
+open_url unknown scheme: No handler registered for this type of URL
+open_url own scheme: ok
+own scheme opened: DROP_BEGIN, DROP_FILE(SCHEME://open-url-test), DROP_COMPLETE
+background and back: (none)
 application state: 0
 main returns
 after main returned: application state: 0
@@ -458,8 +505,8 @@ quit
                     "will terminate",
                     objc::UIApplicationWillTerminateNotification,
                 ),
-                // (tvOS has no status bar)
-                #[cfg(not(target_os = "tvos"))]
+                // (tvOS and visionOS have no status bar)
+                #[cfg(not(any(target_os = "tvos", target_os = "visionos")))]
                 (
                     "status bar orientation",
                     objc::UIApplicationDidChangeStatusBarOrientationNotification,

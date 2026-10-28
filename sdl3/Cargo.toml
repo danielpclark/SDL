@@ -275,3 +275,12 @@ harness = false
 [[test]]
 name = "uikit_tvos_input"
 harness = false
+
+# The visionOS programs, run as apps on the visionOS Simulator.
+[[test]]
+name = "uikit_visionos"
+harness = false
+
+[[test]]
+name = "uikit_visionos_input"
+harness = false

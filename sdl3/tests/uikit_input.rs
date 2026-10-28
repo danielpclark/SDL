@@ -43,26 +43,30 @@
 //!
 //! The expected trace is upstream's C SDL's, from the same program in C
 //! run the same way on the same simulator (an iPhone 16 with iOS 18.5).
+//! It runs on the visionOS Simulator too (an Apple Vision Pro with
+//! visionOS 2.5, whose window is the size it asks for), against
+//! upstream's C there, without idb (whose companion doesn't drive the
+//! visionOS Simulator here: the real touches are skipped).
 //! Elsewhere this program does nothing.
 
-#[cfg(not(target_os = "ios"))]
+#[cfg(not(any(target_os = "ios", target_os = "visionos")))]
 fn main() {}
 
 /// The runner's words: run as an app.
-#[cfg(target_os = "ios")]
+#[cfg(any(target_os = "ios", target_os = "visionos"))]
 #[used]
 #[link_section = "__DATA,__sdl3_runner"]
 static RUNNER: [u8; 4] = *b"app\0";
 
-#[cfg(target_os = "ios")]
+#[cfg(any(target_os = "ios", target_os = "visionos"))]
 mod uikit_support;
 
-#[cfg(target_os = "ios")]
+#[cfg(any(target_os = "ios", target_os = "visionos"))]
 fn main() {
     ios::main()
 }
 
-#[cfg(target_os = "ios")]
+#[cfg(any(target_os = "ios", target_os = "visionos"))]
 mod ios {
     use std::cell::RefCell;
     use std::collections::HashMap;
@@ -81,6 +85,7 @@ mod ios {
 
     /// Upstream's trace (the C program, on an iPhone 16 simulator with
     /// iOS 18.5).
+    #[cfg(target_os = "ios")]
     const EXPECTED: &str = "\
 init video: ok
 video driver: uikit
@@ -245,6 +250,172 @@ idb: swipe: event: FINGER_DOWN(touch=1 finger=f11 x=0.2545 y=0.7042 dx=0.0000 dy
 idb: swipe: event: MOUSE_BUTTON_UP(which=touch button=1 clicks=1 x=300.0000 y=650.0000 w=W)
 idb: swipe: event: FINGER_UP(touch=1 finger=f11 x=0.7634 y=0.7629 dx=0.0000 dy=0.0000 p=0.0000 w=W)
 idb: swipe: moved: yes
+destroyed
+destroyed: event: W:WINDOW_DESTROYED(0,0)
+destroyed: touch devices: -1 type=0 name=\"mouse_input\", 1 type=0 name=\"\", 2 type=2 name=\"\", -2 type=0 name=\"pen_input\"
+quit
+";
+
+    /// Upstream's trace on visionOS (the C program, on an Apple Vision Pro
+    /// simulator with visionOS 2.5).
+    #[cfg(target_os = "visionos")]
+    const EXPECTED: &str = "\
+init video: ok
+video driver: uikit
+start: touch devices: -1 type=0 name=\"mouse_input\"
+start: mice=0 has mouse=no
+create: ok
+created: event: W:WINDOW_MOUSE_ENTER(0,0)
+created: event: W:WINDOW_FOCUS_GAINED(0,0)
+created: event: W:WINDOW_SHOWN(0,0)
+created: event: W:WINDOW_PIXEL_SIZE_CHANGED(320,480)
+created: touch devices: -1 type=0 name=\"mouse_input\", 1 type=0 name=\"\"
+created: mice=0 has mouse=no
+view: SDL_uikitview multiple touch=yes
+view: gesture UIPinchGestureRecognizer touch types=0,1,2,3 cancels=no delays began=no ended=no
+view: gesture UIHoverGestureRecognizer touch types=2 cancels=yes delays began=no ended=yes
+view: gesture _UIPointerInteractionHoverGestureRecognizer touch types=0,1,3 cancels=yes delays began=no ended=yes
+view: gesture _UIPointerInteractionPressGestureRecognizer touch types=0,3 cancels=no delays began=no ended=no
+view: gesture _UIPointerInteractionHoverGestureRecognizer touch types=0,1,3 cancels=yes delays began=no ended=yes
+view: gesture _UIPointerInteractionPressGestureRecognizer touch types=0,3 cancels=no delays began=no ended=no
+view: gesture UIHoverGestureRecognizer touch types=3 cancels=yes delays began=no ended=yes
+view: interaction UIPointerInteraction delegate=view
+view: pointer delegate=yes
+view: prefers pointer locked=no
+pointer: region UIPointerRegion rect=0,0 320x480 identifier=nil
+pointer: style with the cursor shown: nil
+pointer: style with the cursor hidden: UIPointerStyle
+pointer: cursor: events: (none)
+finger 1 down: event: MOUSE_MOTION(which=touch state=0x0 x=100.0000 y=200.0000 xrel=0.0000 yrel=0.0000 w=W)
+finger 1 down: event: MOUSE_BUTTON_DOWN(which=touch button=1 clicks=1 x=100.0000 y=200.0000 w=W)
+finger 1 down: event: FINGER_DOWN(touch=1 finger=f1 x=0.3125 y=0.4167 dx=0.0000 dy=0.0000 p=0.5000 w=W)
+finger 1 moved: event: MOUSE_MOTION(which=touch state=0x1 x=150.0000 y=250.0000 xrel=50.0000 yrel=50.0000 w=W)
+finger 1 moved: event: FINGER_MOTION(touch=1 finger=f1 x=0.4688 y=0.5208 dx=0.1562 dy=0.1042 p=0.5000 w=W)
+finger 2 down: event: FINGER_DOWN(touch=1 finger=f2 x=0.9375 y=1.2500 dx=0.0000 dy=0.0000 p=0.2500 w=W)
+fingers 1 and 2 moved: event: MOUSE_MOTION(which=touch state=0x1 x=160.0000 y=260.0000 xrel=10.0000 yrel=10.0000 w=W)
+fingers 1 and 2 moved: event: FINGER_MOTION(touch=1 finger=f1 x=0.5000 y=0.5417 dx=0.0312 dy=0.0208 p=0.5000 w=W)
+fingers 1 and 2 moved: event: FINGER_MOTION(touch=1 finger=f2 x=0.9688 y=1.2708 dx=0.0312 dy=0.0208 p=0.7500 w=W)
+finger 2 up: event: FINGER_UP(touch=1 finger=f2 x=0.9688 y=1.2708 dx=0.0000 dy=0.0000 p=0.7500 w=W)
+finger 1 up: event: MOUSE_BUTTON_UP(which=touch button=1 clicks=1 x=160.0000 y=260.0000 w=W)
+finger 1 up: event: FINGER_UP(touch=1 finger=f1 x=0.5000 y=0.5417 dx=0.0000 dy=0.0000 p=0.0000 w=W)
+finger 3 down: event: MOUSE_MOTION(which=touch state=0x0 x=50.0000 y=60.0000 xrel=0.0000 yrel=0.0000 w=W)
+finger 3 down: event: MOUSE_BUTTON_DOWN(which=touch button=1 clicks=1 x=50.0000 y=60.0000 w=W)
+finger 3 down: event: FINGER_DOWN(touch=1 finger=f3 x=0.1562 y=0.1250 dx=0.0000 dy=0.0000 p=0.0000 w=W)
+finger 3 cancelled: event: MOUSE_BUTTON_UP(which=touch button=1 clicks=1 x=50.0000 y=60.0000 w=W)
+finger 3 cancelled: event: FINGER_CANCELED(touch=1 finger=f3 x=0.1562 y=0.1250 dx=0.0000 dy=0.0000 p=0.0000 w=W)
+fingers: touch devices: -1 type=0 name=\"mouse_input\", 1 type=0 name=\"\"
+indirect down: event: MOUSE_MOTION(which=touch state=0x0 x=200.0000 y=400.0000 xrel=0.0000 yrel=0.0000 w=W)
+indirect down: event: MOUSE_BUTTON_DOWN(which=touch button=1 clicks=1 x=200.0000 y=400.0000 w=W)
+indirect down: event: FINGER_DOWN(touch=2 finger=f4 x=0.6250 y=0.8333 dx=0.0000 dy=0.0000 p=0.0000 w=W)
+indirect moved: event: MOUSE_MOTION(which=touch state=0x1 x=210.0000 y=420.0000 xrel=10.0000 yrel=20.0000 w=W)
+indirect moved: event: FINGER_MOTION(touch=2 finger=f4 x=0.6562 y=0.8750 dx=0.0312 dy=0.0417 p=0.0000 w=W)
+indirect up: event: MOUSE_BUTTON_UP(which=touch button=1 clicks=1 x=210.0000 y=420.0000 w=W)
+indirect up: event: FINGER_UP(touch=2 finger=f4 x=0.6562 y=0.8750 dx=0.0000 dy=0.0000 p=0.0000 w=W)
+indirect: touch devices: -1 type=0 name=\"mouse_input\", 1 type=0 name=\"\", 2 type=2 name=\"\"
+pencil down: event: PEN_PROXIMITY_IN(which=p1 w=W)
+pencil down: event: PEN_MOTION(which=p1 state=0x80000000 x=120.0000 y=340.0000 w=W)
+pencil down: event: MOUSE_MOTION(which=pen state=0x0 x=120.0000 y=340.0000 xrel=-90.0000 yrel=-80.0000 w=W)
+pencil down: event: PEN_AXIS(which=p1 state=0x80000000 x=120.0000 y=340.0000 axis=0 value=0.5000 w=W)
+pencil down: event: PEN_AXIS(which=p1 state=0x80000000 x=120.0000 y=340.0000 axis=1 value=61.3521 w=W)
+pencil down: event: PEN_AXIS(which=p1 state=0x80000000 x=120.0000 y=340.0000 axis=2 value=32.7042 w=W)
+pencil down: event: PEN_AXIS(which=p1 state=0x80000000 x=120.0000 y=340.0000 axis=4 value=14.3239 w=W)
+pencil down: event: PEN_DOWN(which=p1 state=0x80000001 x=120.0000 y=340.0000 eraser=0 w=W)
+pencil down: event: MOUSE_BUTTON_DOWN(which=pen button=1 clicks=1 x=120.0000 y=340.0000 w=W)
+pencil down: event: FINGER_DOWN(touch=-2 finger=f5 x=0.3750 y=0.7083 dx=0.0000 dy=0.0000 p=0.5000 w=W)
+pencil: touch devices: -1 type=0 name=\"mouse_input\", 1 type=0 name=\"\", 2 type=2 name=\"\", -2 type=0 name=\"pen_input\"
+pencil moved: event: PEN_MOTION(which=p1 state=0x80000001 x=130.0000 y=350.0000 w=W)
+pencil moved: event: MOUSE_MOTION(which=pen state=0x1 x=130.0000 y=350.0000 xrel=10.0000 yrel=10.0000 w=W)
+pencil moved: event: FINGER_MOTION(touch=-2 finger=f5 x=0.4062 y=0.7292 dx=0.0312 dy=0.0208 p=0.5000 w=W)
+pencil moved: event: PEN_AXIS(which=p1 state=0x80000001 x=130.0000 y=350.0000 axis=0 value=0.7500 w=W)
+pencil moved: event: FINGER_MOTION(touch=-2 finger=f5 x=0.4062 y=0.7292 dx=0.0000 dy=0.0000 p=0.7500 w=W)
+pencil moved: event: PEN_AXIS(which=p1 state=0x80000001 x=130.0000 y=350.0000 axis=1 value=-53.2394 w=W)
+pencil moved: event: PEN_AXIS(which=p1 state=0x80000001 x=130.0000 y=350.0000 axis=2 value=-61.3521 w=W)
+pencil up: event: PEN_UP(which=p1 state=0x80000000 x=130.0000 y=350.0000 eraser=0 w=W)
+pencil up: event: MOUSE_BUTTON_UP(which=pen button=1 clicks=1 x=130.0000 y=350.0000 w=W)
+pencil up: event: FINGER_UP(touch=-2 finger=f5 x=0.4062 y=0.7292 dx=0.0000 dy=0.0000 p=0.7500 w=W)
+pencil up: event: PEN_AXIS(which=p1 state=0x80000000 x=130.0000 y=350.0000 axis=0 value=0.0000 w=W)
+pencil hover began: event: PEN_MOTION(which=p1 state=0x80000000 x=140.0000 y=360.0000 w=W)
+pencil hover began: event: MOUSE_MOTION(which=pen state=0x0 x=140.0000 y=360.0000 xrel=10.0000 yrel=10.0000 w=W)
+pencil hover began: event: PEN_AXIS(which=p1 state=0x80000000 x=140.0000 y=360.0000 axis=1 value=61.3521 w=W)
+pencil hover began: event: PEN_AXIS(which=p1 state=0x80000000 x=140.0000 y=360.0000 axis=2 value=-47.0282 w=W)
+pencil hover began: event: PEN_AXIS(which=p1 state=0x80000000 x=140.0000 y=360.0000 axis=4 value=0.0000 w=W)
+pencil hover began: event: PEN_AXIS(which=p1 state=0x80000000 x=140.0000 y=360.0000 axis=3 value=0.5000 w=W)
+pencil hover changed: event: PEN_MOTION(which=p1 state=0x80000000 x=150.0000 y=370.0000 w=W)
+pencil hover changed: event: MOUSE_MOTION(which=pen state=0x0 x=150.0000 y=370.0000 xrel=10.0000 yrel=10.0000 w=W)
+pencil hover ended: events: (none)
+pencil down again: event: PEN_MOTION(which=p1 state=0x80000000 x=160.0000 y=380.0000 w=W)
+pencil down again: event: MOUSE_MOTION(which=pen state=0x0 x=160.0000 y=380.0000 xrel=10.0000 yrel=10.0000 w=W)
+pencil down again: event: PEN_AXIS(which=p1 state=0x80000000 x=160.0000 y=380.0000 axis=0 value=0.2500 w=W)
+pencil down again: event: PEN_AXIS(which=p1 state=0x80000000 x=160.0000 y=380.0000 axis=1 value=-81.8873 w=W)
+pencil down again: event: PEN_AXIS(which=p1 state=0x80000000 x=160.0000 y=380.0000 axis=2 value=61.3521 w=W)
+pencil down again: event: PEN_AXIS(which=p1 state=0x80000000 x=160.0000 y=380.0000 axis=4 value=14.3239 w=W)
+pencil down again: event: PEN_AXIS(which=p1 state=0x80000000 x=160.0000 y=380.0000 axis=3 value=0.0000 w=W)
+pencil down again: event: PEN_DOWN(which=p1 state=0x80000001 x=160.0000 y=380.0000 eraser=0 w=W)
+pencil down again: event: MOUSE_BUTTON_DOWN(which=pen button=1 clicks=1 x=160.0000 y=380.0000 w=W)
+pencil down again: event: FINGER_DOWN(touch=-2 finger=f6 x=0.5000 y=0.7917 dx=0.0000 dy=0.0000 p=0.2500 w=W)
+pencil cancelled: event: PEN_UP(which=p1 state=0x80000000 x=160.0000 y=380.0000 eraser=0 w=W)
+pencil cancelled: event: MOUSE_BUTTON_UP(which=pen button=1 clicks=1 x=160.0000 y=380.0000 w=W)
+pencil cancelled: event: FINGER_UP(touch=-2 finger=f6 x=0.5000 y=0.7917 dx=0.0000 dy=0.0000 p=0.2500 w=W)
+pointer pressed: event: FINGER_DOWN(touch=-1 finger=f7 x=0.5000 y=0.7917 dx=0.0000 dy=0.0000 p=1.0000 w=W)
+pointer pressed: event: MOUSE_BUTTON_DOWN(which=global button=1 clicks=1 x=160.0000 y=380.0000 w=W)
+pointer moved: event: FINGER_MOTION(touch=-1 finger=f7 x=0.6562 y=0.6458 dx=0.1562 dy=-0.1458 p=1.0000 w=W)
+pointer moved: event: MOUSE_MOTION(which=global state=0x1 x=210.0000 y=310.0000 xrel=50.0000 yrel=-70.0000 w=W)
+pointer released: event: FINGER_UP(touch=-1 finger=f7 x=0.6562 y=0.6458 dx=0.0000 dy=0.0000 p=1.0000 w=W)
+pointer released: event: MOUSE_BUTTON_UP(which=global button=1 clicks=1 x=210.0000 y=310.0000 w=W)
+pointer pressed (4 buttons): event: FINGER_DOWN(touch=-1 finger=f8 x=0.6562 y=0.6458 dx=0.0000 dy=0.0000 p=1.0000 w=W)
+pointer pressed (4 buttons): event: MOUSE_BUTTON_DOWN(which=global button=1 clicks=1 x=210.0000 y=310.0000 w=W)
+pointer pressed (4 buttons): event: MOUSE_BUTTON_DOWN(which=global button=3 clicks=1 x=210.0000 y=310.0000 w=W)
+pointer pressed (4 buttons): event: MOUSE_BUTTON_DOWN(which=global button=2 clicks=1 x=210.0000 y=310.0000 w=W)
+pointer pressed (4 buttons): event: MOUSE_BUTTON_DOWN(which=global button=4 clicks=1 x=210.0000 y=310.0000 w=W)
+pointer cancelled: event: FINGER_UP(touch=-1 finger=f8 x=0.6562 y=0.6458 dx=0.0000 dy=0.0000 p=1.0000 w=W)
+pointer cancelled: event: MOUSE_BUTTON_UP(which=global button=1 clicks=1 x=210.0000 y=310.0000 w=W)
+pointer cancelled: event: MOUSE_BUTTON_UP(which=global button=2 clicks=1 x=210.0000 y=310.0000 w=W)
+pointer cancelled: event: MOUSE_BUTTON_UP(which=global button=3 clicks=1 x=210.0000 y=310.0000 w=W)
+pointer cancelled: event: MOUSE_BUTTON_UP(which=global button=4 clicks=1 x=210.0000 y=310.0000 w=W)
+pointer hover changed: event: MOUSE_MOTION(which=global state=0x0 x=220.0000 y=320.0000 xrel=10.0000 yrel=10.0000 w=W)
+pointer hover ended: events: (none)
+pinch began: event: PINCH_BEGIN(scale=0.0000 span=200.0000,100.0000 focus=200.0000,450.0000 w=W)
+pinch changed: event: PINCH_UPDATE(scale=1.5000 span=220.0000,120.0000 focus=200.0000,450.0000 w=W)
+pinch changed (one touch): events: (none)
+pinch changed again: event: PINCH_UPDATE(scale=1.2500 span=220.0000,120.0000 focus=200.0000,450.0000 w=W)
+pinch ended: event: PINCH_END(scale=0.0000 span=-1.0000,-1.0000 focus=-1.0000,-1.0000 w=W)
+relative mode on: ok
+relative mode on: prefers pointer locked=yes
+relative mode on: events: (none)
+relative mode off: ok
+relative mode off: prefers pointer locked=no
+relative mode off: events: (none)
+gcmouse: mice: 0
+gcmouse connected: event: MOUSE_ADDED(which=m1)
+gcmouse connected: mice=1 has mouse=yes
+gcmouse: handlers: left=yes middle=yes right=yes aux=yes,yes moved=yes scroll=yes queue=yes
+gcmouse left pressed: event: FINGER_DOWN(touch=-1 finger=f9 x=0.6875 y=0.6667 dx=0.0000 dy=0.0000 p=1.0000 w=W)
+gcmouse left pressed: event: MOUSE_BUTTON_DOWN(which=global button=1 clicks=1 x=220.0000 y=320.0000 w=W)
+gcmouse left released: event: FINGER_UP(touch=-1 finger=f9 x=0.6875 y=0.6667 dx=0.0000 dy=0.0000 p=1.0000 w=W)
+gcmouse left released: event: MOUSE_BUTTON_UP(which=global button=1 clicks=1 x=220.0000 y=320.0000 w=W)
+gcmouse other buttons pressed: event: MOUSE_BUTTON_DOWN(which=global button=3 clicks=1 x=220.0000 y=320.0000 w=W)
+gcmouse other buttons pressed: event: MOUSE_BUTTON_DOWN(which=global button=2 clicks=1 x=220.0000 y=320.0000 w=W)
+gcmouse other buttons pressed: event: MOUSE_BUTTON_DOWN(which=global button=4 clicks=1 x=220.0000 y=320.0000 w=W)
+gcmouse other buttons pressed: event: MOUSE_BUTTON_DOWN(which=global button=5 clicks=1 x=220.0000 y=320.0000 w=W)
+gcmouse other buttons released: event: MOUSE_BUTTON_UP(which=global button=3 clicks=1 x=220.0000 y=320.0000 w=W)
+gcmouse other buttons released: event: MOUSE_BUTTON_UP(which=global button=2 clicks=1 x=220.0000 y=320.0000 w=W)
+gcmouse other buttons released: event: MOUSE_BUTTON_UP(which=global button=4 clicks=1 x=220.0000 y=320.0000 w=W)
+gcmouse other buttons released: event: MOUSE_BUTTON_UP(which=global button=5 clicks=1 x=220.0000 y=320.0000 w=W)
+gcmouse moved: events: (none)
+relative mode on: ok
+gcmouse relative mode on: prefers pointer locked=yes
+gcmouse relative mode on: events: (none)
+gcmouse moved in relative mode: event: MOUSE_MOTION(which=m1 state=0x0 x=225.0000 y=317.0000 xrel=5.0000 yrel=-3.0000 w=W)
+gcmouse moved back in relative mode: event: MOUSE_MOTION(which=m1 state=0x0 x=222.5000 y=318.5000 xrel=-2.5000 yrel=1.5000 w=W)
+relative mode off: ok
+gcmouse relative mode off: prefers pointer locked=no
+gcmouse relative mode off: events: (none)
+gcmouse scrolled 1,0: event: MOUSE_WHEEL(which=global x=-1.0000 y=-0.0000 direction=1 mouse=222.5000,318.5000 integer=-1,0 w=W)
+gcmouse scrolled -0.5,2: event: MOUSE_WHEEL(which=global x=1.0000 y=-1.0000 direction=1 mouse=222.5000,318.5000 integer=1,-1 w=W)
+pointer pressed and released with a mouse: events: (none)
+gcmouse disconnected: event: MOUSE_REMOVED(which=m1)
+gcmouse disconnected: mice=0 has mouse=no
+gcmouse: handlers: left=no middle=no right=no aux=no,no moved=no scroll=yes
 destroyed
 destroyed: event: W:WINDOW_DESTROYED(0,0)
 destroyed: touch devices: -1 type=0 name=\"mouse_input\", 1 type=0 name=\"\", 2 type=2 name=\"\", -2 type=0 name=\"pen_input\"

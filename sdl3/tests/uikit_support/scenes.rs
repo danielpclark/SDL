@@ -130,6 +130,10 @@ pub fn scene(r: &mut Renderer, name: &str, compare_with: Option<(u8, usize)>, dr
     }
     let image = hash_read(&label, r.read_pixels(Some(&Rect::new(0, 0, RW, RH))));
     let _ = r.present();
+    // (the software renderer can't be made on visionOS, whose renderers'
+    // output colorspace is always linear sRGB, as upstream's: the hashes
+    // are compared with upstream's alone there)
+    let compare_with = compare_with.filter(|_| !cfg!(target_os = "visionos"));
     if let (Some(image), Some((tolerance, max_bad))) = (image, compare_with) {
         let mut sw =
             Renderer::software(Surface::new(RW, RH, PixelFormat::ARGB8888).unwrap()).unwrap();
@@ -608,11 +612,15 @@ pub fn scenes(r: &mut Renderer, text: &str) {
     r.destroy_texture(target);
 }
 
-/// The custom blend mode's pixels: dst - src for the color.
+/// The custom blend mode's pixels: dst - src for the color (in sRGB; on
+/// visionOS the renderers blend in linear sRGB, so there only upstream's
+/// hash of the scene is compared).
 pub fn check_custom_blend(r: &mut Renderer) {
     custom_blend(r).unwrap();
     let s = r.read_pixels(None).unwrap();
-    assert_eq!(s.read_pixel(20, 20).unwrap(), Color::new(40, 90, 140, 255));
-    assert_eq!(s.read_pixel(5, 5).unwrap(), Color::new(100, 150, 200, 255));
+    if !cfg!(target_os = "visionos") {
+        assert_eq!(s.read_pixel(20, 20).unwrap(), Color::new(40, 90, 140, 255));
+        assert_eq!(s.read_pixel(5, 5).unwrap(), Color::new(100, 150, 200, 255));
+    }
     r.present().unwrap();
 }
