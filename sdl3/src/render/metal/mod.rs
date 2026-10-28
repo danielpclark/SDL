@@ -3,11 +3,14 @@
 // Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
 // This is an altered (translated) version of the original software; see LICENSE.txt.
 
-//! The Metal renderer ("metal", the first one tried on macOS): draws
-//! through a Metal device into the `CAMetalLayer` of a Metal view on the
-//! window (the window's own Metal view when it has one, otherwise one made
-//! with [`metal_create_view`](crate::video::vulkan::metal_create_view)).
-//! The shaders are upstream's precompiled library ([`shaders`]).
+//! The Metal renderer ("metal", the first one tried on macOS and the
+//! UIKit platforms): draws through a Metal device into the `CAMetalLayer`
+//! of a Metal view on the window (the window's own Metal view when it has
+//! one, otherwise one made with
+//! [`metal_create_view`](crate::video::vulkan::metal_create_view)). The
+//! shaders are upstream's precompiled library for the platform
+//! ([`shaders`]: macOS's, or the iOS or tvOS devices' or simulator's, chosen
+//! by `cfg` as upstream's `#if` chain chooses its header).
 //!
 //! Textures can wrap the application's `MTLTexture`s
 //! ([`TextureCreateInfo::metal_texture`](crate::render::TextureCreateInfo::metal_texture)
@@ -18,9 +21,34 @@
 //! Upstream's `@interface` data objects (`SDL3METAL_RenderData`, the
 //! texture and palette data) are Rust structures here, their retained
 //! properties [`StrongPtr`]s; its sampler dictionary is a `HashMap`, and its
-//! pipeline caches `Vec`s. What isn't translated: the iOS, tvOS and visionOS
-//! paths (only macOS is targeted).
+//! pipeline caches `Vec`s.
+//!
+//! The `SDL_PLATFORM_MACOS` branches (the low-power device, managed
+//! textures, `displaySyncEnabled`) and their UIKit counterparts (the UIKit
+//! window's view, the constants' alignment on devices, vsync always on,
+//! the maximum texture size of the iOS and tvOS feature sets, no EDR on
+//! tvOS) are `cfg`s. Not translated: visionOS's RealityKit paths (the
+//! curved window's texture, which the drawable is copied to and its
+//! mipmaps made from; `SDL_UIKit_IsCurvedWindow()` is the Swift bridge's),
+//! which come with visionOS.
 
+// Regenerate these with build-metal-shaders.sh
+#[cfg(target_os = "macos")]
+mod shaders;
+#[cfg(all(target_os = "tvos", target_abi = "sim"))]
+#[path = "shaders_tvsimulator.rs"]
+mod shaders;
+#[cfg(all(target_os = "tvos", not(target_abi = "sim")))]
+#[path = "shaders_tvos.rs"]
+mod shaders;
+#[cfg(all(not(any(target_os = "macos", target_os = "tvos")), target_abi = "sim"))]
+#[path = "shaders_iphonesimulator.rs"]
+mod shaders;
+#[cfg(all(
+    not(any(target_os = "macos", target_os = "tvos")),
+    not(target_abi = "sim")
+))]
+#[path = "shaders_ios.rs"]
 mod shaders;
 #[cfg(test)]
 mod tests;
@@ -30,7 +58,9 @@ use std::collections::HashMap;
 use std::ffi::c_void;
 
 use crate::core::apple::block::{dispatch_get_global_queue, dispatch_release, RcBlock};
-use crate::core::apple::foundation::{available, ns_array_items, ns_string, NSSize};
+#[cfg(target_os = "macos")]
+use crate::core::apple::foundation::ns_array_items;
+use crate::core::apple::foundation::{available, ns_string, NSSize};
 use crate::core::apple::objc::{
     autoreleasepool, class, msg_send, release, Bool, Id, NSInteger, NSUInteger, StrongPtr, NIL, NO,
     YES,
@@ -39,6 +69,7 @@ use crate::error::{Error, Result};
 use crate::events::window::WindowFlags;
 use crate::events::EventType;
 use crate::gpu::metal::sys::*;
+#[cfg(target_os = "macos")]
 use crate::hints;
 use crate::properties::Properties;
 use crate::render::sysrender::{
@@ -53,9 +84,14 @@ use crate::video::pixels::{
 };
 use crate::video::rect::{FPoint, FRect, Rect};
 use crate::video::surface::{ScaleMode, Surface};
+use crate::video::window::PROP_WINDOW_HDR_HEADROOM_FLOAT;
+#[cfg(target_os = "macos")]
 use crate::video::window::{
     PROP_WINDOW_COCOA_METAL_VIEW_TAG_NUMBER, PROP_WINDOW_COCOA_WINDOW_POINTER,
-    PROP_WINDOW_HDR_HEADROOM_FLOAT,
+};
+#[cfg(not(target_os = "macos"))]
+use crate::video::window::{
+    PROP_WINDOW_UIKIT_METAL_VIEW_TAG_NUMBER, PROP_WINDOW_UIKIT_WINDOW_POINTER,
 };
 use crate::video::{BlendMode, Window};
 
@@ -91,10 +127,24 @@ unsafe extern "C" {
 
 // Apple Metal renderer implementation
 
-/// macOS requires constants in a buffer to have a 256 byte alignment.
-/// Translation of `CONSTANT_ALIGN()` (macOS).
+// macOS requires constants in a buffer to have a 256 byte alignment.
+// Use native type alignments from https://developer.apple.com/metal/Metal-Shading-Language-Specification.pdf
+
+/// Translation of `CONSTANT_ALIGN()` (macOS, the simulators and Mac
+/// Catalyst).
+#[cfg(any(target_os = "macos", target_abi = "sim", target_abi = "macabi"))]
 const fn constant_align(_x: usize) -> usize {
     256
+}
+
+/// Translation of `CONSTANT_ALIGN()` (the UIKit platforms' devices).
+#[cfg(not(any(target_os = "macos", target_abi = "sim", target_abi = "macabi")))]
+const fn constant_align(x: usize) -> usize {
+    if x < 4 {
+        4
+    } else {
+        x
+    }
 }
 
 /// Translation of `DEVICE_ALIGN()`.
@@ -247,6 +297,8 @@ pub(crate) struct MetalRenderer {
     /// The vertex data of the queued commands (`renderer->vertex_data`).
     vertex_data: Vec<u8>,
     texture_formats: Vec<PixelFormat>,
+    /// `SDL_PROP_RENDERER_MAX_TEXTURE_SIZE_NUMBER` (`maxtexsize`).
+    maxtexsize: i32,
     /// The renderer's properties, once the front end has made them.
     props: Option<Properties>,
 }
@@ -833,6 +885,9 @@ impl MetalRenderer {
             if self.target.is_some() {
                 mtltexture = self.target_mtltexture.get();
             } else {
+                // (visionOS's curved window's texture, through the Swift
+                // bridge, comes with visionOS)
+
                 // Standard rendering path: use CAMetalLayer drawable
                 if self.mtlbackbuffer.is_nil() {
                     // The backbuffer's contents aren't guaranteed to persist after
@@ -1634,11 +1689,15 @@ impl MetalRenderer {
              * update the CPU-side copy of the texture data.
              * NOTE: Currently all of our textures are managed on macOS. We'll need some
              * extra copying for any private textures. */
+            #[cfg(target_os = "macos")]
             if get_storage_mode(mtltexture.get()) == MTL_STORAGE_MODE_MANAGED {
                 let blit: Id = msg_send![self.mtlcmdbuffer, blitCommandEncoder];
                 let _: () = msg_send![blit, synchronizeResource: mtltexture.get()];
                 let _: () = msg_send![blit, endEncoding];
             }
+
+            // (visionOS's copy of the curved window's texture to a staging
+            // one, METAL_CopyToStagingTexture(), comes with visionOS)
 
             /* Commit the current command buffer and wait until it's completed, to make
              * sure the GPU has finished rendering to it by the time we read it. */
@@ -1738,6 +1797,8 @@ impl MetalRenderer {
                 // If we don't have a drawable to present, don't try to present it.
                 //  But we'll still try to commit the command buffer in case it was already enqueued.
                 if ready {
+                    // (visionOS's mipmaps of the curved window's texture come
+                    // with visionOS)
                     crate::sdl_assert!(!self.mtlbackbuffer.is_nil());
                     let _: () =
                         msg_send![self.mtlcmdbuffer, presentDrawable: self.mtlbackbuffer.get()];
@@ -1792,8 +1853,9 @@ impl MetalRenderer {
         })
     }
 
-    /// Translation of `GetWindowView()`: the window's own Metal view, with
-    /// a reference for the renderer, if it has one.
+    /// Translation of `GetWindowView()` (Cocoa): the window's own Metal
+    /// view, with a reference for the renderer, if it has one.
+    #[cfg(target_os = "macos")]
     fn get_window_view(window: &Window) -> usize {
         let Ok(props) = window.properties() else {
             return 0;
@@ -1817,6 +1879,36 @@ impl MetalRenderer {
                         // (CFBridgingRetain)
                         return crate::core::apple::objc::retain(view) as usize;
                     }
+                }
+            }
+        }
+        0
+    }
+
+    /// Translation of `GetWindowView()` (UIKit): the window's own Metal
+    /// view (its view controller's view), with a reference for the
+    /// renderer, if it has one.
+    #[cfg(not(target_os = "macos"))]
+    fn get_window_view(window: &Window) -> usize {
+        let Ok(props) = window.properties() else {
+            return 0;
+        };
+        let uiwindow = props
+            .get_number(PROP_WINDOW_UIKIT_WINDOW_POINTER)
+            .unwrap_or(0) as usize as Id;
+        let tag = props
+            .get_number(PROP_WINDOW_UIKIT_METAL_VIEW_TAG_NUMBER)
+            .unwrap_or(0) as NSInteger;
+        if !uiwindow.is_null() && tag != 0 {
+            // SAFETY: the window's UIWindow, its root view controller and
+            // its view.
+            unsafe {
+                let root: Id = msg_send![uiwindow, rootViewController];
+                let view: Id = msg_send![root, view];
+                let view_tag: NSInteger = msg_send![view, tag];
+                if view_tag == tag {
+                    // (CFBridgingRetain)
+                    return crate::core::apple::objc::retain(view) as usize;
                 }
             }
         }
@@ -1860,7 +1952,10 @@ impl MetalRenderer {
         // (SDL_SetupRendererColorspace() is the front end's)
 
         // (@available(macos 10.11, *): every macOS the translation runs on)
-        let sc_rgb_supported = true;
+        #[cfg(not(target_os = "tvos"))]
+        let sc_rgb_supported = available!(ios(16, 0));
+        #[cfg(target_os = "tvos")]
+        let sc_rgb_supported = false;
         if output_colorspace != Colorspace::SRGB
             && !(output_colorspace == Colorspace::SRGB_LINEAR && sc_rgb_supported)
         {
@@ -1885,6 +1980,7 @@ impl MetalRenderer {
                 }
             }
 
+            #[cfg(target_os = "macos")]
             if mtldevice.is_nil()
                 && hints::get_bool(hints::RENDER_METAL_PREFER_LOW_POWER_DEVICE, true)
             {
@@ -1938,14 +2034,20 @@ impl MetalRenderer {
                 allpipelines: Vec::new(),
                 vertex_data: Vec::new(),
                 texture_formats: Vec::new(),
+                maxtexsize: 0,
                 props: None,
             };
             let flags = data.window.flags().unwrap_or_default();
             data.hidden = flags.intersects(WindowFlags::HIDDEN | WindowFlags::MINIMIZED);
             data.invalidate();
 
+            #[cfg(not(target_os = "tvos"))]
             if output_colorspace == Colorspace::SRGB_LINEAR {
-                let _: () = msg_send![layer, setWantsExtendedDynamicRangeContent: YES];
+                if available!(ios(16, 0)) {
+                    let _: () = msg_send![layer, setWantsExtendedDynamicRangeContent: YES];
+                } else {
+                    crate::sdl_assert!(!"Logic error, scRGB is not actually supported");
+                }
                 let _: () = msg_send![layer, setPixelFormat: MTL_PIXEL_FORMAT_RGBA16_FLOAT];
 
                 let colorspace = CGColorSpaceCreateWithName(kCGColorSpaceExtendedLinearSRGB);
@@ -2101,6 +2203,10 @@ impl MetalRenderer {
                 PixelFormat::RGBA64_FLOAT,
                 PixelFormat::RGBA128_FLOAT,
             ];
+            // FIXME (upstream): the iOS Simulator's device is in the Apple1
+            // family, but its Metal refuses the packed 16-bit formats ("is
+            // not a valid MTLPixelFormat", an assertion that ends the
+            // process), so a texture of one can't be made there.
             if available!(macos(11, 0), ios(13, 0), tvos(13, 0)) {
                 let apple1: Bool = msg_send![data.mtldevice, supportsFamily: MTL_GPU_FAMILY_APPLE1];
                 if apple1.is_true() {
@@ -2124,7 +2230,37 @@ impl MetalRenderer {
                 PixelFormat::I4FL,
             ]);
 
+            #[cfg(any(target_os = "macos", target_abi = "macabi"))]
             let _: () = msg_send![data.mtllayer, setDisplaySyncEnabled: NO];
+
+            // https://developer.apple.com/metal/Metal-Feature-Set-Tables.pdf
+            #[cfg(any(target_os = "macos", target_abi = "macabi"))]
+            {
+                data.maxtexsize = 16384;
+            }
+            #[cfg(target_os = "tvos")]
+            {
+                let family2: Bool = msg_send![data.mtldevice, supportsFeatureSet: MTL_FEATURE_SET_TVOS_GPU_FAMILY2_V1];
+                data.maxtexsize = if family2.is_true() { 16384 } else { 8192 };
+            }
+            #[cfg(not(any(target_os = "macos", target_abi = "macabi", target_os = "tvos")))]
+            {
+                let supports = |feature_set: NSUInteger| -> bool {
+                    let r: Bool = msg_send![data.mtldevice, supportsFeatureSet: feature_set];
+                    r.is_true()
+                };
+                data.maxtexsize = if supports(MTL_FEATURE_SET_IOS_GPU_FAMILY4_V1)
+                    || supports(MTL_FEATURE_SET_IOS_GPU_FAMILY3_V1)
+                {
+                    16384
+                } else if supports(MTL_FEATURE_SET_IOS_GPU_FAMILY2_V2)
+                    || supports(MTL_FEATURE_SET_IOS_GPU_FAMILY1_V2)
+                {
+                    8192
+                } else {
+                    4096
+                };
+            }
 
             Ok(data)
         }
@@ -2145,9 +2281,8 @@ impl RenderBackend for MetalRenderer {
         Some(self.texture_formats.clone())
     }
 
-    /// <https://developer.apple.com/metal/Metal-Feature-Set-Tables.pdf>
     fn max_texture_size(&self) -> Option<i32> {
-        Some(16384)
+        Some(self.maxtexsize)
     }
 
     fn set_properties(&mut self, props: &Properties) {
@@ -3124,7 +3259,8 @@ impl RenderBackend for MetalRenderer {
         })
     }
 
-    /// Translation of `METAL_SetVSync()`.
+    /// Translation of `METAL_SetVSync()` (macOS, Mac Catalyst).
+    #[cfg(any(target_os = "macos", target_abi = "macabi"))]
     fn set_vsync(&mut self, vsync: i32) -> Option<Result<()>> {
         // SAFETY: the renderer's layer.
         Some(match vsync {
@@ -3136,6 +3272,16 @@ impl RenderBackend for MetalRenderer {
                 let _: () = unsafe { msg_send![self.mtllayer, setDisplaySyncEnabled: YES] };
                 Ok(())
             }
+            _ => Err(Error::unsupported()),
+        })
+    }
+
+    /// Translation of `METAL_SetVSync()` (the other UIKit platforms, whose
+    /// layers always wait for the display).
+    #[cfg(not(any(target_os = "macos", target_abi = "macabi")))]
+    fn set_vsync(&mut self, vsync: i32) -> Option<Result<()>> {
+        Some(match vsync {
+            1 => Ok(()),
             _ => Err(Error::unsupported()),
         })
     }
