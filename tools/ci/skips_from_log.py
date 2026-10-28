@@ -10,7 +10,9 @@ RUST_TEST_NOCAPTURE=1), each given the test libtest names next, `test NAME
   tools/ci/skips_from_log.py LOG... > SKIP_LOG
 
 A log that doesn't exist counts as empty. (With tests running in parallel
-a note may be put on a test that ended meanwhile.)
+a note may be put on a test that ended meanwhile, and may come in the
+middle of libtest's line for another test, after its `test NAME ... `:
+it is taken from anywhere in a line.)
 """
 import sys
 
@@ -24,9 +26,11 @@ def skips(path):
     with log:
         for line in log:
             line = line.rstrip("\n").rstrip("\r")
-            if line.startswith("note: skipping, ") and " unavailable: " in line:
-                pending.append(line[len("note: skipping, "):].split(" unavailable: ", 1))
-            elif line.startswith("test ") and " ... " in line:
+            if "note: skipping, " in line:
+                line, note = line.split("note: skipping, ", 1)
+                if " unavailable: " in note:
+                    pending.append(note.split(" unavailable: ", 1))
+            if line.startswith("test ") and " ... " in line:
                 for capability, reason in pending:
                     yield capability, line.split()[1], reason
                 pending = []

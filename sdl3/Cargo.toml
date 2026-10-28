@@ -234,3 +234,7 @@ harness = false
 [[test]]
 name = "uikit_messagebox"
 harness = false
+
+[[test]]
+name = "uikit_metal"
+harness = false

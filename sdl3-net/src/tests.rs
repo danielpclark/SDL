@@ -54,7 +54,15 @@ fn skip(capability: &str, reason: impl std::fmt::Display) {
     if required {
         panic!("required capability {capability} unavailable: {reason}");
     }
-    eprintln!("note: skipping, {capability} unavailable: {reason}");
+    // (in one write: eprintln!() writes its pieces one by one, which the
+    // test harness's lines on the same pipe can come between, and the
+    // skip logs made from the output, tools/ci/skips_from_log.py, need
+    // the note whole)
+    {
+        use std::io::Write;
+        let note = format!("note: skipping, {capability} unavailable: {reason}\n");
+        let _ = std::io::stderr().lock().write_all(note.as_bytes());
+    }
     if let Ok(path) = std::env::var("SDL3_TEST_SKIP_LOG") {
         use std::io::Write;
         if let Ok(mut file) = std::fs::OpenOptions::new()
