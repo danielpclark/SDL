@@ -30,8 +30,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { toolchain: "1.87", name: vulkan-cold-before, args: "vulkan", lldb: false, cold: true }
-          - { toolchain: "1.99", name: vulkan-cold-before, args: "vulkan", lldb: false, cold: true }
+          - { toolchain: "1.87", name: vulkan-cold-after, args: "vulkan", lldb: false, cold: true }
+          - { toolchain: "1.99", name: vulkan-cold-after, args: "vulkan", lldb: false, cold: true }
+          - { toolchain: "1.87", name: full-cold-after, args: "", lldb: false, cold: true }
     runs-on: macos-latest
     timeout-minutes: 120
     env:
