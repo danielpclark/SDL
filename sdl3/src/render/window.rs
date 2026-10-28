@@ -239,7 +239,7 @@ impl Renderer {
         }
 
         // (the driver name is "gpu", which only the GPU driver matches)
-        let output_colorspace = info.output_colorspace.unwrap_or(Colorspace::SRGB);
+        let output_colorspace = super::setup_renderer_colorspace(info);
         let backend = match super::gpu::GpuRenderer::new(
             None,
             output_colorspace,
@@ -605,40 +605,41 @@ fn create_for_window(
     match driver {
         #[cfg(windows)]
         super::direct3d11::D3D11_RENDERER => {
-            let output_colorspace = info.output_colorspace.unwrap_or(Colorspace::SRGB);
+            let output_colorspace = super::setup_renderer_colorspace(info);
             let backend = super::direct3d11::D3d11Renderer::for_window(window, output_colorspace)?;
             Ok((Box::new(backend), crate::video::PixelFormat::UNKNOWN))
         }
         #[cfg(windows)]
         super::direct3d12::D3D12_RENDERER => {
-            let output_colorspace = info.output_colorspace.unwrap_or(Colorspace::SRGB);
+            let output_colorspace = super::setup_renderer_colorspace(info);
             let backend = super::direct3d12::D3d12Renderer::for_window(window, output_colorspace)?;
             Ok((Box::new(backend), crate::video::PixelFormat::UNKNOWN))
         }
         #[cfg(target_vendor = "apple")]
         super::metal::METAL_RENDERER => {
-            let output_colorspace = info.output_colorspace.unwrap_or(Colorspace::SRGB);
+            let output_colorspace = super::setup_renderer_colorspace(info);
             let backend = super::metal::MetalRenderer::for_window(window, output_colorspace, info)?;
             Ok((Box::new(backend), crate::video::PixelFormat::UNKNOWN))
         }
         super::opengl::OPENGL_RENDERER => {
-            let output_colorspace = info.output_colorspace.unwrap_or(Colorspace::SRGB);
+            let output_colorspace = super::setup_renderer_colorspace(info);
             let backend = super::opengl::GlRenderer::for_window(window, output_colorspace)?;
             Ok((Box::new(backend), crate::video::PixelFormat::UNKNOWN))
         }
+        #[cfg(not(any(target_os = "visionos", target_abi = "macabi")))]
         super::opengles2::GLES2_RENDERER => {
-            let output_colorspace = info.output_colorspace.unwrap_or(Colorspace::SRGB);
+            let output_colorspace = super::setup_renderer_colorspace(info);
             let backend = super::opengles2::Gles2Renderer::for_window(window, output_colorspace)?;
             Ok((Box::new(backend), crate::video::PixelFormat::UNKNOWN))
         }
         super::vulkan::VULKAN_RENDERER => {
-            let output_colorspace = info.output_colorspace.unwrap_or(Colorspace::SRGB);
+            let output_colorspace = super::setup_renderer_colorspace(info);
             let backend =
                 super::vulkan::VulkanRenderer::for_window(window, output_colorspace, info)?;
             Ok((Box::new(backend), crate::video::PixelFormat::UNKNOWN))
         }
         super::GPU_RENDERER => {
-            let output_colorspace = info.output_colorspace.unwrap_or(Colorspace::SRGB);
+            let output_colorspace = super::setup_renderer_colorspace(info);
             let backend = super::gpu::GpuRenderer::new(
                 Some(window),
                 output_colorspace,
@@ -649,6 +650,14 @@ fn create_for_window(
         }
         super::SOFTWARE_RENDERER => {
             let (backend, format) = super::SwRenderer::for_window(window, present_vsync)?;
+            // (SW_CreateRendererForSurface()'s check, which the front end
+            // makes again, and SW_CreateRenderer()'s failure: the window's
+            // surface, made for the renderer, is destroyed)
+            if super::setup_renderer_colorspace(info) != Colorspace::SRGB {
+                drop(backend);
+                let _ = window.destroy_surface();
+                return Err(Error::new("Unsupported output colorspace"));
+            }
             Ok((Box::new(backend), format))
         }
         _ => Err(Error::new(format!("{driver} not available"))),

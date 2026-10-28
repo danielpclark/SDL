@@ -40,6 +40,10 @@ mod gpu_render_state;
 #[cfg(target_vendor = "apple")]
 pub(crate) mod metal;
 pub(crate) mod opengl;
+// (built for its public property names; on visionOS and Mac Catalyst,
+// which upstream builds without OpenGL ES, the renderer isn't in the
+// driver list)
+#[cfg_attr(any(target_os = "visionos", target_abi = "macabi"), allow(dead_code))]
 pub(crate) mod opengles2;
 pub(crate) mod software;
 pub(crate) mod sysrender;
@@ -342,6 +346,9 @@ const RENDER_DRIVERS: &[&str] = &[
         all(target_vendor = "apple", not(target_os = "macos"))
     )))]
     opengl::OPENGL_RENDERER,
+    // (SDL_VIDEO_RENDER_OGL_ES2: not on visionOS or Mac Catalyst, which
+    // upstream builds without OpenGL ES)
+    #[cfg(not(any(target_os = "visionos", target_abi = "macabi")))]
     opengles2::GLES2_RENDERER,
     #[cfg(not(target_os = "emscripten"))]
     vulkan::VULKAN_RENDERER,
@@ -383,6 +390,21 @@ fn fcolor_floats(c: FColor) -> [f32; 4] {
 
 /// rect_index_order: the two triangles of a quad.
 const RECT_INDEX_ORDER: [i32; 6] = [0, 1, 2, 0, 2, 3];
+
+/// The output colorspace a renderer is made with: the one asked for
+/// (sRGB by default), but on visionOS, where it's always linear sRGB (the
+/// curved windows' RealityKit texture's: as upstream, the flat windows'
+/// too). Each backend then fails with "Unsupported output colorspace" if
+/// it can't draw to it (on visionOS, the software renderer, as
+/// upstream's). Translation of `SDL_SetupRendererColorspace()`.
+pub(crate) fn setup_renderer_colorspace(info: &RendererCreateInfo) -> Colorspace {
+    if cfg!(target_os = "visionos") {
+        // The RealityKit texture always renders in linear colorspace
+        Colorspace::SRGB_LINEAR
+    } else {
+        info.output_colorspace.unwrap_or(Colorspace::SRGB)
+    }
+}
 
 static NEXT_RENDERER_ID: AtomicU32 = AtomicU32::new(1);
 
@@ -566,16 +588,17 @@ impl Renderer {
         present_vsync: i64,
         window: Option<crate::video::Window>,
     ) -> Result<Renderer> {
-        // (SW_CreateRendererForSurface())
-        let output_colorspace = info.output_colorspace.unwrap_or(Colorspace::SRGB);
-        if output_colorspace != Colorspace::SRGB {
+        // (the colorspace the backend was made with)
+        let output_colorspace = setup_renderer_colorspace(info);
+        let software = backend.name() == SOFTWARE_RENDERER;
+        // (SW_CreateRendererForSurface(): the other backends check theirs)
+        if software && output_colorspace != Colorspace::SRGB {
             return Err(Error::new("Unsupported output colorspace"));
         }
 
         let texture_formats = backend
             .texture_formats()
             .unwrap_or_else(|| SwRenderer::select_best_formats(format));
-        let software = backend.name() == SOFTWARE_RENDERER;
         let npot_texture_wrap_unsupported = backend.npot_texture_wrap_unsupported();
         let max_texture_size = backend.max_texture_size();
         let mut renderer = Renderer {

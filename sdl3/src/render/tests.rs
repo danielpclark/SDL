@@ -529,6 +529,10 @@ fn run_render(t: &mut Harness) -> u64 {
 // blitters also step their row skips in bytes, as the ones here do (see
 // the note on BlitInfo).
 #[test]
+#[cfg_attr(
+    target_os = "visionos",
+    ignore = "the software renderer can't be made on visionOS (its output colorspace is always linear sRGB there, as upstream's)"
+)]
 fn render_matches_c() {
     let simd = with_simd(true, run_render);
     let plain = with_simd(false, run_render);
@@ -536,6 +540,10 @@ fn render_matches_c() {
 }
 
 #[test]
+#[cfg_attr(
+    target_os = "visionos",
+    ignore = "the software renderer can't be made on visionOS (its output colorspace is always linear sRGB there, as upstream's)"
+)]
 fn renderer_basics() {
     let s = Surface::new(8, 8, PixelFormat::ARGB8888).unwrap();
     let mut r = Renderer::software(s).unwrap();
@@ -585,6 +593,10 @@ fn renderer_basics() {
 // of the coordinates. Upstream checked u only, looked up with the color
 // stride.
 #[test]
+#[cfg_attr(
+    target_os = "visionos",
+    ignore = "the software renderer can't be made on visionOS (its output colorspace is always linear sRGB there, as upstream's)"
+)]
 fn geometry_quad_uv_range() {
     fn pixels(r: &mut Renderer) -> Vec<Color> {
         let s = r.read_pixels(None).unwrap();
@@ -655,6 +667,10 @@ fn geometry_quad_uv_range() {
 // SDL_LockTextureToSurface() ignore the failed intersection and go on with a
 // negative size.
 #[test]
+#[cfg_attr(
+    target_os = "visionos",
+    ignore = "the software renderer can't be made on visionOS (its output colorspace is always linear sRGB there, as upstream's)"
+)]
 fn texture_rects_outside_texture() {
     let s = Surface::new(8, 8, PixelFormat::ARGB8888).unwrap();
     let mut r = Renderer::software(s).unwrap();
@@ -1243,6 +1259,10 @@ mod window_session {
     }
 
     #[test]
+    #[cfg_attr(
+        target_os = "visionos",
+        ignore = "the software renderer can't be made on visionOS (its output colorspace is always linear sRGB there, as upstream's)"
+    )]
     fn window_renderer_matches_c() {
         let _l = crate::test_support::test_lock();
         init::quit(); // (in case an earlier test failed halfway)

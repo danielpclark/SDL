@@ -30,11 +30,14 @@ fn driver_list_follows_upstreams_order() {
     );
     // (no desktop OpenGL on UIKit; upstream's "opengles", the OpenGL ES 1
     // renderer after "opengles2", isn't translated)
-    #[cfg(not(target_os = "macos"))]
+    #[cfg(not(any(target_os = "macos", target_os = "visionos")))]
     assert_eq!(
         names,
         ["metal", "opengles2", "vulkan", "gpu", SOFTWARE_RENDERER]
     );
+    // (no OpenGL ES on visionOS)
+    #[cfg(target_os = "visionos")]
+    assert_eq!(names, ["metal", "vulkan", "gpu", SOFTWARE_RENDERER]);
 }
 
 #[test]

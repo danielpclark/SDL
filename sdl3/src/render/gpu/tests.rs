@@ -2731,31 +2731,55 @@ mod metal {
     use super::Backend;
 
     #[test]
+    #[cfg_attr(
+        target_os = "visionos",
+        ignore = "the software renderer can't be made on visionOS (its output colorspace is always linear sRGB there, as upstream's)"
+    )]
     fn gpu_matches_software_for_shapes() {
         super::gpu_matches_software_for_shapes_on(Backend::Metal);
     }
 
     #[test]
+    #[cfg_attr(
+        target_os = "visionos",
+        ignore = "the software renderer can't be made on visionOS (its output colorspace is always linear sRGB there, as upstream's)"
+    )]
     fn gpu_matches_software_for_textures() {
         super::gpu_matches_software_for_textures_on(Backend::Metal);
     }
 
     #[test]
+    #[cfg_attr(
+        target_os = "visionos",
+        ignore = "the software renderer can't be made on visionOS (its output colorspace is always linear sRGB there, as upstream's)"
+    )]
     fn gpu_matches_software_for_yuv() {
         super::gpu_matches_software_for_yuv_on(Backend::Metal);
     }
 
     #[test]
+    #[cfg_attr(
+        target_os = "visionos",
+        ignore = "the software renderer can't be made on visionOS (its output colorspace is always linear sRGB there, as upstream's)"
+    )]
     fn gpu_line_methods() {
         super::gpu_line_methods_on(Backend::Metal);
     }
 
     #[test]
+    #[cfg_attr(
+        target_os = "visionos",
+        ignore = "the software renderer can't be made on visionOS (its output colorspace is always linear sRGB there, as upstream's)"
+    )]
     fn gpu_render_states() {
         super::gpu_render_states_on(Backend::Metal);
     }
 
     #[test]
+    #[cfg_attr(
+        target_os = "visionos",
+        ignore = "the software renderer can't be made on visionOS (its output colorspace is always linear sRGB there, as upstream's)"
+    )]
     fn gpu_renderer_without_a_window() {
         super::gpu_renderer_without_a_window_on(Backend::Metal);
     }
@@ -2771,9 +2795,17 @@ fn gpu_fails_without_vulkan_surfaces() {
     init::init(InitFlags::VIDEO).unwrap();
     let window = Window::create("no gpu", 16, 16, WindowFlags::default()).unwrap();
     assert!(Renderer::for_window(&window, Some(GPU_RENDERER)).is_err());
-    let r = Renderer::for_window(&window, None).unwrap();
-    assert_eq!(r.name(), SOFTWARE_RENDERER);
-    drop(r);
+    let r = Renderer::for_window(&window, None);
+    if cfg!(target_os = "visionos") {
+        // (nor the software one, which can't be made there: its output
+        // colorspace is always linear sRGB, as upstream's)
+        assert_eq!(
+            r.err().unwrap().message(),
+            "Couldn't find matching render driver"
+        );
+    } else {
+        assert_eq!(r.unwrap().name(), SOFTWARE_RENDERER);
+    }
     window.destroy();
     init::quit();
     hints::reset(hints::VIDEO_DRIVER);
