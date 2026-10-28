@@ -17,8 +17,9 @@
 //! ([`Renderer::software`]) or a window's surface, or for windows the
 //! Direct3D 11 backend ("direct3d11", Windows only, tried first by
 //! [`Renderer::for_window`]), the Direct3D 12 backend ("direct3d12",
-//! Windows only, next), the Metal backend ("metal", macOS only, tried
-//! first there), the OpenGL backend ("opengl", first elsewhere), the
+//! Windows only, next), the Metal backend ("metal", on Apple platforms,
+//! tried first there), the OpenGL backend ("opengl", first elsewhere; not
+//! on the UIKit platforms or Emscripten), the
 //! OpenGL ES 2.0 backend ("opengles2"), the Vulkan backend ("vulkan") or
 //! the GPU backend ("gpu", through the [GPU API](crate::gpu)); the other
 //! GPU backends come with the platform layer.
@@ -36,7 +37,7 @@ pub(crate) mod direct3d11;
 pub(crate) mod direct3d12;
 pub(crate) mod gpu;
 mod gpu_render_state;
-#[cfg(target_os = "macos")]
+#[cfg(target_vendor = "apple")]
 pub(crate) mod metal;
 pub(crate) mod opengl;
 pub(crate) mod opengles2;
@@ -83,7 +84,7 @@ pub use gpu::{
 pub use gpu_render_state::{
     GpuRenderState, GpuRenderStateCreateInfo, GpuRenderStateSamplerBinding,
 };
-#[cfg(target_os = "macos")]
+#[cfg(target_vendor = "apple")]
 pub use metal::{
     PROP_RENDERER_METAL_COMMAND_QUEUE_POINTER, PROP_RENDERER_METAL_DEVICE_POINTER,
     PROP_TEXTURE_METAL_TEXTURE_POINTER, PROP_TEXTURE_METAL_TEXTURE_UV_POINTER,
@@ -332,7 +333,7 @@ const RENDER_DRIVERS: &[&str] = &[
     direct3d11::D3D11_RENDERER,
     #[cfg(windows)]
     direct3d12::D3D12_RENDERER,
-    #[cfg(target_os = "macos")]
+    #[cfg(target_vendor = "apple")]
     metal::METAL_RENDERER,
     // (Emscripten: OpenGL ES 2 and software only, as upstream builds it;
     // no desktop OpenGL on UIKit either)

@@ -4,7 +4,8 @@
 
 //! What can be checked without a window: the tables and constants against
 //! upstream's values. The renderer itself needs a Cocoa window, which only
-//! the main thread can make: `tests/cocoa_metal.rs` draws with it.
+//! the main thread can make, or a UIKit one, which only an app can:
+//! `tests/cocoa_metal.rs` and `tests/uikit_metal.rs` draw with it.
 
 use super::*;
 
@@ -15,6 +16,7 @@ fn driver_list_follows_upstreams_order() {
     let names: Vec<_> = (0..num_render_drivers())
         .map(|i| render_driver(i).unwrap())
         .collect();
+    #[cfg(target_os = "macos")]
     assert_eq!(
         names,
         [
@@ -26,12 +28,20 @@ fn driver_list_follows_upstreams_order() {
             SOFTWARE_RENDERER
         ]
     );
+    // (no desktop OpenGL on UIKit; upstream's "opengles", the OpenGL ES 1
+    // renderer after "opengles2", isn't translated)
+    #[cfg(not(target_os = "macos"))]
+    assert_eq!(
+        names,
+        ["metal", "opengles2", "vulkan", "gpu", SOFTWARE_RENDERER]
+    );
 }
 
 #[test]
+#[cfg(any(target_os = "macos", target_abi = "sim", target_abi = "macabi"))]
 fn constant_buffer_layout() {
-    // CONSTANT_ALIGN() is 256 on macOS: each matrix starts on its own
-    // 256-byte boundary.
+    // CONSTANT_ALIGN() is 256 on macOS (and the simulators and Mac
+    // Catalyst): each matrix starts on its own 256-byte boundary.
     assert_eq!(CONSTANTS_OFFSET_IDENTITY, 0);
     assert_eq!(CONSTANTS_OFFSET_HALF_PIXEL_TRANSFORM, 256);
     assert_eq!(CONSTANTS_OFFSET_DECODE_BT601_LIMITED, 512);
@@ -43,6 +53,25 @@ fn constant_buffer_layout() {
     assert_eq!(CONSTANTS_LENGTH, 1856);
     assert_eq!(device_align(8), 8);
     assert_eq!(device_align(2), 4);
+    assert_eq!(size_of::<PixelShaderConstants>(), 48);
+}
+
+#[test]
+#[cfg(not(any(target_os = "macos", target_abi = "sim", target_abi = "macabi")))]
+fn constant_buffer_layout() {
+    // On the UIKit platforms' devices CONSTANT_ALIGN() is the type's
+    // alignment (16 for the matrices): they follow one another.
+    assert_eq!(constant_align(16), 16);
+    assert_eq!(constant_align(2), 4);
+    assert_eq!(CONSTANTS_OFFSET_IDENTITY, 0);
+    assert_eq!(CONSTANTS_OFFSET_HALF_PIXEL_TRANSFORM, 64);
+    assert_eq!(CONSTANTS_OFFSET_DECODE_BT601_LIMITED, 128);
+    assert_eq!(CONSTANTS_OFFSET_DECODE_BT601_FULL, 192);
+    assert_eq!(CONSTANTS_OFFSET_DECODE_BT709_LIMITED, 256);
+    assert_eq!(CONSTANTS_OFFSET_DECODE_BT709_FULL, 320);
+    assert_eq!(CONSTANTS_OFFSET_DECODE_BT2020_LIMITED, 384);
+    assert_eq!(CONSTANTS_OFFSET_DECODE_BT2020_FULL, 448);
+    assert_eq!(CONSTANTS_LENGTH, 512);
     assert_eq!(size_of::<PixelShaderConstants>(), 48);
 }
 
@@ -129,8 +158,18 @@ fn blend_tables() {
 
 #[test]
 fn shader_library() {
-    // The size of upstream's sdl_metallib, with the Metal library magic.
-    assert_eq!(shaders::SDL_METALLIB.len(), 38817);
+    // The size of upstream's sdl_metallib for the platform, with the Metal
+    // library magic.
+    let size = if cfg!(target_os = "macos") {
+        38817 // SDL_shaders_metal_macos.h
+    } else if cfg!(all(target_os = "tvos", target_abi = "sim")) {
+        51031 // SDL_shaders_metal_tvsimulator.h
+    } else if cfg!(target_abi = "sim") {
+        51015 // SDL_shaders_metal_iphonesimulator.h
+    } else {
+        41905 // SDL_shaders_metal_ios.h, SDL_shaders_metal_tvos.h
+    };
+    assert_eq!(shaders::SDL_METALLIB.len(), size);
     assert_eq!(&shaders::SDL_METALLIB[..4], b"MTLB");
     let has = |name: &str| {
         let name = name.as_bytes();
