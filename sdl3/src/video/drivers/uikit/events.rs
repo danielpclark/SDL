@@ -279,8 +279,9 @@ pub(crate) fn pump_events() {
         }
     }
 
-    // (UIKit_GL_RestoreCurrentContext() comes with OpenGL ES, which isn't
-    // translated yet)
+    // See the comment in the function definition.
+    #[cfg(all(any(target_os = "ios", target_os = "tvos"), not(target_abi = "macabi")))]
+    super::opengles::restore_current_context();
 }
 
 // ---------------------------------------------------------------------------
