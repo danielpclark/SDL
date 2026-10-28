@@ -35,7 +35,6 @@ pub(crate) const MTL_PIXEL_FORMAT_RG8_SNORM: NSUInteger = 32;
 pub(crate) const MTL_PIXEL_FORMAT_RG8_UINT: NSUInteger = 33;
 pub(crate) const MTL_PIXEL_FORMAT_RG8_SINT: NSUInteger = 34;
 pub(crate) const MTL_PIXEL_FORMAT_B5G6R5_UNORM: NSUInteger = 40;
-#[cfg(target_os = "macos")] // (the Metal renderer's, macOS-only so far)
 pub(crate) const MTL_PIXEL_FORMAT_A1BGR5_UNORM: NSUInteger = 41;
 pub(crate) const MTL_PIXEL_FORMAT_ABGR4_UNORM: NSUInteger = 42;
 pub(crate) const MTL_PIXEL_FORMAT_BGR5A1_UNORM: NSUInteger = 43;
@@ -284,7 +283,6 @@ pub(crate) const MTL_TEXTURE_USAGE_RENDER_TARGET: NSUInteger = 4;
 // MTLResourceOptions
 pub(crate) const MTL_RESOURCE_CPU_CACHE_MODE_DEFAULT_CACHE: NSUInteger = 0;
 pub(crate) const MTL_RESOURCE_CPU_CACHE_MODE_WRITE_COMBINED: NSUInteger = 1;
-#[cfg(target_os = "macos")] // (the Metal renderer's, macOS-only so far)
 pub(crate) const MTL_RESOURCE_STORAGE_MODE_SHARED: NSUInteger = 0;
 pub(crate) const MTL_RESOURCE_STORAGE_MODE_PRIVATE: NSUInteger = 32;
 
@@ -319,6 +317,17 @@ pub(crate) const MTL_GPU_FAMILY_COMMON2: NSInteger = 3002;
 pub(crate) const MTL_FEATURE_SET_MACOS_GPU_FAMILY1_V4: NSUInteger = 10004;
 #[cfg(target_os = "macos")]
 pub(crate) const MTL_FEATURE_SET_MACOS_GPU_FAMILY2_V1: NSUInteger = 10005;
+// (the Metal renderer's, on the UIKit platforms)
+#[cfg(not(any(target_os = "macos", target_abi = "macabi", target_os = "tvos")))]
+pub(crate) const MTL_FEATURE_SET_IOS_GPU_FAMILY1_V2: NSUInteger = 2;
+#[cfg(not(any(target_os = "macos", target_abi = "macabi", target_os = "tvos")))]
+pub(crate) const MTL_FEATURE_SET_IOS_GPU_FAMILY2_V2: NSUInteger = 3;
+#[cfg(not(any(target_os = "macos", target_abi = "macabi", target_os = "tvos")))]
+pub(crate) const MTL_FEATURE_SET_IOS_GPU_FAMILY3_V1: NSUInteger = 4;
+#[cfg(not(any(target_os = "macos", target_abi = "macabi", target_os = "tvos")))]
+pub(crate) const MTL_FEATURE_SET_IOS_GPU_FAMILY4_V1: NSUInteger = 11;
+#[cfg(target_os = "tvos")]
+pub(crate) const MTL_FEATURE_SET_TVOS_GPU_FAMILY2_V1: NSUInteger = 30003;
 
 /// `MTLOrigin`.
 #[repr(C)]
@@ -357,7 +366,6 @@ pub(crate) fn mtl_size_make(width: u32, height: u32, depth: u32) -> MTLSize {
 }
 
 /// `MTLRegion`.
-#[cfg(target_os = "macos")] // (the Metal renderer's, macOS-only so far)
 #[repr(C)]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub(crate) struct MTLRegion {
@@ -366,7 +374,6 @@ pub(crate) struct MTLRegion {
 }
 
 /// `MTLRegionMake2D()`.
-#[cfg(target_os = "macos")] // (the Metal renderer's, macOS-only so far)
 pub(crate) fn mtl_region_make_2d(x: i32, y: i32, width: i32, height: i32) -> MTLRegion {
     MTLRegion {
         origin: MTLOrigin {
