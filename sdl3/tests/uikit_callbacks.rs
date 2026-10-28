@@ -19,26 +19,27 @@
 //! run the same way on the same simulator (an iPhone 16 with iOS 18.5),
 //! the mice's device events left out (see `tests/uikit_main.rs`). It runs
 //! on the tvOS Simulator too (an Apple TV 4K (3rd generation) with tvOS
-//! 18.5), against upstream's C there. Elsewhere this program does nothing.
+//! 18.5) and on the visionOS Simulator (an Apple Vision Pro with visionOS
+//! 2.5), against upstream's C there. Elsewhere this program does nothing.
 
-#[cfg(not(any(target_os = "ios", target_os = "tvos")))]
+#[cfg(not(any(target_os = "ios", target_os = "tvos", target_os = "visionos")))]
 fn main() {}
 
 /// The runner's words: run as an app.
-#[cfg(any(target_os = "ios", target_os = "tvos"))]
+#[cfg(any(target_os = "ios", target_os = "tvos", target_os = "visionos"))]
 #[used]
 #[link_section = "__DATA,__sdl3_runner"]
 static RUNNER: [u8; 4] = *b"app\0";
 
-#[cfg(any(target_os = "ios", target_os = "tvos"))]
+#[cfg(any(target_os = "ios", target_os = "tvos", target_os = "visionos"))]
 mod uikit_support;
 
-#[cfg(any(target_os = "ios", target_os = "tvos"))]
+#[cfg(any(target_os = "ios", target_os = "tvos", target_os = "visionos"))]
 fn main() {
     ios::main()
 }
 
-#[cfg(any(target_os = "ios", target_os = "tvos"))]
+#[cfg(any(target_os = "ios", target_os = "tvos", target_os = "visionos"))]
 mod ios {
     use std::sync::Mutex;
     use std::time::{Duration, Instant};
@@ -78,6 +79,29 @@ exit: after quit
     /// Upstream's trace on tvOS (the C program, on an Apple TV 4K (3rd
     /// generation) simulator with tvOS 18.5).
     #[cfg(target_os = "tvos")]
+    const EXPECTED: &str = "\
+main: argc=1
+init: argc=1
+init video: ok
+main: enter_app_main_callbacks returned 0
+main returns
+event KEYBOARD_ADDED
+warmup: application state 0
+iterate 1
+iterate 2: posting a memory warning
+event LOW_MEMORY
+iterate 3: pushing a user event
+event USER
+iterate 4
+iterate 5: success
+quit: SUCCESS
+iterations paced by the display: yes
+exit: after quit
+";
+
+    /// Upstream's trace on visionOS (the C program, on an Apple Vision Pro
+    /// simulator with visionOS 2.5).
+    #[cfg(target_os = "visionos")]
     const EXPECTED: &str = "\
 main: argc=1
 init: argc=1
