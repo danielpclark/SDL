@@ -1236,6 +1236,38 @@ fn vulkan_fails_without_its_descriptor_pools() {
     window.destroy();
 }
 
+/// (diagnostic) vulkan_releases_the_loader's device loss, DIAG_N times in
+/// the process, after waiting for the device (DIAG_WAIT set) or not.
+#[test]
+#[ignore = "diagnostic"]
+fn diag_stress_device_lost() {
+    let wait = std::env::var_os("DIAG_WAIT").is_some();
+    let n: usize = std::env::var("DIAG_N")
+        .ok()
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(100);
+    let _l = crate::test_support::test_lock();
+    let _video = Video::init();
+    for i in 0..n {
+        let Some(window) = vulkan_window(W, H) else {
+            return;
+        };
+        let mut data =
+            VulkanRenderer::for_window(window, Colorspace::SRGB, &Default::default()).unwrap();
+        if wait {
+            // SAFETY: the renderer's device.
+            let idle = unsafe { (data.dev().device_wait_idle)(data.device) };
+            assert_eq!(idle, VK_SUCCESS);
+        }
+        assert!(data.handle_device_lost(), "iteration {i}");
+        let _ = crate::events::queue::get_events(EventType::FIRST, EventType::LAST, 100);
+        data.destroy();
+        drop(data);
+        window.destroy();
+    }
+    eprintln!("DIAG-STRESS done: {n} losses, wait {wait}");
+}
+
 /// The renderer's reference to the Vulkan loader is released when it's
 /// destroyed, and a device reset doesn't take another (upstream's is never
 /// released).

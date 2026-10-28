@@ -1,0 +1,93 @@
+name: diag-stress
+
+# Diagnostic only (branch claude/diag-macos-segv): vulkan_releases_the_loader's
+# simulated device loss many times per process, alternately without and
+# with waiting for the device first, on the same runner.
+on:
+  push:
+    branches: [claude/diag-macos-segv]
+    paths: [.github/workflows/diag-stress.yml]
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: never
+  CARGO_INCREMENTAL: 0
+  RUST_BACKTRACE: 1
+  MOLTENVK_VERSION: v1.4.2
+  MOLTENVK_SHA256: f95765a6229cb7b915990a2890ce12ebe36a730b021545d3d52ae69ce4c4024e
+
+jobs:
+  stress:
+    name: stress (${{ matrix.toolchain }}, ${{ matrix.n }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { toolchain: "1.87", n: a }
+          - { toolchain: "1.87", n: b }
+          - { toolchain: "1.99", n: c }
+    runs-on: macos-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ matrix.toolchain }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: diag-${{ matrix.toolchain }}
+          save-if: false
+      - name: Install MoltenVK
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/moltenvk.tar" "https://github.com/KhronosGroup/MoltenVK/releases/download/$MOLTENVK_VERSION/MoltenVK-macos.tar"
+          echo "$MOLTENVK_SHA256  $RUNNER_TEMP/moltenvk.tar" | shasum -a 256 -c
+          tar xf "$RUNNER_TEMP/moltenvk.tar" -C "$RUNNER_TEMP" MoltenVK/MoltenVK/dynamic/dylib/macOS/libMoltenVK.dylib
+          sudo mkdir -p /usr/local/lib
+          sudo cp "$RUNNER_TEMP/MoltenVK/MoltenVK/dynamic/dylib/macOS/libMoltenVK.dylib" /usr/local/lib/
+      - run: cargo test -p sdl3 --lib --no-run
+      - name: Alternate without and with the wait
+        shell: bash
+        env:
+          DIAG_N: "50"
+        run: |
+          set +e
+          start=$(date +%s)
+          i=0
+          declare -A runs fails crashes
+          for v in nowait wait; do runs[$v]=0; fails[$v]=0; crashes[$v]=0; done
+          touch "$RUNNER_TEMP/marker"
+          while [ $(( $(date +%s) - start )) -lt 1800 ]; do
+            i=$((i + 1))
+            for v in nowait wait; do
+              rm -rf "$(getconf DARWIN_USER_CACHE_DIR)"com.apple.metal* 2>/dev/null
+              log="$RUNNER_TEMP/$v-$i.log"
+              if [ $v = wait ]; then export DIAG_WAIT=1; else unset DIAG_WAIT; fi
+              cargo test -q -p sdl3 --lib -- --ignored --exact render::vulkan::tests::diag_stress_device_lost > "$log" 2>&1
+              rc=$?
+              runs[$v]=$(( ${runs[$v]} + 1 ))
+              if [ $rc -ne 0 ]; then
+                fails[$v]=$(( ${fails[$v]} + 1 ))
+                kind=failed
+                if grep -q "SIGSEGV\|SIGBUS\|signal: 11\|signal: 10" "$log"; then
+                  crashes[$v]=$(( ${crashes[$v]} + 1 )); kind=crashed
+                fi
+                echo "round $i $v: rc=$rc $kind $(grep -m1 -A2 'panicked at' "$log" | tr '\n' ' ' | cut -c1-200)"
+                sleep 10
+                for d in "$HOME/Library/Logs/DiagnosticReports" /Library/Logs/DiagnosticReports; do
+                  find "$d" -newer "$RUNNER_TEMP/marker" -name 'sdl3-*' 2>/dev/null
+                done > "$RUNNER_TEMP/ips.txt"
+                if [ -s "$RUNNER_TEMP/ips.txt" ]; then
+                  xargs python3 -I tools/ci/diag_ips.py < "$RUNNER_TEMP/ips.txt" > "$RUNNER_TEMP/ips-$v-$i.txt"
+                  grep -A2 "^--- faulting thread" "$RUNNER_TEMP/ips-$v-$i.txt" | sed "s/^/  CRASH $v $i: /" | cut -c1-200
+                  grep -A12 "diag_stress\|^--- thread .*diag" "$RUNNER_TEMP/ips-$v-$i.txt" | grep -E "libMoltenVK|_4sdl3" | head -4 | sed "s/^/  CRASH $v $i: /" | cut -c1-250
+                fi
+                touch "$RUNNER_TEMP/marker"
+              fi
+            done
+          done
+          for v in nowait wait; do
+            line="SUMMARY ${{ matrix.toolchain }} ${{ matrix.n }} $v: ${runs[$v]} processes of $DIAG_N losses, ${fails[$v]} failed, ${crashes[$v]} crashed"
+            echo "$line"; echo "$line" >> "$GITHUB_STEP_SUMMARY"
+          done

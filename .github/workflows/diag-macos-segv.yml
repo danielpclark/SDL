@@ -5,7 +5,7 @@ name: diag-macos-segv
 on:
   push:
     branches: [claude/diag-macos-segv]
-    paths-ignore: [.github/workflows/diag-dyld.yml, .github/workflows/diag-fresh.yml]
+    paths-ignore: [.github/workflows/diag-dyld.yml, .github/workflows/diag-fresh.yml, .github/workflows/diag-stress.yml]
   workflow_dispatch:
     inputs:
       minutes:
