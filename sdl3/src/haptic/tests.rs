@@ -183,6 +183,8 @@ fn dummy_driver() {
     init::quit_subsystem(InitFlags::HAPTIC);
 }
 
+// (no virtual joysticks on visionOS)
+#[cfg(not(target_os = "visionos"))]
 #[test]
 fn joystick_is_not_haptic() {
     let _l = crate::test_support::test_lock();
