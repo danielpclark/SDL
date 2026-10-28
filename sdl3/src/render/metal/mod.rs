@@ -27,10 +27,12 @@
 //! textures, `displaySyncEnabled`) and their UIKit counterparts (the UIKit
 //! window's view, the constants' alignment on devices, vsync always on,
 //! the maximum texture size of the iOS and tvOS feature sets, no EDR on
-//! tvOS) are `cfg`s. Not translated: visionOS's RealityKit paths (the
-//! curved window's texture, which the drawable is copied to and its
-//! mipmaps made from; `SDL_UIKit_IsCurvedWindow()` is the Swift bridge's),
-//! which come with visionOS.
+//! tvOS) are `cfg`s, and so are visionOS's RealityKit paths (a curved
+//! window's texture, drawn to in place of the layer's drawable, copied to
+//! a staging texture to be read, and its mipmaps made when presented),
+//! through the Swift bridge's stand-ins, which have no curved window
+//! (`crate::video::drivers::uikit::bridge`), so the drawable is always
+//! the one drawn to.
 
 // Regenerate these with build-metal-shaders.sh
 #[cfg(target_os = "macos")]
@@ -290,6 +292,9 @@ pub(crate) struct MetalRenderer {
     mtlview: usize,
     mtllayer: StrongPtr,
     mtlpassdesc: StrongPtr,
+    /// visionOS's curved window's texture, while a frame draws to it.
+    #[cfg(target_os = "visionos")]
+    mtlrealitykittexture: StrongPtr,
     /// The index of the active pipelines in `allpipelines`.
     activepipelines: Option<usize>,
     allpipelines: Vec<ShaderPipelines>,
@@ -884,10 +889,9 @@ impl MetalRenderer {
 
             if self.target.is_some() {
                 mtltexture = self.target_mtltexture.get();
+            } else if let Some(texture) = self.curved_display_texture() {
+                mtltexture = texture;
             } else {
-                // (visionOS's curved window's texture, through the Swift
-                // bridge, comes with visionOS)
-
                 // Standard rendering path: use CAMetalLayer drawable
                 if self.mtlbackbuffer.is_nil() {
                     // The backbuffer's contents aren't guaranteed to persist after
@@ -1668,9 +1672,86 @@ impl MetalRenderer {
         Ok(())
     }
 
+    /// visionOS's curved window's texture, which a frame draws to in place
+    /// of the drawable (`data.mtlrealitykittexture`), if the window is a
+    /// curved one (the `SDL_PLATFORM_VISIONOS` branch of
+    /// `METAL_ActivateRenderCommandEncoder()`); None elsewhere.
+    fn curved_display_texture(&mut self) -> Option<Id> {
+        #[cfg(target_os = "visionos")]
+        {
+            use crate::video::drivers::uikit::bridge;
+            let window = self.window.id();
+            if bridge::is_curved_window(window) {
+                // SAFETY: the layer's properties, and a new command buffer
+                // of the queue (autoreleased).
+                // (and the texture, a retained property, nil or a texture)
+                self.mtlrealitykittexture = unsafe {
+                    let size: NSSize = msg_send![self.mtllayer, drawableSize];
+                    let pixel_format: NSUInteger = msg_send![self.mtllayer, pixelFormat];
+                    let command_buffer: Id = msg_send![self.mtlcmdqueue, commandBuffer];
+                    StrongPtr::retain(bridge::get_curved_display_texture(
+                        window,
+                        command_buffer,
+                        size.width as i32,
+                        size.height as i32,
+                        pixel_format,
+                    ))
+                };
+                return Some(self.mtlrealitykittexture.get());
+            }
+        }
+        None
+    }
+
+    /// Copy a rectangle of a texture to a new one (the rectangle then at
+    /// its origin), to read it. Translation of
+    /// `METAL_CopyToStagingTexture()` (visionOS).
+    #[cfg(target_os = "visionos")]
+    fn copy_to_staging_texture(&mut self, texture: Id, rect: &mut Rect) -> Result<StrongPtr> {
+        // SAFETY: the texture's properties, the device's new texture
+        // (owned) and the command buffer's blit encoder.
+        unsafe {
+            let pixel_format: NSUInteger = msg_send![texture, pixelFormat];
+            let desc: Id = msg_send![class!(MTLTextureDescriptor),
+                texture2DDescriptorWithPixelFormat: pixel_format
+                                             width: rect.w as NSUInteger
+                                            height: rect.h as NSUInteger
+                                         mipmapped: NO];
+            if desc.is_null() {
+                return Err(Error::out_of_memory());
+            }
+
+            let stagingtex =
+                StrongPtr::from_owned(msg_send![self.mtldevice, newTextureWithDescriptor: desc]);
+            if stagingtex.is_nil() {
+                return Err(Error::out_of_memory());
+            }
+
+            let blitcmd: Id = msg_send![self.mtlcmdbuffer, blitCommandEncoder];
+
+            let _: () = msg_send![blitcmd, copyFromTexture: texture
+                                               sourceSlice: 0 as NSUInteger
+                                               sourceLevel: 0 as NSUInteger
+                                              sourceOrigin: mtl_origin_make(rect.x as u32, rect.y as u32, 0)
+                                                sourceSize: mtl_size_make(rect.w as u32, rect.h as u32, 1)
+                                                 toTexture: stagingtex.get()
+                                          destinationSlice: 0 as NSUInteger
+                                          destinationLevel: 0 as NSUInteger
+                                         destinationOrigin: mtl_origin_make(0, 0, 0)];
+
+            let _: () = msg_send![blitcmd, endEncoding];
+
+            rect.x = 0;
+            rect.y = 0;
+
+            Ok(stagingtex)
+        }
+    }
+
     /// Translation of `METAL_RenderReadPixels()`.
     fn render_read_pixels(&mut self, rect: &Rect) -> Result<Surface<'static>> {
-        let read_rect = *rect;
+        #[cfg_attr(not(target_os = "visionos"), allow(unused_mut))]
+        let mut read_rect = *rect;
 
         if !self.activate_render_command_encoder(MTL_LOAD_ACTION_LOAD, None, NIL) {
             return Err(Error::new(
@@ -1696,8 +1777,12 @@ impl MetalRenderer {
                 let _: () = msg_send![blit, endEncoding];
             }
 
-            // (visionOS's copy of the curved window's texture to a staging
-            // one, METAL_CopyToStagingTexture(), comes with visionOS)
+            #[cfg(target_os = "visionos")]
+            let mtltexture = if self.target.is_none() && !self.mtlrealitykittexture.is_nil() {
+                self.copy_to_staging_texture(mtltexture.get(), &mut read_rect)?
+            } else {
+                mtltexture
+            };
 
             /* Commit the current command buffer and wait until it's completed, to make
              * sure the GPU has finished rendering to it by the time we read it. */
@@ -1797,11 +1882,26 @@ impl MetalRenderer {
                 // If we don't have a drawable to present, don't try to present it.
                 //  But we'll still try to commit the command buffer in case it was already enqueued.
                 if ready {
-                    // (visionOS's mipmaps of the curved window's texture come
-                    // with visionOS)
-                    crate::sdl_assert!(!self.mtlbackbuffer.is_nil());
-                    let _: () =
-                        msg_send![self.mtlcmdbuffer, presentDrawable: self.mtlbackbuffer.get()];
+                    #[cfg(target_os = "visionos")]
+                    let curved = !self.mtlrealitykittexture.is_nil();
+                    #[cfg(not(target_os = "visionos"))]
+                    let curved = false;
+                    if curved {
+                        // Generate mipmaps
+                        #[cfg(target_os = "visionos")]
+                        {
+                            let blitcmd: Id = msg_send![self.mtlcmdbuffer, blitCommandEncoder];
+
+                            let _: () = msg_send![blitcmd, generateMipmapsForTexture: self.mtlrealitykittexture.get()];
+                            let _: () = msg_send![blitcmd, endEncoding];
+
+                            self.mtlrealitykittexture = StrongPtr::nil();
+                        }
+                    } else {
+                        crate::sdl_assert!(!self.mtlbackbuffer.is_nil());
+                        let _: () =
+                            msg_send![self.mtlcmdbuffer, presentDrawable: self.mtlbackbuffer.get()];
+                    }
                 }
 
                 let _: () = msg_send![self.mtlcmdbuffer, commit];
@@ -2024,6 +2124,8 @@ impl MetalRenderer {
                 mtlcmdencoder: StrongPtr::nil(),
                 mtllibrary: StrongPtr::nil(),
                 mtlbackbuffer: StrongPtr::nil(),
+                #[cfg(target_os = "visionos")]
+                mtlrealitykittexture: StrongPtr::nil(),
                 mtlsamplers: HashMap::new(),
                 mtlbufconstants: StrongPtr::nil(),
                 mtlbufquadindices: StrongPtr::nil(),

@@ -439,7 +439,9 @@ pub(super) fn sdl_to_metal_color_write_mask(mask: ColorComponentFlags) -> NSUInt
     result
 }
 
-/// Translation of `SDLToMetal_DepthClipMode()`.
+/// Translation of `SDLToMetal_DepthClipMode()` (which upstream builds on
+/// visionOS too, and never calls there).
+#[cfg(not(target_os = "visionos"))]
 pub(super) fn sdl_to_metal_depth_clip_mode(enable_depth_clip: bool) -> NSUInteger {
     if enable_depth_clip {
         MTL_DEPTH_CLIP_MODE_CLIP

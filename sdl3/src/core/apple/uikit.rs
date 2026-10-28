@@ -189,6 +189,9 @@ mod tests {
             FormFactor::Tablet
         } else if model.starts_with("AppleTV") {
             FormFactor::Tv
+        } else if model.starts_with("RealityDevice") {
+            // (the Apple Vision Pro)
+            FormFactor::Headset
         } else {
             panic!("unexpected simulator model {model:?} (idiom {idiom})");
         };

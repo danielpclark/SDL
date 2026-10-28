@@ -67,6 +67,14 @@ unsafe extern "C" {
     pub(crate) static UIScreenDidDisconnectNotification: Id;
 }
 
+/// `UIContainerBackgroundStyle` (visionOS).
+#[cfg(target_os = "visionos")]
+pub(crate) type UIContainerBackgroundStyle = NSInteger;
+#[cfg(target_os = "visionos")]
+pub(crate) const UIContainerBackgroundStyleAutomatic: UIContainerBackgroundStyle = 0;
+#[cfg(target_os = "visionos")]
+pub(crate) const UIContainerBackgroundStyleHidden: UIContainerBackgroundStyle = 2;
+
 /// `UIInterfaceOrientation`.
 pub(crate) type UIInterfaceOrientation = NSInteger;
 pub(crate) const UIInterfaceOrientationUnknown: UIInterfaceOrientation = 0;
@@ -143,11 +151,10 @@ pub(crate) const UIImageOrientationLeft: UIImageOrientation = 2;
 pub(crate) const UIImageOrientationRight: UIImageOrientation = 3;
 
 /// `UIUserInterfaceIdiom`'s values are in [`crate::core::apple::uikit`].
+#[cfg(not(any(target_os = "tvos", target_os = "visionos")))]
+pub(crate) use crate::core::apple::uikit::UI_USER_INTERFACE_IDIOM_PAD as UIUserInterfaceIdiomPad;
 #[cfg(not(target_os = "tvos"))]
-pub(crate) use crate::core::apple::uikit::{
-    UI_USER_INTERFACE_IDIOM_PAD as UIUserInterfaceIdiomPad,
-    UI_USER_INTERFACE_IDIOM_PHONE as UIUserInterfaceIdiomPhone,
-};
+pub(crate) use crate::core::apple::uikit::UI_USER_INTERFACE_IDIOM_PHONE as UIUserInterfaceIdiomPhone;
 
 /// `UISceneActivationState`.
 pub(crate) type UISceneActivationState = NSInteger;

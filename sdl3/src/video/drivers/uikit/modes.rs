@@ -357,6 +357,10 @@ pub(crate) fn add_display(send_event: bool) -> bool {
         ..DisplayMode::default()
     };
 
+    // FIXME (upstream): upstream zeroes the mode but not the display, so
+    // the display's other fields (its name, content scale, current
+    // orientation) are whatever its stack held; here they're the
+    // defaults, as the other UIKit platforms' SDL_zero() gives them.
     let mut display = VideoDisplay::new();
     display.natural_orientation = DisplayOrientation::Landscape;
 

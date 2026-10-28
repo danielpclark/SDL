@@ -38,9 +38,9 @@ use std::ffi::{c_char, c_int, CString};
 use std::sync::atomic::{AtomicI32, Ordering};
 
 use crate::core::apple::block::RcBlock;
-#[cfg(not(target_os = "visionos"))]
-use crate::core::apple::foundation::CGRect;
-use crate::core::apple::foundation::{available, ns_array_items, ns_string, string_from_ns};
+use crate::core::apple::foundation::{
+    available, ns_array_items, ns_string, string_from_ns, CGRect,
+};
 #[cfg(not(target_os = "tvos"))]
 use crate::core::apple::objc::NSUInteger;
 use crate::core::apple::objc::{
@@ -584,8 +584,7 @@ fn load_launch_image(this: Id, bundle: Id) {
 
     if !image.is_null() {
         #[cfg(target_os = "visionos")]
-        let view_frame =
-            crate::core::apple::foundation::CGRect::new(0.0, 0.0, screenw as f64, screenh as f64);
+        let view_frame = CGRect::new(0.0, 0.0, screenw as f64, screenh as f64);
         // SAFETY: UIScreen's main screen's bounds.
         #[cfg(not(target_os = "visionos"))]
         let view_frame: CGRect = unsafe { msg_send![super::modes::main_screen(), bounds] };
