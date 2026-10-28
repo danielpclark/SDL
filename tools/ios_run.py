@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
 """Run a program built for the iOS Simulator (aarch64-apple-ios-sim,
-x86_64-apple-ios) on a simulated device: Cargo's runner for those targets
+x86_64-apple-ios) or the tvOS Simulator (aarch64-apple-tvos-sim,
+x86_64-apple-tvos) on a simulated device: Cargo's runner for those targets
 (.cargo/config.toml), for the test programs and the doctests. It needs a
-Mac with Xcode (`xcrun simctl`) and an iOS Simulator runtime.
+Mac with Xcode (`xcrun simctl`) and a Simulator runtime of the program's
+platform (iOS or tvOS, which its Mach-O file tells).
 
 Usage:
   ios_run.py PROGRAM [ARGUMENTS...]   run PROGRAM on the simulator
-  ios_run.py --boot                   pick (or create) the simulator, boot
+  ios_run.py --boot [ios|tvos]        pick (or create) the simulator of
+                                      that platform (iOS by default), boot
                                       it, and print its UDID
   ios_run.py --bundle PROGRAM OUT.app write PROGRAM's app bundle
 
@@ -97,10 +100,21 @@ the device can finish booting while the programs build:
 
   export SDL3_IOS_SIMULATOR=$(tools/ios_run.py --boot)
 
+A tvOS program runs on an Apple TV simulator the same way, chosen by
+SDL3_TVOS_SIMULATOR, SDL3_TVOS_DEVICE_TYPE (by default the Apple TV 4K
+(3rd generation), or the newest Apple TV the runtime has) and
+SDL3_TVOS_RUNTIME (`com.apple.CoreSimulator.SimRuntime.tvOS-18-5`, `18.5`
+or `tvOS 18.5`; by default the newest tvOS runtime), and booted ahead with
+`--boot tvos`. Its app bundle is an Apple TV app's (no orientations), and
+its `background` request launches the Apple TV's Settings app
+(com.apple.TVSettings).
+
 Environment:
   SDL3_IOS_SIMULATOR    the simulator (a UDID or a name)
   SDL3_IOS_DEVICE_TYPE  the device type of the simulator made or picked
   SDL3_IOS_RUNTIME      the iOS runtime of the simulator made or picked
+  SDL3_TVOS_SIMULATOR, SDL3_TVOS_DEVICE_TYPE, SDL3_TVOS_RUNTIME
+                        the same for tvOS programs
   SDL3_IOS_TIMEOUT      seconds an app may run (default 900; 0: no limit)
   SDL3_IOS_CODESIGN     the identity app bundles are signed with (default
                         `-`, ad-hoc, which is all the simulator needs; 0:
@@ -111,8 +125,9 @@ Environment:
   SDL3_IOS_IDB          the idb command for the `tap`, `swipe`, `key` and
                         `text` requests (default `idb` on PATH; 0: none)
 
-A program built for devices (aarch64-apple-ios) can't run on the
-simulator: `--bundle` writes its bundle, which needs signing for a device.
+A program built for devices (aarch64-apple-ios, aarch64-apple-tvos) can't
+run on the simulator: `--bundle` writes its bundle, which needs signing
+for a device.
 """
 import fcntl
 import json
@@ -139,24 +154,62 @@ NUMBER = re.compile(r"-?\d+(\.\d+)?")
 FORWARD_PREFIXES = ("SDL3_", "SDL_", "RUST_")
 FORWARD_NAMES = ("RUSTC_BOOTSTRAP",)
 
-DEFAULT_DEVICE_TYPES = ("com.apple.CoreSimulator.SimDeviceType.iPhone-16",)
-
 # LC_BUILD_VERSION's platforms
 PLATFORM_IOS = 2
+PLATFORM_TVOS = 3
 PLATFORM_MACCATALYST = 6
 PLATFORM_IOSSIMULATOR = 7
+PLATFORM_TVOSSIMULATOR = 8
 PLATFORM_NAMES = {
     1: "macOS",
     PLATFORM_IOS: "iOS devices",
-    3: "tvOS devices",
+    PLATFORM_TVOS: "tvOS devices",
     4: "watchOS devices",
     PLATFORM_MACCATALYST: "Mac Catalyst",
     PLATFORM_IOSSIMULATOR: "the iOS Simulator",
-    8: "the tvOS Simulator",
+    PLATFORM_TVOSSIMULATOR: "the tvOS Simulator",
     9: "the watchOS Simulator",
     11: "visionOS devices",
     12: "the visionOS Simulator",
 }
+
+
+class Family:
+    """What differs between the platforms this script runs programs of:
+    iOS (iPhones and iPads) and tvOS (the Apple TV)."""
+
+    def __init__(self, name, device_platform, simulator_platform, plist_platforms, device_families,
+                 default_device_types, product_family, settings, target):
+        self.name = name
+        # (the simulator's variables: SDL3_IOS_..., SDL3_TVOS_...)
+        self.env = f"SDL3_{name.upper()}_"
+        self.device_platform = device_platform
+        self.simulator_platform = simulator_platform
+        # (CFBundleSupportedPlatforms: the simulator's, the devices')
+        self.plist_platforms = plist_platforms
+        self.device_families = device_families
+        self.default_device_types = default_device_types
+        self.product_family = product_family
+        # (the app the `background` request launches)
+        self.settings = settings
+        # (the simulator's Rust target)
+        self.target = target
+
+    def var(self, name):
+        return os.environ.get(self.env + name)
+
+
+IOS = Family(
+    "iOS", PLATFORM_IOS, PLATFORM_IOSSIMULATOR, ("iPhoneSimulator", "iPhoneOS"), [1, 2],
+    ("com.apple.CoreSimulator.SimDeviceType.iPhone-16",), "iPhone", "com.apple.Preferences",
+    "aarch64-apple-ios-sim",
+)
+TVOS = Family(
+    "tvOS", PLATFORM_TVOS, PLATFORM_TVOSSIMULATOR, ("AppleTVSimulator", "AppleTVOS"), [3],
+    ("com.apple.CoreSimulator.SimDeviceType.Apple-TV-4K-3rd-generation-4K",), "Apple TV", "com.apple.TVSettings",
+    "aarch64-apple-tvos-sim",
+)
+FAMILIES = {"ios": IOS, "tvos": TVOS}
 
 CPU_TYPE_X86_64 = 0x01000007
 CPU_TYPE_ARM64 = 0x0100000C
@@ -276,9 +329,18 @@ class MachO:
     def platform_name(self):
         return PLATFORM_NAMES.get(self.platform, f"platform {self.platform}")
 
+    def family(self):
+        """The program's platform (iOS or tvOS; None for another)."""
+        # (no LC_BUILD_VERSION: taken for iOS)
+        if self.platform in (None, PLATFORM_IOS, PLATFORM_IOSSIMULATOR):
+            return IOS
+        if self.platform in (PLATFORM_TVOS, PLATFORM_TVOSSIMULATOR):
+            return TVOS
+        return None
+
     def is_simulator(self):
         # (no LC_BUILD_VERSION: taken for the iOS Simulator)
-        return self.platform in (None, PLATFORM_IOSSIMULATOR)
+        return self.platform in (None, PLATFORM_IOSSIMULATOR, PLATFORM_TVOSSIMULATOR)
 
 
 def program_name(program):
@@ -305,7 +367,8 @@ def write_bundle(program, macho, app, identifier):
     executable = re.sub(r"[^A-Za-z0-9_.-]", "-", name)
     os.makedirs(app)
     shutil.copy2(program, os.path.join(app, executable))
-    simulator = macho.platform != PLATFORM_IOS
+    family = macho.family() or IOS
+    simulator = macho.is_simulator()
     info = {
         "CFBundleIdentifier": identifier,
         "CFBundleExecutable": executable,
@@ -316,18 +379,12 @@ def write_bundle(program, macho, app, identifier):
         "CFBundleShortVersionString": "1.0",
         "CFBundleInfoDictionaryVersion": "6.0",
         "CFBundleDevelopmentRegion": "en",
-        "CFBundleSupportedPlatforms": ["iPhoneSimulator" if simulator else "iPhoneOS"],
+        "CFBundleSupportedPlatforms": [family.plist_platforms[0 if simulator else 1]],
         "MinimumOSVersion": macho.minos or "14.0",
-        "UIDeviceFamily": [1, 2],
+        "UIDeviceFamily": family.device_families,
         # (without a launch screen the app runs letterboxed, in the
         # compatibility mode of old apps, with that mode's screen size)
         "UILaunchScreen": {},
-        "UISupportedInterfaceOrientations": [
-            "UIInterfaceOrientationPortrait",
-            "UIInterfaceOrientationPortraitUpsideDown",
-            "UIInterfaceOrientationLandscapeLeft",
-            "UIInterfaceOrientationLandscapeRight",
-        ],
         "UIApplicationSupportsIndirectInputEvents": True,
         "CADisableMinimumFrameDurationOnPhone": True,
         "NSCameraUsageDescription": "The SDL tests check the camera.",
@@ -341,6 +398,14 @@ def write_bundle(program, macho, app, identifier):
         "CFBundleURLTypes": [{"CFBundleURLName": identifier, "CFBundleURLSchemes": [identifier]}],
         "LSApplicationQueriesSchemes": [identifier],
     }
+    if family is IOS:
+        # (an Apple TV has none)
+        info["UISupportedInterfaceOrientations"] = [
+            "UIInterfaceOrientationPortrait",
+            "UIInterfaceOrientationPortraitUpsideDown",
+            "UIInterfaceOrientationLandscapeLeft",
+            "UIInterfaceOrientationLandscapeRight",
+        ]
     with open(os.path.join(app, "Info.plist"), "wb") as f:
         plistlib.dump(info, f, fmt=plistlib.FMT_BINARY)
     with open(os.path.join(app, "PkgInfo"), "w") as f:
@@ -361,8 +426,8 @@ def cmd_bundle(args):
         raise Failure("usage: --bundle PROGRAM OUT.app")
     program, app = args
     macho = MachO(program)
-    if macho.platform not in (None, PLATFORM_IOS, PLATFORM_IOSSIMULATOR):
-        raise Failure(f"{program} is built for {macho.platform_name()}, not iOS")
+    if macho.family() is None:
+        raise Failure(f"{program} is built for {macho.platform_name()}, not iOS or tvOS")
     if os.path.lexists(app):
         if not os.path.isfile(os.path.join(app, "Info.plist")):
             raise Failure(f"{app} exists and isn't an app bundle")
@@ -375,58 +440,59 @@ def cmd_bundle(args):
 # The simulator
 
 
-def ios_runtimes():
+def runtimes_of(family):
     runtimes = []
     for runtime in simctl_list("runtimes")["runtimes"]:
         platform = runtime.get("platform") or runtime.get("name", "").split(" ")[0]
-        if platform == "iOS" and runtime.get("isAvailable", True):
+        if platform == family.name and runtime.get("isAvailable", True):
             runtimes.append(runtime)
     return sorted(runtimes, key=lambda r: [int(p) if p.isdigit() else 0 for p in r.get("version", "0").split(".")])
 
 
-def pick_runtime(runtimes):
+def pick_runtime(family, runtimes):
     if not runtimes:
-        raise Failure("no iOS Simulator runtime installed (Xcode > Settings > Components)")
-    want = os.environ.get("SDL3_IOS_RUNTIME")
+        raise Failure(f"no {family.name} Simulator runtime installed (Xcode > Settings > Components)")
+    want = family.var("RUNTIME")
     if not want:
         return runtimes[-1]
     for runtime in runtimes:
         if want in (runtime.get("identifier"), runtime.get("version"), runtime.get("name")):
             return runtime
     raise Failure(
-        f"SDL3_IOS_RUNTIME is {want!r}, which isn't an installed iOS runtime ("
+        f"{family.env}RUNTIME is {want!r}, which isn't an installed {family.name} runtime ("
         + ", ".join(r.get("identifier", "?") for r in runtimes)
         + ")"
     )
 
 
-def pick_device_type(runtime):
+def pick_device_type(family, runtime):
     types = runtime.get("supportedDeviceTypes")
     if types is None:
         types = simctl_list("devicetypes")["devicetypes"]
-    want = os.environ.get("SDL3_IOS_DEVICE_TYPE")
+    want = family.var("DEVICE_TYPE")
     if want:
         for device_type in types:
             if want in (device_type.get("identifier"), device_type.get("name")):
                 return device_type
-        raise Failure(f"SDL3_IOS_DEVICE_TYPE is {want!r}, which {runtime.get('name')} doesn't have")
-    for identifier in DEFAULT_DEVICE_TYPES:
+        raise Failure(f"{family.env}DEVICE_TYPE is {want!r}, which {runtime.get('name')} doesn't have")
+    for identifier in family.default_device_types:
         for device_type in types:
             if device_type.get("identifier") == identifier:
                 return device_type
-    iphones = [t for t in types if t.get("productFamily") == "iPhone" or "iPhone" in t.get("name", "")]
-    if not iphones:
-        raise Failure(f"{runtime.get('name')} has no iPhone device type (set SDL3_IOS_DEVICE_TYPE)")
-    return iphones[-1]
+    product = family.product_family
+    devices = [t for t in types if t.get("productFamily") == product or product in t.get("name", "")]
+    if not devices:
+        raise Failure(f"{runtime.get('name')} has no {product} device type (set {family.env}DEVICE_TYPE)")
+    return devices[-1]
 
 
 def short(identifier):
     return identifier.rsplit(".", 1)[-1]
 
 
-def find_simulator():
+def find_simulator(family):
     """The simulator's UDID and whether it's booted (made when needed)."""
-    want = os.environ.get("SDL3_IOS_SIMULATOR")
+    want = family.var("SIMULATOR")
     devices = simctl_list("devices")["devices"]
     available = [
         (runtime, device)
@@ -437,19 +503,19 @@ def find_simulator():
     if want:
         matches = [(r, d) for r, d in available if want in (d.get("udid"), d.get("name"))]
         if not matches:
-            raise Failure(f"SDL3_IOS_SIMULATOR is {want!r}, which isn't an available simulator (xcrun simctl list devices)")
+            raise Failure(f"{family.env}SIMULATOR is {want!r}, which isn't an available simulator (xcrun simctl list devices)")
         matches.sort(key=lambda m: m[1].get("state") != "Booted")
         device = matches[0][1]
         return device["udid"], device.get("state") == "Booted"
 
-    explicit = os.environ.get("SDL3_IOS_DEVICE_TYPE") or os.environ.get("SDL3_IOS_RUNTIME")
+    explicit = family.var("DEVICE_TYPE") or family.var("RUNTIME")
     if not explicit:
         for runtime, device in available:
-            if ".SimRuntime.iOS-" in runtime and device.get("state") == "Booted":
+            if f".SimRuntime.{family.name}-" in runtime and device.get("state") == "Booted":
                 return device["udid"], True
 
-    runtime = pick_runtime(ios_runtimes())
-    device_type = pick_device_type(runtime)
+    runtime = pick_runtime(family, runtimes_of(family))
+    device_type = pick_device_type(family, runtime)
     name = f"sdl3-{short(device_type['identifier'])}-{short(runtime['identifier'])}"
     candidates = [
         d for r, d in available
@@ -488,10 +554,10 @@ class Lock:
         os.close(self.fd)
 
 
-def simulator():
+def simulator(family):
     """The booted simulator's UDID, its boot finished."""
     with Lock():
-        udid, booted = find_simulator()
+        udid, booted = find_simulator(family)
         if not booted:
             boot(udid)
         # (at once once it has booted; each time, since the device may
@@ -503,10 +569,11 @@ def simulator():
 
 
 def cmd_boot(args):
-    if args:
-        raise Failure("usage: --boot")
+    if len(args) > 1 or (args and args[0] not in FAMILIES):
+        raise Failure("usage: --boot [ios|tvos]")
+    family = FAMILIES[args[0] if args else "ios"]
     with Lock():
-        udid, booted = find_simulator()
+        udid, booted = find_simulator(family)
         if not booted:
             boot(udid)
     print(udid, flush=True)
@@ -543,12 +610,14 @@ def find_idb():
 def check_runnable(program, macho):
     if macho.is_simulator():
         return
-    if macho.platform == PLATFORM_IOS:
+    family = macho.family()
+    if family is not None and macho.platform == family.device_platform:
+        device_target = family.target.removesuffix("-sim")
         raise Failure(
-            f"{program} is built for iOS devices (aarch64-apple-ios), which this script can't run: "
-            "build it for the Simulator (--target aarch64-apple-ios-sim), or bundle it with --bundle"
+            f"{program} is built for {family.name} devices ({device_target}), which this script can't run: "
+            f"build it for the Simulator (--target {family.target}), or bundle it with --bundle"
         )
-    raise Failure(f"{program} is built for {macho.platform_name()}, not the iOS Simulator")
+    raise Failure(f"{program} is built for {macho.platform_name()}, not the iOS or tvOS Simulator")
 
 
 def spawn(udid, program, args, macho):
@@ -612,7 +681,7 @@ def launch(udid, program, args, macho):
                             xcrun_simctl("privacy", udid, "revoke", service[1:], identifier)
                         else:
                             xcrun_simctl("privacy", udid, "grant", service, identifier)
-            return run_app(udid, identifier, executable, args, timeout, temp, (idb, why, used_idb))
+            return run_app(udid, identifier, executable, args, timeout, temp, (idb, why, used_idb), macho.family())
         finally:
             if used_idb:
                 # (the companions idb started for the device: the next
@@ -706,7 +775,7 @@ def run_idb(idb, *args):
     return True
 
 
-def run_app(udid, identifier, executable, args, timeout, temp, idb):
+def run_app(udid, identifier, executable, args, timeout, temp, idb, family):
     # The app's stdout and stderr go to files, which launchd opens for it
     # before it starts, so that nothing it prints is lost (through `simctl
     # launch --console-pty` a program that is done at once now and then
@@ -719,7 +788,7 @@ def run_app(udid, identifier, executable, args, timeout, temp, idb):
     else:
         temp = tempfile.mkdtemp(prefix="sdl3-ios-run-", dir=temp)
     try:
-        return run_app_in(udid, identifier, executable, args, timeout, temp, idb)
+        return run_app_in(udid, identifier, executable, args, timeout, temp, idb, family)
     finally:
         shutil.rmtree(temp, ignore_errors=True)
 
@@ -737,8 +806,9 @@ LAUNCH_PAUSE = 5
 class Requests:
     """What a running app asks for (`sdl3-ios-runner: request WHAT`)."""
 
-    def __init__(self, udid, identifier, pid, idb):
+    def __init__(self, udid, identifier, pid, idb, family):
         self.udid = udid
+        self.family = family
         self.identifier = identifier
         self.pid = pid
         self.background_since = None
@@ -757,7 +827,7 @@ class Requests:
             # this one resigns being active, then enters the background a
             # few seconds later)
             result = xcrun_simctl(
-                "launch", "--terminate-running-process", self.udid, "com.apple.Preferences",
+                "launch", "--terminate-running-process", self.udid, self.family.settings,
                 check=False, timeout=120,
             )
             if result.returncode != 0:
@@ -819,7 +889,7 @@ class Requests:
             self.foreground()
 
 
-def run_app_in(udid, identifier, executable, args, timeout, temp, idb):
+def run_app_in(udid, identifier, executable, args, timeout, temp, idb, family):
     out_path = os.path.join(temp, "stdout.txt")
     err_path = os.path.join(temp, "stderr.txt")
     start = time.monotonic()
@@ -843,7 +913,7 @@ def run_app_in(udid, identifier, executable, args, timeout, temp, idb):
             note(f"launching it again in {LAUNCH_PAUSE} s (attempt {attempt + 1} of {LAUNCH_ATTEMPTS})")
             time.sleep(LAUNCH_PAUSE)
     pid = int(match.group(1)) if match else None
-    requests = Requests(udid, identifier, pid, idb)
+    requests = Requests(udid, identifier, pid, idb, family)
     out = Output(out_path, sys.stdout, True, requests.handle)
     err = Output(err_path, sys.stderr, False)
     timed_out = False
@@ -897,7 +967,7 @@ def cmd_run(program, args):
     program = os.path.abspath(program)
     macho = MachO(program)
     check_runnable(program, macho)
-    udid = simulator()
+    udid = simulator(macho.family())
     if "app" in macho.words:
         return launch(udid, program, args, macho)
     return spawn(udid, program, args, macho)
