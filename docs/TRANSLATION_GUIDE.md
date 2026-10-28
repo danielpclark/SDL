@@ -269,7 +269,7 @@ they are used (there is no build script to make aliases):
   (there's no IOKit driver on any of them). Its iOS and tvOS paths are
   upstream's: the windows' game controller interaction set when it
   starts and cleared when it quits (`UIKit_SetGameControllerInteraction()`
-  in the video driver), and on tvOS (built, not run yet) the Siri
+  in the video driver), and on tvOS the Siri
   Remote's micro gamepad with `SDL_HINT_APPLE_TV_REMOTE_ALLOW_ROTATION`,
   the home button left to the system, the menu button through the pause
   handler, the remotes opened as joysticks counted for the view's presses
@@ -300,6 +300,32 @@ they are used (there is no build script to make aliases):
   queue and the caller's thread without a lock), and the reports are
   copied within their buffers (`FIXME (upstream)`: upstream copies whole
   reports into shorter buffers, and sends a byte past a feature report).
+* tvOS (`target_os = "tvos"`) builds what upstream's tvOS build has:
+  the UIKit pieces less what tvOS hasn't, each upstream's
+  `SDL_PLATFORM_TVOS` branch a `cfg`. The video driver has no
+  orientations, status bar, home indicator, pinch gesture, pointer or
+  Pencil (the pen's code is built and never called, as upstream's), and
+  observes no keyboard notifications; its root view controller is a
+  `GCEventViewController` (above), its view's four
+  `UISwipeGestureRecognizer`s turn the Siri Remote's swipes into arrow
+  keys (`swipeGesture:`), and its presses are the remote's buttons, both
+  only while no remote is opened as a joystick. tvOS has no pasteboard:
+  setting the clipboard's text fails with upstream's error, and there's
+  none to get. The pref path is in Caches (the system may empty it: an
+  Apple TV app has no other place to keep files) and there are no user
+  folders; the power state is "no battery"; there's no camera,
+  CoreMotion (the dummy sensor driver) or notification backend, and
+  processes are the dummy backend (CMake finds no `posix_spawn()` there).
+  OpenGL ES (EAGL) is built as `SDL_build_config_ios.h` builds it (above);
+  the C references of the tvOS tests are upstream's CMake build with
+  OpenGL ES allowed on tvOS, as the Xcode project's. The Metal renderer
+  takes upstream's tvOS libraries, and the GPU API its iOS ones (above).
+  `aarch64-apple-tvos` and `aarch64-apple-tvos-sim` are tier 2 targets of
+  the pinned toolchain; `x86_64-apple-tvos` (the Intel Macs' simulator) is
+  tier 3, built with `-Zbuild-std` (in CI, linted on the pinned toolchain
+  with `RUSTC_BOOTSTRAP=1`). They're all tier 3 for the minimum supported
+  Rust, which has no standard library for them, so tvOS isn't checked
+  with it.
 * The CoreMotion sensor driver (`sensor/coremotion.rs`) is built on iOS
   and visionOS, as upstream's CMake builds it, first in the sensor driver
   list (no dummy driver there); CoreMotion is linked.
