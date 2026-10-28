@@ -35,8 +35,12 @@
 //! ([`update_keyboard`], [`crate::video::Window::set_text_input_area`]).
 //! Its key commands are the arrow keys and Escape, pressed and released.
 //!
-//! Not translated yet: tvOS's base class (`GCEventViewController`) and
-//! hint (`SDL_HINT_APPLE_TV_CONTROLLER_UI_EVENTS`), which come with tvOS.
+//! On tvOS the view controller is a `GCEventViewController` (upstream's
+//! `SDLRootViewController`), whose game controllers' events go to UIKit
+//! with `SDL_HINT_APPLE_TV_CONTROLLER_UI_EVENTS` only
+//! (`controllerUserInteractionEnabled`). GameController is loaded at run
+//! time here, so without it the base class is `UIViewController` (`Note`:
+//! upstream links GameController).
 //! The view controller keeps the window's ID; once the window is gone it
 //! answers as for a window with no flags.
 //!
@@ -95,6 +99,10 @@ struct State {
     /// view controller).
     #[cfg(not(target_os = "tvos"))]
     hint_callback: RefCell<Option<crate::hints::Callback>>,
+    /// The `SDL_HINT_APPLE_TV_CONTROLLER_UI_EVENTS` callback (removed with
+    /// the view controller).
+    #[cfg(target_os = "tvos")]
+    controller_ui_hint_callback: RefCell<Option<crate::hints::Callback>>,
 
     // SDL_IPHONE_KEYBOARD
     /// `textField` (an `SDLUITextField`).
@@ -153,12 +161,26 @@ extern "C" fn text_field_can_perform_action(this: Id, _sel: Sel, action: Sel, se
 
 static SDL_UIKITVIEWCONTROLLER: DeclaredClass = DeclaredClass::new();
 
+/// The root view controller's base class (`SDLRootViewController`):
+/// `UIViewController`, `GCEventViewController` on tvOS (when GameController
+/// loads).
+fn root_view_controller_class() -> Class {
+    #[cfg(target_os = "tvos")]
+    if super::sys::load_game_controller() {
+        let class = class!(GCEventViewController);
+        if !class.is_null() {
+            return class;
+        }
+    }
+    class!(UIViewController)
+}
+
 /// The `SDL_uikitviewcontroller` class (`@interface SDL_uikitviewcontroller
-/// : UIViewController`, `GCEventViewController` on tvOS, see the module's
-/// description).
+/// : SDLRootViewController`: `UIViewController`, `GCEventViewController` on
+/// tvOS, see the module's description).
 pub(crate) fn viewcontroller_class() -> Class {
     SDL_UIKITVIEWCONTROLLER.get(|| {
-        let mut b = ClassBuilder::new(c"SDL_uikitviewcontroller", class!(UIViewController))
+        let mut b = ClassBuilder::new(c"SDL_uikitviewcontroller", root_view_controller_class())
             .expect("SDL_uikitviewcontroller");
         b.add_ivar::<*mut c_void>(c"_state", c"^v");
         b.add_protocol(c"UITextFieldDelegate");
@@ -359,6 +381,8 @@ pub(crate) fn new_view_controller(window: WindowID) -> StrongPtr {
         home_indicator_hidden: AtomicI32::new(0),
         #[cfg(not(target_os = "tvos"))]
         hint_callback: RefCell::new(None),
+        #[cfg(target_os = "tvos")]
+        controller_ui_hint_callback: RefCell::new(None),
         text_field,
         rotating_orientation: Cell::new(false),
         committed_text: RefCell::new(StrongPtr::nil()),
@@ -375,6 +399,20 @@ pub(crate) fn new_view_controller(window: WindowID) -> StrongPtr {
     // SDL_IPHONE_KEYBOARD
     init_keyboard(this.get(), state);
     state.rotating_orientation.set(false);
+
+    #[cfg(target_os = "tvos")]
+    {
+        // (the callback has the view controller unretained, as upstream's
+        // userdata; it's removed in dealloc)
+        let vc = this.get() as usize;
+        let callback =
+            crate::hints::watch(crate::hints::APPLE_TV_CONTROLLER_UI_EVENTS, move |change| {
+                crate::core::apple::objc::autoreleasepool(|| {
+                    apple_tv_controller_ui_hint_changed(vc as Id, change.new_value)
+                });
+            });
+        *state.controller_ui_hint_callback.borrow_mut() = callback.ok();
+    }
 
     #[cfg(not(target_os = "tvos"))]
     {
@@ -419,6 +457,22 @@ pub(crate) fn new_view_controller(window: WindowID) -> StrongPtr {
     }
 
     this
+}
+
+/// Translation of `SDL_AppleTVControllerUIHintChanged()`: whether the game
+/// controllers' events go to UIKit (`GCEventViewController`'s property;
+/// nothing without GameController).
+#[cfg(target_os = "tvos")]
+fn apple_tv_controller_ui_hint_changed(viewcontroller: Id, hint: Option<&str>) {
+    let enabled = hint.is_some_and(|h| !h.starts_with('0'));
+    let class = class!(GCEventViewController);
+    // SAFETY: the view controller, and GCEventViewController's property.
+    unsafe {
+        if !class.is_null() && crate::core::apple::objc::is_kind_of(viewcontroller, class) {
+            let () =
+                msg_send![viewcontroller, setControllerUserInteractionEnabled: Bool::from(enabled)];
+        }
+    }
 }
 
 /// Translation of `-[SDL_uikitviewcontroller dealloc]`.

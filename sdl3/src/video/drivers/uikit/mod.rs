@@ -339,9 +339,7 @@ pub(crate) fn compute_view_frame(window: WindowID) -> CGRect {
 
 /// Let the game controllers' events (or not) reach the UIKit windows of
 /// every window scene. Translation of `UIKit_SetGameControllerInteraction()`,
-/// which the MFi joystick driver calls (its UIKit half isn't translated
-/// yet).
-#[allow(dead_code)] // (used by the MFi joystick driver's UIKit half)
+/// which the MFi joystick driver calls when it starts and quits.
 pub(crate) fn set_game_controller_interaction(enabled: bool) {
     if crate::core::apple::foundation::available!(ios(13, 0), tvos(13, 0)) {
         // SAFETY: UIApplication's connected scenes (an NSSet) and the
