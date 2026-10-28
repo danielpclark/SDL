@@ -3,14 +3,20 @@
 // Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
 // This is an altered (translated) version of the original software; see LICENSE.txt.
 
-//! The CoreAudio driver (macOS): devices from the HAL's AudioObject
-//! properties, with listeners for hotplug, default device changes and lost
-//! devices, and an AudioQueue per opened device, run on a thread of the
-//! driver's own with its CFRunLoop (`ProvidesOwnCallbackThread`).
+//! The CoreAudio driver, on every Apple platform: an AudioQueue per
+//! opened device, run on a thread of the driver's own with its CFRunLoop
+//! (`ProvidesOwnCallbackThread`).
 //!
-//! The iOS/tvOS half of upstream's file (`!MACOSX_COREAUDIO`: the
-//! AVAudioSession category management, interruption listener and default
-//! devices only) isn't translated; only macOS builds this driver.
+//! On macOS (upstream's `MACOSX_COREAUDIO`) the devices come from the
+//! HAL's AudioObject properties, with listeners for hotplug, default
+//! device changes and lost devices, and each queue is assigned its device.
+//! On the UIKit platforms (iOS, tvOS, visionOS) there is the default
+//! playback and the default recording device only, and opening and
+//! closing devices manages the app's `AVAudioSession` (its category from
+//! [`hints::AUDIO_CATEGORY`](crate::hints::AUDIO_CATEGORY) and
+//! [`hints::AUDIO_DUCK_OTHERS`](crate::hints::AUDIO_DUCK_OTHERS), its
+//! activation, the preferred sample rate) and listens for interruptions:
+//! see the `session` module.
 //!
 //! Two things move because the core holds the device lock while it opens a
 //! device (as upstream does), and the Rust core's thread helpers take that
@@ -25,28 +31,36 @@
 //!   `PrepareAudioQueue()` picks for 7.1/6.1 on old systems is handed back
 //!   to `OpenDevice`, which stores it once the thread is ready.
 
+#[cfg(not(target_os = "macos"))]
+mod session;
 mod sys;
 
 use std::ffi::c_void;
 use std::ptr;
 use std::sync::atomic::{AtomicPtr, Ordering};
 use std::sync::mpsc;
-use std::sync::{Arc, Mutex, Weak};
+use std::sync::{Arc, Mutex, OnceLock, Weak};
 
 use self::sys::*;
+#[cfg(target_os = "macos")]
 use crate::audio::device::{
-    audio_device_disconnected, default_audio_device_changed, default_thread_init,
-    find_physical_audio_device_by_callback, find_physical_audio_device_by_handle,
-    get_audio_thread_name, playback_audio_thread_iterate, playback_audio_thread_shutdown,
-    recording_audio_thread_iterate, recording_audio_thread_shutdown, updated_audio_device_format,
-    AudioBootStrap, AudioDriverImpl, DeviceBackend, DriverFlags, PhysState, PhysicalDevice,
+    audio_device_disconnected, default_audio_device_changed, find_physical_audio_device_by_callback,
+};
+use crate::audio::device::{
+    default_thread_init, find_physical_audio_device_by_handle, get_audio_thread_name,
+    playback_audio_thread_iterate, playback_audio_thread_shutdown, recording_audio_thread_iterate,
+    recording_audio_thread_shutdown, updated_audio_device_format, AudioBootStrap, AudioDriverImpl,
+    DeviceBackend, DriverFlags, PhysState, PhysicalDevice,
 };
 use crate::audio::queue::store_chmap;
 use crate::audio::{AudioFormat, AudioSpec};
 use crate::core::apple::foundation::{
-    available, kCFRunLoopDefaultMode, string_from_cf, CFRelease, CFRunLoopGetCurrent,
-    CFRunLoopRunInMode, CFStringRef, CFTimeInterval,
+    available, kCFRunLoopDefaultMode, CFRunLoopGetCurrent, CFRunLoopRunInMode, CFTimeInterval,
 };
+#[cfg(target_os = "macos")]
+use crate::core::apple::foundation::{string_from_cf, CFRelease, CFStringRef};
+#[cfg(not(target_os = "macos"))]
+use crate::core::apple::objc::StrongPtr;
 
 use crate::error::{Error, Result};
 use crate::thread::Thread;
@@ -71,6 +85,7 @@ fn check_result(result: OSStatus, msg: &str) -> Result<()> {
 /// of a boxed one; it is also the client data of the device's
 /// `kAudioDevicePropertyDeviceIsAlive` listener (upstream passes the
 /// `SDL_AudioDevice`, which the handle finds here).
+#[cfg(target_os = "macos")]
 struct CoreAudioHandle {
     devid: AudioDeviceID,
     recording: bool,
@@ -82,12 +97,14 @@ struct CoreAudioHandle {
 ///
 /// While this driver is the current one, every physical device's handle
 /// is a `CoreAudioHandle` it boxed, freed only by `FreeDeviceHandle`.
+#[cfg(target_os = "macos")]
 unsafe fn core_audio_handle<'a>(handle: usize) -> &'a CoreAudioHandle {
     // SAFETY: the caller's contract.
     unsafe { &*(handle as *const CoreAudioHandle) }
 }
 
 /// Translation of `TestCoreAudioDeviceHandleCallback()`.
+#[cfg(target_os = "macos")]
 fn test_core_audio_device_handle_callback(
     device: &PhysicalDevice,
     handle: &CoreAudioHandle,
@@ -99,6 +116,7 @@ fn test_core_audio_device_handle_callback(
 }
 
 /// Translation of `FindCoreAudioDeviceByHandle()`.
+#[cfg(target_os = "macos")]
 fn find_core_audio_device_by_handle(
     devid: AudioDeviceID,
     recording: bool,
@@ -109,6 +127,7 @@ fn find_core_audio_device_by_handle(
 }
 
 /// Translation of `devlist_address`.
+#[cfg(target_os = "macos")]
 static DEVLIST_ADDRESS: AudioObjectPropertyAddress = AudioObjectPropertyAddress {
     mSelector: kAudioHardwarePropertyDevices,
     mScope: kAudioObjectPropertyScopeGlobal,
@@ -116,6 +135,7 @@ static DEVLIST_ADDRESS: AudioObjectPropertyAddress = AudioObjectPropertyAddress 
 };
 
 /// Translation of `default_playback_device_address`.
+#[cfg(target_os = "macos")]
 static DEFAULT_PLAYBACK_DEVICE_ADDRESS: AudioObjectPropertyAddress = AudioObjectPropertyAddress {
     mSelector: kAudioHardwarePropertyDefaultOutputDevice,
     mScope: kAudioObjectPropertyScopeGlobal,
@@ -123,6 +143,7 @@ static DEFAULT_PLAYBACK_DEVICE_ADDRESS: AudioObjectPropertyAddress = AudioObject
 };
 
 /// Translation of `default_recording_device_address`.
+#[cfg(target_os = "macos")]
 static DEFAULT_RECORDING_DEVICE_ADDRESS: AudioObjectPropertyAddress = AudioObjectPropertyAddress {
     mSelector: kAudioHardwarePropertyDefaultInputDevice,
     mScope: kAudioObjectPropertyScopeGlobal,
@@ -130,6 +151,7 @@ static DEFAULT_RECORDING_DEVICE_ADDRESS: AudioObjectPropertyAddress = AudioObjec
 };
 
 /// Translation of `alive_address`.
+#[cfg(target_os = "macos")]
 static ALIVE_ADDRESS: AudioObjectPropertyAddress = AudioObjectPropertyAddress {
     mSelector: kAudioDevicePropertyDeviceIsAlive,
     mScope: kAudioObjectPropertyScopeGlobal,
@@ -137,6 +159,7 @@ static ALIVE_ADDRESS: AudioObjectPropertyAddress = AudioObjectPropertyAddress {
 };
 
 /// Translation of `DeviceAliveNotification()`.
+#[cfg(target_os = "macos")]
 unsafe extern "C" fn device_alive_notification(
     devid: AudioObjectID,
     _num_addr: u32,
@@ -181,6 +204,7 @@ unsafe extern "C" fn device_alive_notification(
 }
 
 /// Translation of `COREAUDIO_FreeDeviceHandle()`.
+#[cfg(target_os = "macos")]
 fn coreaudio_free_device_handle(device: &PhysicalDevice) {
     let handle = device.handle as *mut CoreAudioHandle;
     // SAFETY: the box add_audio_device was given; the listener goes first,
@@ -197,6 +221,7 @@ fn coreaudio_free_device_handle(device: &PhysicalDevice) {
 }
 
 /// Translation of `GetAudioDeviceStringProperty()`.
+#[cfg(target_os = "macos")]
 fn get_audio_device_string_property(
     dev: AudioDeviceID,
     addr: &AudioObjectPropertyAddress,
@@ -229,6 +254,7 @@ fn get_audio_device_string_property(
 }
 
 /// The size of a property, `AudioObjectGetPropertyDataSize()`.
+#[cfg(target_os = "macos")]
 fn property_data_size(dev: AudioObjectID, addr: &AudioObjectPropertyAddress) -> Option<u32> {
     let mut size = 0u32;
     // SAFETY: a valid address and out value.
@@ -237,6 +263,7 @@ fn property_data_size(dev: AudioObjectID, addr: &AudioObjectPropertyAddress) -> 
 }
 
 /// The total channel count of an `AudioBufferList` read into `buf`.
+#[cfg(target_os = "macos")]
 fn stream_configuration_channels(buf: &[u64]) -> i32 {
     let list = buf.as_ptr() as *const AudioBufferList;
     let mut channels = 0;
@@ -256,6 +283,7 @@ fn stream_configuration_channels(buf: &[u64]) -> i32 {
 /// Translation of `RefreshPhysicalDevices()`.
 ///
 /// This only _adds_ new devices. Removal is handled by devices triggering kAudioDevicePropertyDeviceIsAlive property changes.
+#[cfg(target_os = "macos")]
 fn refresh_physical_devices() {
     let Some(size) = property_data_size(kAudioObjectSystemObject, &DEVLIST_ADDRESS) else {
         return;
@@ -407,6 +435,7 @@ fn refresh_physical_devices() {
 }
 
 /// Translation of `DeviceListChangedNotification()`: this is called when the system's list of available audio devices changes.
+#[cfg(target_os = "macos")]
 unsafe extern "C" fn device_list_changed_notification(
     _system_obj: AudioObjectID,
     _num_addr: u32,
@@ -418,6 +447,7 @@ unsafe extern "C" fn device_list_changed_notification(
 }
 
 /// Translation of `DefaultAudioDeviceChangedNotification()`.
+#[cfg(target_os = "macos")]
 fn default_audio_device_changed_notification(
     recording: bool,
     in_object_id: AudioObjectID,
@@ -446,6 +476,7 @@ fn default_audio_device_changed_notification(
 }
 
 /// Translation of `DefaultPlaybackDeviceChangedNotification()`.
+#[cfg(target_os = "macos")]
 unsafe extern "C" fn default_playback_device_changed_notification(
     in_object_id: AudioObjectID,
     in_number_addresses: u32,
@@ -460,6 +491,7 @@ unsafe extern "C" fn default_playback_device_changed_notification(
 }
 
 /// Translation of `DefaultRecordingDeviceChangedNotification()`.
+#[cfg(target_os = "macos")]
 unsafe extern "C" fn default_recording_device_changed_notification(
     in_object_id: AudioObjectID,
     in_number_addresses: u32,
@@ -474,6 +506,7 @@ unsafe extern "C" fn default_recording_device_changed_notification(
 }
 
 /// The default device of a kind (`kAudioHardwarePropertyDefault*Device`).
+#[cfg(target_os = "macos")]
 fn system_default_device(addr: &AudioObjectPropertyAddress) -> Option<AudioDeviceID> {
     let mut devid: AudioDeviceID = 0;
     let mut size = size_of::<AudioDeviceID>() as u32;
@@ -492,6 +525,7 @@ fn system_default_device(addr: &AudioObjectPropertyAddress) -> Option<AudioDevic
 }
 
 /// Translation of `COREAUDIO_DetectDevices()`.
+#[cfg(target_os = "macos")]
 fn coreaudio_detect_devices() -> (Option<Arc<PhysicalDevice>>, Option<Arc<PhysicalDevice>>) {
     let mut default_playback = None;
     let mut default_recording = None;
@@ -553,7 +587,11 @@ struct Shared {
     audio_buffer: Mutex<Vec<usize>>,
     current_buffer: AtomicPtr<AudioQueueBuffer>,
     strdesc: AudioStreamBasicDescription,
+    #[cfg(target_os = "macos")]
     device_id: AudioDeviceID,
+    /// Whether an interruption paused the queue (`interrupted`).
+    #[cfg(not(target_os = "macos"))]
+    interrupted: std::sync::atomic::AtomicBool,
     /// The device's format, as `OpenDevice` left it (`device->spec`,
     /// `sample_frames`, `buffer_size`, `silence_value`).
     spec: AudioSpec,
@@ -574,10 +612,18 @@ impl Shared {
     }
 }
 
-/// An opened device: `SDL_PrivateAudioData` and the entry points.
+/// An opened device: `SDL_PrivateAudioData` and the entry points. It is
+/// made first thing in `OpenDevice` (`device->hidden`), the queue thread's
+/// data once the device's format is settled.
 struct CoreAudioDevice {
-    shared: Arc<Shared>,
+    /// (what `CountOpenAudioDevices()` reads of the device)
+    #[cfg(not(target_os = "macos"))]
+    recording: bool,
+    shared: OnceLock<Arc<Shared>>,
     thread: Mutex<Option<Thread>>,
+    /// The `SDLInterruptionListener` (`interruption_listener`).
+    #[cfg(not(target_os = "macos"))]
+    interruption_listener: Mutex<StrongPtr>,
 }
 
 impl DeviceBackend for CoreAudioDevice {
@@ -586,7 +632,7 @@ impl DeviceBackend for CoreAudioDevice {
 
     /// Translation of `COREAUDIO_GetDeviceBuf()`.
     fn get_device_buf(&self, _device: &PhysicalDevice, buffer_size: usize) -> Option<usize> {
-        let current_buffer = self.shared.current_buffer.load(Ordering::Acquire);
+        let current_buffer = self.shared().current_buffer.load(Ordering::Acquire);
         crate::sdl_assert!(!current_buffer.is_null()); // should have been called from PlaybackBufferReadyCallback
         if current_buffer.is_null() {
             return Some(0);
@@ -601,7 +647,8 @@ impl DeviceBackend for CoreAudioDevice {
 
     /// Translation of `COREAUDIO_PlayDevice()`.
     fn play_device(&self, _device: &PhysicalDevice, buffer: &[u8]) -> bool {
-        let current_buffer = self.shared.current_buffer.load(Ordering::Acquire);
+        let shared = self.shared();
+        let current_buffer = shared.current_buffer.load(Ordering::Acquire);
         crate::sdl_assert!(!current_buffer.is_null()); // should have been called from PlaybackBufferReadyCallback
         if current_buffer.is_null() {
             return true;
@@ -613,16 +660,17 @@ impl DeviceBackend for CoreAudioDevice {
             ptr::copy_nonoverlapping(buffer.as_ptr(), (*current_buffer).mAudioData as *mut u8, n);
             (*current_buffer).mAudioDataByteSize = (*current_buffer).mAudioDataBytesCapacity;
         }
-        self.shared
+        shared
             .current_buffer
             .store(ptr::null_mut(), Ordering::Release);
-        self.shared.requeue(current_buffer);
+        shared.requeue(current_buffer);
         true
     }
 
     /// Translation of `COREAUDIO_RecordDevice()`.
     fn record_device(&self, _device: &PhysicalDevice, buffer: &mut [u8]) -> Result<usize> {
-        let current_buffer = self.shared.current_buffer.load(Ordering::Acquire);
+        let shared = self.shared();
+        let current_buffer = shared.current_buffer.load(Ordering::Acquire);
         crate::sdl_assert!(!current_buffer.is_null()); // should have been called from RecordingBufferReadyCallback
         if current_buffer.is_null() {
             return Ok(0);
@@ -640,22 +688,22 @@ impl DeviceBackend for CoreAudioDevice {
             );
             cpy
         };
-        self.shared
+        shared
             .current_buffer
             .store(ptr::null_mut(), Ordering::Release);
-        self.shared.requeue(current_buffer); // requeue for capturing more data later.
+        shared.requeue(current_buffer); // requeue for capturing more data later.
         Ok(cpy)
     }
 
     /// Translation of `COREAUDIO_FlushRecording()`.
     fn flush_recording(&self, _device: &PhysicalDevice) {
-        flush_recording(&self.shared);
+        flush_recording(self.shared());
     }
 
     /// Translation of `COREAUDIO_CloseDevice()`.
     fn close_device(&self, device: &PhysicalDevice) {
         crate::sdl_assert!(device.shutting_down()); // should have been set by SDL_audio.c
-        self.close();
+        let _ = self.close();
     }
 }
 
@@ -672,34 +720,64 @@ fn flush_recording(shared: &Shared) {
 }
 
 impl CoreAudioDevice {
-    /// The resources of `COREAUDIO_CloseDevice()` (also what a failed
-    /// `OpenDevice` leaves to it).
-    fn close(&self) {
+    /// The queue thread's data, made by `OpenDevice` (which hands the
+    /// device to the core only once it is).
+    fn shared(&self) -> &Arc<Shared> {
+        self.shared.get().expect("an opened CoreAudio device")
+    }
+
+    /// What `COREAUDIO_CloseDevice()` does, which upstream's core also
+    /// calls when `OpenDevice` fails. On UIKit, the error of updating the
+    /// audio session, if that fails (upstream's `SDL_SetError()` there
+    /// replaces a failed open's error).
+    fn close(&self) -> Result<()> {
+        #[cfg(not(target_os = "macos"))]
+        session::remove_interruption_listener(
+            &mut self
+                .interruption_listener
+                .lock()
+                .unwrap_or_else(|e| e.into_inner()),
+        );
+
         // dispose of the audio queue before waiting on the thread, or it might stall for a long time!
-        let queue = self
-            .shared
-            .audio_queue
-            .swap(ptr::null_mut(), Ordering::AcqRel);
-        if !queue.is_null() {
-            // SAFETY: our queue, disposed once.
-            unsafe {
-                AudioQueueFlush(queue);
-                AudioQueueStop(queue, 0);
-                AudioQueueDispose(queue, 0);
+        if let Some(shared) = self.shared.get() {
+            let queue = shared.audio_queue.swap(ptr::null_mut(), Ordering::AcqRel);
+            if !queue.is_null() {
+                // SAFETY: our queue, disposed once.
+                unsafe {
+                    AudioQueueFlush(queue);
+                    AudioQueueStop(queue, 0);
+                    AudioQueueDispose(queue, 0);
+                }
             }
         }
 
         let thread = self.thread.lock().unwrap_or_else(|e| e.into_inner()).take();
         if let Some(thread) = thread {
+            crate::sdl_assert!(self
+                .shared
+                .get()
+                .and_then(|s| s.device.upgrade())
+                .is_none_or(|d| d.shutting_down())); // should have been set by SDL_audio.c
             thread.wait();
         }
 
+        #[cfg(not(target_os = "macos"))]
+        let result = session::update_audio_session(true);
+        #[cfg(target_os = "macos")]
+        let result = Ok(());
+
         // AudioQueueDispose() frees the actual buffer objects.
-        self.shared
-            .audio_buffer
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .clear();
+        if let Some(shared) = self.shared.get() {
+            shared
+                .audio_buffer
+                .lock()
+                .unwrap_or_else(|e| e.into_inner())
+                .clear();
+        }
+        #[cfg(not(target_os = "macos"))]
+        session::free_hidden(self);
+        result
     }
 }
 
@@ -765,6 +843,7 @@ unsafe extern "C" fn recording_buffer_ready_callback(
 }
 
 /// Translation of `PrepareDevice()`.
+#[cfg(target_os = "macos")]
 fn prepare_device(device: &PhysicalDevice) -> Result<AudioDeviceID> {
     crate::sdl_assert!(device.handle != 0); // this meant "system default" in SDL2, but doesn't anymore
 
@@ -830,6 +909,7 @@ fn prepare_device(device: &PhysicalDevice) -> Result<AudioDeviceID> {
 }
 
 /// Translation of `AssignDeviceToAudioQueue()`.
+#[cfg(target_os = "macos")]
 fn assign_device_to_audio_queue(shared: &Shared) -> Result<()> {
     let prop = AudioObjectPropertyAddress {
         mSelector: kAudioDevicePropertyDeviceUID,
@@ -921,22 +1001,32 @@ fn channel_layout(
     })
 }
 
-// Make sure we can feed the device a minimum amount of time
-const MINIMUM_AUDIO_BUFFER_TIME_MS: f64 = 15.0;
+/// The shortest time the queued buffers hold, in milliseconds.
+fn minimum_audio_buffer_time_ms() -> f64 {
+    // Make sure we can feed the device a minimum amount of time
+    #[allow(unused_mut)] // (changed on the UIKit platforms only)
+    let mut minimum_audio_buffer_time_ms = 15.0;
+    #[cfg(not(target_os = "macos"))]
+    if session::older_ios_hardware() {
+        // Older iOS hardware, use 40 ms as a minimum time
+        minimum_audio_buffer_time_ms = 40.0;
+    }
+    minimum_audio_buffer_time_ms
+}
 
 /// How many buffers `PrepareAudioQueue()` queues for `sample_frames` frames
-/// at `freq`.
-fn num_audio_buffers(sample_frames: i32, freq: i32) -> i32 {
+/// at `freq`, holding at least `minimum_audio_buffer_time_ms`.
+fn num_audio_buffers(sample_frames: i32, freq: i32, minimum_audio_buffer_time_ms: f64) -> i32 {
     // we use THREE audio buffers by default, unlike most things that would
     // choose two alternating buffers, because it helps with issues on
     // Bluetooth headsets when recording and playing at the same time.
     // See conversation in #8192 for details.
     let mut num_audio_buffers = 3;
     let msecs = (sample_frames as f64 / freq as f64) * 1000.0;
-    if msecs < MINIMUM_AUDIO_BUFFER_TIME_MS {
+    if msecs < minimum_audio_buffer_time_ms {
         // use more buffers if we have a VERY small sample set.
         num_audio_buffers =
-            crate::stdlib::math::ceil(MINIMUM_AUDIO_BUFFER_TIME_MS / msecs) as i32 * 2;
+            crate::stdlib::math::ceil(minimum_audio_buffer_time_ms / msecs) as i32 * 2;
     }
     num_audio_buffers
 }
@@ -988,6 +1078,7 @@ fn prepare_audio_queue(shared: &Arc<Shared>) -> Result<Option<&'static [i32]>> {
     )?;
     shared.audio_queue.store(queue, Ordering::Release);
 
+    #[cfg(target_os = "macos")]
     assign_device_to_audio_queue(shared)?;
 
     // (SDL_UpdatedAudioDeviceFormat(): OpenDevice did it before starting this thread.)
@@ -1018,7 +1109,11 @@ fn prepare_audio_queue(shared: &Arc<Shared>) -> Result<Option<&'static [i32]>> {
         )?;
     }
 
-    let num_audio_buffers = num_audio_buffers(shared.sample_frames, shared.spec.freq);
+    let num_audio_buffers = num_audio_buffers(
+        shared.sample_frames,
+        shared.spec.freq,
+        minimum_audio_buffer_time_ms(),
+    );
 
     if DEBUG_COREAUDIO {
         crate::log!("COREAUDIO: numAudioBuffers == {}", num_audio_buffers);
@@ -1151,12 +1246,59 @@ fn coreaudio_open_device(
     device: &PhysicalDevice,
     state: &mut PhysState,
 ) -> Result<Arc<dyn DeviceBackend>> {
+    // Initialize all variables that we clean on shutdown
+    let hidden = Arc::new(CoreAudioDevice {
+        #[cfg(not(target_os = "macos"))]
+        recording: device.recording,
+        shared: OnceLock::new(),
+        thread: Mutex::new(None),
+        #[cfg(not(target_os = "macos"))]
+        interruption_listener: Mutex::new(StrongPtr::nil()),
+    });
+    #[cfg(not(target_os = "macos"))]
+    session::hidden_allocated(&hidden);
+
+    match open_hidden(&hidden, device, state) {
+        Ok(()) => Ok(hidden),
+        Err(e) => {
+            // (upstream's core closes a device whose OpenDevice failed,
+            // CloseDevice() included; this core has no backend to close
+            // then, so it happens here)
+            let closed = hidden.close();
+            #[cfg(target_os = "macos")]
+            return closed.and(Err(e));
+            // FIXME (upstream): CloseDevice()'s UpdateAudioSession() counts
+            // the open devices with SDL_FindPhysicalAudioDeviceByCallback(),
+            // whose callback never ends the search, so it sets "Device not
+            // found": that replaces the error OpenDevice failed with (unless
+            // updating the session fails, with an error of its own).
+            #[cfg(not(target_os = "macos"))]
+            {
+                let _ = e;
+                Err(closed
+                    .err()
+                    .unwrap_or_else(|| Error::new("Device not found")))
+            }
+        }
+    }
+}
+
+/// The steps of `COREAUDIO_OpenDevice()` after `device->hidden` is made.
+fn open_hidden(
+    hidden: &Arc<CoreAudioDevice>,
+    device: &PhysicalDevice,
+    state: &mut PhysState,
+) -> Result<()> {
+    #[cfg(not(target_os = "macos"))]
+    session::open_session(device.recording, state)?;
+
     let Some((test_format, strdesc)) = stream_description(&state.spec) else {
         // shouldn't happen, but just in case...
         return Err(Error::new("coreaudio: Unsupported audio format"));
     };
     state.spec.format = test_format;
 
+    #[cfg(target_os = "macos")]
     let device_id = prepare_device(device)?;
 
     // (SDL_UpdatedAudioDeviceFormat(), upstream's first step on the queue
@@ -1172,22 +1314,23 @@ fn coreaudio_open_device(
         audio_buffer: Mutex::new(Vec::new()),
         current_buffer: AtomicPtr::new(ptr::null_mut()),
         strdesc,
+        #[cfg(target_os = "macos")]
         device_id,
+        #[cfg(not(target_os = "macos"))]
+        interrupted: std::sync::atomic::AtomicBool::new(false),
         spec: state.spec,
         sample_frames: state.sample_frames,
         buffer_size: state.buffer_size,
         silence_value: state.silence_value,
     });
-    let hidden = CoreAudioDevice {
-        shared: shared.clone(),
-        thread: Mutex::new(None),
-    };
+    let _ = hidden.shared.set(shared.clone());
 
     // This has to init in a new thread so it can get its own CFRunLoop. :/
     let (ready_tx, ready_rx) = mpsc::channel();
     let threadname = get_audio_thread_name(device);
+    let thread_shared = shared.clone();
     let thread = Thread::spawn(threadname, move || {
-        audio_queue_thread_entry(shared, ready_tx)
+        audio_queue_thread_entry(thread_shared, ready_tx)
     })?;
     *hidden.thread.lock().unwrap_or_else(|e| e.into_inner()) = Some(thread);
 
@@ -1196,20 +1339,30 @@ fn coreaudio_open_device(
         .unwrap_or_else(|_| Err(Error::new("CoreAudio: the audio queue thread ended")));
     match ready {
         Err(thread_error) => {
-            // (the queue thread has returned; CloseDevice's cleanup)
-            hidden.close();
+            let thread = hidden
+                .thread
+                .lock()
+                .unwrap_or_else(|e| e.into_inner())
+                .take();
+            if let Some(thread) = thread {
+                thread.wait();
+            }
             Err(thread_error)
         }
         Ok(chmap) => {
             if let Some(chmap) = chmap {
                 state.chmap = store_chmap(Some(chmap), state.spec.channels);
             }
-            Ok(Arc::new(hidden))
+            #[cfg(not(target_os = "macos"))]
+            session::add_interruption_listener(hidden, &shared);
+            Ok(())
         }
     }
 }
 
-/// Translation of `COREAUDIO_DeinitializeStart()`.
+/// Translation of `COREAUDIO_DeinitializeStart()` (which has nothing to
+/// do on the UIKit platforms).
+#[cfg(target_os = "macos")]
 fn coreaudio_deinitialize_start() {
     // SAFETY: the listeners DetectDevices added, with the same data.
     unsafe {
@@ -1242,10 +1395,13 @@ impl AudioDriverImpl for CoreAudio {
         DriverFlags {
             provides_own_callback_thread: true,
             has_recording_support: true,
-            ..DriverFlags::default()
+            // (the UIKit platforms get the core's default devices)
+            only_has_default_playback_device: cfg!(not(target_os = "macos")),
+            only_has_default_recording_device: cfg!(not(target_os = "macos")),
         }
     }
 
+    #[cfg(target_os = "macos")]
     fn detect_devices(&self) -> (Option<Arc<PhysicalDevice>>, Option<Arc<PhysicalDevice>>) {
         coreaudio_detect_devices()
     }
@@ -1258,10 +1414,12 @@ impl AudioDriverImpl for CoreAudio {
         coreaudio_open_device(device, state)
     }
 
+    #[cfg(target_os = "macos")]
     fn free_device_handle(&self, device: &PhysicalDevice) {
         coreaudio_free_device_handle(device);
     }
 
+    #[cfg(target_os = "macos")]
     fn deinitialize_start(&self) {
         coreaudio_deinitialize_start();
     }

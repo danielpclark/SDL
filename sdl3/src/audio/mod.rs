@@ -51,7 +51,7 @@
 //!
 //! The platform drivers are tried in upstream's order ([`audio_driver`]
 //! lists them): on Linux "pipewire", "pulseaudio" and "alsa", on Windows
-//! "wasapi", on macOS "coreaudio", on Emscripten "emscripten" (Web Audio,
+//! "wasapi", on macOS, iOS, tvOS and visionOS "coreaudio", on Emscripten "emscripten" (Web Audio,
 //! unavailable without an `AudioContext`, as under node). The Linux ones
 //! load their system library at run time, so a missing library or sound
 //! server just moves on to the next driver. "disk" and "dummy" are only
