@@ -1,6 +1,7 @@
 // The CoreAudio and AudioToolbox declarations the CoreAudio driver uses,
-// from <CoreAudio/AudioHardware.h>, <CoreAudio/AudioHardwareBase.h>,
-// <CoreAudioTypes/CoreAudioBaseTypes.h> and <AudioToolbox/AudioQueue.h>.
+// from <CoreAudio/AudioHardware.h>, <CoreAudio/AudioHardwareBase.h>
+// (macOS's HAL), <CoreAudioTypes/CoreAudioBaseTypes.h> and
+// <AudioToolbox/AudioQueue.h>.
 // Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
 // This is an altered (translated) version of the original software; see LICENSE.txt.
 
@@ -12,13 +13,18 @@ use crate::core::apple::foundation::{CFRunLoopRef, CFStringRef};
 
 /// `OSStatus`.
 pub(super) type OSStatus = i32;
+#[cfg(target_os = "macos")]
 /// `AudioObjectID`.
 pub(super) type AudioObjectID = u32;
+#[cfg(target_os = "macos")]
 /// `AudioDeviceID`.
 pub(super) type AudioDeviceID = AudioObjectID;
+#[cfg(target_os = "macos")]
 /// `AudioObjectPropertySelector`, `...Scope`, `...Element`.
 pub(super) type AudioObjectPropertySelector = u32;
+#[cfg(target_os = "macos")]
 pub(super) type AudioObjectPropertyScope = u32;
+#[cfg(target_os = "macos")]
 pub(super) type AudioObjectPropertyElement = u32;
 /// `AudioQueueRef`.
 pub(super) type AudioQueueRef = *mut c_void;
@@ -35,30 +41,47 @@ const fn fourcc(s: &[u8; 4]) -> u32 {
 }
 
 pub(super) const noErr: OSStatus = 0;
+#[cfg(target_os = "macos")]
 pub(super) const kAudioHardwareNoError: OSStatus = 0;
+#[cfg(target_os = "macos")]
 pub(super) const kAudioHardwareBadDeviceError: OSStatus = fourcc(b"!dev") as OSStatus;
 
+#[cfg(target_os = "macos")]
 pub(super) const kAudioObjectSystemObject: AudioObjectID = 1;
 
+#[cfg(target_os = "macos")]
 pub(super) const kAudioObjectPropertyScopeGlobal: AudioObjectPropertyScope = fourcc(b"glob");
+#[cfg(target_os = "macos")]
 pub(super) const kAudioDevicePropertyScopeInput: AudioObjectPropertyScope = fourcc(b"inpt");
+#[cfg(target_os = "macos")]
 pub(super) const kAudioDevicePropertyScopeOutput: AudioObjectPropertyScope = fourcc(b"outp");
+#[cfg(target_os = "macos")]
 pub(super) const kAudioObjectPropertyElementMain: AudioObjectPropertyElement = 0;
 
+#[cfg(target_os = "macos")]
 pub(super) const kAudioHardwarePropertyDevices: AudioObjectPropertySelector = fourcc(b"dev#");
+#[cfg(target_os = "macos")]
 pub(super) const kAudioHardwarePropertyDefaultOutputDevice: AudioObjectPropertySelector =
     fourcc(b"dOut");
+#[cfg(target_os = "macos")]
 pub(super) const kAudioHardwarePropertyDefaultInputDevice: AudioObjectPropertySelector =
     fourcc(b"dIn ");
+#[cfg(target_os = "macos")]
 pub(super) const kAudioDevicePropertyDeviceIsAlive: AudioObjectPropertySelector = fourcc(b"livn");
+#[cfg(target_os = "macos")]
 pub(super) const kAudioDevicePropertyStreamConfiguration: AudioObjectPropertySelector =
     fourcc(b"slay");
+#[cfg(target_os = "macos")]
 pub(super) const kAudioDevicePropertyNominalSampleRate: AudioObjectPropertySelector =
     fourcc(b"nsrt");
+#[cfg(target_os = "macos")]
 pub(super) const kAudioObjectPropertyName: AudioObjectPropertySelector = fourcc(b"lnam");
+#[cfg(target_os = "macos")]
 pub(super) const kAudioDevicePropertyDeviceUID: AudioObjectPropertySelector = fourcc(b"uid ");
+#[cfg(target_os = "macos")]
 pub(super) const kAudioDevicePropertyHogMode: AudioObjectPropertySelector = fourcc(b"oink");
 
+#[cfg(target_os = "macos")]
 pub(super) const kAudioQueueProperty_CurrentDevice: AudioQueuePropertyID = fourcc(b"aqcd");
 pub(super) const kAudioQueueProperty_ChannelLayout: AudioQueuePropertyID = fourcc(b"aqcl");
 
@@ -81,6 +104,7 @@ pub(super) const kAudioChannelLayoutTag_DVD_12: AudioChannelLayoutTag =
 pub(super) const kAudioChannelLayoutTag_WAVE_6_1: AudioChannelLayoutTag = (188 << 16) | 7;
 pub(super) const kAudioChannelLayoutTag_WAVE_7_1: AudioChannelLayoutTag = (189 << 16) | 8;
 
+#[cfg(target_os = "macos")]
 /// `AudioObjectPropertyAddress`.
 #[repr(C)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -90,6 +114,7 @@ pub(super) struct AudioObjectPropertyAddress {
     pub(super) mElement: AudioObjectPropertyElement,
 }
 
+#[cfg(target_os = "macos")]
 /// `AudioBuffer`.
 #[repr(C)]
 #[derive(Clone, Copy, Debug)]
@@ -99,6 +124,7 @@ pub(super) struct AudioBuffer {
     pub(super) mData: *mut c_void,
 }
 
+#[cfg(target_os = "macos")]
 /// The fixed part of `AudioBufferList` (`mBuffers` has
 /// `mNumberBuffers` elements).
 #[repr(C)]
@@ -165,6 +191,7 @@ pub(super) struct AudioStreamPacketDescription {
     _private: [u8; 0],
 }
 
+#[cfg(target_os = "macos")]
 /// `AudioObjectPropertyListenerProc`.
 pub(super) type AudioObjectPropertyListenerProc = unsafe extern "C" fn(
     in_object_id: AudioObjectID,
@@ -190,7 +217,12 @@ pub(super) type AudioQueueInputCallback = unsafe extern "C" fn(
     in_packet_descs: *const AudioStreamPacketDescription,
 );
 
+// (CoreAudio is linked on every Apple platform, as upstream links it; its
+// HAL, AudioObject, is macOS's.)
 #[link(name = "CoreAudio", kind = "framework")]
+unsafe extern "C" {}
+
+#[cfg(target_os = "macos")]
 unsafe extern "C" {
     pub(super) fn AudioObjectGetPropertyDataSize(
         in_object_id: AudioObjectID,
@@ -262,6 +294,8 @@ unsafe extern "C" {
         in_aq: AudioQueueRef,
         in_start_time: *const AudioTimeStamp,
     ) -> OSStatus;
+    #[cfg(not(target_os = "macos"))]
+    pub(super) fn AudioQueuePause(in_aq: AudioQueueRef) -> OSStatus;
     pub(super) fn AudioQueueFlush(in_aq: AudioQueueRef) -> OSStatus;
     pub(super) fn AudioQueueStop(in_aq: AudioQueueRef, in_immediate: u8) -> OSStatus;
     pub(super) fn AudioQueueDispose(in_aq: AudioQueueRef, in_immediate: u8) -> OSStatus;

@@ -719,7 +719,7 @@ fn dummy_driver_playback_and_recording() {
     // initializes without the hint.
     #[cfg(not(any(
         target_os = "linux",
-        target_os = "macos",
+        target_vendor = "apple",
         windows,
         target_os = "emscripten"
     )))]

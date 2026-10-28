@@ -6,7 +6,7 @@
 
 #[cfg(target_os = "linux")]
 pub(crate) mod alsa;
-#[cfg(target_os = "macos")]
+#[cfg(target_vendor = "apple")]
 pub(crate) mod coreaudio;
 pub(crate) mod disk;
 pub(crate) mod dummy;
