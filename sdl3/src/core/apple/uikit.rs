@@ -55,6 +55,39 @@ pub(crate) const UI_DEVICE_BATTERY_STATE_CHARGING: UIDeviceBatteryState = 2;
 #[cfg(not(target_os = "tvos"))]
 pub(crate) const UI_DEVICE_BATTERY_STATE_FULL: UIDeviceBatteryState = 3;
 
+/// `UIDeviceOrientation` (iOS: the CoreMedia camera's rotation). The
+/// others are `UIDeviceOrientationUnknown` (0), `FaceUp` (5) and
+/// `FaceDown` (6).
+#[cfg(target_os = "ios")]
+pub(crate) type UIDeviceOrientation = NSInteger;
+/// `UIDeviceOrientationPortrait`: upright, the home button at the bottom.
+#[cfg(target_os = "ios")]
+pub(crate) const UI_DEVICE_ORIENTATION_PORTRAIT: UIDeviceOrientation = 1;
+/// `UIDeviceOrientationPortraitUpsideDown`.
+#[cfg(target_os = "ios")]
+pub(crate) const UI_DEVICE_ORIENTATION_PORTRAIT_UPSIDE_DOWN: UIDeviceOrientation = 2;
+/// `UIDeviceOrientationLandscapeLeft`: the home button on the right.
+#[cfg(target_os = "ios")]
+pub(crate) const UI_DEVICE_ORIENTATION_LANDSCAPE_LEFT: UIDeviceOrientation = 3;
+/// `UIDeviceOrientationLandscapeRight`: the home button on the left.
+#[cfg(target_os = "ios")]
+pub(crate) const UI_DEVICE_ORIENTATION_LANDSCAPE_RIGHT: UIDeviceOrientation = 4;
+
+/// `UIDeviceOrientationIsValidInterfaceOrientation()`: one of the four
+/// the interface can have (not face up or down, nor unknown).
+#[cfg(target_os = "ios")]
+pub(crate) fn device_orientation_is_valid_interface_orientation(
+    orientation: UIDeviceOrientation,
+) -> bool {
+    matches!(
+        orientation,
+        UI_DEVICE_ORIENTATION_PORTRAIT
+            | UI_DEVICE_ORIENTATION_PORTRAIT_UPSIDE_DOWN
+            | UI_DEVICE_ORIENTATION_LANDSCAPE_LEFT
+            | UI_DEVICE_ORIENTATION_LANDSCAPE_RIGHT
+    )
+}
+
 /// `[UIDevice currentDevice]`.
 pub(crate) fn current_device() -> Id {
     // SAFETY: UIDevice's class method, answering the shared instance.
@@ -117,6 +150,29 @@ mod tests {
         for (idiom, form_factor) in cases {
             assert_eq!(form_factor_from_idiom(idiom), form_factor, "{idiom}");
         }
+    }
+
+    /// The SDK's `UIDeviceOrientationIsValidInterfaceOrientation()`, over
+    /// unknown (0), the four, face up (5) and down (6), and beyond.
+    #[cfg(target_os = "ios")]
+    #[test]
+    fn valid_interface_orientations() {
+        let valid: Vec<bool> = (-1..=7)
+            .map(device_orientation_is_valid_interface_orientation)
+            .collect();
+        assert_eq!(
+            valid,
+            [false, false, true, true, true, true, false, false, false]
+        );
+        assert_eq!(
+            [
+                UI_DEVICE_ORIENTATION_PORTRAIT,
+                UI_DEVICE_ORIENTATION_PORTRAIT_UPSIDE_DOWN,
+                UI_DEVICE_ORIENTATION_LANDSCAPE_LEFT,
+                UI_DEVICE_ORIENTATION_LANDSCAPE_RIGHT
+            ],
+            [1, 2, 3, 4]
+        );
     }
 
     /// The simulated device's idiom is its kind's (an iPhone's or an

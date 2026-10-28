@@ -199,7 +199,7 @@ fn driver_selection() {
         .collect();
     #[cfg(target_os = "linux")]
     assert_eq!(names, ["test", "v4l2", "pipewire", "dummy"]);
-    #[cfg(target_os = "macos")]
+    #[cfg(any(target_os = "macos", target_os = "ios"))]
     assert_eq!(names, ["test", "coremedia", "dummy"]);
     #[cfg(windows)]
     assert_eq!(names, ["test", "mediafoundation", "dummy"]);
@@ -208,6 +208,7 @@ fn driver_selection() {
     #[cfg(not(any(
         target_os = "linux",
         target_os = "macos",
+        target_os = "ios",
         windows,
         target_os = "emscripten"
     )))]
@@ -654,7 +655,7 @@ fn quit_while_open() {
 /// driver that doesn't start skips as `capability`, no camera as `camera`.
 // (the platform drivers' hardware checks; the browser's camera is
 // tests/emscripten_camera.rs)
-#[cfg(any(target_os = "linux", target_os = "macos", windows))]
+#[cfg(any(target_os = "linux", target_os = "macos", target_os = "ios", windows))]
 pub(super) fn hardware_capture(driver: &str, capability: &str) {
     use std::time::{Duration, Instant};
     crate::hints::set(crate::hints::CAMERA_DRIVER, driver).unwrap();
