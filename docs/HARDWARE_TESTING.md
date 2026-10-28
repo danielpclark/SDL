@@ -89,7 +89,7 @@ doesn't have, and print what they find (so run them with `--nocapture`):
 | `joystick::windows::tests::hardware_joysticks_per_driver` | Windows | lists the joysticks and gamepads (name, GUID, gamepad type) each joystick driver finds: with the default drivers, with every driver enabled, and with each of HIDAPI, RawInput, DirectInput, XInput, Windows.Gaming.Input and GameInput alone (GameInput alone skips as `gameinput` where GameInput isn't usable). Zero controllers is fine |
 | `joystick::windows::tests::hardware_controller_input` | Windows | opens the first controller through the default drivers and prints its name, driver, GUID, VID:PID, axes/buttons/hats and gamepad mapping; asks for a button press and release, then a full stick (or axis) movement, waiting up to 30 seconds for each; then sends a short rumble and prints whether the controller supports it. Run it on its own, as below |
 | `audio::drivers::coreaudio::tests::hardware_default_playback_and_recording` | macOS | lists the CoreAudio devices; plays half a second of a quiet 440 Hz tone on the default playback device (it must drain), then records half a second from the default recording device, printing formats, timing and the peak level. A recording of pure silence (no microphone permission, see below) skips |
-| `camera::coremedia::tests::hardware_capture_from_the_first_camera` | macOS | the camera check through AVFoundation |
+| `camera::coremedia::tests::hardware_capture_from_the_first_camera` | macOS | the camera check through AVFoundation (an iPhone's cameras: [below](#the-camera-on-an-iphone)) |
 | `joystick::darwin::tests::hardware_joysticks_per_driver` | macOS | lists the controllers the HIDAPI, IOKit and MFi (GameController) drivers see, together and each alone. Zero controllers is fine |
 | `joystick::darwin::tests::hardware_controller_input` | macOS | the interactive controller check of Windows', through the default macOS drivers. Run it on its own |
 | `joystick::apple::tests::hardware_mfi_controllers` | macOS | what GameController reports through the MFi driver alone: names, GUIDs, the generated gamepad mapping, SF Symbols names, sensors, LED, battery and rumble. GameController discovers controllers on the main run loop, which a test thread doesn't run, so only the ones it already knew when the driver started are listed |
@@ -965,8 +965,8 @@ skip `vulkan`. The
 offscreen driver has no EGL there, as on macOS (`egl`). The UIKit video
 driver only starts in an app, so the spawned programs use the offscreen
 and dummy drivers there, as elsewhere (and so its message boxes only
-show in an app); its windows' Vulkan views, the OpenGL ES 1 renderer
-and the iOS half of the camera aren't translated yet.
+show in an app); its windows' Vulkan views and the OpenGL ES 1 renderer
+aren't translated yet.
 
 CoreAudio runs there as on a device, its audio going to the Mac's
 output and coming from its input (the runner's are a "Speaker" and a
@@ -1047,6 +1047,27 @@ the backend logged (NSLog's lines, through Foundation's private
 `_NSSetLogCStringFunction()`: test programs only). A real controller
 needs a device (below).
 
+The simulator has no camera either: AVFoundation's discovery session finds
+none, so the CoreMedia camera driver starts with no camera. A spawned
+program is denied the camera (`AVAuthorizationStatusDenied`); the
+CoreMedia tests check there the device types the driver asks for, its
+rotation tables and its guess of the device's orientation (upstream's,
+copied into a C program), and trace the camera drivers, the driver
+starting with no camera, cameras that aren't there opened (with and
+without a spec), their formats, names and positions (upstream's "Invalid
+camera device instance ID"), the dummy driver and CoreMedia again, against
+upstream's C spawned the same way. `uikit_camera`, an app the runner grants
+the camera (the word `privacy=camera`: `simctl privacy grant camera`,
+which works though simctl's help doesn't list it), and
+`uikit_camera_denied`, one it denies it (`privacy=-camera`: `simctl
+privacy revoke`), trace the same with the camera access each has
+(authorized, denied), and `UIDevice`'s orientation as it generates
+orientation notifications or not (unknown on the simulator either way),
+against upstream's C run the same way. The driver only checks the access
+with a camera's frames, and turns frames with the device's orientation,
+so a camera, its permission prompt, its frames and their rotation need a
+device.
+
 ### A Steam Controller over Bluetooth LE (iOS device)
 
 The Steam Controller pairs with an iPhone, iPad or Apple TV over
@@ -1085,6 +1106,47 @@ Without the environment variable the program runs the simulator's
 trace, which a device (with Bluetooth on) doesn't match. On tvOS (built,
 not run yet) the same check needs the program built for
 `aarch64-apple-tvos`, a tier 3 target (`cargo +nightly -Zbuild-std`).
+
+### The camera on an iPhone
+
+`uikit_camera` built for a device runs its hardware check instead of the
+simulator's trace when CoreMedia finds cameras: it lists them (names,
+positions, formats), opens the first back camera (else the first) in its
+preferred format, waits up to two minutes for the camera to be allowed
+(the system asks the first time), then takes frames for ten seconds,
+checking that each has the opened size and format, that the timestamps
+advance and that the rotation is a quarter turn, printing every second
+the interface's and the device's orientations and the frame's rotation
+with the one upstream's tables give them, and fails if more than two
+frames have another one or fewer than ten came. The runner doesn't run
+programs on devices, so it's bundled, signed and run by hand, with a
+development team's signing identity and a provisioning profile for a
+bundle identifier (and the device registered in it, in Developer Mode):
+
+```sh
+rustup target add aarch64-apple-ios
+cargo test -p sdl3 --target aarch64-apple-ios --test uikit_camera --no-run
+# (cargo prints the program's path: target/aarch64-apple-ios/debug/deps/uikit_camera-HASH)
+SDL3_IOS_BUNDLE_ID=YOUR.BUNDLE.ID SDL3_IOS_CODESIGN=0 \
+  tools/ios_run.py --bundle target/aarch64-apple-ios/debug/deps/uikit_camera-HASH uikit_camera.app
+cp PROFILE.mobileprovision uikit_camera.app/embedded.mobileprovision
+# entitlements.plist: application-identifier TEAM.YOUR.BUNDLE.ID,
+# com.apple.developer.team-identifier TEAM, get-task-allow true
+codesign --force --sign "Apple Development: NAME (ID)" --entitlements entitlements.plist uikit_camera.app
+xcrun devicectl list devices
+xcrun devicectl device install app --device DEVICE uikit_camera.app
+xcrun devicectl device process launch --console --device DEVICE YOUR.BUNDLE.ID
+```
+
+Allow the camera when asked, then turn the phone (with the orientation
+lock off) through portrait, both landscapes and, on an iPad, upside down
+while it runs: the back camera's frames turn 90° in portrait, 0° with the
+interface in landscape right (the phone turned a quarter turn
+counterclockwise from portrait, its bottom on the right), 180° in
+landscape left and 270° upside down, and the front
+camera's as upstream's table has them. It ends with `sdl3-ios-runner: exit
+0`. A camera denied once stays denied (Settings > Privacy & Security >
+Camera, or delete the app, to be asked again).
 
 ## CI
 
