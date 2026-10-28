@@ -3,7 +3,9 @@ name: diag-dyld
 # Diagnostic only (branch claude/diag-macos-segv): does dlclose() unload
 # MoltenVK between the Vulkan tests?
 on:
-  workflow_dispatch:
+  push:
+    branches: [claude/diag-macos-segv]
+    paths: [.github/workflows/diag-dyld.yml]
 
 permissions:
   contents: read
