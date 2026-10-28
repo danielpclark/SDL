@@ -11,7 +11,7 @@ on:
       minutes:
         description: time budget for the loop, per job
         type: string
-        default: "75"
+        default: "40"
 
 permissions:
   contents: read
@@ -30,9 +30,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { toolchain: "1.87", name: gpu-cold, args: "gpu::", lldb: false, cold: true }
-          - { toolchain: "1.99", name: vulkan-cold, args: "vulkan", lldb: false, cold: true }
-          - { toolchain: "1.87", name: full-cold, args: "", lldb: false, cold: true }
+          - { toolchain: "1.87", name: vulkan-cold-before, args: "vulkan", lldb: false, cold: true }
+          - { toolchain: "1.99", name: vulkan-cold-before, args: "vulkan", lldb: false, cold: true }
     runs-on: macos-latest
     timeout-minutes: 120
     env:
@@ -65,7 +64,7 @@ jobs:
           ARGS: ${{ matrix.args }}
           USE_LLDB: ${{ matrix.lldb }}
           COLD: ${{ matrix.cold }}
-          MINUTES: ${{ inputs.minutes || '75' }}
+          MINUTES: ${{ inputs.minutes || '40' }}
         run: |
           set +e
           ulimit -c 0
@@ -106,6 +105,7 @@ jobs:
               if grep -q "SIGSEGV\|SIGBUS\|EXC_BAD_ACCESS\|signal: 11\|signal: 10" "$log" || [ $rc -ge 128 ]; then
                 crashes=$((crashes + 1))
               fi
+              if [ $fails -le 2 ]; then
               echo "::group::iteration $i failure (last 400 lines)"
               tail -400 "$log" | cut -c1-400
               echo "::endgroup::"
@@ -126,20 +126,25 @@ jobs:
               echo "::endgroup::"
               mkdir -p "$RUNNER_TEMP/ips"
               cp "$log" "$RUNNER_TEMP/ips/"
+              fi
+              grep -E "^    [a-z_:]+$" "$log" | sed "s/^/FAILED-TEST iteration $i: /" | head -5
               sleep 15
               for d in "$HOME/Library/Logs/DiagnosticReports" /Library/Logs/DiagnosticReports; do
                 find "$d" -newer "$RUNNER_TEMP/marker" -name 'sdl3-*' 2>/dev/null
               done > "$RUNNER_TEMP/ips.txt"
               if [ -s "$RUNNER_TEMP/ips.txt" ]; then
-                echo "::group::iteration $i crash reports"
-                xargs python3 -I tools/ci/diag_ips.py < "$RUNNER_TEMP/ips.txt" | cut -c1-500
-                echo "::endgroup::"
+                xargs python3 -I tools/ci/diag_ips.py < "$RUNNER_TEMP/ips.txt" | cut -c1-500 > "$RUNNER_TEMP/ips-$i.txt"
+                grep -A3 "^--- faulting thread" "$RUNNER_TEMP/ips-$i.txt" | sed "s/^/CRASH iteration $i: /"
+                grep -B1 -A14 "^--- thread .*tests::" "$RUNNER_TEMP/ips-$i.txt" | grep -E "^--- thread|libMoltenVK|sdl3-.*_4sdl3" | grep -v "test_lock\|Mutex" | sed "s/^/CRASH iteration $i: /" | cut -c1-300 | head -40
+                if [ $crashes -le 2 ]; then
+                  echo "::group::iteration $i crash reports"
+                  cat "$RUNNER_TEMP/ips-$i.txt"
+                  echo "::endgroup::"
+                fi
                 mkdir -p "$RUNNER_TEMP/ips"
                 xargs -I{} cp {} "$RUNNER_TEMP/ips/" < "$RUNNER_TEMP/ips.txt"
               fi
               touch "$RUNNER_TEMP/marker"
-              # (stop at the first failure, so the log is there to read)
-              break
             fi
           done
           echo "SUMMARY ${{ matrix.toolchain }} ${{ matrix.name }}: $i iterations, $fails failed, $crashes crashed"
