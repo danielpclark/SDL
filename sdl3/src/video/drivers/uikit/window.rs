@@ -22,7 +22,7 @@
 
 use std::sync::{Arc, Mutex, MutexGuard};
 
-#[cfg(not(target_os = "visionos"))]
+#[cfg(not(any(target_os = "tvos", target_os = "visionos")))]
 use crate::core::apple::foundation::CGSize;
 use crate::core::apple::foundation::{available, ns_string};
 use crate::core::apple::objc::{autoreleasepool, class, msg_send, Id, NSInteger, StrongPtr, NIL};

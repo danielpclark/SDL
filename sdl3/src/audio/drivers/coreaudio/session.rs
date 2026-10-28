@@ -349,7 +349,9 @@ pub(super) fn remove_interruption_listener(listener: &mut StrongPtr) {
         let center: Id = msg_send![class!(NSNotificationCenter), defaultCenter];
         let () = msg_send![center, removeObserver: listener.get()];
         let device = synchronized(listener.get(), |device| {
-            std::mem::replace(device, ptr::null())
+            let taken = *device;
+            *device = ptr::null();
+            taken
         });
         if !device.is_null() {
             drop(Arc::from_raw(device));
