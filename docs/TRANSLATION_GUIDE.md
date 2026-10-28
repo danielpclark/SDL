@@ -143,7 +143,7 @@ they are used (there is no build script to make aliases):
   GPU API's Metal backend) and the dummy ones upstream uses there; a
   macOS-only backend (Cocoa, IOKit, LaunchServices) is
   `target_os = "macos"`, and so is an Apple-wide one until its UIKit half
-  is translated (CoreMedia, the notifications). Until then a subsystem falls back to what else is built,
+  is translated (the notifications). Until then a subsystem falls back to what else is built,
   as upstream would without the piece (the offscreen and dummy video
   drivers, the dummy audio driver...). The UIKit pieces that backends
   other than the video driver share (UIDevice, UIApplication, the form
@@ -303,6 +303,21 @@ they are used (there is no build script to make aliases):
 * The CoreMotion sensor driver (`sensor/coremotion.rs`) is built on iOS
   and visionOS, as upstream's CMake builds it, first in the sensor driver
   list (no dummy driver there); CoreMotion is linked.
+* The CoreMedia camera driver (`camera/coremedia.rs`) is built on macOS
+  and iOS (`target_os = "ios"`: CMake's `MACOS OR IOS`, and
+  `SDL_build_config_ios.h` leaves it out on tvOS and visionOS), before the
+  dummy driver as upstream; in it `SDL_PLATFORM_IOS` and
+  `USE_UIKIT_DEVICE_ROTATION` are `target_os = "ios"`. The device types the
+  discovery session asks for are looked up at run time on both, as weakly
+  linked symbols would be. A frame's rotation is upstream's tables, the
+  interface's orientation from the UIKit video driver
+  (`get_interface_orientation()`) and the device's from `UIDevice`, whose
+  orientation notifications are on while a camera is open; an interface
+  orientation outside the tables (unknown: upstream reads before them)
+  leaves the frame unrotated (`FIXME (upstream)`), and the tables' rows
+  are labelled by their values (`Note (upstream)`: upstream's comments swap
+  the two landscape rows). The permission check's `@available(macOS 14, *)`
+  is always taken on iOS, as upstream's.
 
 ## Testing
 
