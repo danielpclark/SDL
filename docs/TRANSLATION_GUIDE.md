@@ -143,7 +143,7 @@ they are used (there is no build script to make aliases):
   GPU API's Metal backend) and the dummy ones upstream uses there; a
   macOS-only backend (Cocoa, IOKit, LaunchServices) is
   `target_os = "macos"`, and so is an Apple-wide one until its UIKit half
-  is translated (CoreAudio, MFi, CoreMedia, the notifications). Until then a subsystem falls back to what else is built,
+  is translated (MFi, CoreMedia, the notifications). Until then a subsystem falls back to what else is built,
   as upstream would without the piece (the offscreen and dummy video
   drivers, the dummy audio driver...). The UIKit pieces that backends
   other than the video driver share (UIDevice, UIApplication, the form
