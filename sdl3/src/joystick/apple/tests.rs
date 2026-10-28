@@ -255,7 +255,23 @@ fn element_selection_and_mapping_match_upstream() {
     }
     let expected: Vec<&str> = expected.lines().collect();
     assert_eq!(out.len(), expected.len());
-    for (actual, expected) in out.iter().zip(expected) {
+    // (three lines a profile: its axes, buttons and mapping)
+    for (i, (actual, expected)) in out.iter().zip(expected).enumerate() {
+        // On tvOS the home button is the system's: a profile with one has
+        // it neither among its buttons nor in its mapping, which shifts
+        // their indices (the expected results are upstream's code for the
+        // other platforms).
+        if cfg!(target_os = "tvos")
+            && i % 3 != 0
+            && profiles
+                .lines()
+                .nth(i / 3)
+                .unwrap()
+                .contains("Button Home:")
+        {
+            assert!(!actual.contains("[Button Home]"), "{actual}");
+            continue;
+        }
         assert_eq!(actual, expected);
     }
 }

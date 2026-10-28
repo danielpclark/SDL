@@ -680,8 +680,8 @@ fn windows_paths() {
 }
 
 /// On iOS relative paths are in the pref path (`SDL_GetPrefPath("", "")`,
-/// the Application Support directory followed by "/" and an empty app's
-/// "/"), as upstream's `SDL_sysfsops.c` and `SDL_IOFromFile()` have them;
+/// the Application Support directory, Caches on tvOS, followed by "/" and
+/// an empty app's "/"), as upstream's `SDL_sysfsops.c` and `SDL_IOFromFile()` have them;
 /// path information and files to open are looked for in the current
 /// directory next.
 #[cfg(all(target_vendor = "apple", not(target_os = "macos")))]
@@ -690,7 +690,12 @@ fn uikit_relative_paths_are_in_the_pref_path() {
     use crate::io::IoStream;
     let home = crate::stdlib::getenv("HOME").unwrap();
     let pref = get_pref_path(Some(""), "").unwrap();
-    assert_eq!(pref, format!("{home}/Library/Application Support//"));
+    let base = if cfg!(target_os = "tvos") {
+        "Caches"
+    } else {
+        "Application Support"
+    };
+    assert_eq!(pref, format!("{home}/Library/{base}//"));
 
     let rel = format!("sdl3-rs-relative-{}", std::process::id());
     let cwd = std::env::current_dir().unwrap();
