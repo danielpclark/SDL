@@ -25,6 +25,7 @@
 
 use std::io::Write;
 
+pub mod camera;
 pub mod scenes;
 
 /// The runner's exit line: `sdl3-ios-runner: exit STATUS`, flushed, then

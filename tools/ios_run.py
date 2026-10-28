@@ -46,7 +46,9 @@ A program runs in one of two ways:
   then the reason once more.
   The app is then terminated and uninstalled. A word
   `privacy=SERVICE,...` grants it those services first (`simctl privacy
-  grant`: camera, microphone, photos, ...). The app's bundle identifier
+  grant`: camera, microphone, photos, ...), and revokes those written
+  `-SERVICE` (`simctl privacy revoke`: the app is denied them without
+  being asked). The app's bundle identifier
   is also a URL scheme it handles (CFBundleURLTypes), and one it may ask
   about (LSApplicationQueriesSchemes), so that it can open its own URLs.
 
@@ -606,7 +608,10 @@ def launch(udid, program, args, macho):
             for word in macho.words:
                 if word.startswith("privacy="):
                     for service in filter(None, word[len("privacy="):].split(",")):
-                        xcrun_simctl("privacy", udid, "grant", service, identifier)
+                        if service.startswith("-"):
+                            xcrun_simctl("privacy", udid, "revoke", service[1:], identifier)
+                        else:
+                            xcrun_simctl("privacy", udid, "grant", service, identifier)
             return run_app(udid, identifier, executable, args, timeout, temp, (idb, why, used_idb))
         finally:
             if used_idb:
