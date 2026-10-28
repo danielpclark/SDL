@@ -143,7 +143,7 @@ they are used (there is no build script to make aliases):
   GPU API's Metal backend) and the dummy ones upstream uses there; a
   macOS-only backend (Cocoa, IOKit, LaunchServices) is
   `target_os = "macos"`, and so is an Apple-wide one until its UIKit half
-  is translated (MFi, CoreMedia, the notifications). Until then a subsystem falls back to what else is built,
+  is translated (CoreMedia, the notifications). Until then a subsystem falls back to what else is built,
   as upstream would without the piece (the offscreen and dummy video
   drivers, the dummy audio driver...). The UIKit pieces that backends
   other than the video driver share (UIDevice, UIApplication, the form
@@ -154,6 +154,10 @@ they are used (there is no build script to make aliases):
   (`core::apple::foundation`), checked at run time; a platform it doesn't
   name passes. SDK guards (`__IPHONE_OS_VERSION_MAX_ALLOWED >= 170000`) are
   compiled in, as if upstream were built with the newest SDK.
+* A check translated from code that was macOS-only here must name every
+  platform upstream's `@available` names: `available!(macos(11, 0))`
+  alone passes on iOS and tvOS (as the MFi driver's did before its UIKit
+  half: its checks are upstream's macOS, iOS and tvOS versions now).
 * An Objective-C method declared at run time takes its type encoding
   through `objc::encoding()`, which writes `BOOL` as the platform's (`c`
   on x86-64 macOS and Mac Catalyst, `B` elsewhere, the x86-64 Simulator
@@ -257,6 +261,27 @@ they are used (there is no build script to make aliases):
   iOS Simulator three seconds after a power query (`FIXME (upstream)`,
   in `power/uikit.rs`). The OpenGL ES 1 renderer (`SDL_render_gles.c`),
   which upstream builds there, isn't translated yet.
+* The MFi joystick driver (`joystick/apple`, `SDL_IOS_JoystickDriver`) is
+  built on every Apple platform, as upstream's: on the UIKit ones first
+  in the driver list, before the virtual driver (no IOKit driver, and no
+  HIDAPI driver until its Bluetooth backend is translated, so the
+  controllers HIDAPI would take aren't left to it there, as in Xcode's
+  build without `SDL_JOYSTICK_HIDAPI`). Its iOS and tvOS paths are
+  upstream's: the windows' game controller interaction set when it
+  starts and cleared when it quits (`UIKit_SetGameControllerInteraction()`
+  in the video driver), and on tvOS (built, not run yet) the Siri
+  Remote's micro gamepad with `SDL_HINT_APPLE_TV_REMOTE_ALLOW_ROTATION`,
+  the home button left to the system, the menu button through the pause
+  handler, the remotes opened as joysticks counted for the view's presses
+  (`SDL_AppleTVRemoteOpenedAsJoystick`), and the root view controller a
+  `GCEventViewController` with `SDL_HINT_APPLE_TV_CONTROLLER_UI_EVENTS`.
+  GameController and CoreHaptics are loaded at run time (CoreHaptics,
+  which upstream links weakly, may be missing: before iOS 13 and tvOS 14
+  there's no rumble). Rumble is CoreHaptics' on every platform, as
+  upstream's; the haptic subsystem stays the dummy driver there.
+* The CoreMotion sensor driver (`sensor/coremotion.rs`) is built on iOS
+  and visionOS, as upstream's CMake builds it, first in the sensor driver
+  list (no dummy driver there); CoreMotion is linked.
 
 ## Testing
 
