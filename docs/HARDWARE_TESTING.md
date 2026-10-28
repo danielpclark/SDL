@@ -790,7 +790,10 @@ in a spawned process) asks the runner for it: a section
 `#[used] #[link_section = "__DATA,__sdl3_runner"]` static, as
 `sdl3/tests/ios_runner.rs` has). The runner puts it in an app bundle (an
 `Info.plist` with a launch screen and every orientation, ad-hoc signed),
-installs it, launches it with `xcrun simctl launch`, its stdout and
+installs it, launches it with `xcrun simctl launch` (up to three times
+when the system refuses the launch, as it now and then does for an app
+it hasn't registered yet: LaunchServicesDataMismatch, "unknown to
+FrontBoard"; none of the app has run then), its stdout and
 stderr in files in the device's temporary directory that it copies as
 they grow until the app's process is gone (through `--console-pty` a
 program that is done at once now and then lost all its output; files in
@@ -799,7 +802,8 @@ doesn't give an app's exit status, so
 the program prints `sdl3-ios-runner: exit N` last, then exits with N;
 without that line (a crash, a panic in a callback, an app still running
 after `SDL3_IOS_TIMEOUT` seconds, 900 by default) the run fails with the
-device's log for the program. `tools/ios_run.py --bundle PROGRAM OUT.app`
+device's log for the program, and the reason repeated as the runner's
+last line. `tools/ios_run.py --bundle PROGRAM OUT.app`
 writes the same bundle for a program of your own (`SDL3_IOS_BUNDLE_ID` and
 `SDL3_IOS_CODESIGN` set its identifier and signing identity; a device
 needs a real identity and a provisioning profile, which the runner doesn't
