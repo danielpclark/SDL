@@ -481,6 +481,20 @@ pub(crate) fn current_window_id() -> Option<WindowID> {
     gl_state().current.and_then(|(w, _)| w)
 }
 
+/// The device's current window and context (`_this->current_glwin` and
+/// `_this->current_glctx`: the last made current on any thread).
+// (the UIKit driver's)
+#[cfg_attr(
+    not(all(any(target_os = "ios", target_os = "tvos"), not(target_abi = "macabi"))),
+    allow(dead_code)
+)]
+pub(crate) fn current_device_context() -> (Option<WindowID>, Option<RawGlContext>) {
+    match gl_state().current {
+        Some((window, context)) => (window, Some(context)),
+        None => (None, None),
+    }
+}
+
 /// Forget a destroyed window as the current context window.
 pub(crate) fn forget_window(window: WindowID) {
     let mut state = gl_state();

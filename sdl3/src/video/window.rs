@@ -205,6 +205,21 @@ pub const PROP_WINDOW_UIKIT_WINDOW_POINTER: &str = "SDL.window.uikit.window";
 /// The tag the window's Metal views get (iOS, tvOS, visionOS). Translation
 /// of `SDL_PROP_WINDOW_UIKIT_METAL_VIEW_TAG_NUMBER`.
 pub const PROP_WINDOW_UIKIT_METAL_VIEW_TAG_NUMBER: &str = "SDL.window.uikit.metal_view_tag";
+/// The OpenGL view's framebuffer object (iOS, tvOS), set when an OpenGL ES
+/// context is made for the window. It must be bound when rendering to the
+/// screen using OpenGL. Translation of
+/// `SDL_PROP_WINDOW_UIKIT_OPENGL_FRAMEBUFFER_NUMBER`.
+pub const PROP_WINDOW_UIKIT_OPENGL_FRAMEBUFFER_NUMBER: &str = "SDL.window.uikit.opengl.framebuffer";
+/// The OpenGL view's renderbuffer object (iOS, tvOS). It must be bound
+/// when [`gl_swap_window`](crate::video::gl::gl_swap_window) is called.
+/// Translation of `SDL_PROP_WINDOW_UIKIT_OPENGL_RENDERBUFFER_NUMBER`.
+pub const PROP_WINDOW_UIKIT_OPENGL_RENDERBUFFER_NUMBER: &str =
+    "SDL.window.uikit.opengl.renderbuffer";
+/// The OpenGL view's resolve framebuffer, when MSAA is used (iOS, tvOS; 0
+/// otherwise). Translation of
+/// `SDL_PROP_WINDOW_UIKIT_OPENGL_RESOLVE_FRAMEBUFFER_NUMBER`.
+pub const PROP_WINDOW_UIKIT_OPENGL_RESOLVE_FRAMEBUFFER_NUMBER: &str =
+    "SDL.window.uikit.opengl.resolve_framebuffer";
 
 /// Translation of `SDL_PROP_SDL2_COMPAT_WINDOW_PREFERRED_FULLSCREEN_DISPLAY`.
 const PROP_SDL2_COMPAT_WINDOW_PREFERRED_FULLSCREEN_DISPLAY: &str =

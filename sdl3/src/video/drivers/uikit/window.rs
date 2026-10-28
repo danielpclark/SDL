@@ -369,7 +369,13 @@ pub(crate) fn raise_window(_window: WindowID) {
      * we only allow one per display, in the iOS fashion.
      * However, we use this entry point to rebind the context to the view
      * during OnWindowRestored processing. */
-    // (with OpenGL ES, which isn't translated yet)
+    // (the device's current window and context, not the thread's; the
+    // result is ignored, as upstream ignores it)
+    #[cfg(all(any(target_os = "ios", target_os = "tvos"), not(target_abi = "macabi")))]
+    {
+        let (window, context) = crate::video::gl::current_device_context();
+        let _ = super::opengles::gl_make_current(window, context);
+    }
 }
 
 /// Translation of `UIKit_UpdateWindowBorder()`.

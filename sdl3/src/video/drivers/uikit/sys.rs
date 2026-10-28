@@ -437,3 +437,134 @@ pub(crate) fn CAFrameRateRangeMake(minimum: f32, maximum: f32, preferred: f32) -
         preferred,
     }
 }
+
+// ---------------------------------------------------------------------------
+// OpenGL ES (<OpenGLES/EAGL.h>, <OpenGLES/EAGLDrawable.h>, <OpenGLES/ES3/gl.h>
+// and <OpenGLES/ES2/glext.h>; iOS and tvOS, not visionOS or Mac Catalyst)
+
+#[cfg(all(any(target_os = "ios", target_os = "tvos"), not(target_abi = "macabi")))]
+pub(crate) use gles::*;
+
+#[cfg(all(any(target_os = "ios", target_os = "tvos"), not(target_abi = "macabi")))]
+mod gles {
+    use crate::core::apple::objc::{Id, NSUInteger};
+
+    /// `EAGLRenderingAPI`: the values are the major versions of OpenGL ES.
+    pub(crate) type EAGLRenderingAPI = NSUInteger;
+    pub(crate) const kEAGLRenderingAPIOpenGLES1: EAGLRenderingAPI = 1;
+    pub(crate) const kEAGLRenderingAPIOpenGLES2: EAGLRenderingAPI = 2;
+    pub(crate) const kEAGLRenderingAPIOpenGLES3: EAGLRenderingAPI = 3;
+
+    #[link(name = "OpenGLES", kind = "framework")]
+    unsafe extern "C" {
+        /// `kEAGLDrawablePropertyRetainedBacking`: an NSNumber (a BOOL),
+        /// whether the drawable's contents are kept once they're shown.
+        pub(crate) static kEAGLDrawablePropertyRetainedBacking: Id;
+        /// `kEAGLDrawablePropertyColorFormat`: one of the color formats.
+        pub(crate) static kEAGLDrawablePropertyColorFormat: Id;
+        /// `kEAGLColorFormatRGBA8`.
+        pub(crate) static kEAGLColorFormatRGBA8: Id;
+        /// `kEAGLColorFormatRGB565`.
+        pub(crate) static kEAGLColorFormatRGB565: Id;
+        /// `kEAGLColorFormatSRGBA8`.
+        pub(crate) static kEAGLColorFormatSRGBA8: Id;
+    }
+
+    pub(crate) type GLenum = u32;
+    pub(crate) type GLuint = u32;
+    pub(crate) type GLint = i32;
+    pub(crate) type GLsizei = i32;
+    pub(crate) type GLbitfield = u32;
+    pub(crate) type GLchar = std::ffi::c_char;
+
+    pub(crate) const GL_NEAREST: GLenum = 0x2600;
+    pub(crate) const GL_COLOR_BUFFER_BIT: GLbitfield = 0x0000_4000;
+    pub(crate) const GL_RGBA8: GLenum = 0x8058;
+    pub(crate) const GL_DEPTH_COMPONENT24_OES: GLenum = 0x81A6;
+    pub(crate) const GL_DEPTH24_STENCIL8_OES: GLenum = 0x88F0;
+    pub(crate) const GL_SRGB8_ALPHA8: GLenum = 0x8C43;
+    pub(crate) const GL_RENDERBUFFER_BINDING: GLenum = 0x8CA7;
+    pub(crate) const GL_READ_FRAMEBUFFER: GLenum = 0x8CA8;
+    pub(crate) const GL_DRAW_FRAMEBUFFER: GLenum = 0x8CA9;
+    pub(crate) const GL_FRAMEBUFFER_COMPLETE: GLenum = 0x8CD5;
+    pub(crate) const GL_COLOR_ATTACHMENT0: GLenum = 0x8CE0;
+    pub(crate) const GL_DEPTH_ATTACHMENT: GLenum = 0x8D00;
+    pub(crate) const GL_STENCIL_ATTACHMENT: GLenum = 0x8D20;
+    pub(crate) const GL_FRAMEBUFFER: GLenum = 0x8D40;
+    pub(crate) const GL_RENDERBUFFER: GLenum = 0x8D41;
+    pub(crate) const GL_RENDERBUFFER_WIDTH: GLenum = 0x8D42;
+    pub(crate) const GL_RENDERBUFFER_HEIGHT: GLenum = 0x8D43;
+    pub(crate) const GL_MAX_SAMPLES: GLenum = 0x8D57;
+    pub(crate) const GL_RGB565: GLenum = 0x8D62;
+
+    // (OpenGLES.framework's functions, linked as upstream links them: the
+    // view's framebuffer is made with them whatever the context's version)
+    #[link(name = "OpenGLES", kind = "framework")]
+    unsafe extern "C" {
+        pub(crate) fn glGetIntegerv(pname: GLenum, data: *mut GLint);
+        pub(crate) fn glGenRenderbuffers(n: GLsizei, renderbuffers: *mut GLuint);
+        pub(crate) fn glBindRenderbuffer(target: GLenum, renderbuffer: GLuint);
+        pub(crate) fn glDeleteRenderbuffers(n: GLsizei, renderbuffers: *const GLuint);
+        pub(crate) fn glGenFramebuffers(n: GLsizei, framebuffers: *mut GLuint);
+        pub(crate) fn glBindFramebuffer(target: GLenum, framebuffer: GLuint);
+        pub(crate) fn glDeleteFramebuffers(n: GLsizei, framebuffers: *const GLuint);
+        pub(crate) fn glFramebufferRenderbuffer(
+            target: GLenum,
+            attachment: GLenum,
+            renderbuffertarget: GLenum,
+            renderbuffer: GLuint,
+        );
+        pub(crate) fn glGetRenderbufferParameteriv(
+            target: GLenum,
+            pname: GLenum,
+            params: *mut GLint,
+        );
+        pub(crate) fn glCheckFramebufferStatus(target: GLenum) -> GLenum;
+        pub(crate) fn glRenderbufferStorage(
+            target: GLenum,
+            internalformat: GLenum,
+            width: GLsizei,
+            height: GLsizei,
+        );
+        pub(crate) fn glRenderbufferStorageMultisample(
+            target: GLenum,
+            samples: GLsizei,
+            internalformat: GLenum,
+            width: GLsizei,
+            height: GLsizei,
+        );
+        #[allow(clippy::too_many_arguments)]
+        pub(crate) fn glBlitFramebuffer(
+            src_x0: GLint,
+            src_y0: GLint,
+            src_x1: GLint,
+            src_y1: GLint,
+            dst_x0: GLint,
+            dst_y0: GLint,
+            dst_x1: GLint,
+            dst_y1: GLint,
+            mask: GLbitfield,
+            filter: GLenum,
+        );
+        pub(crate) fn glInvalidateFramebuffer(
+            target: GLenum,
+            num_attachments: GLsizei,
+            attachments: *const GLenum,
+        );
+        /// `GL_APPLE_framebuffer_multisample`'s resolve.
+        pub(crate) fn glResolveMultisampleFramebufferAPPLE();
+        /// `GL_EXT_discard_framebuffer`'s discard.
+        pub(crate) fn glDiscardFramebufferEXT(
+            target: GLenum,
+            num_attachments: GLsizei,
+            attachments: *const GLenum,
+        );
+        /// `GL_EXT_debug_label`'s label.
+        pub(crate) fn glLabelObjectEXT(
+            type_: GLenum,
+            object: GLuint,
+            length: GLsizei,
+            label: *const GLchar,
+        );
+    }
+}

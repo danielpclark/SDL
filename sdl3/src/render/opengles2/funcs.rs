@@ -5,7 +5,8 @@
 // This is an altered (translated) version of the original software; see LICENSE.txt.
 
 //! The OpenGL ES 2.0 entry points of the renderer, looked up at run time
-//! with [`gl_get_proc_address`](crate::video::gl::gl_get_proc_address).
+//! with [`gl_get_proc_address`](crate::video::gl::gl_get_proc_address)
+//! (on UIKit too, where upstream links them: see `Gles2Funcs::load`).
 //!
 //! The functions are wrapped as methods. The wrappers rely on what upstream
 //! relies on for every GL call: the renderer's context is current
@@ -122,6 +123,16 @@ macro_rules! gles2_funcs {
         impl Gles2Funcs {
             /// Look the functions up in the current GL library.
             /// Translation of `GLES2_LoadFunctions()`.
+            ///
+            /// Note: on UIKit (and Android) upstream defines
+            /// `__SDL_NOGETPROCADDR__`, and the renderer takes the
+            /// functions' addresses from the OpenGL ES library it's linked
+            /// with. Here they're looked up through
+            /// `SDL_GL_GetProcAddress()` there too, which on UIKit is
+            /// `dlsym(RTLD_DEFAULT, ...)` over the loaded images, among
+            /// them the OpenGLES framework the UIKit driver links: the
+            /// same functions, though a missing one is an error here
+            /// rather than a link failure.
             pub(super) fn load() -> Result<Gles2Funcs> {
                 Ok(Gles2Funcs {
                     $($field: {
