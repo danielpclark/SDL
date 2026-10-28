@@ -1,7 +1,10 @@
 // Tests for the CoreAudio driver: the hand-declared layouts and constants
 // (checked against the SDK with a C harness), the format, channel layout
 // and buffer count arithmetic of OpenDevice/PrepareAudioQueue, and (when
-// the Mac has audio devices) real playback and recording.
+// the Mac has audio devices) real playback and recording. On the UIKit
+// platforms, the default devices, the audio session's categories and what
+// opening and closing devices does to the session (under `simctl spawn`
+// on the iOS Simulator; tests/uikit_audio.rs runs as an app).
 
 use super::*;
 use crate::audio::{
@@ -19,10 +22,13 @@ fn layouts_match_the_sdk() {
     // (the same on arm64 and x86_64).
     assert_eq!(size_of::<AudioStreamBasicDescription>(), 40);
     assert_eq!(size_of::<AudioChannelLayout>(), 32);
-    assert_eq!(size_of::<AudioObjectPropertyAddress>(), 12);
-    assert_eq!(size_of::<AudioBuffer>(), 16);
-    assert_eq!(size_of::<AudioBufferList>(), 24);
-    assert_eq!(offset_of!(AudioBufferList, mBuffers), 8);
+    #[cfg(target_os = "macos")]
+    {
+        assert_eq!(size_of::<AudioObjectPropertyAddress>(), 12);
+        assert_eq!(size_of::<AudioBuffer>(), 16);
+        assert_eq!(size_of::<AudioBufferList>(), 24);
+        assert_eq!(offset_of!(AudioBufferList, mBuffers), 8);
+    }
     assert_eq!(size_of::<AudioQueueBuffer>(), 56);
     assert_eq!(offset_of!(AudioQueueBuffer, mAudioData), 8);
     assert_eq!(offset_of!(AudioQueueBuffer, mAudioDataByteSize), 16);
@@ -53,9 +59,13 @@ fn constants_match_the_sdk() {
             8388616
         ]
     );
-    assert_eq!(kAudioHardwareBadDeviceError, 560227702);
-    assert_eq!(kAudioHardwarePropertyDevices, u32::from_be_bytes(*b"dev#"));
-    assert_eq!(kAudioDevicePropertyDeviceUID, u32::from_be_bytes(*b"uid "));
+    assert_eq!(kAudioFormatLinearPCM, u32::from_be_bytes(*b"lpcm"));
+    #[cfg(target_os = "macos")]
+    {
+        assert_eq!(kAudioHardwareBadDeviceError, 560227702);
+        assert_eq!(kAudioHardwarePropertyDevices, u32::from_be_bytes(*b"dev#"));
+        assert_eq!(kAudioDevicePropertyDeviceUID, u32::from_be_bytes(*b"uid "));
+    }
 }
 
 #[test]
@@ -138,19 +148,29 @@ fn channel_layouts() {
         "Unsupported audio channels"
     );
     assert!(channel_layout(0, true).is_err());
-    // Every macOS this builds for has the WAVE layouts.
-    assert!(crate::core::apple::foundation::available!(macos(10, 15)));
+    // Every system this builds for has the WAVE layouts.
+    assert!(crate::core::apple::foundation::available!(
+        macos(10, 15),
+        ios(13, 0),
+        tvos(13, 0)
+    ));
 }
 
 #[test]
 fn buffer_counts() {
     // Three buffers, unless one is shorter than 15ms: then enough for
     // twice that.
-    assert_eq!(num_audio_buffers(1024, 48000), 3);
-    assert_eq!(num_audio_buffers(720, 48000), 3); // exactly 15ms
-    assert_eq!(num_audio_buffers(512, 48000), 4); // 10.67ms: ceil(1.41) * 2
-    assert_eq!(num_audio_buffers(64, 48000), 24); // 1.33ms: ceil(11.25) * 2
-    assert_eq!(num_audio_buffers(1, 44100), 1324);
+    assert_eq!(num_audio_buffers(1024, 48000, 15.0), 3);
+    assert_eq!(num_audio_buffers(720, 48000, 15.0), 3); // exactly 15ms
+    assert_eq!(num_audio_buffers(512, 48000, 15.0), 4); // 10.67ms: ceil(1.41) * 2
+    assert_eq!(num_audio_buffers(64, 48000, 15.0), 24); // 1.33ms: ceil(11.25) * 2
+    assert_eq!(num_audio_buffers(1, 44100, 15.0), 1324);
+    // Older iOS hardware: 40ms.
+    assert_eq!(num_audio_buffers(1024, 48000, 40.0), 4); // 21.33ms: ceil(1.88) * 2
+    assert_eq!(num_audio_buffers(1920, 48000, 40.0), 3);
+    // 15ms on every system this builds for (iOS 7.1's Foundation is
+    // 1047.25).
+    assert_eq!(minimum_audio_buffer_time_ms(), 15.0);
 }
 
 #[test]
@@ -179,6 +199,7 @@ fn init_coreaudio() -> bool {
     true
 }
 
+#[cfg(target_os = "macos")]
 #[test]
 fn devices_match_the_hal() {
     let _l = crate::test_support::test_lock();
@@ -294,6 +315,10 @@ fn playback_and_recording_when_there_are_devices() {
             stream
                 .put_data(&vec![0u8; spec.frame_size() * frames as usize * 2])
                 .unwrap();
+            // (all of it, through the resampler too, should the device's
+            // rate have changed: the UIKit platforms' device takes on the
+            // session's rate, the one asked for)
+            stream.flush();
             let start = Instant::now();
             while stream.queued() > 0 && start.elapsed() < Duration::from_secs(10) {
                 std::thread::sleep(Duration::from_millis(5));
@@ -439,4 +464,320 @@ fn hardware_default_playback_and_recording() {
         );
     }
     drop(dev);
+}
+
+/// The categories and options `UpdateAudioSession()` picks (the
+/// session's read-back ones are in tests/uikit_audio.rs, where setting
+/// `DuckOthers` alone reads back with `MixWithOthers`).
+#[cfg(not(target_os = "macos"))]
+#[test]
+fn session_categories() {
+    use super::session::{session_category, Category::*};
+    let c = session_category;
+    // Playback, mixing with others, unless the hint says otherwise
+    assert_eq!(c(None, false, 1, 0, true), Some((Playback, 0x1)));
+    assert_eq!(c(None, true, 1, 0, true), Some((Playback, 0x3)));
+    assert_eq!(c(None, false, 0, 0, true), Some((Playback, 0x1)));
+    for hint in [
+        "ambient",
+        "AVAudioSessionCategoryAmbient",
+        "AMBIENT",
+        "aMbIeNt",
+    ] {
+        assert_eq!(
+            c(Some(hint), false, 1, 0, true),
+            Some((Ambient, 0x1)),
+            "{hint}"
+        );
+        assert_eq!(
+            c(Some(hint), true, 1, 0, true),
+            Some((Ambient, 0x1)),
+            "{hint}"
+        );
+    }
+    // (no short name for the solo ambient category)
+    assert_eq!(
+        c(Some("AVAudioSessionCategorySoloAmbient"), true, 1, 0, true),
+        Some((SoloAmbient, 0))
+    );
+    assert_eq!(
+        c(Some("soloambient"), false, 1, 0, true),
+        Some((Playback, 0x1))
+    );
+    for hint in ["playback", "PlayBack", "AVAudioSessionCategoryPlayback"] {
+        assert_eq!(
+            c(Some(hint), false, 1, 0, true),
+            Some((Playback, 0)),
+            "{hint}"
+        );
+        assert_eq!(
+            c(Some(hint), true, 0, 1, true),
+            Some((Playback, 0x2)),
+            "{hint}"
+        );
+    }
+    for hint in ["playandrecord", "AVAudioSessionCategoryPlayAndRecord"] {
+        assert_eq!(
+            c(Some(hint), false, 1, 0, true),
+            Some((PlayAndRecord, 0x6d))
+        );
+        assert_eq!(c(Some(hint), true, 1, 1, true), Some((PlayAndRecord, 0x6f)));
+        // (the retry after ResourceNotAvailable)
+        assert_eq!(c(Some(hint), false, 1, 1, false), Some((Playback, 0x1)));
+    }
+    // Values it doesn't know are the default.
+    for hint in ["record", "bogus", "", "playback "] {
+        assert_eq!(
+            c(Some(hint), true, 1, 0, true),
+            Some((Playback, 0x3)),
+            "{hint:?}"
+        );
+        assert_eq!(
+            c(Some(hint), false, 0, 1, true),
+            Some((Playback, 0x1)),
+            "{hint:?}"
+        );
+    }
+    // Without the hint, what is open: recording, both.
+    assert_eq!(c(None, true, 0, 1, true), Some((Record, 0x5)));
+    assert_eq!(c(None, false, 2, 1, true), Some((PlayAndRecord, 0x6d)));
+    assert_eq!(c(None, true, 1, 2, true), Some((PlayAndRecord, 0x6f)));
+    assert_eq!(c(None, false, 1, 1, false), None);
+    assert_eq!(c(None, false, 0, 1, false), Some((Record, 0x5)));
+    // On every system this builds for, Foundation is newer than iOS 7.1's.
+    assert!(!super::session::older_ios_hardware());
+}
+
+/// On the UIKit platforms the driver has the default devices only, at the
+/// core's default formats until they open.
+#[cfg(not(target_os = "macos"))]
+#[test]
+fn default_devices_only() {
+    let _l = crate::test_support::test_lock();
+    let _cleanup = crate::audio::drivers::tests::QuitAudioOnDrop;
+    if !init_coreaudio() {
+        return;
+    }
+    let playback = playback_devices().unwrap();
+    let recording = recording_devices().unwrap();
+    assert_eq!((playback.len(), recording.len()), (1, 1));
+    assert_eq!(
+        audio_device_name(playback[0]).unwrap(),
+        "System audio playback device"
+    );
+    assert_eq!(
+        audio_device_name(recording[0]).unwrap(),
+        "System audio recording device"
+    );
+    assert_eq!(
+        audio_device_name(AUDIO_DEVICE_DEFAULT_PLAYBACK).unwrap(),
+        "System audio playback device"
+    );
+    assert_eq!(
+        audio_device_name(AUDIO_DEVICE_DEFAULT_RECORDING).unwrap(),
+        "System audio recording device"
+    );
+    assert_eq!(
+        crate::audio::audio_device_format(playback[0]).unwrap(),
+        (AudioSpec::new(AudioFormat::S16, 2, 44100), 1024)
+    );
+    assert_eq!(
+        crate::audio::audio_device_format(recording[0]).unwrap(),
+        (AudioSpec::new(AudioFormat::S16, 1, 44100), 1024)
+    );
+}
+
+/// Opening and closing devices in a spawned program (not an app) on the
+/// iOS Simulator: the audio session read back, and whether the devices'
+/// queues run, against upstream's C in the same place. (Upstream's
+/// `SDL_Init()` ends such a process, registering its notification
+/// delegate with `UNUserNotificationCenter`, which throws outside an app:
+/// its program stands in a nil notification center. What the session was
+/// before depends on the tests that ran before in the process, so the
+/// trace starts with the first device.)
+#[cfg(not(target_os = "macos"))]
+#[test]
+fn spawned_session_matches_c() {
+    use crate::core::apple::foundation::string_from_ns;
+    use crate::core::apple::objc::{autoreleasepool, class, msg_send, Id, NSUInteger};
+    use std::sync::atomic::AtomicI32;
+
+    /// Upstream's trace, from the same steps in C spawned on the same
+    /// simulator (an iPhone 16 with iOS 18.5), the runner's audio playing
+    /// and recording.
+    const EXPECTED: &str = "\
+init: ok driver=coreaudio
+playback 0: System audio playback device
+recording 0: System audio recording device
+playback: open: ok format=0x8010 channels=2 freq=44100 frames=1024
+playback: session: category=AVAudioSessionCategoryPlayback options=0x1 mode=AVAudioSessionModeDefault
+playback: playback advanced=yes recording advanced=no
+playback: closed
+playback closed: session: category=AVAudioSessionCategoryPlayback options=0x1 mode=AVAudioSessionModeDefault
+recording: open: ok format=0x8010 channels=1 freq=44100 frames=1024
+recording: session: category=AVAudioSessionCategoryRecord options=0x5 mode=AVAudioSessionModeDefault
+recording: playback advanced=no recording advanced=yes
+recording: closed
+recording closed: session: category=AVAudioSessionCategoryRecord options=0x5 mode=AVAudioSessionModeDefault
+both: playback: open: ok format=0x8010 channels=2 freq=44100 frames=1024
+both: recording: open: ok format=0x8010 channels=1 freq=44100 frames=1024
+both: session: category=AVAudioSessionCategoryPlayAndRecord options=0x6d mode=AVAudioSessionModeDefault
+both: playback advanced=yes recording advanced=yes
+both: recording closed
+both: recording closed: session: category=AVAudioSessionCategoryPlayAndRecord options=0x6d mode=AVAudioSessionModeDefault
+both: playback closed
+both: playback closed: session: category=AVAudioSessionCategoryPlayback options=0x1 mode=AVAudioSessionModeDefault
+ambient: open: ok format=0x8010 channels=2 freq=44100 frames=1024
+ambient: session: category=AVAudioSessionCategoryAmbient options=0x1 mode=AVAudioSessionModeDefault
+ambient: closed
+ducking: open: ok format=0x8010 channels=2 freq=44100 frames=1024
+ducking: session: category=AVAudioSessionCategoryPlayback options=0x3 mode=AVAudioSessionModeDefault
+ducking: closed
+quit: session: category=AVAudioSessionCategoryPlayback options=0x3 mode=AVAudioSessionModeDefault
+done
+";
+
+    static COUNTS: [AtomicI32; 2] = [AtomicI32::new(0), AtomicI32::new(0)];
+
+    fn session(trace: &mut Vec<String>, label: &str) {
+        autoreleasepool(|| {
+            // SAFETY: AVAudioSession's shared instance and its properties.
+            let (category, options, mode) = unsafe {
+                let s: Id = msg_send![class!(AVAudioSession), sharedInstance];
+                let category: Id = msg_send![s, category];
+                let options: NSUInteger = msg_send![s, categoryOptions];
+                let mode: Id = msg_send![s, mode];
+                (string_from_ns(category), options, string_from_ns(mode))
+            };
+            trace.push(format!(
+                "{label}: session: category={} options={options:#x} mode={}",
+                category.as_deref().unwrap_or("nil"),
+                mode.as_deref().unwrap_or("nil")
+            ));
+        })
+    }
+
+    fn open(trace: &mut Vec<String>, label: &str, which: u32, idx: usize) -> u32 {
+        match crate::audio::open_audio_device(which, None) {
+            Err(e) => {
+                trace.push(format!("{label}: open: error: {}", e.message()));
+                0
+            }
+            Ok(d) => {
+                let (spec, frames) = crate::audio::audio_device_format(d).unwrap();
+                trace.push(format!(
+                    "{label}: open: ok format={:#x} channels={} freq={} frames={frames}",
+                    spec.format.0, spec.channels, spec.freq
+                ));
+                crate::audio::set_audio_postmix_callback(
+                    d,
+                    Some(move |_: &AudioSpec, _: &mut [f32]| {
+                        COUNTS[idx].fetch_add(1, Ordering::Relaxed);
+                    }),
+                )
+                .unwrap();
+                d
+            }
+        }
+    }
+
+    fn advancing(trace: &mut Vec<String>, label: &str) {
+        let counts = || {
+            (
+                COUNTS[0].load(Ordering::Relaxed),
+                COUNTS[1].load(Ordering::Relaxed),
+            )
+        };
+        std::thread::sleep(Duration::from_millis(250));
+        let (p0, r0) = counts();
+        std::thread::sleep(Duration::from_millis(500));
+        let (p1, r1) = counts();
+        let yes_no = |b: bool| if b { "yes" } else { "no" };
+        eprintln!("note: {label}: callbacks {} {}", p1 - p0, r1 - r0);
+        trace.push(format!(
+            "{label}: playback advanced={} recording advanced={}",
+            yes_no(p1 > p0),
+            yes_no(r1 > r0)
+        ));
+    }
+
+    fn close(trace: &mut Vec<String>, line: &str, d: u32) {
+        if d != 0 {
+            crate::audio::close_audio_device(d);
+            trace.push(line.into());
+        }
+    }
+
+    let _l = crate::test_support::test_lock();
+    let _cleanup = crate::audio::drivers::tests::QuitAudioOnDrop;
+    let mut trace: Vec<String> = Vec::new();
+    let t = &mut trace;
+
+    crate::hints::set(crate::hints::AUDIO_DRIVER, "coreaudio").unwrap();
+    let r = crate::init::init_subsystem(InitFlags::AUDIO);
+    crate::hints::reset(crate::hints::AUDIO_DRIVER);
+    t.push(format!(
+        "init: {} driver={}",
+        match &r {
+            Ok(()) => "ok".to_string(),
+            Err(e) => e.message().to_string(),
+        },
+        current_audio_driver().unwrap_or("(null)")
+    ));
+    for (i, id) in playback_devices()
+        .unwrap_or_default()
+        .into_iter()
+        .enumerate()
+    {
+        t.push(format!("playback {i}: {}", audio_device_name(id).unwrap()));
+    }
+    for (i, id) in recording_devices()
+        .unwrap_or_default()
+        .into_iter()
+        .enumerate()
+    {
+        t.push(format!("recording {i}: {}", audio_device_name(id).unwrap()));
+    }
+
+    let p = open(t, "playback", AUDIO_DEVICE_DEFAULT_PLAYBACK, 0);
+    session(t, "playback");
+    advancing(t, "playback");
+    close(t, "playback: closed", p);
+    session(t, "playback closed");
+
+    let r = open(t, "recording", AUDIO_DEVICE_DEFAULT_RECORDING, 1);
+    session(t, "recording");
+    advancing(t, "recording");
+    close(t, "recording: closed", r);
+    session(t, "recording closed");
+
+    let p = open(t, "both: playback", AUDIO_DEVICE_DEFAULT_PLAYBACK, 0);
+    let r = open(t, "both: recording", AUDIO_DEVICE_DEFAULT_RECORDING, 1);
+    session(t, "both");
+    advancing(t, "both");
+    close(t, "both: recording closed", r);
+    session(t, "both: recording closed");
+    close(t, "both: playback closed", p);
+    session(t, "both: playback closed");
+
+    crate::hints::set(crate::hints::AUDIO_CATEGORY, "ambient").unwrap();
+    crate::hints::set(crate::hints::AUDIO_DUCK_OTHERS, "1").unwrap();
+    let p = open(t, "ambient", AUDIO_DEVICE_DEFAULT_PLAYBACK, 0);
+    session(t, "ambient");
+    close(t, "ambient: closed", p);
+    crate::hints::reset(crate::hints::AUDIO_CATEGORY);
+    let p = open(t, "ducking", AUDIO_DEVICE_DEFAULT_PLAYBACK, 0);
+    session(t, "ducking");
+    close(t, "ducking: closed", p);
+    crate::hints::reset(crate::hints::AUDIO_DUCK_OTHERS);
+
+    crate::init::quit_subsystem(InitFlags::AUDIO);
+    session(t, "quit");
+    t.push("done".into());
+
+    for line in &trace {
+        eprintln!("trace: {line}");
+    }
+    let expected: Vec<&str> = EXPECTED.lines().collect();
+    assert_eq!(trace, expected);
 }

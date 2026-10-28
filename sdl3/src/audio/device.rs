@@ -218,7 +218,7 @@ static BOOTSTRAP: &[&AudioBootStrap] = &[
     &drivers::alsa::ALSA_BOOTSTRAP,
     #[cfg(windows)]
     &drivers::wasapi::WASAPI_BOOTSTRAP,
-    #[cfg(target_os = "macos")]
+    #[cfg(target_vendor = "apple")]
     &drivers::coreaudio::COREAUDIO_BOOTSTRAP,
     #[cfg(target_os = "emscripten")]
     &drivers::emscripten::EMSCRIPTENAUDIO_BOOTSTRAP,

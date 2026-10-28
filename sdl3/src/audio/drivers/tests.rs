@@ -15,7 +15,7 @@ pub(crate) const EXPECTED_DRIVERS: &[&str] = &[
     "alsa",
     #[cfg(windows)]
     "wasapi",
-    #[cfg(target_os = "macos")]
+    #[cfg(target_vendor = "apple")]
     "coreaudio",
     #[cfg(target_os = "emscripten")]
     "emscripten",
@@ -33,7 +33,7 @@ const NON_DEMAND_ONLY: &[&str] = &[
     "alsa",
     #[cfg(windows)]
     "wasapi",
-    #[cfg(target_os = "macos")]
+    #[cfg(target_vendor = "apple")]
     "coreaudio",
     #[cfg(target_os = "emscripten")]
     "emscripten",
@@ -41,7 +41,10 @@ const NON_DEMAND_ONLY: &[&str] = &[
 
 /// Shuts audio down (and resets the driver hints) when dropped, so a
 /// failing driver test doesn't leave the subsystem up for the next one.
-#[cfg_attr(not(any(target_os = "linux", target_os = "macos")), allow(dead_code))] // (used by the platform drivers' tests)
+#[cfg_attr(
+    not(any(target_os = "linux", target_vendor = "apple")),
+    allow(dead_code)
+)] // (used by the platform drivers' tests)
 pub(crate) struct QuitAudioOnDrop;
 
 impl Drop for QuitAudioOnDrop {
