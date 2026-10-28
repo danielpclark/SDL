@@ -1,0 +1,43 @@
+name: diag-dyld
+
+# Diagnostic only (branch claude/diag-macos-segv): does dlclose() unload
+# MoltenVK between the Vulkan tests?
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: never
+  CARGO_INCREMENTAL: 0
+  MOLTENVK_VERSION: v1.4.2
+  MOLTENVK_SHA256: f95765a6229cb7b915990a2890ce12ebe36a730b021545d3d52ae69ce4c4024e
+
+jobs:
+  dyld:
+    runs-on: macos-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.99"
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: diag-1.99
+          save-if: false
+      - name: Install MoltenVK
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/moltenvk.tar" "https://github.com/KhronosGroup/MoltenVK/releases/download/$MOLTENVK_VERSION/MoltenVK-macos.tar"
+          echo "$MOLTENVK_SHA256  $RUNNER_TEMP/moltenvk.tar" | shasum -a 256 -c
+          tar xf "$RUNNER_TEMP/moltenvk.tar" -C "$RUNNER_TEMP" MoltenVK/MoltenVK/dynamic/dylib/macOS/libMoltenVK.dylib
+          sudo mkdir -p /usr/local/lib
+          sudo cp "$RUNNER_TEMP/MoltenVK/MoltenVK/dynamic/dylib/macOS/libMoltenVK.dylib" /usr/local/lib/
+      - run: cargo test -p sdl3 --lib --no-run
+      - name: dyld's loads and unloads of MoltenVK
+        shell: bash
+        run: |
+          DYLD_PRINT_LIBRARIES=1 cargo test -q -p sdl3 --lib -- gpu::vulkan::tests::device_formats_and_properties gpu::vulkan::tests::devices_release_the_loader --test-threads=1 > "$RUNNER_TEMP/dyld.log" 2>&1 || true
+          grep -n -i "moltenvk\|unload\|test result\|DIAG loader" "$RUNNER_TEMP/dyld.log" | cut -c1-300 | head -100
+          echo "---- vmmap check in-process is not possible here; image lines above"
