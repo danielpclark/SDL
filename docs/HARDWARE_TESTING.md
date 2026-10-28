@@ -34,7 +34,7 @@ Every skip names one *capability* (the list is `CAPABILITIES` in
 | `alsa` | Linux | libasound and its configuration (the tests use its `file` and `null` PCMs, no sound card) |
 | `udev` | Linux | libudev and a working udev (netlink) |
 | `uinput` | Linux | a writable `/dev/uinput`, and read access to the event node it creates |
-| `hidapi` | Linux, Windows, macOS | the HID backend: hidraw with libudev, `hid.dll`, or IOKit's HID manager |
+| `hidapi` | Linux, Windows, macOS, iOS | the HID backend: hidraw with libudev, `hid.dll`, IOKit's HID manager, or CoreBluetooth's Steam Controllers (iOS: never missing, no devices without Bluetooth) |
 | `ipv6` | any | IPv6 sockets that can resolve and bind to the loopback address `::1` (`sdl3-net`'s IPv6 tests; containers often have IPv4 only) |
 | `tzdata` | Linux | the time zone database in `/usr/share/zoneinfo` (the local time tests set `TZ`) |
 | `locales` | Linux | glibc's `localedef` and its locale sources in `/usr/share/i18n/locales` (the tests compile the locales they read the date and time formats of) |
@@ -961,9 +961,8 @@ skip `vulkan`. The
 offscreen driver has no EGL there, as on macOS (`egl`). The UIKit video
 driver only starts in an app, so the spawned programs use the offscreen
 and dummy drivers there, as elsewhere (and so its message boxes only
-show in an app); its windows' Vulkan views, the OpenGL ES 1 renderer,
-the HIDAPI driver's Bluetooth backend and the iOS half of the camera
-aren't translated yet.
+show in an app); its windows' Vulkan views, the OpenGL ES 1 renderer
+and the iOS half of the camera aren't translated yet.
 
 CoreAudio runs there as on a device, its audio going to the Mac's
 output and coming from its input (the runner's are a "Speaker" and a
@@ -1018,6 +1017,70 @@ off, and lists the sensors (none) and opens one (upstream's "Sensor 0 not
 found"). Real controllers' rumble, light, battery and motion, and a
 device's accelerometer and gyroscope, need hardware: none of them can be
 checked on the simulator.
+
+HIDAPI's iOS backend (Steam Controllers over Bluetooth LE) has no
+devices on the simulator, which has no Bluetooth: CoreBluetooth's
+manager there is "unsupported" (and the app's authorization "allowed
+always"). The library tests check the backend's report handling (the
+input reports' ring buffer, the controllers' characteristics, feature
+reports in and out of a characteristic's value) and the Steam driver's
+BLE framing through it, on every platform, and on the simulator the
+backend without Bluetooth in a spawned program. Two apps trace against
+upstream's C (the same programs in C, on the same simulator), as the
+backend's manager reads `SDL_HINT_JOYSTICK_HIDAPI_STEAM` once: without the
+hint (`uikit_hidapi`) and with it (`uikit_hidapi_ble`, whose Bluetooth the
+runner's Info.plist accounts for with `NSBluetoothAlwaysUsageDescription`,
+without which CoreBluetooth ends the app). They trace CoreBluetooth's
+authorization, `hid_init()` and the backend's manager (upstream's
+`HIDBLEManager`, read through its getters: its central manager and the
+manager's state, its devices, scans and pairings), the device change
+count, the enumerations and opening devices that aren't there,
+`ble_scan()` started and stopped (more often than started), the app's
+resign-active and become-active notifications posted in-process (with
+Bluetooth, the 20 second scan that starts, and its end), `hid_exit()`,
+the gamepads with the HIDAPI driver off (iOS's default) and on, and what
+the backend logged (NSLog's lines, through Foundation's private
+`_NSSetLogCStringFunction()`: test programs only). A real controller
+needs a device (below).
+
+### A Steam Controller over Bluetooth LE (iOS device)
+
+The Steam Controller pairs with an iPhone, iPad or Apple TV over
+Bluetooth LE (with its BLE firmware: hold Y, then press the Steam button,
+until it blinks; the newer "Triton" controller pairs as Valve says), and
+SDL talks to it
+through CoreBluetooth when the app sets `SDL_HINT_JOYSTICK_HIDAPI_STEAM`
+(and `SDL_HINT_JOYSTICK_HIDAPI`, which is off on iOS) before the joystick
+subsystem starts. `uikit_hidapi_ble` checks it when
+`SDL3_HIDAPI_STEAM_CONTROLLER=1`: it waits two minutes for the controller
+to pair and connect (allow Bluetooth when iOS asks, then accept the
+pairing request), lists the HID devices, opens it as a gamepad and prints
+its name, GUID, IDs, type and path, asks for the A button pressed and
+released and the left stick (or pad) moved fully, half a minute each, and
+rumbles it; it ends with the exit line, 0 when everything came. A device
+build needs a development team: build the program for devices, bundle it,
+sign it with your identity and a provisioning profile for its identifier,
+and run it with `devicectl` (Xcode 15 and later):
+
+```sh
+cargo test -p sdl3 --test uikit_hidapi_ble --target aarch64-apple-ios --no-run
+P=$(ls -t target/aarch64-apple-ios/debug/deps/uikit_hidapi_ble-* | grep -v '\.d$' | head -1)
+SDL3_IOS_BUNDLE_ID=YOUR.BUNDLE.ID SDL3_IOS_CODESIGN=0 tools/ios_run.py --bundle "$P" Steam.app
+cp YOUR_PROFILE.mobileprovision Steam.app/embedded.mobileprovision
+# (the profile's entitlements, its application-identifier and team)
+security cms -D -i Steam.app/embedded.mobileprovision > profile.plist
+/usr/libexec/PlistBuddy -x -c 'Print :Entitlements' profile.plist > entitlements.plist
+codesign --force --sign "Apple Development: YOU (TEAM)" --entitlements entitlements.plist Steam.app
+xcrun devicectl list devices
+xcrun devicectl device install app --device DEVICE Steam.app
+xcrun devicectl device process launch --console --device DEVICE \
+  --environment-variables '{"SDL3_HIDAPI_STEAM_CONTROLLER": "1"}' YOUR.BUNDLE.ID
+```
+
+Without the environment variable the program runs the simulator's
+trace, which a device (with Bluetooth on) doesn't match. On tvOS (built,
+not run yet) the same check needs the program built for
+`aarch64-apple-tvos`, a tier 3 target (`cargo +nightly -Zbuild-std`).
 
 ## CI
 

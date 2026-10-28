@@ -164,7 +164,8 @@ they are used (there is no build script to make aliases):
   too).
 * The frameworks are linked as upstream links them, but for those a
   system the program may start on can lack (GameController and
-  CoreHaptics, UniformTypeIdentifiers), which are loaded at run time.
+  CoreHaptics, UniformTypeIdentifiers), and CoreBluetooth (below), which
+  are loaded at run time.
 * `SDL_RunApp()` is `UIApplicationMain()`, which never returns: the main
   function, a closure on `run_app()`'s frame, is reached through a
   pointer in a thread-local variable, so it needs no `'static` bound. As
@@ -262,11 +263,10 @@ they are used (there is no build script to make aliases):
   in `power/uikit.rs`). The OpenGL ES 1 renderer (`SDL_render_gles.c`),
   which upstream builds there, isn't translated yet.
 * The MFi joystick driver (`joystick/apple`, `SDL_IOS_JoystickDriver`) is
-  built on every Apple platform, as upstream's: on the UIKit ones first
-  in the driver list, before the virtual driver (no IOKit driver, and no
-  HIDAPI driver until its Bluetooth backend is translated, so the
-  controllers HIDAPI would take aren't left to it there, as in Xcode's
-  build without `SDL_JOYSTICK_HIDAPI`). Its iOS and tvOS paths are
+  built on every Apple platform, as upstream's: on iOS and tvOS after the
+  HIDAPI driver, which leaves it the controllers HIDAPI doesn't take (as
+  on macOS), and on visionOS, which upstream builds without HIDAPI, first
+  (there's no IOKit driver on any of them). Its iOS and tvOS paths are
   upstream's: the windows' game controller interaction set when it
   starts and cleared when it quits (`UIKit_SetGameControllerInteraction()`
   in the video driver), and on tvOS (built, not run yet) the Siri
@@ -279,6 +279,27 @@ they are used (there is no build script to make aliases):
   which upstream links weakly, may be missing: before iOS 13 and tvOS 14
   there's no rumble). Rumble is CoreHaptics' on every platform, as
   upstream's; the haptic subsystem stays the dummy driver there.
+* HIDAPI (`SDL_hidapi.c`, and the HIDAPI joystick and haptic drivers) is
+  built on iOS and tvOS, not visionOS, as upstream's CMake builds it, with
+  the backend of `hidapi/ios/hid.m` (`hidapi/ios.rs`, and its report
+  handling in `hidapi/ble.rs`): Valve's Steam Controllers over Bluetooth
+  LE. The HIDAPI joystick driver is off by default there
+  (`SDL_HIDAPI_DEFAULT`), and so is the Steam driver
+  (`SDL_HINT_JOYSTICK_HIDAPI_STEAM`'s default), and the backend only
+  starts Bluetooth (a `CBCentralManager`, which asks the user, and needs
+  `NSBluetoothAlwaysUsageDescription` in the app's Info.plist) when
+  `SDL_HINT_JOYSTICK_HIDAPI_STEAM` is set as it's first used. Its classes
+  are declared at run time under upstream's names (`HIDBLEManager`, a
+  singleton, and `HIDBLEDevice`), with the properties' getters the tests
+  read; the methods only the backend calls are Rust functions.
+  CoreBluetooth is loaded at run time (`Note`: upstream's CMake build
+  links it), so a program that doesn't start Bluetooth needn't have it,
+  upstream's reason for `SDL_HIDAPI_DISABLED` there; without it its
+  classes are nil, as a weakly linked framework's. The device map and the
+  devices' state are locked (`Note`: upstream uses them from Bluetooth's
+  queue and the caller's thread without a lock), and the reports are
+  copied within their buffers (`FIXME (upstream)`: upstream copies whole
+  reports into shorter buffers, and sends a byte past a feature report).
 * The CoreMotion sensor driver (`sensor/coremotion.rs`) is built on iOS
   and visionOS, as upstream's CMake builds it, first in the sensor driver
   list (no dummy driver there); CoreMotion is linked.
