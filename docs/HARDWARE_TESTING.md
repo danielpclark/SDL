@@ -1103,9 +1103,9 @@ xcrun devicectl device process launch --console --device DEVICE \
 ```
 
 Without the environment variable the program runs the simulator's
-trace, which a device (with Bluetooth on) doesn't match. On tvOS (built,
-not run yet) the same check needs the program built for
-`aarch64-apple-tvos`, a tier 3 target (`cargo +nightly -Zbuild-std`).
+trace, which a device (with Bluetooth on) doesn't match. On an Apple TV
+the same check needs the program built for `aarch64-apple-tvos` (the
+program is iOS-only as it is: its `cfg` would have to take tvOS too).
 
 ### The camera on an iPhone
 
@@ -1148,6 +1148,83 @@ camera's as upstream's table has them. It ends with `sdl3-ios-runner: exit
 0`. A camera denied once stays denied (Settings > Privacy & Security >
 Camera, or delete the app, to be asked again).
 
+## tvOS Simulator
+
+The workspace's tests run on the tvOS Simulator the same way, built for
+`aarch64-apple-tvos-sim` (a tier 2 target), on a Mac with Xcode and a
+tvOS Simulator runtime: the runner tells a tvOS program by its Mach-O
+file's build version, and runs it on an Apple TV simulator
+(`SDL3_TVOS_SIMULATOR`, else a booted one, else `sdl3-TYPE-RUNTIME`, made
+of `SDL3_TVOS_DEVICE_TYPE` on `SDL3_TVOS_RUNTIME`; by default the Apple TV
+4K (3rd generation) on the newest tvOS runtime), as a process of it or as
+an app whose bundle is an Apple TV app's (`UIDeviceFamily` 3, no
+orientations):
+
+```sh
+rustup target add aarch64-apple-tvos-sim
+export SDL3_TVOS_SIMULATOR=$(tools/ios_run.py --boot tvos)
+cargo test --workspace --target aarch64-apple-tvos-sim
+```
+
+The simulated Apple TV is much like the simulated iPhone: the
+simulator's Metal device (Apple1 and Apple2 only: no GPU API, as above),
+no MoltenVK, camera, sensors or Bluetooth, the Mac's audio, the built-in
+"Gamepad" controller and GameController's coalesced keyboard
+("Keyboard"). Its display is a 1920x1080-point TV (3840x2160 pixels, 60
+Hz, one mode), whose safe area keeps the overscan margins out (80 points
+left and right, 60 top and bottom); it has no orientations, no status
+bar and no pasteboard (setting the clipboard's text fails, as
+upstream's), and its app's files are in Caches (the pref path, and
+relative paths). The `background` request brings the Apple TV's Settings
+app (`com.apple.TVSettings`) to the foreground. The spawned programs run
+as on iOS (processes are tvOS's dummy backend: "That operation is not
+supported"); the UIKit programs for iOS alone are empty there, and the
+tvOS ones are:
+
+* `uikit_tvos`: the platform name (upstream's "iOS": the `FIXME
+  (upstream)` in `init::platform()`), the drivers, the power state (no
+  battery), the pref path, user folders (none: "tvOS does not have
+  persistent storage") and a relative path's file, everything the display
+  answers and the screens' connection notifications, windows (made,
+  hidden and shown, borderless, fullscreen and exclusive fullscreen,
+  resized, with animation callbacks: their sizes, flags, safe area, their
+  `UIWindow`, its `GCEventViewController` root view controller and the
+  game controllers' events it passes on with
+  `SDL_HINT_APPLE_TV_CONTROLLER_UI_EVENTS`, the view's four swipe
+  recognizers) and the clipboard;
+* `uikit_tvos_input`: the view's presses (stand-ins for `UIPress`,
+  `UIKey` and `UIPressesEvent`: the Siri Remote's buttons, the arrows,
+  select as Return, menu as Escape, play/pause as Pause, and a key) and
+  its swipe handler (stand-in `UISwipeGestureRecognizer`s: arrow keys),
+  with the coalesced keyboard posted as disconnected (a keyboard takes the
+  presses over); text input through the hidden text field (typed
+  in-process); the Siri Remote as a joystick
+  (`SDL_HINT_TV_REMOTE_AS_JOYSTICK`): a stand-in micro gamepad
+  (`+[GCController controllerWithMicroGamepad]`, the "Siri Remote"
+  category), posted as connected, opened as a gamepad (while it's open the
+  remote's presses and swipes are no keys), its d-pad, A, X and menu
+  buttons (the menu button the pause button, B) set, closed, opened with
+  `SDL_HINT_APPLE_TV_REMOTE_ALLOW_ROTATION`, and none with the joystick
+  hint off;
+* `uikit_callbacks`, `uikit_main`, `uikit_metal` and `uikit_gles`, which
+  run on tvOS too: the main callbacks; the app delegate, the lifecycle (a
+  trip to the background and back), the event pump and URLs, without the
+  battery monitoring and the status bar's notification; the Metal views
+  and renderer, and OpenGL ES contexts with the OpenGL ES 2 renderer
+  (EAGL is on tvOS too), each scene against the software renderer's, where
+  nothing turns.
+
+Each compares its trace with upstream's C SDL's, from the same program in
+C run the same way on the CI's simulator (an Apple TV 4K (3rd generation)
+with tvOS 18.5), built from upstream's CMake build for the tvOS Simulator
+with OpenGL ES allowed on tvOS (as the Xcode project's
+`SDL_build_config_ios.h` builds it, which the translation follows), and
+without the OpenGL ES 1 renderer in the render drivers' list (it isn't
+translated). The Siri Remote itself, a real controller's buttons, and the
+system's focus engine need an Apple TV (or a person at the simulator's
+remote window): the presses and swipes the remote sends are stand-ins
+here.
+
 ## CI
 
 The ubuntu test jobs install the packages above, start the private
@@ -1186,7 +1263,14 @@ own containers, are listed too), failing on any skip but the simulator's
 of `metal`, `vulkan` and `egl` (above: so `idb` and `gles` are
 required); a manual run
 of the workflow can run that job alone (`ios_only`) and pass it other
-`cargo test` arguments (`ios_test_args`). The
+`cargo test` arguments (`ios_test_args`). The tvOS job, on the same image,
+Xcode and tvOS 18.5 runtime, runs the workspace's tests on an Apple TV 4K
+(3rd generation) simulator as [above](#tvos-simulator) and links the
+device build, with the iOS job's skip check (no idb: the tvOS programs
+don't use it); `tvos_only` and `tvos_test_args` run it alone, with other
+arguments. The Linux clippy job lints the tvOS builds too (the device, the
+arm64 Simulator, and the x86-64 Simulator, a tier 3 target whose standard
+library it builds with `-Zbuild-std`). The
 Emscripten job runs the tests under node as [above](#emscripten-under-node),
 with emsdk and emcc's sysroot libraries cached, and the browser programs
 (`emscripten_browser`, `emscripten_video`, `emscripten_events`,

@@ -192,8 +192,9 @@ joystick drivers other than Linux evdev, HIDAPI (and the HIDAPI device
 drivers listed above), the Windows ones, the IOKit and MFi ones and
 Emscripten's, the hidapi backends other than Linux hidraw, Windows,
 macOS and iOS's Bluetooth LE one, the sensor drivers other than the CoreMotion, Windows and Emscripten ones; the
-threaded (pthreads) Emscripten build; the iOS, tvOS and visionOS parts of
-the Apple backends but power, URLs, the file system's, the form factor,
+threaded (pthreads) Emscripten build; the visionOS parts of the Apple
+backends, and the iOS and tvOS parts but power, URLs, the file system's,
+the form factor,
 the main function and the main callbacks, CoreAudio, MFi, CoreMotion, HIDAPI's Bluetooth LE backend, the CoreMedia camera, and the UIKit video driver's
 app delegate, lifecycle events, event pump, displays and display modes,
 and windows with their input (touches, the pointer, the Apple Pencil,
@@ -246,6 +247,22 @@ cargo test --workspace --target aarch64-apple-ios-sim
 ```
 
 See "iOS Simulator" in [docs/HARDWARE_TESTING.md](docs/HARDWARE_TESTING.md).
+
+tvOS (`aarch64-apple-tvos`, `aarch64-apple-tvos-sim`, and
+`x86_64-apple-tvos`, a tier 3 target built with `-Zbuild-std`) builds as
+upstream's tvOS build, with the same UIKit pieces less what tvOS hasn't
+(orientations, the status bar, the pasteboard, the Pencil and the
+pointer, the camera, CoreMotion, processes: the dummy backend), and the
+Siri Remote: its buttons and swipes as keys, and the remote as a joystick
+(a micro gamepad). On a Mac with Xcode and a tvOS Simulator runtime the
+tests run on a simulated Apple TV the same way:
+
+```sh
+rustup target add aarch64-apple-tvos-sim
+cargo test --workspace --target aarch64-apple-tvos-sim
+```
+
+See "tvOS Simulator" in [docs/HARDWARE_TESTING.md](docs/HARDWARE_TESTING.md).
 
 Tests of the platform backends that need something from the system (an X
 server, a PipeWire server, a GPU, a camera, a macOS window server session)
