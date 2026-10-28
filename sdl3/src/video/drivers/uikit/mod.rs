@@ -12,8 +12,9 @@
 //! events) and view controllers ([`viewcontroller`], with text input and
 //! the on-screen keyboard), the Apple Pencil ([`pen`]), the game
 //! controllers' keyboards and mice ([`events`]), the clipboard
-//! ([`clipboard`], the general pasteboard's text) and message boxes
-//! ([`messagebox`], alert controllers).
+//! ([`clipboard`], the general pasteboard's text), message boxes
+//! ([`messagebox`], alert controllers) and Metal views ([`metalview`],
+//! which the Metal renderer and the GPU API's swapchains draw to).
 //!
 //! Upstream writes the driver in Objective-C; its classes
 //! (`SDLUIKitDelegate`, `SDLUIKitSceneDelegate`, `SDLLaunchScreenController`,
@@ -28,7 +29,7 @@
 //! falls through to the next driver, as one on another thread does with
 //! the Cocoa driver.
 //!
-//! Not translated yet: OpenGL ES, Metal views and Vulkan.
+//! Not translated yet: OpenGL ES and Vulkan.
 //! `SDL_NSLog()`, which upstream copies here from the Cocoa driver, is
 //! [`crate::log`]'s on every Apple platform.
 
@@ -38,6 +39,7 @@ pub(crate) mod appdelegate;
 pub(crate) mod clipboard;
 pub(crate) mod events;
 pub(crate) mod messagebox;
+pub(crate) mod metalview;
 pub(crate) mod modes;
 pub(crate) mod pen;
 pub(crate) mod sys;
@@ -546,6 +548,22 @@ impl VideoDriver for UIKitVideo {
 
     fn has_clipboard_text(&self) -> Option<bool> {
         Some(clipboard::has_clipboard_text())
+    }
+
+    // SDL_VIDEO_METAL
+
+    fn implements_metal_views(&self) -> bool {
+        true
+    }
+    fn metal_create_view(&self, window: WindowID) -> Option<Option<usize>> {
+        Some(metalview::metal_create_view(window))
+    }
+    fn metal_destroy_view(&self, view: usize) -> Option<()> {
+        metalview::metal_destroy_view(view);
+        Some(())
+    }
+    fn metal_get_layer(&self, view: usize) -> Option<Option<usize>> {
+        Some(metalview::metal_get_layer(view))
     }
 
     fn pump_events(&self) -> Option<()> {
