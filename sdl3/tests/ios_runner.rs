@@ -1,4 +1,4 @@
-// The iOS Simulator runner's app mode.
+// The iOS and tvOS Simulator runner's app mode.
 // Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
 // This is an altered (translated) version of the original software; see LICENSE.txt.
 
@@ -8,26 +8,27 @@
 //! checks what such a program sees (its bundle, the variables the runner
 //! passes on, both its output streams) and ends as those programs do, with
 //! the line that gives the runner its exit status. Elsewhere it does
-//! nothing.
+//! nothing. (It runs on the tvOS Simulator too.)
 
-#[cfg(not(target_os = "ios"))]
+#[cfg(not(any(target_os = "ios", target_os = "tvos")))]
 fn main() {}
 
 /// The runner's words: run as an app.
-#[cfg(target_os = "ios")]
+#[cfg(any(target_os = "ios", target_os = "tvos"))]
 #[used]
 #[link_section = "__DATA,__sdl3_runner"]
 static RUNNER: [u8; 4] = *b"app\0";
 
-#[cfg(target_os = "ios")]
+#[cfg(any(target_os = "ios", target_os = "tvos"))]
 mod uikit_support;
 
-#[cfg(target_os = "ios")]
+#[cfg(any(target_os = "ios", target_os = "tvos"))]
 fn main() {
     println!("ios_runner: started");
     let checks = std::panic::catch_unwind(|| {
         // The executable is in an app bundle, NAME.app, which the base path
-        // is (the bundle's resource directory, as upstream's on iOS).
+        // is (the bundle's resource directory, as upstream's on iOS and
+        // tvOS).
         let exe = std::env::current_exe().unwrap();
         let bundle = exe.parent().unwrap();
         assert_eq!(
