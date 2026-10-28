@@ -351,7 +351,13 @@ pub(crate) fn gamepad_type_from_guid(guid: Guid, name: Option<&str>) -> GamepadT
             // This is probably an Xbox One controller
             return GamepadType::XboxOne;
         }
-        #[cfg(any(windows, target_os = "linux", target_os = "macos"))]
+        #[cfg(any(
+            windows,
+            target_os = "linux",
+            target_os = "macos",
+            target_os = "ios",
+            target_os = "tvos"
+        ))]
         if is_joystick_hidapi(guid) {
             return super::hidapi::get_gamepad_type_from_guid(guid);
         }
@@ -688,7 +694,13 @@ pub(crate) fn joystick_guid_type(guid: Guid) -> JoystickType {
         return JoystickType::from_u8(guid.0[15]);
     }
 
-    #[cfg(any(windows, target_os = "linux", target_os = "macos"))]
+    #[cfg(any(
+        windows,
+        target_os = "linux",
+        target_os = "macos",
+        target_os = "ios",
+        target_os = "tvos"
+    ))]
     if is_joystick_hidapi(guid) {
         return super::hidapi::get_joystick_type_from_guid(guid);
     }

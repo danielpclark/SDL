@@ -545,3 +545,128 @@ fn state_packets() {
         32767.0
     );
 }
+
+/// A Steam Controller (D0G) on the iOS and tvOS backend: the bytes that
+/// reach its GATT characteristics, through the backend's report handling
+/// (`crate::hidapi::ble`), as `hid.m` does with them.
+struct IosBleHid {
+    /// The report characteristic's values to read, in turn
+    feature_values: RefCell<VecDeque<Vec<u8>>>,
+    /// The values written to the report characteristic
+    written: RefCell<Vec<Vec<u8>>>,
+    /// The input characteristic's notifications
+    input_reports: RefCell<crate::hidapi::ble::RingBuffer>,
+}
+
+impl SteamHid for IosBleHid {
+    fn is_bluetooth(&self) -> bool {
+        true
+    }
+    fn send_feature_report(&self, data: &[u8]) -> Result<usize> {
+        self.written
+            .borrow_mut()
+            .push(crate::hidapi::ble::feature_report_segment(data));
+        Ok(data.len())
+    }
+    fn get_feature_report(&self, data: &mut [u8]) -> Result<usize> {
+        use crate::hidapi::ble::{copy_feature_report, feature_report_result};
+        let value = self
+            .feature_values
+            .borrow_mut()
+            .pop_front()
+            .ok_or_else(|| Error::new("no value"))?;
+        let written = copy_feature_report(&value, data) as isize;
+        Ok(feature_report_result(written, data.len()) as usize)
+    }
+    fn read(&self, data: &mut [u8]) -> Result<usize> {
+        let mut ring = self.input_reports.borrow_mut();
+        Ok(crate::hidapi::ble::read_input_report(
+            Some(&mut ring),
+            BLE_REPORT_NUMBER,
+            data,
+        ))
+    }
+    fn read_timeout(&self, data: &mut [u8], _milliseconds: i32) -> Result<usize> {
+        self.read(data)
+    }
+    fn write(&self, data: &[u8]) -> Result<usize> {
+        self.written.borrow_mut().push(data.to_vec());
+        Ok(data.len())
+    }
+}
+
+/// The Steam driver's BLE framing on the iOS and tvOS backend: no second
+/// report ID (as on Linux, unlike Windows and macOS), feature report
+/// segments written without their report number (with a zero after them,
+/// where upstream reads past the segment), feature report values (a
+/// segment header and 18 bytes) read back behind the report number, and
+/// input report notifications given the report number.
+#[test]
+fn ios_ble_framing() {
+    #[cfg(any(target_os = "ios", target_os = "tvos"))]
+    const _: () = assert!(!BLE_DUPLICATE_FEATURE_REPORT_ID);
+
+    let fake = IosBleHid {
+        feature_values: RefCell::new(VecDeque::new()),
+        written: RefCell::new(Vec::new()),
+        input_reports: RefCell::new(crate::hidapi::ble::RingBuffer::new(19)),
+    };
+
+    // A message in one segment, and one in two
+    let (buf, len) = feature_report(ID_GET_ATTRIBUTES_VALUES, &[]);
+    assert_eq!(set_feature_report(&fake, &buf, len).unwrap(), 20);
+    let payload: Vec<u8> = (1..=30).collect();
+    let (buf, len) = feature_report(0x87, &payload);
+    set_feature_report(&fake, &buf, len).unwrap();
+    let written = fake.written.take();
+    assert_eq!(written.len(), 3);
+    let mut first = vec![0xc0, ID_GET_ATTRIBUTES_VALUES];
+    first.resize(20, 0);
+    assert_eq!(written[0], first);
+    let mut second = vec![0x80, 0x87];
+    second.extend(1..=17);
+    second.push(0);
+    assert_eq!(written[1], second);
+    let mut third = vec![0xc1];
+    third.extend(18..=30);
+    third.resize(20, 0);
+    assert_eq!(written[2], third);
+
+    // A response in two segments (an empty one first, which is skipped)
+    let mut values = VecDeque::new();
+    values.push_back(vec![0x00; 19]);
+    let mut segment = vec![0x80, ID_GET_ATTRIBUTES_VALUES, 21];
+    segment.extend(0..16);
+    values.push_back(segment);
+    let mut segment = vec![0xc1];
+    segment.extend(16..34);
+    values.push_back(segment);
+    fake.feature_values.replace(values);
+    let mut report = [0u8; FEATURE_REPORT_BUFFER_SIZE];
+    assert_eq!(
+        get_feature_report_with(&fake, &mut report, false).unwrap(),
+        36
+    );
+    assert_eq!(report[0], 0);
+    assert_eq!(&report[1..4], &[ID_GET_ATTRIBUTES_VALUES, 21, 0]);
+    assert_eq!(report[36], 33);
+    // (out of values: the retries end with an error)
+    assert!(get_feature_report_with(&fake, &mut report, false).is_err());
+
+    // An input report in one segment
+    let mut notification = vec![0xc0];
+    notification.extend(100..118);
+    fake.input_reports.borrow_mut().write(&notification);
+    let mut data = [0u8; 128];
+    assert_eq!(fake.read(&mut data).unwrap(), MAX_REPORT_SEGMENT_SIZE);
+    let mut assembler = PacketAssembler::new(true);
+    assert_eq!(
+        assembler.write_segment(&data, MAX_REPORT_SEGMENT_SIZE),
+        Some(18)
+    );
+    assert_eq!(
+        &assembler.buffer[..18],
+        &(100..118).collect::<Vec<u8>>()[..]
+    );
+    assert_eq!(fake.read(&mut data).unwrap(), 0);
+}
