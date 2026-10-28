@@ -455,19 +455,21 @@ jobs:
           tools/ci/skips_from_log.py "$RUNNER_TEMP/test.log" > "$RUNNER_TEMP/skips.tsv"
           tools/ci/list-skips.sh "$RUNNER_TEMP/skips.tsv" aarch64-apple-ios-sim
       # The skips by design: the simulator's Metal device is below what the
-      # GPU API's Metal backend asks for (metal), there's no MoltenVK
-      # (vulkan), and the offscreen driver has no EGL on Apple platforms
-      # (egl). Any other skip (idb's too) fails the job, in place of an
-      # SDL3_TEST_REQUIRE list.
+      # GPU API's Metal backend asks for (metal, with upstream's "Device
+      # does not meet the hardware requirements for SDL_GPU Metal": the
+      # Metal renderer, which has a device there, must not skip), there's
+      # no MoltenVK (vulkan), and the offscreen driver has no EGL on Apple
+      # platforms (egl). Any other skip (idb's too) fails the job, in place
+      # of an SDL3_TEST_REQUIRE list.
       - name: Check the skips
         if: ${{ !cancelled() && !inputs.ios_test_args }}
         shell: bash
         run: |
           touch "$RUNNER_TEMP/skips.tsv"
-          awk -F '\t' '$1 != "metal" && $1 != "vulkan" && $1 != "egl"' "$RUNNER_TEMP/skips.tsv" > "$RUNNER_TEMP/unexpected.tsv"
+          awk -F '\t' '!($1 == "metal" && index($3, "hardware requirements for SDL_GPU Metal")) && $1 != "vulkan" && $1 != "egl"' "$RUNNER_TEMP/skips.tsv" > "$RUNNER_TEMP/unexpected.tsv"
           if [ -s "$RUNNER_TEMP/unexpected.tsv" ]; then
             cat "$RUNNER_TEMP/unexpected.tsv"
-            echo "::error::checks skipped for other capabilities than metal, vulkan and egl (above)"
+            echo "::error::checks skipped for other capabilities than vulkan and egl, or metal for another reason than the GPU API's hardware requirements (above)"
             exit 1
           fi
       # The results out of the long log: each program's, and on a failure
