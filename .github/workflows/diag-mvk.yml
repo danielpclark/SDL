@@ -1,0 +1,45 @@
+name: diag-mvk
+
+# Diagnostic only (branch claude/diag-macos-segv): which MoltenVK releases
+# there are after v1.4.2, what the Vulkan SDK bundles, and MoltenVK's
+# issues about MTLHeap / IOGPUMetalBuffer dealloc crashes.
+on:
+  push:
+    branches: [claude/diag-macos-segv]
+    paths: [.github/workflows/diag-mvk.yml]
+
+permissions:
+  contents: read
+
+jobs:
+  survey:
+    runs-on: macos-latest
+    timeout-minutes: 15
+    steps:
+      - name: MoltenVK releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api "repos/KhronosGroup/MoltenVK/releases?per_page=10" --jq '.[] | "\(.tag_name) \(.published_at) prerelease=\(.prerelease) \(.assets | map(.name) | join(","))"'
+          echo "---- tags"
+          gh api "repos/KhronosGroup/MoltenVK/tags?per_page=10" --jq '.[].name'
+          echo "---- latest commits on main"
+          gh api "repos/KhronosGroup/MoltenVK/commits?per_page=15" --jq '.[] | "\(.sha[0:10]) \(.commit.committer.date) \(.commit.message | split("\n")[0])"'
+      - name: MoltenVK issues and pull requests
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for q in "IOGPUMetalBuffer dealloc" "releaseAllObjectsAndReset" "MTLHeap crash" "heap vkFreeMemory crash" "handleMTLCommandBufferError crash" "residency set crash" "MVK_CONFIG_USE_MTLHEAP"; do
+            echo "==== $q"
+            gh api -X GET search/issues -f q="repo:KhronosGroup/MoltenVK $q" -f per_page=10 --jq '.items[] | "\(.number) \(.state) \(.created_at[0:10]) \(.title) \(.html_url)"' || true
+            sleep 7
+          done
+      - name: The Vulkan SDK's MoltenVK
+        run: |
+          curl -fsSL https://vulkan.lunarg.com/sdk/latest/mac.txt || true
+          echo
+          curl -fsSL https://vulkan.lunarg.com/sdk/latest.json || true
+          echo
+          v=$(curl -fsSL https://vulkan.lunarg.com/sdk/latest/mac.txt)
+          curl -fsSL "https://vulkan.lunarg.com/doc/view/$v/mac/release_notes.html" -o notes.html || curl -fsSL "https://vulkan.lunarg.com/doc/sdk/$v/mac/release_notes.html" -o notes.html || true
+          grep -io "moltenvk[^<]\{0,120\}" notes.html | head -20 || true
