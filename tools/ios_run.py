@@ -32,7 +32,9 @@ A program runs in one of two ways:
   program has to be an app: UIApplicationMain() can't start in a spawned
   process. The program is put in an app bundle (as `--bundle` writes it),
   installed and launched with `xcrun simctl launch
-  --terminate-running-process`, with the same variables, its stdout and
+  --terminate-running-process` (a launch the system refuses, as it now
+  and then does for an app it hasn't registered yet, is tried up to
+  three times), with the same variables, its stdout and
   stderr in files in the device's temporary directory (so that a program
   that ends at once loses nothing), which are copied to this script's as
   they grow, until the app's process is gone. simctl doesn't give an
@@ -40,7 +42,8 @@ A program runs in one of two ways:
   exit N` on a line of its own, then exits: N is this script's exit
   status (the line isn't copied). Without that line (a crash, an uncaught
   panic, an app that returned from main and stays up until the timeout)
-  the run fails, and the end of the device's log for the program follows.
+  the run fails, and the end of the device's log for the program follows,
+  then the reason once more.
   The app is then terminated and uninstalled. A word
   `privacy=SERVICE,...` grants it those services first (`simctl privacy
   grant`: camera, microphone, photos, ...). The app's bundle identifier
@@ -721,6 +724,10 @@ def run_app(udid, identifier, executable, args, timeout, temp, idb):
 # brought back (so that it can tell what went wrong).
 BACKGROUND_LIMIT = 60
 
+# How often a launch the system refuses is tried, and the pause between.
+LAUNCH_ATTEMPTS = 3
+LAUNCH_PAUSE = 5
+
 
 class Requests:
     """What a running app asks for (`sdl3-ios-runner: request WHAT`)."""
@@ -813,27 +820,43 @@ def run_app_in(udid, identifier, executable, args, timeout, temp, idb):
     start = time.monotonic()
     env = child_environment()
     env["SIMCTL_CHILD_SDL3_IOS_RUNNER_IDB"] = "1" if idb[0] else idb[1]
-    result = xcrun_simctl(
-        "launch", "--terminate-running-process", f"--stdout={out_path}", f"--stderr={err_path}",
-        udid, identifier, *args,
-        check=False, timeout=600, env=env,
-    )
-    match = re.search(re.escape(identifier) + r": (\d+)", result.stdout)
+    # Now and then the system refuses to launch an app just installed
+    # (FrontBoard doesn't know it yet: LaunchServicesDataMismatch). None
+    # of the app has run then, so it is launched again after a pause.
+    for attempt in range(1, LAUNCH_ATTEMPTS + 1):
+        result = xcrun_simctl(
+            "launch", "--terminate-running-process", f"--stdout={out_path}", f"--stderr={err_path}",
+            udid, identifier, *args,
+            check=False, timeout=600, env=env,
+        )
+        match = re.search(re.escape(identifier) + r": (\d+)", result.stdout)
+        if result.returncode == 0 and match:
+            break
+        failure = f"xcrun simctl launch failed ({result.returncode}): {(result.stderr or result.stdout).strip()}"
+        note(failure)
+        if attempt < LAUNCH_ATTEMPTS:
+            note(f"launching it again in {LAUNCH_PAUSE} s (attempt {attempt + 1} of {LAUNCH_ATTEMPTS})")
+            time.sleep(LAUNCH_PAUSE)
     pid = int(match.group(1)) if match else None
     requests = Requests(udid, identifier, pid, idb)
     out = Output(out_path, sys.stdout, True, requests.handle)
     err = Output(err_path, sys.stderr, False)
     timed_out = False
-    if result.returncode != 0 or not match:
-        note(f"xcrun simctl launch failed ({result.returncode}): {(result.stderr or result.stdout).strip()}")
+    if not match:
+        reason = failure
     else:
+        reason = (
+            "the app ended without printing `sdl3-ios-runner: exit N` (it crashed, panicked "
+            "in a callback, or exited some other way)"
+        )
         while alive(pid):
             out.poll()
             err.poll()
             requests.check()
             if timeout and time.monotonic() - start > timeout:
                 timed_out = True
-                note(f"the app ran for more than {timeout:g} s (SDL3_IOS_TIMEOUT): terminating it")
+                reason = f"the app ran for more than {timeout:g} s (SDL3_IOS_TIMEOUT)"
+                note(f"{reason}: terminating it")
                 xcrun_simctl("terminate", udid, identifier, check=False, timeout=60)
                 break
             time.sleep(0.1)
@@ -849,10 +872,7 @@ def run_app_in(udid, identifier, executable, args, timeout, temp, idb):
     if out.status is not None and not timed_out:
         return out.status
     if match and not timed_out:
-        note(
-            "the app ended without printing `sdl3-ios-runner: exit N` (it crashed, panicked "
-            "in a callback, or exited some other way)"
-        )
+        note(reason)
     for what, output in (("output", out), ("error output", err)):
         if output.tail:
             note(f"the end of its {what}:")
@@ -861,7 +881,8 @@ def run_app_in(udid, identifier, executable, args, timeout, temp, idb):
     note(f'the device\'s log for process "{executable}" and {identifier}:')
     for text in device_log(udid, executable, identifier):
         print(f"  | {text}", file=sys.stderr)
-    sys.stderr.flush()
+    # (once more below the log, where a CI log's last lines show it)
+    note(f"{identifier} failed: {reason}")
     return 1
 
 
