@@ -26,7 +26,8 @@
 //!   indirect ones too), compute passes and dispatches, mipmap generation
 //!   on a blit encoder, and blits through the front end's blit pipelines
 //!   with the blit shaders ([`shaders`], made by
-//!   `tools/gen_metal_shaders.py`) ([`passes`]);
+//!   `tools/gen_metal_shaders.py`: macOS's, or the iOS devices' or
+//!   simulator's on the UIKit platforms) ([`passes`]);
 //! * claimed windows, their Metal views and layers (from the video
 //!   driver), compositions, present modes, frames in flight and swapchain
 //!   texture acquisition ([`swapchain`]).
@@ -37,14 +38,23 @@
 //! EDR, visionOS's depth clipping) are `cfg`s, upstream's `@available()`
 //! checks [`available!`](crate::core::apple::foundation::available) ones. The
 //! OpenXR entry points (`HAVE_GPU_OPENXR`, all of which fail on Metal
-//! upstream) are not translated, nor are the iOS and tvOS blit libraries
-//! (the macOS ones are used everywhere).
+//! upstream) are not translated.
 
 mod commands;
 mod device;
 mod passes;
 mod pipelines;
 mod resources;
+// (Metal_Blit.h's #if chain: SDL_PLATFORM_IOS, the simulator's or the
+// devices', then macOS; its SDL_PLATFORM_TVOS branch is never taken, see
+// shaders_ios.rs)
+#[cfg(target_os = "macos")]
+mod shaders;
+#[cfg(all(not(target_os = "macos"), target_abi = "sim"))]
+#[path = "shaders_iphonesimulator.rs"]
+mod shaders;
+#[cfg(all(not(target_os = "macos"), not(target_abi = "sim")))]
+#[path = "shaders_ios.rs"]
 mod shaders;
 mod swapchain;
 pub(crate) mod sys;

@@ -1,20 +1,28 @@
 #!/usr/bin/env python3
-"""Generate sdl3/src/gpu/metal/shaders.rs from SDL's
+"""Generate sdl3/src/gpu/metal/shaders*.rs from SDL's
 src/gpu/metal/Metal_Blit.h: the precompiled blit shaders of the GPU API's
 Metal backend (made by compile_shaders.sh with xcrun metal/metallib, Metal
 2.0, from Metal_Blit.metal).
 
-Usage: gen_metal_shaders.py <SDL source dir> > sdl3/src/gpu/metal/shaders.rs
+Usage:
+  gen_metal_shaders.py <SDL source dir> > sdl3/src/gpu/metal/shaders.rs
+  gen_metal_shaders.py <SDL source dir> ios > sdl3/src/gpu/metal/shaders_ios.rs
+  gen_metal_shaders.py <SDL source dir> iphonesimulator > sdl3/src/gpu/metal/shaders_iphonesimulator.rs
 
 The libraries are kept as byte arrays, as upstream has them, sixteen to a
 line. Metal_Blit.h holds them for iOS, tvOS (each with a simulator
-variant) and macOS, chosen by the preprocessor; only the macOS ones (the
-last #else) are translated, as only macOS is targeted.
+variant) and macOS, chosen by the preprocessor: `SDL_PLATFORM_IOS` (every
+UIKit platform, tvOS too) first, then `SDL_PLATFORM_TVOS`, then macOS in
+the last #else. Its tvOS libraries are never compiled (tvOS takes the iOS
+ones), so they aren't translated; the others are, a file each (macOS
+without an argument).
 """
 import re
 import sys
+import textwrap
 
 src_dir = sys.argv[1]
+platform = sys.argv[2] if len(sys.argv) > 2 else "macos"
 metal_dir = f"{src_dir}/src/gpu/metal"
 
 text = open(f"{metal_dir}/Metal_Blit.h", encoding="utf-8").read()
@@ -30,13 +38,24 @@ assert names == [
     "BlitFromCube",
     "BlitFromCubeArray",
 ], names
-# The macOS libraries: Metal 2.0, macOS 10.11 and later.
-assert "generate_shaders macos macos macosx 10.11" in script
+# Each platform's libraries: Metal 2.0, and the SDK's minimum version.
+versions = {
+    m.group(1): (m.group(2), m.group(3), m.group(4))
+    for m in re.finditer(r"^generate_shaders (\w+) (\w+) (\w+) ([\d.]+)$", script, re.M)
+}
+assert versions == {
+    "macos": ("macos", "macosx", "10.11"),
+    "ios": ("ios", "iphoneos", "11.0"),
+    "iphonesimulator": ("ios", "iphonesimulator", "11.0"),
+    "tvos": ("ios", "appletvos", "11.0"),
+    "tvsimulator": ("ios", "appletvsimulator", "11.0"),
+}, versions
+assert "-std=$compileplatform-metal2.0" in script
 
 # The header's layout: iOS (simulator, device), tvOS (simulator, device),
 # then macOS in the outermost #else.
-directives = re.findall(r"^#.*$", text, re.M)
-assert directives == [
+directives = [(m.start(), m.group(0)) for m in re.finditer(r"^#.*$", text, re.M)]
+assert [d for _, d in directives] == [
     "#if defined(SDL_PLATFORM_IOS)",
     "#if TARGET_OS_SIMULATOR",
     "#else",
@@ -48,12 +67,26 @@ assert directives == [
     "#else",
     "#endif",
 ], directives
-macos = text[text.rindex("\n#else\n") : text.rindex("\n#endif")]
+# (the text between two directives)
+sections = {
+    "iphonesimulator": (1, 2),
+    "ios": (2, 3),
+    "tvsimulator": (5, 6),
+    "tvos": (6, 7),
+    "macos": (8, 9),
+}
+if platform in ("tvos", "tvsimulator"):
+    sys.exit(f"{platform}: Metal_Blit.h's tvOS libraries are never compiled "
+             "(SDL_PLATFORM_IOS is tested first, and tvOS defines it)")
+if platform not in sections:
+    sys.exit(f"unknown platform {platform!r}: macos, ios or iphonesimulator")
+first, last = sections[platform]
+section = text[directives[first][0] : directives[last][0]]
 
 blobs = re.findall(
     r"const unsigned char (\w+)_metallib\[\] = \{(.*?)\};\s*"
     r"const unsigned int (\w+)_metallib_len = (\d+);",
-    macos,
+    section,
     re.S,
 )
 assert [name for name, _, _, _ in blobs] == names, blobs
@@ -66,18 +99,59 @@ def rust_const(c_name):
     return s.upper()
 
 
+_, sdk, min_version = versions[platform]
+what, built_for, chosen = {
+    "macos": (
+        "its macOS libraries",
+        f"macOS {min_version} and later",
+        "They are macOS's (the iOS ones are in `shaders_ios.rs` and"
+        " `shaders_iphonesimulator.rs`).",
+    ),
+    "ios": (
+        "its iOS libraries",
+        f"iOS {min_version} and later, for devices",
+        "They are the devices' of every UIKit platform (`SDL_PLATFORM_IOS`"
+        " without `TARGET_OS_SIMULATOR`).",
+    ),
+    "iphonesimulator": (
+        "its iOS Simulator libraries",
+        f"iOS {min_version} and later, for the simulator",
+        "They are the simulators' of every UIKit platform (`SDL_PLATFORM_IOS`"
+        " with `TARGET_OS_SIMULATOR`).",
+    ),
+}[platform]
+if platform != "macos":
+    chosen += (
+        " FIXME (upstream): tvOS defines `SDL_PLATFORM_IOS` too, which"
+        " `Metal_Blit.h` tests first, so tvOS takes these and its own"
+        " libraries there are never used."
+    )
+
 out = []
-out.append("// Rust translation of src/gpu/metal/Metal_Blit.h (its macOS libraries) from")
+out.append(f"// Rust translation of src/gpu/metal/Metal_Blit.h ({what}) from")
 out.append("// Simple DirectMedia Layer.")
 out.append("// Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>")
 out.append("// This is an altered (translated) version of the original software; see LICENSE.txt.")
 out.append("// Generated by tools/gen_metal_shaders.py; do not edit.")
 out.append("")
-out.append("//! The blit shaders of the Metal backend: Metal libraries (Metal 2.0, macOS")
-out.append("//! 10.11 and later) compiled from `Metal_Blit.metal` upstream")
-out.append("//! (`compile_shaders.sh`, with `xcrun metal` and `metallib`): a fullscreen")
-out.append("//! vertex shader and a fragment shader per source texture type, each the")
-out.append("//! function of its name. Upstream's iOS and tvOS libraries are not here.")
+doc = (
+    f"The blit shaders of the Metal backend: Metal libraries (Metal 2.0,"
+    f" {built_for}; the {sdk} SDK) compiled from `Metal_Blit.metal` upstream"
+    " (`compile_shaders.sh`, with `xcrun metal` and `metallib`): a fullscreen"
+    " vertex shader and a fragment shader per source texture type, each the"
+    f" function of its name. {chosen}"
+)
+# (the marker on one line, as the repository greps for it, nor a code span
+# broken)
+doc = doc.replace("FIXME (upstream)", "FIXME\xa0(upstream)")
+doc = re.sub(r"`[^`]*`", lambda m: m.group(0).replace(" ", "\xa0"), doc)
+out.extend(
+    line.replace("\xa0", " ")
+    for line in textwrap.wrap(
+        doc, width=79, initial_indent="//! ", subsequent_indent="//! ",
+        break_on_hyphens=False,
+    )
+)
 for name, body, len_name, length in blobs:
     assert name == len_name
     data = bytes(int(b, 16) for b in re.findall(r"0x[0-9a-fA-F]{2}", body))
