@@ -25,8 +25,8 @@ Every skip names one *capability* (the list is `CAPABILITIES` in
 | `x11` | Linux | libX11 and the X extension libraries (libXext, libXi, libXrandr, libXfixes, libXcursor, libXss, libXtst) |
 | `xvfb` | Linux | an X server: `Xvfb` in `PATH` (each X11 test starts its own), or `DISPLAY` |
 | `glx` | Linux | libGL with GLX on that server (Mesa's llvmpipe is enough) |
-| `egl` | Linux, Windows, macOS | libEGL and the GL/GLES libraries (Mesa on Linux; on Windows an EGL such as ANGLE's `libEGL.dll`, which Windows doesn't ship, or Mesa's (below) with `EGL_PLATFORM=windows`; on macOS ANGLE's `libEGL.dylib` and `libGLESv2.dylib`, from the directory `SDL3_TEST_ANGLE_DIR` names or the copy the Android emulator ships in `~/Library/Android/sdk/emulator/lib64/gles_angle`). The offscreen driver has EGL only on Linux and the other Unix systems, so the OpenGL ES 2 renderer's checks, which draw on it, skip on Windows, macOS and the Apple Simulators, as the OpenGL renderer's checks on it do on macOS |
-| `vulkan` | Linux, Windows, macOS, the iOS, tvOS and visionOS Simulators | a Vulkan loader and a driver with the surface extensions, `VK_EXT_headless_surface` included for the tests of the Vulkan and GPU renderers and of the GPU API's swapchains on offscreen windows (Mesa's lavapipe is enough; on Windows those tests present to the Windows video driver's windows instead, since the GPU drivers there (NVIDIA's, say) have no `VK_EXT_headless_surface`, and only the offscreen driver's own headless-surface check skips; the tests of the GPU API's Vulkan backend and of the GPU renderer run under `VK_LAYER_KHRONOS_validation` when it is installed, and present to an X11 window too when `DISPLAY` is set); on macOS MoltenVK, by upstream's default names: `libMoltenVK.dylib` itself (in `/usr/local/lib`, say), which runs every check, or the Vulkan loader with it (the Cocoa driver's surface check also tries Homebrew's `/opt/homebrew/lib/libvulkan.1.dylib`), through which the Vulkan renderer's checks skip with `VK_ERROR_INCOMPATIBLE_DRIVER`: MoltenVK's devices then need portability enumeration, which upstream's renderer doesn't ask for. Under Metal's API validation, which the GPU API's Metal devices in debug mode turn on for the rest of the process (as upstream's do, setting `MTL_DEBUG_LAYER=1` unless it's set), MoltenVK misdraws the fills after another render state's in a pass in the GPU renderer's render-state test on the CI runners' Apple Paravirtual device (1.3.0 to 1.4.2, reporting no error), so with a MoltenVK device and `MTL_DEBUG_LAYER` set and not `0` those three checks skip (run the test again with `MTL_DEBUG_LAYER=0` for them; with discrete descriptor binding, `MVK_CONFIG_USE_METAL_ARGUMENT_BUFFERS=0`, more of the renderer's checks misdraw under the layer; Khronos' validation layer, with synchronization validation, finds nothing in them on lavapipe, and they pass on Metal under the same validation); on the iOS and tvOS Simulators MoltenVK's framework for the simulator, which `tools/ios_run.py` takes from `SDL3_IOS_MOLTENVK` (see [Apple Simulators](#apple-simulators): there the GPU API's Vulkan checks skip, the simulator's device lacking features the backend asks for, see [iOS Simulator](#ios-simulator)); on the visionOS Simulator it never loads, upstream's `SDL_LoadObject()` loading nothing there (see [visionOS Simulator](#visionos-simulator)) |
+| `egl` | Linux, Windows, macOS | libEGL and the GL/GLES libraries (Mesa on Linux; on Windows an EGL such as ANGLE's `libEGL.dll`, which Windows doesn't ship, or Mesa's (below) with `EGL_PLATFORM=windows`; on macOS ANGLE's `libEGL.dylib` and `libGLESv2.dylib`, from the directory `SDL3_TEST_ANGLE_DIR` names or the copy the Android emulator ships in `~/Library/Android/sdk/emulator/lib64/gles_angle`). The offscreen driver has EGL only on Linux and the other Unix systems, so the OpenGL ES 2 renderer's checks, which draw on it, skip on Windows, macOS and the Apple Simulators, as the OpenGL renderer's checks on it do on macOS; on Android its EGL needs a device platform (`EGL_EXT_device_enumeration`) that Android's EGL lacks, so they skip there too, and so do the OpenGL renderer's, which Android doesn't build (see [Android emulator](#android-emulator)) |
+| `vulkan` | Linux, Windows, macOS, the iOS, tvOS and visionOS Simulators, the Android emulator | a Vulkan loader and a driver with the surface extensions, `VK_EXT_headless_surface` included for the tests of the Vulkan and GPU renderers and of the GPU API's swapchains on offscreen windows (Mesa's lavapipe is enough; on Windows those tests present to the Windows video driver's windows instead, since the GPU drivers there (NVIDIA's, say) have no `VK_EXT_headless_surface`, and only the offscreen driver's own headless-surface check skips; the tests of the GPU API's Vulkan backend and of the GPU renderer run under `VK_LAYER_KHRONOS_validation` when it is installed, and present to an X11 window too when `DISPLAY` is set); on macOS MoltenVK, by upstream's default names: `libMoltenVK.dylib` itself (in `/usr/local/lib`, say), which runs every check, or the Vulkan loader with it (the Cocoa driver's surface check also tries Homebrew's `/opt/homebrew/lib/libvulkan.1.dylib`), through which the Vulkan renderer's checks skip with `VK_ERROR_INCOMPATIBLE_DRIVER`: MoltenVK's devices then need portability enumeration, which upstream's renderer doesn't ask for. Under Metal's API validation, which the GPU API's Metal devices in debug mode turn on for the rest of the process (as upstream's do, setting `MTL_DEBUG_LAYER=1` unless it's set), MoltenVK misdraws the fills after another render state's in a pass in the GPU renderer's render-state test on the CI runners' Apple Paravirtual device (1.3.0 to 1.4.2, reporting no error), so with a MoltenVK device and `MTL_DEBUG_LAYER` set and not `0` those three checks skip (run the test again with `MTL_DEBUG_LAYER=0` for them; with discrete descriptor binding, `MVK_CONFIG_USE_METAL_ARGUMENT_BUFFERS=0`, more of the renderer's checks misdraw under the layer; Khronos' validation layer, with synchronization validation, finds nothing in them on lavapipe, and they pass on Metal under the same validation); on the iOS and tvOS Simulators MoltenVK's framework for the simulator, which `tools/ios_run.py` takes from `SDL3_IOS_MOLTENVK` (see [Apple Simulators](#apple-simulators): there the GPU API's Vulkan checks skip, the simulator's device lacking features the backend asks for, see [iOS Simulator](#ios-simulator)); on the visionOS Simulator it never loads, upstream's `SDL_LoadObject()` loading nothing there (see [visionOS Simulator](#visionos-simulator)); on the Android emulator SwiftShader's Vulkan 1.3 (`libvulkan.so`), which has no `VK_EXT_headless_surface`, so only the checks that need no surface run there (see [Android emulator](#android-emulator)) |
 | `wayland` | Linux | libwayland-client/-egl/-cursor, libxkbcommon and `sway` (or `weston`) in `PATH`; the input and clipboard tests need sway |
 | `dbus` | Linux | libdbus and `dbus-daemon` (the tests start private buses) |
 | `pulseaudio` | Linux | libpulse, and the `pulseaudio` and `pactl` binaries (the tests start a private server) |
@@ -1447,6 +1447,150 @@ devices are below its requirements), and a real Apple Vision Pro, its
 eyes and hands (the touches are the system's). Curved windows and
 immersive spaces need upstream's Swift code, out of scope here.
 
+## Android emulator
+
+The workspace's tests also run built for Android, on the Android
+emulator (or a device): `.cargo/config.toml` makes `tools/android_run.py`
+the runner of the four Android targets and `tools/android_link.py` their
+linker (both Python's standard library only). That needs the Android
+SDK's platform-tools (`adb`), its emulator and a system image, and the
+NDK, r29 (29.0.14206865, the version CI uses; r25 or later links), only
+as a toolchain: nothing is compiled with it. On Linux the emulator needs
+KVM (a `/dev/kvm` you can open) and PulseAudio's library
+(`libpulse.so.0`, Ubuntu's `libpulse0`) even without sound:
+
+```sh
+rustup target add x86_64-linux-android aarch64-linux-android
+sdkmanager --install emulator platform-tools 'system-images;android-35;google_apis;x86_64' 'ndk;29.0.14206865'
+export SDL3_ANDROID_NDK=$ANDROID_HOME/ndk/29.0.14206865
+export SDL3_ANDROID_SERIAL=$(tools/android_run.py --boot)
+cargo test --workspace --target x86_64-linux-android
+tools/android_run.py --kill
+```
+
+The linker runs the NDK's clang for the program's ABI (told by its object
+files' ELF machine, since Cargo gives the four targets the same linker) at
+API level 21, upstream's minimum, with 16 KB page alignment, for Android
+15's 16 KB-page devices. The NDK is `SDL3_ANDROID_NDK`'s, else
+`ANDROID_NDK_HOME`'s, else `ANDROID_NDK_ROOT`'s, else the SDK's r29, else
+the SDK's newest (the SDK: `ANDROID_HOME` or `ANDROID_SDK_ROOT`). Set
+`SDL3_ANDROID_NDK` where `ANDROID_NDK_HOME` or `ANDROID_NDK_ROOT` name
+another NDK, as the GitHub runner image's do (r27).
+`SDL3_ANDROID_VERBOSE=1` shows the NDK and the command.
+
+Each test program (and doctest) is pushed to the device (`adb push`, to
+a directory of its own under `/data/local/tmp/sdl3/run/`, removed when it
+ends) and spawned there as a process of the shell user (`adb shell`, in
+the shell protocol), with the runner's stdin, its stdout and stderr kept
+apart, and its exit status (128 + N for a signal N), so that libtest's
+filters and options and `--no-fail-fast` work as anywhere. adb passes on
+no environment: the runner puts the variables on the command line,
+`SDL3_*`, `SDL_*`, `RUST_*` and `RUSTC_BOOTSTRAP` as they are,
+`HOME` (`/data/local/tmp/sdl3/home`), a `TMPDIR` of the run's own, and
+`SDL_ASSERT=abort` unless it is set. A program that runs longer than
+`SDL3_ANDROID_TIMEOUT` seconds (1800 by default; 0: no limit) is killed,
+and fails.
+
+The device can't see the host's files, so the runner translates the
+paths Cargo gives a test program when it runs it:
+
+* `CARGO_MANIFEST_DIR`: the workspace's test data (every directory named
+  `testdata`, 15 MB) is copied once to `/data/local/tmp/sdl3/ws/` with
+  the workspace's layout (again when a file of it changes, which a stamp
+  there tells), and the variable is the package's directory there, which
+  is also the program's working directory, as Cargo's is on the host;
+* `CARGO_BIN_EXE_NAME` (an integration test's binaries): pushed to the
+  run's directory, the variable their path there;
+* `CARGO_TARGET_TMPDIR` (which Cargo sets only when it builds an
+  integration test): `/data/local/tmp/sdl3/target-tmp`;
+* `SDL3_TEST_SKIP_LOG`: a file of the run's, appended to the host's file
+  when the program ends, so the skip log works as elsewhere.
+
+The tests that read their files at run time take these variables, falling
+back on the ones Cargo gave when it built them (`env!`), which is what a
+program run by hand, or on the Apple Simulators (which see the host's
+files), gets:
+
+```rust
+std::env::var_os("CARGO_MANIFEST_DIR").map_or_else(|| env!("CARGO_MANIFEST_DIR").into(), PathBuf::from)
+```
+
+Test data a test embeds (`include_bytes!`) needs nothing of this.
+
+The device is `SDL3_ANDROID_SERIAL`'s (an `adb devices` serial), else
+`ANDROID_SERIAL`'s, else the only one adb lists, else the runner's
+emulator, which it starts on the virtual device `SDL3_ANDROID_AVD`, by
+default `sdl3-35-google_apis-x86_64` for the system image
+`SDL3_ANDROID_SYSTEM_IMAGE` (`system-images;android-35;google_apis;x86_64`
+by default, Android 15). It writes the virtual device itself when it
+doesn't exist (the files avdmanager writes, so the image needs no
+package record: an image unpacked from its archive in the SDK's
+`system-images/` works), for a Pixel 6's screen and sensors with a
+hardware keyboard, 4 GB of memory, a 12 GB data partition, the emulated
+front and back cameras and SwiftShader's GPU, in `ANDROID_AVD_HOME`
+(default `ANDROID_USER_HOME/avd`, or `~/.android/avd`), which it gives
+the emulator too (avdmanager and the emulator otherwise may not agree on
+it). The emulator runs headless (`-no-window -no-boot-anim -no-metrics
+-gpu swiftshader_indirect`), saving no snapshot, with
+`SDL3_ANDROID_EMULATOR_FLAGS` added. `--boot` starts it and prints its
+serial at once, so that it boots while the programs build (a cold boot
+takes about 30 s on an idle 4-CPU machine, two minutes or so while
+building); the first program waits for the boot
+(`sys.boot_completed`), for up to `SDL3_ANDROID_BOOT_TIMEOUT` seconds
+(600 by default), and fails with the emulator's log when it ends while
+booting (naming a missing `libpulse.so.0` or KVM), or after killing it
+when it doesn't boot in time. The log and the process ID are in the
+temporary directory's `sdl3-android-run-UID/SERIAL/`; `--kill` stops the
+emulator with `adb emu kill`, and by its process ID when that doesn't
+end it (a hung emulator, as `-gpu host` leaves on a machine without a
+display, has no console to ask). `SDL3_ANDROID_VERBOSE=1` shows the adb
+commands and their times.
+
+A program must be built for one of the device's ABIs
+(`ro.product.cpu.abilist`). The x86-64 image runs arm64 programs too,
+through its ARM translation (libndk_translation: `binfmt_misc` runs ARM
+executables there), about three times slower, so `cargo test --target
+aarch64-linux-android` runs on it as well (ARM's NEON paths included, as
+the translation executes them). It runs no 32-bit programs
+(`ro.product.cpu.abilist32` is empty): `i686-linux-android` and
+`armv7-linux-androideabi` need a device or an image with a 32-bit ABI
+(an API 30 one, say). arm64 system images don't run on an x86-64 host.
+
+What runs where, in spawned programs: everything pure (the satellites'
+decoders, the converters, the parsers), the file operations, threads,
+time and timers, `sdl3-net` on the loopback interface (IPv4 and IPv6),
+the audio core with the dummy and disk drivers, the joystick core with
+the virtual and HIDAPI drivers (no HID backend yet, so no devices), and
+the GPU API's Vulkan devices on SwiftShader's Vulkan 1.3. A spawned
+process is no app, and nothing of Android's own platform layer is
+translated yet, so:
+
+* the offscreen driver can't draw: Android's EGL has no device platform
+  (`EGL_EXT_device_enumeration`), which upstream's offscreen OpenGL ES
+  needs (`SDL_EGL_InitializeOffscreen()`), and its Vulkan no
+  `VK_EXT_headless_surface`, so the OpenGL ES 2, Vulkan and GPU
+  renderers' checks and the GPU API's swapchain checks skip (`egl`,
+  `vulkan`), as upstream's C does there; they draw on the android video
+  driver's windows, in apps, which aren't translated yet. The desktop
+  OpenGL renderer isn't built (Android has OpenGL ES only), so its
+  checks skip as `egl` too;
+* the filesystem paths (the base path, the pref path, the user folders)
+  are dummy until Android's filesystem backend: the tests that need them
+  are ignored on Android, naming that (`base_path_and_exe_name`,
+  `user_storage_and_driver_hints`), and the XDG paths' test isn't built;
+* apps (an `.sdl3_runner` section with the word `app`, as on the Apple
+  platforms: the runner refuses them for now), JNI, the android video,
+  audio (AAudio, OpenSL ES), joystick, haptic, sensor and camera drivers
+  are later work.
+
+Under the ARM translation one more thing differs: a translated program
+whose threads start programs at the same time can hang there, as
+`sdl3-shadercross`'s `cli` test does when its three tests run the
+`shadercross` program in parallel (Rust's standard library forks and
+execs on Android; each test alone, or all with `--test-threads=1`, passes,
+running the arm64 or the x86-64 `shadercross`), so CI doesn't run it
+translated.
+
 ## CI
 
 The ubuntu test jobs install the packages above, start the private
@@ -1496,7 +1640,33 @@ It lints the four Android ABIs too (`aarch64-linux-android`,
 `i686-linux-android`); the Linux test job checks `aarch64-linux-android`
 and `armv7-linux-androideabi` with the minimum supported Rust, and the
 rustdoc job documents `aarch64-linux-android`. No NDK is needed for any
-of them. Nothing is linked or run for Android yet.
+of them.
+
+The `android` job runs the tests on the Android emulator as
+[above](#android-emulator), on the ubuntu runner with KVM (a udev rule
+opens `/dev/kvm` to the runner's user). The emulator (build 16428233,
+37.2.12.0) and the system image (API 35 Google APIs x86-64, revision 9)
+come from the SDK repository's archives, checked against their SHA-256
+(sdkmanager would install only the newest ones), with `libpulse0` from
+apt, and the NDK r29 the runner image has, in `SDL3_ANDROID_NDK` (the
+image's `ANDROID_NDK_ROOT` is r27). Nothing of the emulator is cached:
+the image and a booted device's snapshot would take 4 GB of the
+repository's 10 GB of cache to save about 40 s, and the emulator boots
+cold while the programs build (`tools/android_run.py --boot`). The job
+runs `cargo test --workspace --target x86_64-linux-android`, then the
+arm64 build of the libraries with code of their own for arm64 (sdl3's
+CPU features, blitters and assertions, sdl3-image's libyuv paths and
+sdl3-shadercross's: `-p sdl3 -p sdl3-image -p sdl3-shadercross --lib`)
+through the ARM translation; the rest is the same code built for another
+CPU, and would take the job's 16 minutes or so to 35. It fails on any skip
+but those by design: the desktop OpenGL renderer's checks (`egl`), and
+the checks that draw on the offscreen driver's windows, which need EGL's
+device platform (`egl`, with upstream's "EXT_device_enumeration not
+supported" in the reason) or `VK_EXT_headless_surface` (`vulkan`).
+A manual run of the workflow can run the job alone (`android_only`), and
+pass it other `cargo test` arguments in place of `--workspace`
+(`android_test_args`), with which the arm64 run and the skip check are
+left out.
 
 Three jobs run the tests on the Simulators as
 [above](#apple-simulators), on the macOS 15 runner with Xcode 16.4, each

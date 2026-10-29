@@ -54,8 +54,9 @@ A **direct, pure-Rust translation of [Simple DirectMedia Layer](https://github.c
 > Siri Remote on tvOS) and HIDAPI (Steam Controllers over Bluetooth LE)
 > controller drivers, CoreMotion, the CoreMedia camera on iOS, and the
 > UIKit power, URL, filesystem and main backends (see
-> [iOS, tvOS and visionOS](#ios-tvos-and-visionos)). Android builds and
-> lints; nothing runs there yet. The
+> [iOS, tvOS and visionOS](#ios-tvos-and-visionos)). Android builds,
+> and the tests run on the Android emulator as spawned processes; its
+> platform layer isn't translated yet. The
 > remaining front ends and platform backends come next; see
 > [docs/ROADMAP.md](docs/ROADMAP.md).
 
@@ -239,9 +240,13 @@ on their Simulators: see [below](#ios-tvos-and-visionos).
 
 Android (`aarch64-linux-android`, `armv7-linux-androideabi`,
 `x86_64-linux-android`, `i686-linux-android`) builds and lints, with
-`cargo check --target …` or `cargo clippy --target …` and no NDK; nothing
-is linked or run there yet, and its platform layer isn't translated (the
-shared backends are built, and dummy ones stand in for Android's own).
+`cargo check --target …` or `cargo clippy --target …` and no NDK. With
+the Android SDK and NDK the tests run on the Android emulator (x86-64,
+and arm64 through its ARM translation), as processes spawned through adb
+by `tools/android_run.py` and linked by `tools/android_link.py`: see
+"Android emulator" in [docs/HARDWARE_TESTING.md](docs/HARDWARE_TESTING.md).
+Its platform layer isn't translated yet (the shared backends are built,
+and dummy ones stand in for Android's own), so nothing runs as an app.
 
 Tests of the platform backends that need something from the system (an X
 server, a PipeWire server, a GPU, a camera, a macOS window server session)
