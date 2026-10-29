@@ -446,8 +446,15 @@ functions only the Swift code calls aren't translated.
 
 ## Android
 
-Android builds and lints; nothing runs there yet, and its platform layer
-(`core/android`, the Java, the Android drivers) isn't translated.
+Android builds and lints, and the tests run on the Android emulator as
+spawned processes (`tools/android_run.py`: "Android emulator" in
+docs/HARDWARE_TESTING.md); its platform layer (`core/android`, the Java,
+the Android drivers) isn't translated.
+
+A test that reads its package's files does so at run time, through
+`CARGO_MANIFEST_DIR` (falling back on `env!("CARGO_MANIFEST_DIR")`), which
+the Android runner points to its copy of the workspace's test data on the
+device; the same for `CARGO_TARGET_TMPDIR` and `CARGO_BIN_EXE_NAME`.
 
 ### Platform macros
 
