@@ -55,6 +55,15 @@ This repository keeps the **zlib license** for everything, for three reasons:
 is an altered version (condition 4) and names the origin (condition 3). Each
 source file repeats this in its header.
 
+The exceptions are the translations of the third-party libraries SDL_ttf,
+SDL_mixer and SDL_shadercross bundle or vendor, which keep their own
+licenses, among them the LGPL of the four crates `sdl3-mixer` uses for
+MIDI, MP3 and game music by default (`sdl3-mixer-timidity`,
+`sdl3-mixer-fluidsynth`, `sdl3-mixer-mpg123`, `sdl3-mixer-gme`). The
+README's License section lists them, with a note on what the LGPL asks
+of a program that links them statically (as Cargo links every crate),
+and of an app on iOS, tvOS and visionOS.
+
 ## If you want a different license later
 
 You may relicense **your own contributions** at any time, since you hold their

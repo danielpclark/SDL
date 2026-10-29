@@ -18,6 +18,9 @@
 //!   On Emscripten, [`load`] and [`load_typed_io`] first take the image
 //!   the browser decoded when the file was preloaded (emcc's
 //!   `--preload-file` with `--use-preload-plugins`), as upstream's do.
+//!   On macOS, iOS, tvOS and visionOS the formats go through the same
+//!   decoders as elsewhere: upstream's ImageIO backend (`IMG_ImageIO.m`),
+//!   its default on Apple platforms, isn't translated.
 //! * Detection: an `is_*` function for every format SDL_image knows, each
 //!   leaving the stream where it was.
 //! * Decoders: AVIF (8, 10 and 12 bits, alpha, grids, HDR PQ images as
