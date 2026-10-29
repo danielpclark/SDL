@@ -24,7 +24,8 @@ pub(crate) mod emscripten;
     not(target_os = "emscripten")
 ))]
 pub(crate) mod linux;
-#[cfg(unix)]
+// (CMake's Android branch doesn't build src/core/unix/)
+#[cfg(all(unix, not(target_os = "android")))]
 pub(crate) mod unix;
 #[cfg(windows)]
 pub(crate) mod windows;

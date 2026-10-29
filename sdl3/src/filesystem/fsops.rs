@@ -246,13 +246,22 @@ pub(super) fn get_path_info(path: &str) -> Result<PathInfo> {
         info.size = statbuf.len();
     }
 
-    #[cfg(unix)]
+    #[cfg(all(unix, not(target_os = "android")))]
     {
         // POSIX.1-2008 standard
         use std::os::unix::fs::MetadataExt;
         info.create_time = timespec(statbuf.ctime(), statbuf.ctime_nsec());
         info.modify_time = timespec(statbuf.mtime(), statbuf.mtime_nsec());
         info.access_time = timespec(statbuf.atime(), statbuf.atime_nsec());
+    }
+    // (Android: HAVE_ST_MTIM is `__ANDROID_API__ >= 26`, off at the floor
+    // of API 21 upstream builds for: whole seconds)
+    #[cfg(target_os = "android")]
+    {
+        use std::os::unix::fs::MetadataExt;
+        info.create_time = timespec(statbuf.ctime(), 0);
+        info.modify_time = timespec(statbuf.mtime(), 0);
+        info.access_time = timespec(statbuf.atime(), 0);
     }
     #[cfg(not(unix))]
     {

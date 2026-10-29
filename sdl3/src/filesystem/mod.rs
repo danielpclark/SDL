@@ -12,18 +12,29 @@
 // (upstream's SDL_FSOPS_POSIX and SDL_FSOPS_WINDOWS), and the Unix paths
 // except on Windows, Apple platforms and Emscripten, which have their own
 // (SDL_FILESYSTEM_UNIX, SDL_FILESYSTEM_WINDOWS, SDL_FILESYSTEM_COCOA and
-// SDL_FILESYSTEM_EMSCRIPTEN).
+// SDL_FILESYSTEM_EMSCRIPTEN), and Android, whose backend
+// (SDL_FILESYSTEM_ANDROID) isn't translated yet: the dummy one
+// (SDL_FILESYSTEM_DUMMY) stands in there.
 #[cfg(target_vendor = "apple")]
 mod cocoa;
+#[cfg(target_os = "android")]
+mod dummy;
 #[cfg(target_os = "emscripten")]
 mod emscripten;
 #[cfg(not(windows))]
 mod fsops;
 #[cfg(target_vendor = "apple")]
 use cocoa as sys;
+#[cfg(target_os = "android")]
+use dummy as sys;
 #[cfg(target_os = "emscripten")]
 use emscripten as sys;
-#[cfg(not(any(windows, target_vendor = "apple", target_os = "emscripten")))]
+#[cfg(not(any(
+    windows,
+    target_vendor = "apple",
+    target_os = "android",
+    target_os = "emscripten"
+)))]
 mod sys;
 #[cfg(windows)]
 mod windows;

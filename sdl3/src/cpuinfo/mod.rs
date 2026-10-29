@@ -146,9 +146,16 @@ fn cpu_have_avx512f() -> bool {
     x86_feature!("avx512f")
 }
 
-/// The ARMv6 SIMD extensions (32-bit ARM only).
+/// The ARMv6 SIMD extensions: `__ARM_ARCH >= 6` or `__aarch64__`.
+///
+/// Note: the 32-bit ARM architecture levels (`target_feature = "v6"`)
+/// aren't `cfg`s on stable Rust, so on 32-bit ARM this is false where
+/// upstream's `__ARM_ARCH` would say 6 or more.
 fn cpu_have_arm_simd() -> bool {
-    cfg!(all(target_arch = "arm", target_feature = "v6"))
+    cfg!(any(
+        target_arch = "aarch64",
+        all(target_arch = "arm", target_feature = "v6")
+    ))
 }
 
 fn cpu_have_neon() -> bool {
@@ -157,7 +164,19 @@ fn cpu_have_neon() -> bool {
         // ARMv8 (and later) always has NEON, but the hardware may disable it.
         std::arch::is_aarch64_feature_detected!("neon")
     }
-    #[cfg(not(target_arch = "aarch64"))]
+    // (32-bit ARM Linux and Android: the kernel's hardware capabilities)
+    #[cfg(all(target_arch = "arm", any(target_os = "linux", target_os = "android")))]
+    {
+        // #include <asm/hwcap.h>
+        const AT_HWCAP: libc::c_ulong = 16;
+        const HWCAP_NEON: libc::c_ulong = 1 << 12;
+        // SAFETY: getauxval() only reads the process's auxiliary vector.
+        (unsafe { libc::getauxval(AT_HWCAP) } & HWCAP_NEON) == HWCAP_NEON
+    }
+    #[cfg(not(any(
+        target_arch = "aarch64",
+        all(target_arch = "arm", any(target_os = "linux", target_os = "android"))
+    )))]
     {
         cfg!(all(target_arch = "arm", target_feature = "neon"))
     }

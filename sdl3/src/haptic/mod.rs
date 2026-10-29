@@ -36,7 +36,8 @@ mod dummy;
     target_os = "macos",
     windows,
     target_os = "ios",
-    target_os = "tvos"
+    target_os = "tvos",
+    target_os = "android"
 ))]
 pub(crate) mod hidapi;
 #[cfg(target_os = "linux")]
@@ -453,7 +454,8 @@ pub(crate) struct HapticData {
             target_os = "macos",
             windows,
             target_os = "ios",
-            target_os = "tvos"
+            target_os = "tvos",
+            target_os = "android"
         )),
         allow(dead_code)
     )]
@@ -741,7 +743,8 @@ fn hidapi_joystick_is_haptic(joystick: &Joystick) -> bool {
         target_os = "macos",
         windows,
         target_os = "ios",
-        target_os = "tvos"
+        target_os = "tvos",
+        target_os = "android"
     ))]
     {
         hidapi::joystick_is_haptic(joystick)
@@ -751,7 +754,8 @@ fn hidapi_joystick_is_haptic(joystick: &Joystick) -> bool {
         target_os = "macos",
         windows,
         target_os = "ios",
-        target_os = "tvos"
+        target_os = "tvos",
+        target_os = "android"
     )))]
     {
         let _ = joystick;
@@ -767,7 +771,8 @@ fn hidapi_joystick_same_haptic(haptic: &HapticData, joystick: &Joystick) -> bool
         target_os = "macos",
         windows,
         target_os = "ios",
-        target_os = "tvos"
+        target_os = "tvos",
+        target_os = "android"
     ))]
     {
         hidapi::joystick_same_haptic(haptic, joystick)
@@ -777,7 +782,8 @@ fn hidapi_joystick_same_haptic(haptic: &HapticData, joystick: &Joystick) -> bool
         target_os = "macos",
         windows,
         target_os = "ios",
-        target_os = "tvos"
+        target_os = "tvos",
+        target_os = "android"
     )))]
     {
         let _ = (haptic, joystick);
@@ -928,7 +934,8 @@ impl Haptic {
                     target_os = "macos",
                     windows,
                     target_os = "ios",
-                    target_os = "tvos"
+                    target_os = "tvos",
+                    target_os = "android"
                 ))]
                 if hidapi::open_from_joystick(&mut haptic, joystick).is_err() {
                     return Err(Error::new(
@@ -1054,7 +1061,8 @@ impl Haptic {
                 target_os = "macos",
                 windows,
                 target_os = "ios",
-                target_os = "tvos"
+                target_os = "tvos",
+                target_os = "android"
             ))]
             if hidapi::is_hidapi(h) {
                 return Ok(hidapi::effect_status(h, effect));
@@ -1104,7 +1112,8 @@ impl Haptic {
                 target_os = "macos",
                 windows,
                 target_os = "ios",
-                target_os = "tvos"
+                target_os = "tvos",
+                target_os = "android"
             ))]
             if hidapi::is_hidapi(h) {
                 return hidapi::pause(h);
@@ -1126,7 +1135,8 @@ impl Haptic {
                 target_os = "macos",
                 windows,
                 target_os = "ios",
-                target_os = "tvos"
+                target_os = "tvos",
+                target_os = "android"
             ))]
             if hidapi::is_hidapi(h) {
                 return hidapi::resume(h);
@@ -1145,7 +1155,8 @@ impl Haptic {
                 target_os = "macos",
                 windows,
                 target_os = "ios",
-                target_os = "tvos"
+                target_os = "tvos",
+                target_os = "android"
             ))]
             if hidapi::is_hidapi(h) {
                 return hidapi::stop_all(h);
@@ -1281,7 +1292,8 @@ fn create_effect(haptic: &mut HapticData, effect: &HapticEffect) -> Result<Hapti
         target_os = "macos",
         windows,
         target_os = "ios",
-        target_os = "tvos"
+        target_os = "tvos",
+        target_os = "android"
     ))]
     if hidapi::is_hidapi(haptic) {
         return hidapi::new_effect(haptic, effect);
@@ -1329,7 +1341,8 @@ fn update_effect(
         target_os = "macos",
         windows,
         target_os = "ios",
-        target_os = "tvos"
+        target_os = "tvos",
+        target_os = "android"
     ))]
     if hidapi::is_hidapi(haptic) {
         return hidapi::update_effect(haptic, effect, data);
@@ -1349,7 +1362,8 @@ fn run_effect(haptic: &mut HapticData, effect: HapticEffectID, iterations: u32) 
         target_os = "macos",
         windows,
         target_os = "ios",
-        target_os = "tvos"
+        target_os = "tvos",
+        target_os = "android"
     ))]
     if hidapi::is_hidapi(haptic) {
         return hidapi::run_effect(haptic, effect, iterations);
@@ -1368,7 +1382,8 @@ fn stop_effect(haptic: &mut HapticData, effect: HapticEffectID) -> Result<()> {
         target_os = "macos",
         windows,
         target_os = "ios",
-        target_os = "tvos"
+        target_os = "tvos",
+        target_os = "android"
     ))]
     if hidapi::is_hidapi(haptic) {
         return hidapi::stop_effect(haptic, effect);
@@ -1387,7 +1402,8 @@ fn destroy_effect(haptic: &mut HapticData, effect: HapticEffectID) {
         target_os = "macos",
         windows,
         target_os = "ios",
-        target_os = "tvos"
+        target_os = "tvos",
+        target_os = "android"
     ))]
     if hidapi::is_hidapi(haptic) {
         hidapi::destroy_effect(haptic, effect);
@@ -1433,7 +1449,8 @@ fn set_gain(haptic: &mut HapticData, gain: i32) -> Result<()> {
         target_os = "macos",
         windows,
         target_os = "ios",
-        target_os = "tvos"
+        target_os = "tvos",
+        target_os = "android"
     ))]
     if hidapi::is_hidapi(haptic) {
         return hidapi::set_gain(haptic, real_gain);
@@ -1459,7 +1476,8 @@ fn set_autocenter(haptic: &mut HapticData, autocenter: i32) -> Result<()> {
         target_os = "macos",
         windows,
         target_os = "ios",
-        target_os = "tvos"
+        target_os = "tvos",
+        target_os = "android"
     ))]
     if hidapi::is_hidapi(haptic) {
         return hidapi::set_autocenter(haptic, autocenter);
@@ -1500,7 +1518,8 @@ fn close_device(haptic: &mut HapticData) {
         target_os = "macos",
         windows,
         target_os = "ios",
-        target_os = "tvos"
+        target_os = "tvos",
+        target_os = "android"
     ))]
     if hidapi::is_hidapi(haptic) {
         hidapi::close(haptic);

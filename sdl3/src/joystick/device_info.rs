@@ -356,7 +356,8 @@ pub(crate) fn gamepad_type_from_guid(guid: Guid, name: Option<&str>) -> GamepadT
             target_os = "linux",
             target_os = "macos",
             target_os = "ios",
-            target_os = "tvos"
+            target_os = "tvos",
+            target_os = "android"
         ))]
         if is_joystick_hidapi(guid) {
             return super::hidapi::get_gamepad_type_from_guid(guid);
@@ -699,7 +700,8 @@ pub(crate) fn joystick_guid_type(guid: Guid) -> JoystickType {
         target_os = "linux",
         target_os = "macos",
         target_os = "ios",
-        target_os = "tvos"
+        target_os = "tvos",
+        target_os = "android"
     ))]
     if is_joystick_hidapi(guid) {
         return super::hidapi::get_joystick_type_from_guid(guid);

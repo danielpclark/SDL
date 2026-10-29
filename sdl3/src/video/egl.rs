@@ -25,6 +25,8 @@ use crate::events::WindowID;
 use crate::hints;
 use crate::loadso::SharedObject;
 
+#[cfg(target_os = "android")]
+use super::gl::GL_CONTEXT_DEBUG_FLAG;
 use super::gl::{
     self, gl_config, EglConfig, EglDisplay, GlConfig, RawGlContext, GL_CONTEXT_PROFILE_ES,
 };
@@ -96,9 +98,12 @@ const EGL_EXTENSIONS: EGLint = 0x3055;
 const EGL_HEIGHT: EGLint = 0x3056;
 #[cfg_attr(any(windows, target_vendor = "apple"), allow(dead_code))] // (offscreen and Wayland only)
 const EGL_WIDTH: EGLint = 0x3057;
+#[cfg_attr(target_os = "android", allow(dead_code))] // (window surfaces: the Android driver isn't translated yet)
 const EGL_GL_COLORSPACE_SRGB_KHR: EGLint = 0x3089;
+#[cfg_attr(target_os = "android", allow(dead_code))] // (window surfaces)
 const EGL_GL_COLORSPACE_LINEAR_KHR: EGLint = 0x308A;
 const EGL_CONTEXT_CLIENT_VERSION: EGLint = 0x3098;
+#[cfg_attr(target_os = "android", allow(dead_code))] // (window surfaces)
 const EGL_GL_COLORSPACE_KHR: EGLint = 0x309D;
 const EGL_OPENGL_ES_API: EGLenum = 0x30A0;
 const EGL_OPENGL_API: EGLenum = 0x30A2;
@@ -113,6 +118,7 @@ const EGL_COLOR_COMPONENT_TYPE_EXT: EGLint = 0x3339;
 const EGL_COLOR_COMPONENT_TYPE_FLOAT_EXT: EGLint = 0x333B;
 #[cfg_attr(any(windows, target_vendor = "apple"), allow(dead_code))] // (offscreen and Wayland only)
 const EGL_PLATFORM_DEVICE_EXT: EGLenum = 0x313F;
+#[cfg_attr(target_os = "android", allow(dead_code))] // (window surfaces)
 const EGL_PRESENT_OPAQUE_EXT: EGLint = 0x31DF;
 
 /// `SDL_EGL_MAX_DEVICES`.
@@ -739,6 +745,7 @@ fn egl_get_version() {
 
 /// Copy a callback's attribute list up to its `EGL_NONE` key (or its end)
 /// and terminate it.
+#[cfg_attr(target_os = "android", allow(dead_code))] // (the Android driver isn't translated yet)
 fn terminated_pairs<T: Copy + PartialEq>(list: &[T], none: T) -> Vec<T> {
     let mut out = Vec::with_capacity(list.len() + 1);
     let mut pairs = list.chunks(2);
@@ -754,6 +761,7 @@ fn terminated_pairs<T: Copy + PartialEq>(list: &[T], none: T) -> Vec<T> {
 
 /// Load EGL and initialize a display for `native_display`. Translation of
 /// `SDL_EGL_LoadLibrary()`.
+#[cfg_attr(target_os = "android", allow(dead_code))] // (the Android driver isn't translated yet)
 pub(crate) fn load_library(
     egl_path: Option<&str>,
     native_display: NativeDisplayType,
@@ -1373,7 +1381,26 @@ pub(crate) fn create_context(egl_surface: EGLSurface) -> Result<RawGlContext> {
         EGL_NO_CONTEXT
     };
 
-    // (the EGL_KHR_debug check is Android's)
+    #[cfg(target_os = "android")]
+    let config = {
+        if config.flags & GL_CONTEXT_DEBUG_FLAG != 0 {
+            /* If SDL_GL_CONTEXT_DEBUG_FLAG is set but EGL_KHR_debug unsupported, unset.
+             * This is required because some Android devices like to complain about it
+             * by "silently" failing, logging a hint which could be easily overlooked:
+             * E/libEGL  (26984): validate_display:255 error 3008 (EGL_BAD_DISPLAY)
+             * The following explicitly checks for EGL_KHR_debug before EGL 1.5
+             */
+            let egl_version_major = e.egl_version_major;
+            let egl_version_minor = e.egl_version_minor;
+            if (egl_version_major < 1 || (egl_version_major == 1 && egl_version_minor < 5))
+                && !has_extension(&e, ExtensionType::Display, "EGL_KHR_debug")
+            {
+                // SDL profile bits match EGL profile bits.
+                gl::with_gl_config(|c| c.flags &= !GL_CONTEXT_DEBUG_FLAG);
+            }
+        }
+        gl_config()
+    };
 
     let mut attribs = context_attribs(
         &config,
@@ -1537,14 +1564,20 @@ pub(crate) fn set_swap_interval(interval: i32) -> Result<()> {
 
 /// Set `egl_data->egl_swapinterval` alone (nothing if EGL isn't loaded),
 /// for the Wayland driver, which paces the swaps itself.
-#[cfg_attr(any(windows, target_vendor = "apple"), allow(dead_code))] // (Wayland only)
+#[cfg_attr(
+    any(windows, target_vendor = "apple", target_os = "android"),
+    allow(dead_code)
+)] // (Wayland only)
 pub(crate) fn set_stored_swap_interval(interval: i32) {
     with_egl(|e| e.egl_swapinterval = interval);
 }
 
 /// `egl_data->eglSwapInterval(egl_data->egl_display, interval)`, its result
 /// ignored (nothing if EGL isn't loaded), for the Wayland driver.
-#[cfg_attr(any(windows, target_vendor = "apple"), allow(dead_code))] // (Wayland only)
+#[cfg_attr(
+    any(windows, target_vendor = "apple", target_os = "android"),
+    allow(dead_code)
+)] // (Wayland only)
 pub(crate) fn call_swap_interval(interval: i32) {
     let Some(e) = egl() else { return };
     // SAFETY: the display is EGL's (or EGL_NO_DISPLAY, which fails).
@@ -1587,6 +1620,7 @@ pub(crate) fn destroy_context(context: RawGlContext) {
 
 /// The sRGB and opacity attributes of `SDL_EGL_CreateSurface()`, and the
 /// index of the `EGL_PRESENT_OPAQUE_EXT` pair (if any).
+#[cfg_attr(target_os = "android", allow(dead_code))] // (the Android driver isn't translated yet)
 fn surface_attribs(
     has_gl_colorspace: bool,
     srgbhint: Option<&str>,
@@ -1640,6 +1674,7 @@ fn surface_attribs(
 
 /// Create a window surface for the native window `nw` (of `window`, if
 /// any), choosing the config first. Translation of `SDL_EGL_CreateSurface()`.
+#[cfg_attr(target_os = "android", allow(dead_code))] // (the Android driver isn't translated yet)
 pub(crate) fn create_surface(window: Option<WindowID>, nw: NativeWindowType) -> Result<EGLSurface> {
     choose_config()?;
     let Some(e) = egl() else {

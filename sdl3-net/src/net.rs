@@ -838,6 +838,17 @@ mod ifaces {
     const RTM_GETADDR: u16 = libc::RTM_GETADDR;
     const IFA_ADDRESS: u16 = 1;
     const IFA_BROADCAST: u16 = 4;
+    // (the libc crate has no RTMGRP_* for Android, whose <linux/rtnetlink.h>
+    // has them)
+    const RTMGRP_LINK: u32 = 0x1;
+    const RTMGRP_IPV4_IFADDR: u32 = 0x10;
+    const RTMGRP_IPV6_IFADDR: u32 = 0x100;
+    #[cfg(target_os = "linux")]
+    const _: () = assert!(
+        RTMGRP_LINK == libc::RTMGRP_LINK as u32
+            && RTMGRP_IPV4_IFADDR == libc::RTMGRP_IPV4_IFADDR as u32
+            && RTMGRP_IPV6_IFADDR == libc::RTMGRP_IPV6_IFADDR as u32
+    );
 
     const fn nlmsg_align(len: usize) -> usize {
         (len + 3) & !3
@@ -864,8 +875,7 @@ mod ifaces {
             let mut addr: libc::sockaddr_nl = std::mem::zeroed();
             addr.nl_family = libc::AF_NETLINK as libc::sa_family_t;
             addr.nl_pid = 0; // zero==let the kernel choose a unique number. THIS IS THE SOCKET PORT ID, NOT THE PROCESS ID!
-            addr.nl_groups =
-                (libc::RTMGRP_LINK | libc::RTMGRP_IPV4_IFADDR | libc::RTMGRP_IPV6_IFADDR) as u32;
+            addr.nl_groups = RTMGRP_LINK | RTMGRP_IPV4_IFADDR | RTMGRP_IPV6_IFADDR;
             if libc::bind(
                 fd,
                 (&addr as *const libc::sockaddr_nl).cast(),

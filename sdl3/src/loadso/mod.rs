@@ -72,7 +72,12 @@ impl SharedObject {
     /// Load a shared object with its symbols made available to the ones
     /// loaded after it (`dlopen(sofile, RTLD_NOW | RTLD_GLOBAL)`), as the
     /// X11 driver loads libGL (its `GL_LoadObject()`).
-    #[cfg(all(unix, not(target_vendor = "apple"), not(target_os = "emscripten")))]
+    #[cfg(all(
+        unix,
+        not(target_vendor = "apple"),
+        not(target_os = "android"),
+        not(target_os = "emscripten")
+    ))]
     pub(crate) fn load_global(sofile: &str) -> Result<SharedObject> {
         sys::load_with_flags(sofile, libc::RTLD_NOW | libc::RTLD_GLOBAL).map(|handle| {
             SharedObject {
@@ -278,15 +283,18 @@ mod tests {
 
     #[cfg(target_os = "linux")]
     const LIBC: &str = "libc.so.6";
+    // (Bionic's)
+    #[cfg(target_os = "android")]
+    const LIBC: &str = "libc.so";
     #[cfg(windows)]
     const LIBC: &str = "kernel32.dll";
 
-    #[cfg(any(target_os = "linux", windows))]
+    #[cfg(any(target_os = "linux", target_os = "android", windows))]
     #[test]
     fn load_and_call() {
         let so = SharedObject::load(LIBC).unwrap();
         assert_eq!(so.name(), LIBC);
-        #[cfg(target_os = "linux")]
+        #[cfg(any(target_os = "linux", target_os = "android"))]
         {
             // SAFETY: getpid() takes no arguments and returns pid_t.
             let getpid: unsafe extern "C" fn() -> i32 = unsafe { so.function("getpid") }.unwrap();

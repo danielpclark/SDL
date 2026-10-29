@@ -81,7 +81,12 @@ static BOOTSTRAP: &[&VideoBootStrap] = &[
         not(target_os = "emscripten")
     ))]
     &drivers::wayland::video::WAYLAND_PREFERRED_BOOTSTRAP,
-    #[cfg(all(unix, not(target_vendor = "apple"), not(target_os = "emscripten")))]
+    #[cfg(all(
+        unix,
+        not(target_vendor = "apple"),
+        not(target_os = "android"),
+        not(target_os = "emscripten")
+    ))]
     &drivers::x11::video::X11_BOOTSTRAP,
     #[cfg(all(
         unix,
@@ -110,7 +115,12 @@ static BOOTSTRAP: &[&VideoBootStrap] = &[
         not(target_os = "emscripten")
     ))]
     &drivers::wayland::video::WAYLAND_PREFERRED_BOOTSTRAP,
-    #[cfg(all(unix, not(target_vendor = "apple"), not(target_os = "emscripten")))]
+    #[cfg(all(
+        unix,
+        not(target_vendor = "apple"),
+        not(target_os = "android"),
+        not(target_os = "emscripten")
+    ))]
     &drivers::x11::video::X11_BOOTSTRAP,
     #[cfg(all(
         unix,
@@ -1777,7 +1787,7 @@ pub(crate) fn display_current_mode_ref(display: DisplayID) -> Option<CurrentMode
 /// The CSS (and freedesktop cursor theme) name of a system cursor, and a
 /// fallback name for themes without it. Translation of
 /// `SDL_GetCSSCursorName()` (for the X11, Wayland and Emscripten drivers).
-#[cfg(all(unix, not(target_vendor = "apple")))]
+#[cfg(all(unix, not(target_vendor = "apple"), not(target_os = "android")))]
 pub(crate) fn css_cursor_name(id: mouse::SystemCursor) -> (&'static str, Option<&'static str>) {
     use mouse::SystemCursor as C;
     // Reference: https://www.w3.org/TR/css-ui-4/#cursor

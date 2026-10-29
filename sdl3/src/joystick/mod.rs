@@ -14,10 +14,11 @@
 //! [`gamepad`] module maps joystick inputs to named buttons and axes.
 //!
 //! The joystick drivers are platform backends. So far the HIDAPI driver
-//! (on Linux, Windows, macOS, iOS and tvOS: game controllers talked to
-//! directly over HID, through [`crate::hidapi`], with the Xbox 360, Xbox
-//! One, PS4, PS5 and Nintendo Switch device drivers; on iOS and tvOS only
-//! Bluetooth Steam Controllers, and it is off unless
+//! (on Linux, Windows, macOS, iOS, tvOS and Android: game controllers
+//! talked to directly over HID, through [`crate::hidapi`], with the Xbox
+//! 360, Xbox One, PS4, PS5 and Nintendo Switch device drivers; on iOS and
+//! tvOS only Bluetooth Steam Controllers, on Android none yet (its HID
+//! backend isn't translated), and it is off there unless
 //! [`crate::hints::JOYSTICK_HIDAPI`] turns it on), the Linux driver (evdev devices, found
 //! through libudev or inotify), the Windows drivers (RawInput; DirectInput
 //! and XInput; Windows.Gaming.Input), the IOKit driver (macOS), the MFi
@@ -25,7 +26,7 @@
 //! (the browser's Gamepad API), the virtual driver
 //! ([`attach_virtual_joystick`]) and the dummy driver (on platforms without
 //! a driver), which reports no devices, exist; the other HIDAPI device
-//! drivers and platform drivers arrive later.
+//! drivers and platform drivers (Android's among them) arrive later.
 
 #[cfg(target_vendor = "apple")]
 pub(crate) mod apple;
@@ -36,6 +37,7 @@ mod device_info;
 #[cfg(not(any(
     windows,
     target_os = "linux",
+    target_os = "android",
     target_vendor = "apple",
     target_os = "emscripten"
 )))]
@@ -49,7 +51,8 @@ mod gamepad_db;
     target_os = "linux",
     target_os = "macos",
     target_os = "ios",
-    target_os = "tvos"
+    target_os = "tvos",
+    target_os = "android"
 ))]
 pub(crate) mod hidapi;
 #[cfg(target_os = "linux")]
@@ -446,7 +449,8 @@ impl JoystickData {
             target_os = "linux",
             target_os = "macos",
             target_os = "ios",
-            target_os = "tvos"
+            target_os = "tvos",
+            target_os = "android"
         )),
         allow(dead_code)
     )] // (used by the HIDAPI drivers)
@@ -467,7 +471,8 @@ impl JoystickData {
             target_os = "linux",
             target_os = "macos",
             target_os = "ios",
-            target_os = "tvos"
+            target_os = "tvos",
+            target_os = "android"
         )),
         allow(dead_code)
     )] // (used by the HIDAPI drivers)
@@ -589,7 +594,8 @@ pub(crate) const JOYSTICK_MFI: bool = true;
     target_os = "linux",
     target_os = "macos",
     target_os = "ios",
-    target_os = "tvos"
+    target_os = "tvos",
+    target_os = "android"
 ))]
 const HIDAPI_DRIVER_INDEX: usize = 0;
 
@@ -637,7 +643,8 @@ const EMSCRIPTEN_DRIVER_INDEX: usize = 0;
 
 /// The index of the virtual driver in [`JOYSTICK_DRIVERS`] (after the
 /// HIDAPI and platform drivers, if there are: on iOS and tvOS the HIDAPI
-/// and MFi drivers; there's none on visionOS).
+/// and MFi drivers, on Android the HIDAPI driver; there's none on
+/// visionOS).
 #[cfg(not(target_os = "visionos"))]
 const VIRTUAL_DRIVER_INDEX: usize = if cfg!(windows) {
     5
@@ -649,7 +656,7 @@ const VIRTUAL_DRIVER_INDEX: usize = if cfg!(windows) {
     target_os = "linux"
 )) {
     2
-} else if cfg!(target_os = "emscripten") {
+} else if cfg!(any(target_os = "android", target_os = "emscripten")) {
     1
 } else {
     0
@@ -666,7 +673,8 @@ static JOYSTICK_DRIVERS: &[&dyn JoystickDriver] = &[
         target_os = "linux",
         target_os = "macos",
         target_os = "ios",
-        target_os = "tvos"
+        target_os = "tvos",
+        target_os = "android"
     ))]
     &hidapi::HIDAPI_JOYSTICK_DRIVER,
     // Higher priority than other Windows drivers
@@ -695,6 +703,7 @@ static JOYSTICK_DRIVERS: &[&dyn JoystickDriver] = &[
     #[cfg(not(any(
         windows,
         target_os = "linux",
+        target_os = "android",
         target_vendor = "apple",
         target_os = "emscripten"
     )))]
@@ -2713,7 +2722,8 @@ pub fn update_joysticks() {
         target_os = "linux",
         target_os = "macos",
         target_os = "ios",
-        target_os = "tvos"
+        target_os = "tvos",
+        target_os = "android"
     ))]
     hidapi::update_devices();
 
@@ -3040,7 +3050,8 @@ pub(crate) fn send_joystick_sensor(
         target_os = "linux",
         target_os = "macos",
         target_os = "ios",
-        target_os = "tvos"
+        target_os = "tvos",
+        target_os = "android"
     )),
     allow(dead_code)
 )] // (used by the HIDAPI drivers)
