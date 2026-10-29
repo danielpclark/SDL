@@ -329,7 +329,7 @@ fn vulkan_renderer(w: i32, h: i32) -> Option<(Window, Renderer)> {
 
 /// An offscreen Vulkan window, or `None` (with the skip reported): a
 /// Vulkan window loads the Vulkan loader, which may not be there (as on
-/// the iOS Simulator, which has no MoltenVK).
+/// the visionOS Simulator, where no library loads).
 fn vulkan_window(w: i32, h: i32) -> Option<Window> {
     match Window::create("vulkan", w, h, WindowFlags::VULKAN) {
         Ok(window) => Some(window),

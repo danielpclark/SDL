@@ -244,6 +244,10 @@ name = "uikit_gles"
 harness = false
 
 [[test]]
+name = "uikit_vulkan"
+harness = false
+
+[[test]]
 name = "uikit_audio"
 harness = false
 
