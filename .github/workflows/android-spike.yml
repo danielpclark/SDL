@@ -22,7 +22,9 @@ env:
   SPIKE_NDK_VERSION: "29.0.14206865"
   SPIKE_BUILD_TOOLS: "35.0.0"
   UPSTREAM_COMMIT: ea7a2dabfd1ab6b0a5720568ffd207f5825e47f1
-  AVD_CACHE_KEY: android-spike-avd-35-google_apis-x86_64-v1
+  AVD_CACHE_KEY: android-spike-avd-35-google_apis-x86_64-v2
+  # (avdmanager and the emulator must agree on where AVDs live)
+  ANDROID_AVD_HOME: /home/runner/.android/avd
   AVD_CACHE_PATHS: |
     ~/.android/avd
     /usr/local/lib/android/sdk/system-images/android-35/google_apis/x86_64
@@ -51,6 +53,7 @@ jobs:
       - name: Setup (KVM, sdkmanager, Rust)
         run: android-spike/ci_setup.sh
       - name: Cold boot (no snapshot), then quit, saving the quickboot snapshot
+        id: cold
         if: steps.avd.outputs.cache-hit != 'true'
         run: |
           python3 android-spike/emu.py create
@@ -58,10 +61,11 @@ jobs:
           adb shell getprop ro.build.fingerprint
           python3 android-spike/emu.py kill
           du -sh ~/.android/avd/spike.avd ~/.android/avd/spike.avd/snapshots 2>/dev/null || true
+          ls -la ~/.android/avd/spike.avd/snapshots/default_boot 2>/dev/null && echo "ok=1" >> "$GITHUB_OUTPUT"
           du -sh $ANDROID_HOME/system-images/android-35/google_apis/x86_64 $ANDROID_HOME/emulator
           df -h / | tail -1
       - name: Save the AVD cache
-        if: steps.avd.outputs.cache-hit != 'true'
+        if: steps.cold.outputs.ok == '1'
         uses: actions/cache/save@v4
         with:
           path: ${{ env.AVD_CACHE_PATHS }}

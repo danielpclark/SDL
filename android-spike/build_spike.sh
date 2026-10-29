@@ -51,7 +51,7 @@ $BT/d8 --min-api 21 --lib "$JAR" --output "$RUNNER_TEMP/redex" gen/classes.dex &
 echo "--- the javac + d8 reference (java/)"
 mkdir -p "$RUNNER_TEMP/jref/classes" "$RUNNER_TEMP/jref/dex"
 javac --release 8 -cp "$JAR" -d "$RUNNER_TEMP/jref/classes" $(find java -name '*.java') 2>&1 | grep -v "warning" || true
-$BT/d8 --min-api 21 --lib "$JAR" --output "$RUNNER_TEMP/jref/dex" $(find "$RUNNER_TEMP/jref/classes" -name '*.class')
+$BT/d8 --min-api 21 --lib "$JAR" --output "$RUNNER_TEMP/jref/dex" $(find "$RUNNER_TEMP/jref/classes/org/libsdl/app" -name '*.class')
 ls -la "$RUNNER_TEMP/jref/dex"
 $BT/dexdump -d "$RUNNER_TEMP/jref/dex/classes.dex" > "$RUNNER_TEMP/jref/dump.txt"
 $BT/dexdump -d gen/classes.dex > "$RUNNER_TEMP/gen/dump.txt"

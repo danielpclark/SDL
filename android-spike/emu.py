@@ -43,6 +43,8 @@ def create():
                 "hw.camera.back=emulated\nhw.camera.front=emulated\nhw.gpu.enabled=yes\nhw.gpu.mode=swiftshader_indirect\n"
                 "hw.audioInput=yes\nhw.audioOutput=yes\n")
     print(open(cfg).read())
+    r = subprocess.run([avdm, "list", "avd", "-c"], capture_output=True, text=True)
+    print("avdmanager list avd: %s" % r.stdout.strip())
 
 
 def start(label, extra):
@@ -61,6 +63,9 @@ def wait(label, limit=float(os.environ.get("SPIKE_BOOT_LIMIT", "600"))):
         t0 = time.time()
     t_dev = t_boot = None
     while time.time() - t0 < limit:
+        if time.time() - t0 > 15 and sh("pidof", "qemu-system-x86_64", "qemu-system-x86_64-headless", "qemu-system-aarch64").returncode != 0:
+            print("emulator process gone after %.1fs" % (time.time() - t0))
+            break
         r = sh("adb", "shell", "getprop", "sys.boot_completed", timeout=10)
         if r.returncode == 0 and t_dev is None:
             t_dev = time.time() - t0

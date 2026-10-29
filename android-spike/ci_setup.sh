@@ -26,6 +26,13 @@ df -h / | tail -1
   echo "$ANDROID_HOME/platform-tools"
   echo "$ANDROID_HOME/build-tools/$SPIKE_BUILD_TOOLS"
 } >>"$GITHUB_PATH"
+echo "--- the emulator's missing host libraries (before apt)"
+ldd "$ANDROID_HOME/emulator/qemu/linux-x86_64/qemu-system-x86_64" | grep "not found" || echo "(none)"
+s=$(date +%s)
+sudo apt-get install -y -q libpulse0 >/dev/null 2>&1 || { sudo apt-get update -q >/dev/null && sudo apt-get install -y -q libpulse0 >/dev/null; }
+echo "TIMING apt-get install libpulse0: $(( $(date +%s) - s ))s"
+ldd "$ANDROID_HOME/emulator/qemu/linux-x86_64/qemu-system-x86_64" | grep "not found" || echo "(no missing libraries now)"
+mkdir -p "$HOME/.android/avd"
 "$ANDROID_HOME/emulator/emulator" -version | head -1
 "$ANDROID_HOME/emulator/emulator" -accel-check || true
 s=$(date +%s)

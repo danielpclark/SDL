@@ -82,6 +82,7 @@ with zipfile.ZipFile(base) as zi, zipfile.ZipFile(unsigned, "w") as zo:
         zo.write(src, "lib/%s/%s" % (abi, name), compress_type=zipfile.ZIP_STORED)
 aligned = os.path.join(work, "aligned.apk")
 step("zipalign", [os.path.join(bt, "zipalign"), "-P", "16", "-f", "4", unsigned, aligned])
+os.makedirs(os.path.expanduser("~/.android"), exist_ok=True)
 ks = os.path.expanduser("~/.android/spike-debug.keystore")
 if not os.path.exists(ks):
     step("keytool", ["keytool", "-genkeypair", "-keystore", ks, "-storepass", "android", "-keypass", "android",

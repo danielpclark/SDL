@@ -5,6 +5,7 @@ apk=$1
 pkg=org.libsdl.app
 t() { python3 -c 'import time;print(time.time())'; }
 el() { python3 -c "import time;print('%.2fs' % (time.time()-$1))"; }
+timeout 30 adb wait-for-device || { echo "no device"; exit 1; }
 s=$(t); adb install -r -t -g "$apk"; echo "TIMING install $(el $s)"
 adb logcat -c
 s=$(t)
