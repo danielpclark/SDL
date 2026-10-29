@@ -842,8 +842,22 @@ quit
                     .collect()
             )
         ));
+        // (the simulator's keyboard is GameController's coalesced keyboard:
+        // added when video starts, before the audio devices, if
+        // GameController has found it by then, else when its connect
+        // notification comes, a moment later; it's waited for, and traced
+        // where video's start adds it)
         let mut seen = Vec::new();
+        let end = Instant::now() + Duration::from_secs(5);
         take_queued(&mut seen);
+        while !seen.iter().any(|e| e == "KEYBOARD_ADDED") && Instant::now() < end {
+            std::thread::sleep(Duration::from_millis(10));
+            take_queued(&mut seen);
+        }
+        if let Some(i) = seen.iter().position(|e| e == "KEYBOARD_ADDED") {
+            let keyboard = seen.remove(i);
+            seen.insert(0, keyboard);
+        }
         t(format!("events: {}", list(seen)));
 
         // The app becomes active around when the main function starts
