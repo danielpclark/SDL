@@ -54,6 +54,9 @@ for k, v in os.environ.items():
     if re.match(r"^(SDL3_|SDL_|RUST_|RUSTC_BOOTSTRAP$)", k):
         env[k] = v
 env.setdefault("SDL_ASSERT", "abort")
+if tally_dir:
+    # test_support::skip's log, on the device, collected after each program
+    env["SDL3_TEST_SKIP_LOG"] = ROOT + "/skips.log"
 env["HOME"] = ROOT + "/home"
 env["TMPDIR"] = ROOT + "/tmp"
 
@@ -66,6 +69,13 @@ def shell_line(extra_args, extra_env=None):
 
 def cleanup():
     subprocess.run(["adb", "shell", "rm", "-f", dev])
+    if tally_dir:
+        r = subprocess.run(["adb", "shell", "cat %s/skips.log 2>/dev/null; rm -f %s/skips.log" % (ROOT, ROOT)],
+                           capture_output=True, text=True)
+        if r.stdout.strip():
+            with open(os.path.join(tally_dir, "skips.tsv"), "a") as f:
+                for line in r.stdout.splitlines():
+                    f.write("%s\t%s\n" % (base, line))
 
 
 if not (tally_dir and is_libtest):

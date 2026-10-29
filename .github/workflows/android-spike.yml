@@ -39,6 +39,8 @@ defaults:
 jobs:
   platform:
     name: platform (KVM, boot, adb shell, shell probes, ARM, GPU modes)
+    # (run 4: the workspace job only, for the skip log; runs 40884764425 and 40889100427 have this job's results)
+    if: false
     runs-on: ubuntu-latest
     timeout-minutes: 110
     steps:
@@ -159,6 +161,8 @@ jobs:
 
   app:
     name: app (DEX, APK, JNI, stdio sockets, devices)
+    # (run 4: the workspace job only, for the skip log; runs 40884764425 and 40889100427 have this job's results)
+    if: false
     runs-on: ubuntu-latest
     timeout-minutes: 90
     steps:
@@ -271,6 +275,10 @@ jobs:
         if: always()
         run: |
           python3 android-spike/tally.py $RUNNER_TEMP/tally 10 | cut -c1-1500
+          echo "--- skips (SDL3_TEST_SKIP_LOG): count by capability and reason"
+          cut -f2,4 $RUNNER_TEMP/tally/skips.tsv 2>/dev/null | sort | uniq -c | sort -rn | cut -c1-300 | head -60
+          echo "--- skips by program"
+          cut -f1,2 $RUNNER_TEMP/tally/skips.tsv 2>/dev/null | sort | uniq -c | sort -rn | head -30
           echo "--- the programs run without the JSON tally (not libtest: doctests, harness = false)"
           grep -E "^RUN" $RUNNER_TEMP/tally/runner.log | cut -c1-200 | head -80
           grep -E "^PUSH" $RUNNER_TEMP/tally/runner.log | sort -k3 -n -r | head -8 || true
@@ -281,6 +289,8 @@ jobs:
 
   cref:
     name: C reference (upstream android-project with Gradle)
+    # (run 4: the workspace job only, for the skip log; runs 40884764425 and 40889100427 have this job's results)
+    if: false
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
