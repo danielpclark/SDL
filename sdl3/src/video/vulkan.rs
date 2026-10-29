@@ -18,6 +18,7 @@ use super::window::Window;
 pub fn vulkan_load_library(path: Option<&str>) -> Result<()> {
     let (loaded, loaded_path) =
         with_device(|v| (v.vulkan_loader_loaded, v.vulkan_loader_path.clone()))?;
+    let mut driver_path = None;
     if loaded != 0 {
         if let Some(path) = path {
             if Some(path) != loaded_path.as_deref() {
@@ -25,14 +26,18 @@ pub fn vulkan_load_library(path: Option<&str>) -> Result<()> {
             }
         }
     } else {
-        match driver()?.vulkan_load_library(path) {
+        let driver = driver()?;
+        match driver.vulkan_load_library(path) {
             None => return Err(dll_not_supported("Vulkan")),
             Some(result) => result?,
         }
+        driver_path = driver.vulkan_loader_path();
     }
     with_device(|v| {
         v.vulkan_loader_loaded += 1;
-        if v.vulkan_loader_path.is_none() {
+        if let Some(driver_path) = driver_path {
+            v.vulkan_loader_path = driver_path;
+        } else if v.vulkan_loader_path.is_none() {
             v.vulkan_loader_path = path.map(str::to_owned);
         }
     })

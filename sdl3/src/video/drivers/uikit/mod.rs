@@ -14,8 +14,9 @@
 //! controllers' keyboards and mice ([`events`]), the clipboard
 //! ([`clipboard`], the general pasteboard's text), message boxes
 //! ([`messagebox`], alert controllers), Metal views ([`metalview`],
-//! which the Metal renderer and the GPU API's swapchains draw to) and, on
-//! iOS and tvOS, OpenGL ES contexts ([`opengles`], with their views,
+//! which the Metal renderer and the GPU API's swapchains draw to), Vulkan
+//! surfaces on Metal views ([`vulkan`], through MoltenVK) and, on iOS and
+//! tvOS, OpenGL ES contexts ([`opengles`], with their views,
 //! [`openglview`]).
 //!
 //! Upstream writes the driver in Objective-C; its classes
@@ -31,7 +32,6 @@
 //! falls through to the next driver, as one on another thread does with
 //! the Cocoa driver.
 //!
-//! Not translated yet: Vulkan.
 //! `SDL_NSLog()`, which upstream copies here from the Cocoa driver, is
 //! [`crate::log`]'s on every Apple platform.
 
@@ -59,6 +59,9 @@ pub(crate) mod pen;
 pub(crate) mod sys;
 pub(crate) mod view;
 pub(crate) mod viewcontroller;
+// SDL_VIDEO_VULKAN, which upstream builds wherever it builds Metal (64-bit
+// devices, and the Simulators from iOS 13 and tvOS 13)
+pub(crate) mod vulkan;
 pub(crate) mod window;
 
 use std::sync::atomic::AtomicBool;
@@ -601,6 +604,46 @@ impl VideoDriver for UIKitVideo {
     #[cfg(all(any(target_os = "ios", target_os = "tvos"), not(target_abi = "macabi")))]
     fn gl_destroy_context(&self, context: crate::video::gl::RawGlContext) -> Option<Result<()>> {
         Some(opengles::gl_destroy_context(context))
+    }
+
+    // SDL_VIDEO_VULKAN (no Vulkan_GetPresentationSupport: presenting is
+    // always supported)
+
+    fn implements_vulkan_surfaces(&self) -> bool {
+        true
+    }
+    fn vulkan_load_library(&self, path: Option<&str>) -> Option<Result<()>> {
+        Some(vulkan::vulkan_load_library(path))
+    }
+    fn vulkan_unload_library(&self) -> Option<()> {
+        vulkan::vulkan_unload_library();
+        Some(())
+    }
+    fn vulkan_loader_path(&self) -> Option<Option<String>> {
+        Some(vulkan::vulkan_loader_path())
+    }
+    fn vulkan_get_instance_proc_addr(&self) -> Option<usize> {
+        vulkan::vk_get_instance_proc_addr()
+    }
+    fn vulkan_instance_extensions(&self) -> Option<Vec<&'static str>> {
+        Some(vulkan::vulkan_get_instance_extensions())
+    }
+    fn vulkan_create_surface(
+        &self,
+        window: WindowID,
+        instance: usize,
+        allocator: usize,
+    ) -> Option<Result<u64>> {
+        Some(vulkan::vulkan_create_surface(window, instance, allocator))
+    }
+    fn vulkan_destroy_surface(
+        &self,
+        instance: usize,
+        surface: u64,
+        allocator: usize,
+    ) -> Option<()> {
+        vulkan::vulkan_destroy_surface(instance, surface, allocator);
+        Some(())
     }
 
     // SDL_VIDEO_METAL
