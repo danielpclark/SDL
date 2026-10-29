@@ -25,8 +25,8 @@ Every skip names one *capability* (the list is `CAPABILITIES` in
 | `x11` | Linux | libX11 and the X extension libraries (libXext, libXi, libXrandr, libXfixes, libXcursor, libXss, libXtst) |
 | `xvfb` | Linux | an X server: `Xvfb` in `PATH` (each X11 test starts its own), or `DISPLAY` |
 | `glx` | Linux | libGL with GLX on that server (Mesa's llvmpipe is enough) |
-| `egl` | Linux, Windows, macOS | libEGL and the GL/GLES libraries (Mesa on Linux; on Windows an EGL such as ANGLE's `libEGL.dll`, which Windows doesn't ship, or Mesa's (below) with `EGL_PLATFORM=windows`; on macOS ANGLE's `libEGL.dylib` and `libGLESv2.dylib`, from the directory `SDL3_TEST_ANGLE_DIR` names or the copy the Android emulator ships in `~/Library/Android/sdk/emulator/lib64/gles_angle`). The offscreen driver has EGL only on Linux and the other Unix systems, so the OpenGL ES 2 renderer's checks, which draw on it, skip on Windows and macOS, as the OpenGL renderer's checks on it do on macOS |
-| `vulkan` | Linux, Windows, macOS, the iOS and tvOS Simulators | a Vulkan loader and a driver with the surface extensions, `VK_EXT_headless_surface` included for the tests of the Vulkan and GPU renderers and of the GPU API's swapchains on offscreen windows (Mesa's lavapipe is enough; on Windows those tests present to the Windows video driver's windows instead, since the GPU drivers there (NVIDIA's, say) have no `VK_EXT_headless_surface`, and only the offscreen driver's own headless-surface check skips; the tests of the GPU API's Vulkan backend and of the GPU renderer run under `VK_LAYER_KHRONOS_validation` when it is installed, and present to an X11 window too when `DISPLAY` is set); on macOS MoltenVK, by upstream's default names: `libMoltenVK.dylib` itself (in `/usr/local/lib`, say), which runs every check, or the Vulkan loader with it (the Cocoa driver's surface check also tries Homebrew's `/opt/homebrew/lib/libvulkan.1.dylib`), through which the Vulkan renderer's checks skip with `VK_ERROR_INCOMPATIBLE_DRIVER`: MoltenVK's devices then need portability enumeration, which upstream's renderer doesn't ask for. Under Metal's API validation, which the GPU API's Metal devices in debug mode turn on for the rest of the process (as upstream's do, setting `MTL_DEBUG_LAYER=1` unless it's set), MoltenVK misdraws the fills after another render state's in a pass in the GPU renderer's render-state test on the CI runners' Apple Paravirtual device (1.3.0 to 1.4.2, reporting no error), so with a MoltenVK device and `MTL_DEBUG_LAYER` set and not `0` those three checks skip (run the test again with `MTL_DEBUG_LAYER=0` for them; with discrete descriptor binding, `MVK_CONFIG_USE_METAL_ARGUMENT_BUFFERS=0`, more of the renderer's checks misdraw under the layer; Khronos' validation layer, with synchronization validation, finds nothing in them on lavapipe, and they pass on Metal under the same validation); on the iOS and tvOS Simulators MoltenVK's framework for the simulator, which `tools/ios_run.py` takes from `SDL3_IOS_MOLTENVK` (see [iOS Simulator](#ios-simulator): there the GPU API's Vulkan checks skip, the simulator's device lacking features the backend asks for) |
+| `egl` | Linux, Windows, macOS | libEGL and the GL/GLES libraries (Mesa on Linux; on Windows an EGL such as ANGLE's `libEGL.dll`, which Windows doesn't ship, or Mesa's (below) with `EGL_PLATFORM=windows`; on macOS ANGLE's `libEGL.dylib` and `libGLESv2.dylib`, from the directory `SDL3_TEST_ANGLE_DIR` names or the copy the Android emulator ships in `~/Library/Android/sdk/emulator/lib64/gles_angle`). The offscreen driver has EGL only on Linux and the other Unix systems, so the OpenGL ES 2 renderer's checks, which draw on it, skip on Windows, macOS and the Apple Simulators, as the OpenGL renderer's checks on it do on macOS |
+| `vulkan` | Linux, Windows, macOS, the iOS, tvOS and visionOS Simulators | a Vulkan loader and a driver with the surface extensions, `VK_EXT_headless_surface` included for the tests of the Vulkan and GPU renderers and of the GPU API's swapchains on offscreen windows (Mesa's lavapipe is enough; on Windows those tests present to the Windows video driver's windows instead, since the GPU drivers there (NVIDIA's, say) have no `VK_EXT_headless_surface`, and only the offscreen driver's own headless-surface check skips; the tests of the GPU API's Vulkan backend and of the GPU renderer run under `VK_LAYER_KHRONOS_validation` when it is installed, and present to an X11 window too when `DISPLAY` is set); on macOS MoltenVK, by upstream's default names: `libMoltenVK.dylib` itself (in `/usr/local/lib`, say), which runs every check, or the Vulkan loader with it (the Cocoa driver's surface check also tries Homebrew's `/opt/homebrew/lib/libvulkan.1.dylib`), through which the Vulkan renderer's checks skip with `VK_ERROR_INCOMPATIBLE_DRIVER`: MoltenVK's devices then need portability enumeration, which upstream's renderer doesn't ask for. Under Metal's API validation, which the GPU API's Metal devices in debug mode turn on for the rest of the process (as upstream's do, setting `MTL_DEBUG_LAYER=1` unless it's set), MoltenVK misdraws the fills after another render state's in a pass in the GPU renderer's render-state test on the CI runners' Apple Paravirtual device (1.3.0 to 1.4.2, reporting no error), so with a MoltenVK device and `MTL_DEBUG_LAYER` set and not `0` those three checks skip (run the test again with `MTL_DEBUG_LAYER=0` for them; with discrete descriptor binding, `MVK_CONFIG_USE_METAL_ARGUMENT_BUFFERS=0`, more of the renderer's checks misdraw under the layer; Khronos' validation layer, with synchronization validation, finds nothing in them on lavapipe, and they pass on Metal under the same validation); on the iOS and tvOS Simulators MoltenVK's framework for the simulator, which `tools/ios_run.py` takes from `SDL3_IOS_MOLTENVK` (see [Apple Simulators](#apple-simulators): there the GPU API's Vulkan checks skip, the simulator's device lacking features the backend asks for, see [iOS Simulator](#ios-simulator)); on the visionOS Simulator it never loads, upstream's `SDL_LoadObject()` loading nothing there (see [visionOS Simulator](#visionos-simulator)) |
 | `wayland` | Linux | libwayland-client/-egl/-cursor, libxkbcommon and `sway` (or `weston`) in `PATH`; the input and clipboard tests need sway |
 | `dbus` | Linux | libdbus and `dbus-daemon` (the tests start private buses) |
 | `pulseaudio` | Linux | libpulse, and the `pulseaudio` and `pactl` binaries (the tests start a private server) |
@@ -34,7 +34,7 @@ Every skip names one *capability* (the list is `CAPABILITIES` in
 | `alsa` | Linux | libasound and its configuration (the tests use its `file` and `null` PCMs, no sound card) |
 | `udev` | Linux | libudev and a working udev (netlink) |
 | `uinput` | Linux | a writable `/dev/uinput`, and read access to the event node it creates |
-| `hidapi` | Linux, Windows, macOS, iOS | the HID backend: hidraw with libudev, `hid.dll`, IOKit's HID manager, or CoreBluetooth's Steam Controllers (iOS: never missing, no devices without Bluetooth) |
+| `hidapi` | Linux, Windows, macOS, iOS, tvOS | the HID backend: hidraw with libudev, `hid.dll`, IOKit's HID manager, or CoreBluetooth's Steam Controllers (iOS and tvOS: never missing, no devices without Bluetooth) |
 | `ipv6` | any | IPv6 sockets that can resolve and bind to the loopback address `::1` (`sdl3-net`'s IPv6 tests; containers often have IPv4 only) |
 | `tzdata` | Linux | the time zone database in `/usr/share/zoneinfo` (the local time tests set `TZ`) |
 | `locales` | Linux | glibc's `localedef` and its locale sources in `/usr/share/i18n/locales` (the tests compile the locales they read the date and time formats of) |
@@ -51,11 +51,11 @@ Every skip names one *capability* (the list is `CAPABILITIES` in
 | `controller` | any | a connected game controller (only the hardware checks need one) |
 | `desktop` | Windows | an interactive desktop the windows video driver can open windows on (and move the cursor on) |
 | `cocoa` | macOS | a login session whose window server shows windows (Aqua), for the main-thread programs `cargo test -p sdl3 --test cocoa`, `--test cocoa_shell` and `--test cocoa_metal` (and `cargo test -p sdl3-shadercross --test metal`) |
-| `coreaudio` | macOS, iOS Simulator | CoreAudio with a default playback and a default recording device (on the simulator, the Mac's audio, through the app's audio session) |
-| `metal` | macOS, iOS, tvOS and visionOS Simulators | a Metal device (`MTLCreateSystemDefaultDevice()`): the GPU API's Metal backend, the GPU renderer on it, and the Metal renderer (on the visionOS Simulator, the GPU API's indirect draws and dispatches too, which its device hasn't) |
-| `gles` | iOS Simulator | OpenGL ES through EAGL (`EAGLContext`, which Apple deprecated; the simulator's renderer is "Apple Software Renderer"), for `uikit_gles`'s contexts and the OpenGL ES 2 renderer on UIKit windows |
+| `coreaudio` | macOS, the iOS, tvOS and visionOS Simulators | CoreAudio with a default playback and a default recording device (on the simulators, the Mac's audio, through the app's audio session) |
+| `metal` | macOS, the iOS, tvOS and visionOS Simulators | a Metal device (`MTLCreateSystemDefaultDevice()`): the GPU API's Metal backend, the GPU renderer on it, and the Metal renderer (on the visionOS Simulator, the GPU API's indirect draws and dispatches too, which its device hasn't) |
+| `gles` | the iOS and tvOS Simulators | OpenGL ES through EAGL (`EAGLContext`, which Apple deprecated; the simulator's renderer is "Apple Software Renderer"), for `uikit_gles`'s contexts and the OpenGL ES 2 renderer on UIKit windows |
 | `gamecontroller` | iOS Simulator | GameController's on-screen virtual controller (`GCVirtualController`, iOS 15), which `uikit_gamepad` connects as a controller |
-| `idb` | iOS Simulator | idb (fb-idb's `idb` client, a Python program, and its `idb_companion`, in `PATH` or `SDL3_IOS_IDB`), through which `tools/ios_run.py` touches the simulator's screen and presses its keyboard's keys, for `uikit_input`'s real taps and swipes, `uikit_keyboard`'s real keys and text and `uikit_messagebox`'s tap on a button (see [below](#ios-simulator)) |
+| `idb` | iOS Simulator | idb (fb-idb's `idb` client, a Python program, and its `idb_companion`, in `PATH` or `SDL3_IOS_IDB`), through which `tools/ios_run.py` touches the simulator's screen and presses its keyboard's keys, for `uikit_input`'s real taps and swipes, `uikit_keyboard`'s real keys and text and `uikit_messagebox`'s tap on a button (see [below](#apple-simulators); not set up for the tvOS and visionOS Simulators, where only `uikit_input`'s real touches on visionOS skip it) |
 | `browser` | Emscripten | a browser the program runs in: headless Chrome or Chromium, through `tools/emscripten_run.py` (see [below](#emscripten-browser)) |
 | `webgl` | Emscripten | WebGL contexts in that browser (without a GPU, SwiftShader, which the runner's flags allow): `emscripten_browser.rs`'s probe and `emscripten_gl.rs` |
 | `webaudio` | Emscripten | a Web Audio `AudioContext` there that runs without a user gesture (the runner's autoplay flag): `emscripten_browser.rs`'s probe and `emscripten_audio.rs` |
@@ -93,6 +93,11 @@ doesn't have, and print what they find (so run them with `--nocapture`):
 | `joystick::darwin::tests::hardware_joysticks_per_driver` | macOS | lists the controllers the HIDAPI, IOKit and MFi (GameController) drivers see, together and each alone. Zero controllers is fine |
 | `joystick::darwin::tests::hardware_controller_input` | macOS | the interactive controller check of Windows', through the default macOS drivers. Run it on its own |
 | `joystick::apple::tests::hardware_mfi_controllers` | macOS | what GameController reports through the MFi driver alone: names, GUIDs, the generated gamepad mapping, SF Symbols names, sensors, LED, battery and rumble. GameController discovers controllers on the main run loop, which a test thread doesn't run, so only the ones it already knew when the driver started are listed |
+
+On iOS devices the hardware checks are programs of their own (an
+iPhone's cameras, a Steam Controller over Bluetooth LE), bundled, signed
+and run by hand: see
+[iOS, tvOS and visionOS devices](#ios-tvos-and-visionos-devices).
 
 When the hardware isn't there they skip like the other tests (as `camera`,
 `wasapi`, `wgl`, ...), so add the capabilities to `SDL3_TEST_REQUIRE` to
@@ -735,84 +740,109 @@ too, but the ones written for node expect node: the stubs of the power,
 URL and sensor tests (no Battery Status API, no `window`, emscripten's
 window target replaced) fail there or break what follows.
 
-## iOS Simulator
+## Apple Simulators
 
-The workspace's tests also run built for the arm64 iOS Simulator
-(`aarch64-apple-ios-sim`), on a Mac with Xcode and an iOS Simulator
-runtime: `.cargo/config.toml` makes `tools/ios_run.py` (Python's standard
-library only) the runner, which picks or makes the simulated device,
-boots it, and runs each test program (and doctest) on it:
+The tests also run on the iOS, tvOS and visionOS Simulators, on a Mac
+with Xcode and a Simulator runtime of the platform: `.cargo/config.toml`
+makes `tools/ios_run.py` (Python's standard library only) the runner of
+the Simulator and device targets. It tells the program's platform by its
+Mach-O file's build version, picks or makes the simulated device, boots
+it, and runs each test program (and doctest) on it:
+
+| Platform | Target | The simulator's variables | By default | Booted ahead with |
+|---|---|---|---|---|
+| iOS | `aarch64-apple-ios-sim` (`x86_64-apple-ios` on Intel Macs) | `SDL3_IOS_SIMULATOR`, `SDL3_IOS_DEVICE_TYPE`, `SDL3_IOS_RUNTIME` | an iPhone 16 (else the newest iPhone the runtime has) on the newest iOS runtime | `tools/ios_run.py --boot` |
+| tvOS | `aarch64-apple-tvos-sim` (`x86_64-apple-tvos` on Intel Macs) | `SDL3_TVOS_SIMULATOR`, `SDL3_TVOS_DEVICE_TYPE`, `SDL3_TVOS_RUNTIME` | an Apple TV 4K (3rd generation) on the newest tvOS runtime | `tools/ios_run.py --boot tvos` |
+| visionOS | `aarch64-apple-visionos-sim` | `SDL3_VISIONOS_SIMULATOR`, `SDL3_VISIONOS_DEVICE_TYPE`, `SDL3_VISIONOS_RUNTIME` | an Apple Vision Pro on the newest visionOS runtime (whose identifiers say `xrOS`) | `tools/ios_run.py --boot visionos` |
+
+The simulator is the `_SIMULATOR` variable's (a UDID or a device name),
+else a booted one of the platform, else `sdl3-TYPE-RUNTIME`, which the
+runner creates: of the `_DEVICE_TYPE` on the `_RUNTIME` (identifiers or
+names, as `xcrun simctl list` prints them, or a runtime's version). A
+new device takes a minute or two to boot the first time; `--boot` starts
+that and prints the UDID at once, so the device can finish booting while
+the tests build, and the runner waits for the boot before the first
+program runs:
 
 ```sh
 rustup target add aarch64-apple-ios-sim
-# (optional: boot the simulator while the tests build; the runner waits
-# for its boot to finish before the first program runs)
 export SDL3_IOS_SIMULATOR=$(tools/ios_run.py --boot)
 cargo test --workspace --target aarch64-apple-ios-sim
 ```
 
-The simulator is `SDL3_IOS_SIMULATOR`'s (a UDID or a device name), else a
-booted iPhone or iPad simulator, else `sdl3-TYPE-RUNTIME`, which the
-runner creates: of `SDL3_IOS_DEVICE_TYPE` on `SDL3_IOS_RUNTIME`
-(identifiers or names, as `xcrun simctl list` prints them; by default the
-iPhone 16 on the newest iOS runtime). A new device takes a minute or two
-to boot the first time.
+The other variables are the same for the three platforms:
+`SDL3_IOS_TIMEOUT` (the seconds an app may run, 900 by default),
+`SDL3_IOS_MOLTENVK` (below; `SDL3_TVOS_MOLTENVK` and
+`SDL3_VISIONOS_MOLTENVK`, when set, are taken for those platforms),
+`SDL3_IOS_IDB` (below), `SDL3_IOS_CODESIGN` and `SDL3_IOS_BUNDLE_ID`
+(the apps' signing identity, ad hoc by default, and bundle identifier),
+and `SDL3_IOS_VERBOSE` (`1`: the simctl commands, with their times).
 
 A test program runs as a process of the simulated device (`xcrun simctl
 spawn`), with the runner's stdin, stdout and stderr and its exit status.
 It sees the simulator's system (its frameworks, no GPU but the
-simulator's Metal device, MoltenVK when `SDL3_IOS_MOLTENVK` names it (see
-below), no camera, sensors or battery:
-UIDevice's battery state is unknown there), is no app (UIKit's
-`UIApplication` is nil, so no URL has a handler), runs in the device's
-data directory (HOME and TMPDIR are there too; SDL's file functions put
-a relative path in the pref path, `Library/Application Support/` there,
-as on a device), and reads and writes the host's files by their paths:
-test data is read
-through `env!("CARGO_MANIFEST_DIR")`, and a test that needs the package's
-directory as its working directory (as Cargo gives it) changes to it
-there (TiMidity's). The simulator sees those files case-sensitively,
-as a device's file system is, though the Mac's volume isn't: a name that
-differs from an existing file's only in case doesn't exist, and can't be
-made either (`EEXIST`), so tests give their files names that differ in
-more than case (as sdl3-image's saving test does for its `.bmp` and
-`.BMP` files). Only the variables `SDL3_*`, `SDL_*`, `RUST_*`, `MVK_*` and
-`RUSTC_BOOTSTRAP` reach it (simctl passes `SIMCTL_CHILD_NAME` as `NAME`;
-set that for any other), so `SDL3_TEST_REQUIRE`, `SDL3_TEST_SKIP_LOG` and
-the hints work as elsewhere, and the runner sets `SDL_ASSERT=abort` unless
-it's set, so a failed assertion ends the program rather than waiting for
-an answer on the terminal. The simulator's PATH is the runtime's own `bin`
+simulator's Metal device, MoltenVK when `SDL3_IOS_MOLTENVK` names it,
+none of a device's hardware: below), is no app (UIKit's `UIApplication`
+is nil, so no URL has a handler), runs in the device's data directory
+(HOME and TMPDIR are there too; SDL's file functions put a relative path
+in the pref path, `Library/Application Support/` there, as on a device,
+`Library/Caches/` on tvOS), and reads and writes the host's files by
+their paths: test data is read through `env!("CARGO_MANIFEST_DIR")`, and
+a test that needs the package's directory as its working directory (as
+Cargo gives it) changes to it there (TiMidity's). The simulator sees
+those files case-sensitively, as a device's file system is, though the
+Mac's volume isn't: a name that differs from an existing file's only in
+case doesn't exist, and can't be made either (`EEXIST`), so tests give
+their files names that differ in more than case (as sdl3-image's saving
+test does for its `.bmp` and `.BMP` files). Only the variables `SDL3_*`,
+`SDL_*`, `RUST_*`, `MVK_*` and `RUSTC_BOOTSTRAP` reach it (simctl passes
+`SIMCTL_CHILD_NAME` as `NAME`; set that for any other), so
+`SDL3_TEST_REQUIRE`, `SDL3_TEST_SKIP_LOG` and the hints work as
+elsewhere, and the runner sets `SDL_ASSERT=abort` unless it's set, so a
+failed assertion ends the program rather than waiting for an answer on
+the terminal. The simulator's PATH is the runtime's own `bin`
 directories, which have no shell: the process tests start the host's
 `/bin/sh` and `/bin/sleep` by their paths there.
 
 A program that has to be an app (UIKit's `UIApplicationMain()` can't start
-in a spawned process) asks the runner for it: a section
-`__DATA,__sdl3_runner` holding the word `app` (a
-`#[used] #[link_section = "__DATA,__sdl3_runner"]` static, as
-`sdl3/tests/ios_runner.rs` has). The runner puts it in an app bundle (an
-`Info.plist` with a launch screen and every orientation, ad-hoc signed),
-installs it, launches it with `xcrun simctl launch` (up to three times
-when the system refuses the launch, as it now and then does for an app
-it hasn't registered yet: LaunchServicesDataMismatch, "unknown to
-FrontBoard"; none of the app has run then), its stdout and
-stderr in files in the device's temporary directory that it copies as
-they grow until the app's process is gone (through `--console-pty` a
-program that is done at once now and then lost all its output; files in
-the Mac's temporary directory stayed empty), and uninstalls it. simctl
-doesn't give an app's exit status, so
-the program prints `sdl3-ios-runner: exit N` last, then exits with N;
-without that line (a crash, a panic in a callback, an app still running
-after `SDL3_IOS_TIMEOUT` seconds, 900 by default) the run fails with the
-device's log for the program, and the reason repeated as the runner's
-last line. `tools/ios_run.py --bundle PROGRAM OUT.app`
-writes the same bundle for a program of your own (`SDL3_IOS_BUNDLE_ID` and
-`SDL3_IOS_CODESIGN` set its identifier and signing identity; a device
-needs a real identity and a provisioning profile, which the runner doesn't
-handle: it doesn't run programs built for devices). The bundle registers
-its identifier as a URL scheme the app handles, so that an app can open
-its own URLs. A running app can ask the runner for what only the host can
-do with a line `sdl3-ios-runner: request WHAT`: `background` (the runner
-launches the Settings app, which sends the app to the background),
+in a spawned process) asks the runner for it, in a section
+`__DATA,__sdl3_runner` of its Mach-O file (a
+`#[used] #[link_section = "__DATA,__sdl3_runner"]` static of words
+separated by spaces, as `sdl3/tests/ios_runner.rs` has). The words:
+
+* `app`: the runner puts the program in an app bundle (an `Info.plist`
+  with a launch screen, the platform's device family, every orientation
+  on iOS and none on tvOS and visionOS, the usage strings of the camera,
+  the microphone and Bluetooth, and the bundle identifier as a URL scheme
+  the app handles, so that it can open its own URLs; ad-hoc signed),
+  installs it, launches it with `xcrun simctl launch` (up to three times
+  when the system refuses the launch, as it now and then does for an app
+  it hasn't registered yet: LaunchServicesDataMismatch, "unknown to
+  FrontBoard"; none of the app has run then), copies its stdout and
+  stderr from files in the device's temporary directory as they grow
+  until the app's process is gone (through `--console-pty` a program
+  that is done at once now and then lost all its output; files in the
+  Mac's temporary directory stayed empty), and uninstalls it. simctl
+  doesn't give an app's exit status, so the program prints
+  `sdl3-ios-runner: exit N` last, then exits with N; without that line (a
+  crash, a panic in a callback, an app still running after
+  `SDL3_IOS_TIMEOUT` seconds) the run fails with the device's log for the
+  program, and the reason repeated as the runner's last line.
+* `privacy=SERVICE,...`: the app is granted those services first
+  (`simctl privacy grant`: `camera`, which works though simctl's help
+  doesn't list it, `microphone`, ...), and denied those written
+  `-SERVICE` (`simctl privacy revoke`), without being asked.
+* `moltenvk`: MoltenVK's framework for the simulator (below) is bundled
+  in the app as `Frameworks/MoltenVK.framework`, where the app loads it
+  from through `SDL_HINT_VULKAN_LIBRARY`
+  (`@executable_path/Frameworks/MoltenVK.framework/MoltenVK`); the app
+  learns whether the runner did in `SDL3_IOS_RUNNER_MOLTENVK` (`1`, or
+  why not).
+
+A running app can ask the runner for what only the host can do, with a
+line `sdl3-ios-runner: request WHAT`: `background` (the runner launches
+the Settings app, `com.apple.Preferences`, or the Apple TV's
+`com.apple.TVSettings`, which sends the app to the background),
 `foreground` (it launches the app again without terminating it, which
 brings the same process back), `tap X Y` and `swipe X1 Y1 X2 Y2
 [SECONDS]` (a finger touches the screen there, in points, through idb's
@@ -821,24 +851,104 @@ TEXT` (the simulator's hardware keyboard presses the key of USB HID usage
 CODE, or types TEXT, the rest of the line, through `idb ui key` and `idb
 ui text`); the app waits for what follows (its application events, its
 touches, its keys) itself. The touches and keys need
-[idb](https://fbidb.io): its `idb_companion` (`brew install
-facebook/fb/idb-companion`, which only installs with an Xcode 26
-selected: select one for that, then yours again) and its Python client
-(`pip install fb-idb` in a virtual environment), `idb` in `PATH` or the
-command in `SDL3_IOS_IDB` (0: none). The runner tells the app whether it
-has them (`SDL3_IOS_RUNNER_IDB`: `1`, or why not), and after an app that
-used them it stops the companions idb started (`idb kill`).
-Without idb, the checks that need it skip `idb`. The simulator passes a
-touch through a window that has nothing drawn in it (as SDL's views are
-until a renderer draws) to what is behind it, so an app that wants idb's
-touches draws something first, or makes its view opaque, as
-`uikit_input` does.
+[idb](https://fbidb.io), which is set up for the iOS Simulator only: its
+`idb_companion` (`brew install facebook/fb/idb-companion`, which only
+installs with an Xcode 26 selected: select one for that, then yours
+again) and its Python client (`pip install fb-idb` in a virtual
+environment), `idb` in `PATH` or the command in `SDL3_IOS_IDB` (0: none).
+The runner tells the app whether it has them (`SDL3_IOS_RUNNER_IDB`:
+`1`, or why not), and after an app that used them it stops the
+companions idb started (`idb kill`). Without idb, the checks that need
+it skip `idb`. The simulator passes a touch through a window that has
+nothing drawn in it (as SDL's views are until a renderer draws) to what
+is behind it, so an app that wants idb's touches draws something first,
+or makes its view opaque, as `uikit_input` does.
+
+`tools/ios_run.py --bundle PROGRAM OUT.app` writes the same bundle for a
+program of your own, with `SDL3_IOS_BUNDLE_ID` as its identifier (by
+default `org.libsdl.sdl3-rust.NAME`) and signed with `SDL3_IOS_CODESIGN`
+(`-`, ad hoc, by default; `0`: unsigned), and MoltenVK in it for a
+program with the word `moltenvk` (the device's framework for a device
+build). The runner doesn't run programs built for devices: see
+[iOS, tvOS and visionOS devices](#ios-tvos-and-visionos-devices).
+
+Vulkan runs on the simulator's Metal device through MoltenVK, from
+`SDL3_IOS_MOLTENVK`: the dynamic `MoltenVK.xcframework` of a MoltenVK
+release (in its `MoltenVK-all.tar`, the release's only archive with the
+Simulators' frameworks; the runner takes the slice of the program's
+platform and CPU), or a `MoltenVK.framework` for the simulator. The
+runner gives the spawned programs a copy signed ad hoc (the release's
+isn't signed, which the simulator needs), as their
+`DYLD_FRAMEWORK_PATH`, where the offscreen driver's default
+`MoltenVK.framework/MoltenVK` finds it, and bundles it in the apps that
+ask for it (above). MoltenVK takes the simulators' Metal devices (Apple2)
+to have Metal argument buffers, and with them the first draw ends the
+simulator's Metal service (SimMetalHost: "Connection to SimMetalHost ...
+XPC service was lost"), and the program with it (SIGABRT), upstream's C
+as well; so the runner has MoltenVK bind descriptors without them
+(`MVK_CONFIG_USE_METAL_ARGUMENT_BUFFERS=0`, unless it is set). The Vulkan
+renderer's tests and the offscreen driver's Vulkan check run there then,
+on its headless surfaces. On the visionOS Simulator nothing loads it
+(see [visionOS Simulator](#visionos-simulator)).
 
 The UIKit test programs (`sdl3/tests/uikit_*.rs`) are such apps; they
 share `sdl3/tests/uikit_support/`, which prints the exit line and has the
 few Objective-C messages they send themselves. Their bodies run under
 `catch_unwind`, since a panic in a callback from Objective-C (the main
 function `run_app()` calls, a main callback) aborts with no exit line.
+On a platform they aren't for they are empty programs. Each compares a
+trace with upstream's C SDL's, from the same program in C run the same
+way on the CI's simulator (built from upstream's CMake build for that
+Simulator, with the changes the platform's section names); input comes
+from stand-ins given to the views' handlers (`UITouch`, `UIPress`,
+`GCController` snapshots), notifications posted in-process, and on iOS
+idb's real taps and keys:
+
+| Program | iOS | tvOS | visionOS | What it checks |
+|---|---|---|---|---|
+| `uikit_main` | yes | yes | yes | `run_app()`, the app delegate, the lifecycle, the event pump, URLs |
+| `uikit_callbacks` | yes | yes | yes | the main callbacks on the display link |
+| `uikit_displays` | yes | | | the display, its modes and orientations |
+| `uikit_windows` | yes | | | windows, their flags, orientations, animation callbacks |
+| `uikit_input` | yes | | yes | touches, the pointer, the Pencil, pinches, GCMouse (idb's real touches on iOS) |
+| `uikit_keyboard` | yes | | | keys, text input, the on-screen keyboard (idb's real keys) |
+| `uikit_clipboard` | yes | | | the pasteboard |
+| `uikit_messagebox` | yes | | | alert controllers (one tapped through idb) |
+| `uikit_metal` | yes | yes | yes | Metal views, the Metal renderer, the GPU API |
+| `uikit_gles` | yes | yes | | EAGL contexts, the OpenGL ES 2 renderer |
+| `uikit_vulkan` | yes | yes | yes | Vulkan surfaces, the Vulkan renderer, the GPU API (word `moltenvk`) |
+| `uikit_audio` | yes | | | the audio session (word `privacy=microphone`) |
+| `uikit_gamepad` | yes | | | MFi controllers, `GCVirtualController` |
+| `uikit_hidapi`, `uikit_hidapi_ble` | yes | | | HIDAPI's Bluetooth LE backend, without and with the Steam hint |
+| `uikit_camera`, `uikit_camera_denied` | yes | | | the camera granted and denied (`privacy=camera`, `privacy=-camera`) |
+| `uikit_tvos`, `uikit_tvos_input` | | yes | | tvOS's platform, windows and the Siri Remote |
+| `uikit_visionos`, `uikit_visionos_input` | | | yes | visionOS's platform, windows and input |
+
+(`ios_runner`, which checks the runner's app mode itself, runs on iOS and
+tvOS.) The simulators share what they lack: none has a camera, CoreMotion
+sensors, Bluetooth, a battery or a real controller (only the built-in
+"Gamepad", which an app sees whether a controller is connected or not,
+and GameController's coalesced keyboard), and the iOS and tvOS ones no
+GPU the GPU API can use (below). The offscreen driver has no EGL there,
+as on macOS (`egl`). The UIKit video driver only starts in an app, so
+the spawned programs use the offscreen and dummy drivers there, as
+elsewhere (and so its message boxes only show in an app); the OpenGL
+ES 1 renderer isn't translated. What needs a device is in
+[iOS, tvOS and visionOS devices](#ios-tvos-and-visionos-devices).
+
+## iOS Simulator
+
+The workspace's tests run built for the arm64 iOS Simulator
+(`aarch64-apple-ios-sim`) on an iPhone simulator as
+[above](#apple-simulators):
+
+```sh
+rustup target add aarch64-apple-ios-sim
+export SDL3_IOS_SIMULATOR=$(tools/ios_run.py --boot)
+cargo test --workspace --target aarch64-apple-ios-sim
+```
+
+UIDevice's battery state is unknown there. Its UIKit programs:
 `uikit_main` runs `run_app()` (`UIApplicationMain()` with SDL's app
 delegate) and checks the delegate, the UIKit video driver and its
 display, the application events of UIKit's notifications (posted
@@ -943,16 +1053,15 @@ state, the scenes `uikit_metal` draws, each read back, hashed and
 compared with the software renderer's, vsync, the output following the
 window as it turns), on a Metal window (made again with the OpenGL
 flag), and the default renderer (Metal) on a window that asks for no
-graphics API (made again with the Metal flag). `uikit_vulkan` (word `app moltenvk`, so the runner bundles MoltenVK, see
-below) traces Vulkan on the UIKit driver: the instance extensions it asks
-for (`VK_KHR_surface` and `VK_EXT_metal_surface`), the default library
+graphics API (made again with the Metal flag); `uikit_vulkan` traces
+Vulkan on the UIKit driver: the instance extensions it asks for
+(`VK_KHR_surface` and `VK_EXT_metal_surface`), the default library
 (`libvulkan.dylib`, upstream's only default name on UIKit, which the app
 hasn't) and one that isn't there failing to load, as a Vulkan window does
-then, the bundled MoltenVK loaded through `SDL_HINT_VULKAN_LIBRARY`
-(`@executable_path/Frameworks/MoltenVK.framework/MoltenVK`), the loads
-counted and unloaded; an instance with those extensions and one without,
-the physical device (the simulator's, through MoltenVK), its queue
-families and the features the GPU API's Vulkan backend asks for; a
+then, the bundled MoltenVK loaded through `SDL_HINT_VULKAN_LIBRARY`, the
+loads counted and unloaded; an instance with those extensions and one
+without, the physical device (the simulator's, through MoltenVK), its
+queue families and the features the GPU API's Vulkan backend asks for; a
 surface on a Vulkan window (its Metal view becomes the window's view),
 refused without an instance and on the instance without the extensions,
 `SDL_Vulkan_GetPresentationSupport()` (the driver has no such check:
@@ -962,9 +1071,8 @@ on a window that asks for no graphics API (its state and Vulkan
 properties, the scenes `uikit_metal` draws, each read back, hashed and
 compared with the software renderer's, vsync, the output following the
 window as it turns); and the GPU API's Vulkan backend, which refuses the
-simulator's device (below). All eleven compare a trace
-with upstream's C SDL's, from the same programs in C run the same way on
-the CI's simulator (an iPhone 16 with iOS 18.5, with MoltenVK v1.4.2 for
+simulator's device (below). The C references come from the CI's
+simulator, an iPhone 16 with iOS 18.5 (with MoltenVK v1.4.2 for
 `uikit_vulkan`); `uikit_metal`'s, `uikit_gles`'s and `uikit_vulkan`'s
 hashes are of the same pixels (`uikit_gles`'s C program is
 built on an upstream whose GLES2 program cache keeps its list's tail,
@@ -974,24 +1082,6 @@ device is in the Apple1
 family, so the renderer lists the packed 16-bit formats, but its Metal
 refuses them (an assertion ends the process, upstream's too), so they
 aren't drawn there.
-
-Vulkan runs on the simulator's Metal device through MoltenVK, from
-`SDL3_IOS_MOLTENVK`: the dynamic `MoltenVK.xcframework` of a MoltenVK
-release (in its `MoltenVK-all.tar`, the release's only archive with the
-Simulators' frameworks; the runner takes the slice of the program's
-platform), or a `MoltenVK.framework` for the simulator. The runner gives
-the spawned programs a copy signed ad hoc (the release's isn't signed,
-which the simulator needs), as their `DYLD_FRAMEWORK_PATH`, where the
-offscreen driver's default `MoltenVK.framework/MoltenVK` finds it, and
-bundles it in the apps that ask for it as `Frameworks/MoltenVK.framework`
-(`SDL3_IOS_RUNNER_MOLTENVK` tells them). MoltenVK takes the simulator's
-Metal device (Apple2) to have Metal argument buffers, and with them the
-first draw ends the simulator's Metal service (SimMetalHost: "Connection
-to SimMetalHost ... XPC service was lost"), and the program with it
-(SIGABRT), upstream's C as well; so the runner has MoltenVK bind
-descriptors without them (`MVK_CONFIG_USE_METAL_ARGUMENT_BUFFERS=0`,
-unless it is set). The Vulkan renderer's tests and the offscreen driver's
-Vulkan check run there then, on its headless surfaces.
 
 The simulator has no GPU the GPU API can use: its Metal device supports
 only the Apple2 and Common1 families, below the Apple3 upstream's Metal
@@ -1003,11 +1093,7 @@ vulkan unsupported!"), so the GPU API's Metal tests skip `metal` (the CI
 job allows no other `metal` skip: the Metal renderer has a device there),
 and the GPU API's Vulkan backend's and the GPU renderer's tests skip
 `vulkan`, with what the device lacks in the reason ("...: Apple iOS
-simulator GPU has no imageCubeArray, drawIndirectFirstInstance"). The
-offscreen driver has no EGL there, as on macOS (`egl`). The UIKit video
-driver only starts in an app, so the spawned programs use the offscreen
-and dummy drivers there, as elsewhere (and so its message boxes only
-show in an app); the OpenGL ES 1 renderer isn't translated yet.
+simulator GPU has no imageCubeArray, drawIndirectFirstInstance").
 
 CoreAudio runs there as on a device, its audio going to the Mac's
 output and coming from its input (the runner's are a "Speaker" and a
@@ -1044,7 +1130,7 @@ in C, on the same simulator): the window's and its view's
 `GCEventInteraction`s for gamepads (set on the window when the gamepads
 start and cleared when they quit, on the view of a window made while they
 run); the simulator's built-in controller ("Gamepad", product category
-MFi, which an app sees whether a controller is connected or not) with its
+MFi) with its
 name, GUID, vendor and product, types, mapping, axes and buttons, SF
 Symbols names, the unsupported LED, rumble and sensors, and its player
 index, which is the `GCController`'s; a `GCVirtualController` ("Apple
@@ -1059,9 +1145,7 @@ events and the gamepad's state as a button, a stick, a trigger, the d-pad
 and the menu button change, and what a gamepad open when its controller
 goes away answers. It also restarts the gamepads with `SDL_JOYSTICK_MFI`
 off, and lists the sensors (none) and opens one (upstream's "Sensor 0 not
-found"). Real controllers' rumble, light, battery and motion, and a
-device's accelerometer and gyroscope, need hardware: none of them can be
-checked on the simulator.
+found").
 
 HIDAPI's iOS backend (Steam Controllers over Bluetooth LE) has no
 devices on the simulator, which has no Bluetooth: CoreBluetooth's
@@ -1085,23 +1169,20 @@ resign-active and become-active notifications posted in-process (with
 Bluetooth, the 20 second scan that starts, and its end), `hid_exit()`,
 the gamepads with the HIDAPI driver off (iOS's default) and on, and what
 the backend logged (NSLog's lines, through Foundation's private
-`_NSSetLogCStringFunction()`: test programs only). A real controller
-needs a device (below).
+`_NSSetLogCStringFunction()`: test programs only).
 
-The simulator has no camera either: AVFoundation's discovery session finds
-none, so the CoreMedia camera driver starts with no camera. A spawned
-program is denied the camera (`AVAuthorizationStatusDenied`); the
-CoreMedia tests check there the device types the driver asks for, its
-rotation tables and its guess of the device's orientation (upstream's,
-copied into a C program), and trace the camera drivers, the driver
-starting with no camera, cameras that aren't there opened (with and
-without a spec), their formats, names and positions (upstream's "Invalid
-camera device instance ID"), the dummy driver and CoreMedia again, against
-upstream's C spawned the same way. `uikit_camera`, an app the runner grants
-the camera (the word `privacy=camera`: `simctl privacy grant camera`,
-which works though simctl's help doesn't list it), and
-`uikit_camera_denied`, one it denies it (`privacy=-camera`: `simctl
-privacy revoke`), trace the same with the camera access each has
+AVFoundation's discovery session finds no camera there, so the CoreMedia
+camera driver starts with none. A spawned program is denied the camera
+(`AVAuthorizationStatusDenied`); the CoreMedia tests check there the
+device types the driver asks for, its rotation tables and its guess of
+the device's orientation (upstream's, copied into a C program), and
+trace the camera drivers, the driver starting with no camera, cameras
+that aren't there opened (with and without a spec), their formats, names
+and positions (upstream's "Invalid camera device instance ID"), the dummy
+driver and CoreMedia again, against upstream's C spawned the same way.
+`uikit_camera`, an app the runner grants the camera (the word
+`privacy=camera`), and `uikit_camera_denied`, one it denies it
+(`privacy=-camera`), trace the same with the camera access each has
 (authorized, denied), and `UIDevice`'s orientation as it generates
 orientation notifications or not (unknown on the simulator either way),
 against upstream's C run the same way. The driver only checks the access
@@ -1109,96 +1190,11 @@ with a camera's frames, and turns frames with the device's orientation,
 so a camera, its permission prompt, its frames and their rotation need a
 device.
 
-### A Steam Controller over Bluetooth LE (iOS device)
-
-The Steam Controller pairs with an iPhone, iPad or Apple TV over
-Bluetooth LE (with its BLE firmware: hold Y, then press the Steam button,
-until it blinks; the newer "Triton" controller pairs as Valve says), and
-SDL talks to it
-through CoreBluetooth when the app sets `SDL_HINT_JOYSTICK_HIDAPI_STEAM`
-(and `SDL_HINT_JOYSTICK_HIDAPI`, which is off on iOS) before the joystick
-subsystem starts. `uikit_hidapi_ble` checks it when
-`SDL3_HIDAPI_STEAM_CONTROLLER=1`: it waits two minutes for the controller
-to pair and connect (allow Bluetooth when iOS asks, then accept the
-pairing request), lists the HID devices, opens it as a gamepad and prints
-its name, GUID, IDs, type and path, asks for the A button pressed and
-released and the left stick (or pad) moved fully, half a minute each, and
-rumbles it; it ends with the exit line, 0 when everything came. A device
-build needs a development team: build the program for devices, bundle it,
-sign it with your identity and a provisioning profile for its identifier,
-and run it with `devicectl` (Xcode 15 and later):
-
-```sh
-cargo test -p sdl3 --test uikit_hidapi_ble --target aarch64-apple-ios --no-run
-P=$(ls -t target/aarch64-apple-ios/debug/deps/uikit_hidapi_ble-* | grep -v '\.d$' | head -1)
-SDL3_IOS_BUNDLE_ID=YOUR.BUNDLE.ID SDL3_IOS_CODESIGN=0 tools/ios_run.py --bundle "$P" Steam.app
-cp YOUR_PROFILE.mobileprovision Steam.app/embedded.mobileprovision
-# (the profile's entitlements, its application-identifier and team)
-security cms -D -i Steam.app/embedded.mobileprovision > profile.plist
-/usr/libexec/PlistBuddy -x -c 'Print :Entitlements' profile.plist > entitlements.plist
-codesign --force --sign "Apple Development: YOU (TEAM)" --entitlements entitlements.plist Steam.app
-xcrun devicectl list devices
-xcrun devicectl device install app --device DEVICE Steam.app
-xcrun devicectl device process launch --console --device DEVICE \
-  --environment-variables '{"SDL3_HIDAPI_STEAM_CONTROLLER": "1"}' YOUR.BUNDLE.ID
-```
-
-Without the environment variable the program runs the simulator's
-trace, which a device (with Bluetooth on) doesn't match. On an Apple TV
-the same check needs the program built for `aarch64-apple-tvos` (the
-program is iOS-only as it is: its `cfg` would have to take tvOS too).
-
-### The camera on an iPhone
-
-`uikit_camera` built for a device runs its hardware check instead of the
-simulator's trace when CoreMedia finds cameras: it lists them (names,
-positions, formats), opens the first back camera (else the first) in its
-preferred format, waits up to two minutes for the camera to be allowed
-(the system asks the first time), then takes frames for ten seconds,
-checking that each has the opened size and format, that the timestamps
-advance and that the rotation is a quarter turn, printing every second
-the interface's and the device's orientations and the frame's rotation
-with the one upstream's tables give them, and fails if more than two
-frames have another one or fewer than ten came. The runner doesn't run
-programs on devices, so it's bundled, signed and run by hand, with a
-development team's signing identity and a provisioning profile for a
-bundle identifier (and the device registered in it, in Developer Mode):
-
-```sh
-rustup target add aarch64-apple-ios
-cargo test -p sdl3 --target aarch64-apple-ios --test uikit_camera --no-run
-# (cargo prints the program's path: target/aarch64-apple-ios/debug/deps/uikit_camera-HASH)
-SDL3_IOS_BUNDLE_ID=YOUR.BUNDLE.ID SDL3_IOS_CODESIGN=0 \
-  tools/ios_run.py --bundle target/aarch64-apple-ios/debug/deps/uikit_camera-HASH uikit_camera.app
-cp PROFILE.mobileprovision uikit_camera.app/embedded.mobileprovision
-# entitlements.plist: application-identifier TEAM.YOUR.BUNDLE.ID,
-# com.apple.developer.team-identifier TEAM, get-task-allow true
-codesign --force --sign "Apple Development: NAME (ID)" --entitlements entitlements.plist uikit_camera.app
-xcrun devicectl list devices
-xcrun devicectl device install app --device DEVICE uikit_camera.app
-xcrun devicectl device process launch --console --device DEVICE YOUR.BUNDLE.ID
-```
-
-Allow the camera when asked, then turn the phone (with the orientation
-lock off) through portrait, both landscapes and, on an iPad, upside down
-while it runs: the back camera's frames turn 90° in portrait, 0° with the
-interface in landscape right (the phone turned a quarter turn
-counterclockwise from portrait, its bottom on the right), 180° in
-landscape left and 270° upside down, and the front
-camera's as upstream's table has them. It ends with `sdl3-ios-runner: exit
-0`. A camera denied once stays denied (Settings > Privacy & Security >
-Camera, or delete the app, to be asked again).
-
 ## tvOS Simulator
 
-The workspace's tests run on the tvOS Simulator the same way, built for
-`aarch64-apple-tvos-sim` (a tier 2 target), on a Mac with Xcode and a
-tvOS Simulator runtime: the runner tells a tvOS program by its Mach-O
-file's build version, and runs it on an Apple TV simulator
-(`SDL3_TVOS_SIMULATOR`, else a booted one, else `sdl3-TYPE-RUNTIME`, made
-of `SDL3_TVOS_DEVICE_TYPE` on `SDL3_TVOS_RUNTIME`; by default the Apple TV
-4K (3rd generation) on the newest tvOS runtime), as a process of it or as
-an app whose bundle is an Apple TV app's (`UIDeviceFamily` 3, no
+The workspace's tests run built for `aarch64-apple-tvos-sim` on an Apple
+TV simulator as [above](#apple-simulators), as processes of it or as
+apps whose bundle is an Apple TV app's (`UIDeviceFamily` 3, no
 orientations):
 
 ```sh
@@ -1208,20 +1204,21 @@ cargo test --workspace --target aarch64-apple-tvos-sim
 ```
 
 The simulated Apple TV is much like the simulated iPhone: the
-simulator's Metal device (Apple1 and Apple2 only: no GPU API, as above),
-MoltenVK as on iOS (the tvOS Simulator's slice), no camera, sensors or
-Bluetooth, the Mac's audio, the built-in
+simulator's Metal device (Apple1 and Apple2 only: no GPU API, as on
+iOS), MoltenVK (the tvOS Simulator's slice) with the GPU API's Vulkan
+backend refusing its device as on iOS, the Mac's audio (the CoreAudio
+tests' spawned session, with tvOS's own trace), and the built-in
 "Gamepad" controller and GameController's coalesced keyboard
 ("Keyboard"). Its display is a 1920x1080-point TV (3840x2160 pixels, 60
 Hz, one mode), whose safe area keeps the overscan margins out (80 points
 left and right, 60 top and bottom); it has no orientations, no status
 bar and no pasteboard (setting the clipboard's text fails, as
 upstream's), and its app's files are in Caches (the pref path, and
-relative paths). The `background` request brings the Apple TV's Settings
-app (`com.apple.TVSettings`) to the foreground. The spawned programs run
-as on iOS (processes are tvOS's dummy backend: "That operation is not
-supported"); the UIKit programs for iOS alone are empty there, and the
-tvOS ones are:
+relative paths). The power state is "no battery", there is no CoreMotion
+(the dummy sensor driver) or camera, and processes are tvOS's dummy
+backend ("That operation is not supported"). HIDAPI's backend runs in a
+spawned program as on iOS, without Bluetooth. Of the UIKit programs
+(see the table [above](#apple-simulators)) these run on tvOS:
 
 * `uikit_tvos`: the platform name (upstream's "iOS": the `FIXME
   (upstream)` in `init::platform()`), the drivers, the power state (no
@@ -1249,37 +1246,27 @@ tvOS ones are:
   `SDL_HINT_APPLE_TV_REMOTE_ALLOW_ROTATION`, and none with the joystick
   hint off;
 * `uikit_callbacks`, `uikit_main`, `uikit_metal`, `uikit_gles` and
-  `uikit_vulkan`, which run on tvOS too: the main callbacks; the app
-  delegate, the lifecycle (a trip to the background and back), the event
-  pump and URLs, without the battery monitoring and the status bar's
+  `uikit_vulkan`, as on iOS: the main callbacks; the app delegate, the
+  lifecycle (a trip to the background and back), the event pump and
+  URLs, without the battery monitoring and the status bar's
   notification; the Metal views and renderer, OpenGL ES contexts with the
   OpenGL ES 2 renderer (EAGL is on tvOS too), and Vulkan through MoltenVK
   with the Vulkan renderer, each scene against the software renderer's,
   where nothing turns.
 
-Each compares its trace with upstream's C SDL's, from the same program in
-C run the same way on the CI's simulator (an Apple TV 4K (3rd generation)
-with tvOS 18.5), built from upstream's CMake build for the tvOS Simulator
-with OpenGL ES allowed on tvOS (as the Xcode project's
+The C references come from the CI's simulator, an Apple TV 4K (3rd
+generation) with tvOS 18.5, built from upstream's CMake build for the
+tvOS Simulator with OpenGL ES allowed on tvOS (as the Xcode project's
 `SDL_build_config_ios.h` builds it, which the translation follows), and
 without the OpenGL ES 1 renderer in the render drivers' list (it isn't
-translated). The Siri Remote itself, a real controller's buttons, and the
-system's focus engine need an Apple TV (or a person at the simulator's
-remote window): the presses and swipes the remote sends are stand-ins
-here.
+translated).
 
 ## visionOS Simulator
 
-The sdl3 crate's tests run on the visionOS Simulator the same way, built
-for `aarch64-apple-visionos-sim` (a tier 2 target), on a Mac with Xcode
-and a visionOS Simulator runtime: the runner tells a visionOS program by
-its Mach-O file's build version, and runs it on an Apple Vision Pro
-simulator (`SDL3_VISIONOS_SIMULATOR`, else a booted one, else
-`sdl3-TYPE-RUNTIME`, made of `SDL3_VISIONOS_DEVICE_TYPE` on
-`SDL3_VISIONOS_RUNTIME`; by default the Apple Vision Pro on the newest
-visionOS runtime, whose identifiers say `xrOS`), as a process of it or as
-an app whose bundle is a visionOS app's (`UIDeviceFamily` 7, the
-`XRSimulator` platform, no orientations):
+The sdl3 crate's tests run built for `aarch64-apple-visionos-sim` on an
+Apple Vision Pro simulator as [above](#apple-simulators), as processes
+of it or as apps whose bundle is a visionOS app's (`UIDeviceFamily` 7,
+the `XRSimulator` platform, no orientations):
 
 ```sh
 rustup target add aarch64-apple-visionos-sim
@@ -1288,33 +1275,32 @@ cargo test -p sdl3 --target aarch64-apple-visionos-sim
 ```
 
 (The other crates are pure code there, as on iOS; `--workspace` runs
-them too.) The simulated Apple Vision Pro is a 1280x720-point window
-scene (visionOS has no screen: the display is upstream's fake one, of
-density 2 at 90 Hz, its HDR on with a headroom of 2), whose windows are
-the size they ask for (the scene is asked for it), with no safe area
-margins, orientations or status bar. Its Metal device ("Apple xrOS
-simulator GPU") has only the Apple1 and Apple2 families: the Metal
-renderer works, and so does the GPU API, which upstream takes on any
-visionOS device, but for the indirect draws and dispatches the device
-hasn't (Metal's validation would end the process: those tests skip,
-`metal`, "no indirect draws or dispatches"); every renderer's output is
-linear sRGB, as upstream's (`SDL_SetupRendererColorspace()`), so the
-software renderer can't be made there. There's the Mac's audio, the
-built-in "Gamepad" controller and the coalesced keyboard ("Keyboard"),
-no battery (the power state is unknown), no CoreMotion sensors, no
-camera (none is built), no Vulkan, and no virtual joysticks (upstream's
-CMake build has none without HIDAPI, which it doesn't build there). No
-library loads there: upstream's `SDL_LoadObject()` refuses to before iOS
-8, and takes visionOS's version (2.5) for iOS's (a `FIXME (upstream)`), so
-MoltenVK, which the runner gives the programs as on iOS, isn't loaded,
-and the Vulkan checks skip, `vulkan`, with that in the reason ("...
+them too, but CI runs them in the iOS and tvOS jobs only.) The simulated
+Apple Vision Pro is a 1280x720-point window scene (visionOS has no
+screen: the display is upstream's fake one, of density 2 at 90 Hz, its
+HDR on with a headroom of 2), whose windows are the size they ask for
+(the scene is asked for it), with no safe area margins, orientations or
+status bar. Its Metal device ("Apple xrOS simulator GPU") has only the
+Apple1 and Apple2 families: the Metal renderer works, and so does the
+GPU API, which upstream takes on any visionOS device, but for the
+indirect draws and dispatches the device hasn't (Metal's validation
+would end the process: those tests skip, `metal`, "no indirect draws or
+dispatches"); every renderer's output is linear sRGB, as upstream's
+(`SDL_SetupRendererColorspace()`), so the software renderer can't be
+made there. There's the Mac's audio, the built-in "Gamepad" controller
+and the coalesced keyboard ("Keyboard"), no battery (the power state is
+unknown), no CoreMotion sensors, no camera (none is built), no Vulkan,
+and no virtual joysticks (upstream's CMake build has none without
+HIDAPI, which it doesn't build there). No library loads there:
+upstream's `SDL_LoadObject()` refuses to before iOS 8, and takes
+visionOS's version (2.5) for iOS's (a `FIXME (upstream)`), so MoltenVK,
+which the runner gives the programs as on iOS, isn't loaded, and the
+Vulkan checks skip, `vulkan`, with that in the reason ("...
 (upstream's SDL_LoadObject() requires iOS 8+, and visionOS's version is
 below 8)"). (The GameController and CoreHaptics frameworks, which
-upstream links, are loaded without that check.)
-Processes are POSIX (the host's `/bin/sh` runs). The `background`
-request brings the Settings app (`com.apple.Preferences`) to the front.
-The UIKit programs for iOS and tvOS alone are empty there, and the
-visionOS ones are:
+upstream links, are loaded without that check.) Processes are POSIX
+(the host's `/bin/sh` runs). Of the UIKit programs (see the table
+[above](#apple-simulators)) these run on visionOS:
 
 * `uikit_visionos`: the platform name ("visionOS"), the drivers (no
   OpenGL ES), the form factor (a headset), the power state, the pref
@@ -1339,29 +1325,124 @@ visionOS ones are:
   gamepad (while it's open the presses without a key are nothing), its
   d-pad and buttons set, closed and disconnected;
 * `uikit_callbacks`, `uikit_main`, `uikit_metal`, `uikit_input` and
-  `uikit_vulkan`, which run on visionOS too: the main callbacks; the app
-  delegate, the
+  `uikit_vulkan`, as on iOS: the main callbacks; the app delegate, the
   lifecycle, the event pump and URLs, without the status bar's
   notification; the Metal views and renderer, each scene's hash compared
   with upstream's alone (no software renderer, and the custom blend mode
-  blends in linear sRGB), where nothing turns; the touches, the pointer,
-  the Pencil, the pinch gesture and the game controllers' mice given to
-  the view's handlers as stand-ins, without idb (which isn't set up for
-  the visionOS Simulator: its real touches skip, `idb`); and Vulkan's
-  library failing to load, as upstream's does there (above).
+  blends in linear sRGB), where nothing turns, and the GPU API's device
+  and a "gpu" renderer, which the simulator has; the touches, the
+  pointer, the Pencil, the pinch gesture and the game controllers' mice
+  given to the view's handlers as stand-ins, without idb (which isn't set
+  up for the visionOS Simulator: its real touches skip, `idb`); and
+  Vulkan's library failing to load, as upstream's does there (above).
 
-Each compares its trace with upstream's C SDL's, from the same program in
-C run the same way on the CI's simulator (an Apple Vision Pro with
-visionOS 2.5), built from upstream's CMake build for the visionOS
+The C references come from the CI's simulator, an Apple Vision Pro with
+visionOS 2.5, built from upstream's CMake build for the visionOS
 Simulator. That build needs two changes to compile: the Swift code's
 generated header, which `SDL_uikitviewcontroller.m` imports and only
 Xcode makes, is an empty stand-in (`SDL3/SDL3-Swift.h`: the Swift code
 isn't built, as in the translation), and `SDL_UIKitBridge.m`'s
 `SDL_UIKit_HideCurvedWindow()` returns `nil` from a `void` function,
 which clang rejects (`FIXME (upstream)`; plain returns). Neither changes
-what a flat window does. A real Apple Vision Pro, its eyes and hands
-(the touches are the system's), curved windows and immersive spaces need
-a device and upstream's Swift code, out of scope here.
+what a flat window does.
+
+## iOS, tvOS and visionOS devices
+
+The runner doesn't run programs on devices: a program built for one
+(`aarch64-apple-ios`, `aarch64-apple-tvos`, `aarch64-apple-visionos`) is
+bundled, signed and run by hand, with a development team's signing
+identity and a provisioning profile for a bundle identifier (the device
+registered in it, in Developer Mode), and `devicectl` (Xcode 15 and
+later):
+
+```sh
+rustup target add aarch64-apple-ios
+cargo test -p sdl3 --target aarch64-apple-ios --test PROGRAM --no-run
+# (cargo prints the program's path: target/aarch64-apple-ios/debug/deps/PROGRAM-HASH)
+SDL3_IOS_BUNDLE_ID=YOUR.BUNDLE.ID SDL3_IOS_CODESIGN=0 \
+  tools/ios_run.py --bundle target/aarch64-apple-ios/debug/deps/PROGRAM-HASH App.app
+cp PROFILE.mobileprovision App.app/embedded.mobileprovision
+# the entitlements from the profile (application-identifier
+# TEAM.YOUR.BUNDLE.ID, com.apple.developer.team-identifier TEAM,
+# get-task-allow true)
+security cms -D -i App.app/embedded.mobileprovision > profile.plist
+/usr/libexec/PlistBuddy -x -c 'Print :Entitlements' profile.plist > entitlements.plist
+codesign --force --sign "Apple Development: NAME (ID)" --entitlements entitlements.plist App.app
+xcrun devicectl list devices
+xcrun devicectl device install app --device DEVICE App.app
+xcrun devicectl device process launch --console --device DEVICE YOUR.BUNDLE.ID
+```
+
+A bundle with MoltenVK in its `Frameworks/` (a program with the word
+`moltenvk`, its framework from the device slice of `SDL3_IOS_MOLTENVK`)
+needs the framework signed first, with the same identity
+(`codesign --force --sign ... App.app/Frameworks/MoltenVK.framework`).
+`--environment-variables '{"NAME": "VALUE"}'` passes variables to the
+program. Two programs have a hardware check there:
+
+### A Steam Controller over Bluetooth LE (iOS device)
+
+The Steam Controller pairs with an iPhone, iPad or Apple TV over
+Bluetooth LE (with its BLE firmware: hold Y, then press the Steam button,
+until it blinks; the newer "Triton" controller pairs as Valve says), and
+SDL talks to it
+through CoreBluetooth when the app sets `SDL_HINT_JOYSTICK_HIDAPI_STEAM`
+(and `SDL_HINT_JOYSTICK_HIDAPI`, which is off on iOS) before the joystick
+subsystem starts. `uikit_hidapi_ble` checks it when
+`SDL3_HIDAPI_STEAM_CONTROLLER=1`: it waits two minutes for the controller
+to pair and connect (allow Bluetooth when iOS asks, then accept the
+pairing request), lists the HID devices, opens it as a gamepad and prints
+its name, GUID, IDs, type and path, asks for the A button pressed and
+released and the left stick (or pad) moved fully, half a minute each, and
+rumbles it; it ends with the exit line, 0 when everything came. Built,
+bundled and signed as above (`--test uikit_hidapi_ble`), it is launched
+with the variable:
+
+```sh
+xcrun devicectl device process launch --console --device DEVICE \
+  --environment-variables '{"SDL3_HIDAPI_STEAM_CONTROLLER": "1"}' YOUR.BUNDLE.ID
+```
+
+Without the environment variable the program runs the simulator's
+trace, which a device (with Bluetooth on) doesn't match. On an Apple TV
+the same check needs the program built for `aarch64-apple-tvos` (the
+program is iOS-only as it is: its `cfg` would have to take tvOS too).
+
+### The camera on an iPhone
+
+`uikit_camera` built for a device runs its hardware check instead of the
+simulator's trace when CoreMedia finds cameras: it lists them (names,
+positions, formats), opens the first back camera (else the first) in its
+preferred format, waits up to two minutes for the camera to be allowed
+(the system asks the first time), then takes frames for ten seconds,
+checking that each has the opened size and format, that the timestamps
+advance and that the rotation is a quarter turn, printing every second
+the interface's and the device's orientations and the frame's rotation
+with the one upstream's tables give them, and fails if more than two
+frames have another one or fewer than ten came. Build, bundle, sign and
+launch it as above (`--test uikit_camera`).
+
+Allow the camera when asked, then turn the phone (with the orientation
+lock off) through portrait, both landscapes and, on an iPad, upside down
+while it runs: the back camera's frames turn 90° in portrait, 0° with the
+interface in landscape right (the phone turned a quarter turn
+counterclockwise from portrait, its bottom on the right), 180° in
+landscape left and 270° upside down, and the front
+camera's as upstream's table has them. It ends with `sdl3-ios-runner: exit
+0`. A camera denied once stays denied (Settings > Privacy & Security >
+Camera, or delete the app, to be asked again).
+
+### What else needs a device
+
+No check is written yet for the rest of what the simulators lack: a
+device's accelerometer and gyroscope (CoreMotion), its battery, real
+controllers' rumble, light, battery and motion, the Siri Remote itself
+and tvOS's focus engine (the presses and swipes the tests send are
+stand-ins; a person at the simulator's remote window can send real
+ones), an iPhone's or Apple TV's GPU for the GPU API (the simulators'
+devices are below its requirements), and a real Apple Vision Pro, its
+eyes and hands (the touches are the system's). Curved windows and
+immersive spaces need upstream's Swift code, out of scope here.
 
 ## CI
 
@@ -1386,46 +1467,7 @@ OpenGL ES 2 renderers' checks on the offscreen driver, which has no EGL
 on either. What else a hosted runner offers (audio endpoints, GameInput,
 a camera) isn't guaranteed, so nothing more is required. The
 macOS clippy job also lints the x86-64 build for Intel Macs, and the
-Linux one the Emscripten and iOS builds (the device, the arm64 Simulator
-and the x86-64 one: no SDK is needed to lint, nor to check iOS with the
-minimum supported Rust in the Linux test job and its documentation in the
-rustdoc job). The iOS job, on the macOS 15 runner with Xcode 16.4 and its
-iOS 18.5 runtime, installs idb (the companion's Homebrew formula with an
-Xcode 26 selected for that, and its pinned Python client in a virtual
-environment), runs the tests on an iPhone 16 simulator as
-[above](#ios-simulator) (booted by `tools/ios_run.py --boot` while the
-programs build) with MoltenVK (the release the macOS job's is,
-v1.4.2: its `MoltenVK-all.tar`, checked against its SHA-256 and cached
-between runs, whose dynamic `MoltenVK.xcframework` has the Simulators'
-frameworks, in `SDL3_IOS_MOLTENVK`), links the device build without
-running it, and makes its skip log from the notes the programs print
-(`tools/ci/skips_from_log.py`, as the Emscripten job does, so that the
-apps' skips, written in their own containers, are listed too), failing
-on any skip but the simulator's of `metal` (the GPU API's hardware
-requirements), `vulkan` (the GPU API's and the GPU renderer's checks,
-for the device features the Vulkan backend needs, with those in the
-reason: the Vulkan renderer's must run) and `egl` (above: so `idb` and
-`gles` are required); a manual run
-of the workflow can run that job alone (`ios_only`) and pass it other
-`cargo test` arguments (`ios_test_args`). The tvOS job, on the same image,
-Xcode and tvOS 18.5 runtime, runs the workspace's tests on an Apple TV 4K
-(3rd generation) simulator as [above](#tvos-simulator) and links the
-device build, with MoltenVK and the iOS job's skip check (no idb: the
-tvOS programs don't use it); `tvos_only` and `tvos_test_args` run it alone, with other
-arguments. The Linux clippy job lints the tvOS builds too (the device, the
-arm64 Simulator, and the x86-64 Simulator, a tier 3 target whose standard
-library it builds with `-Zbuild-std`). The visionOS job, on the same
-image, Xcode and visionOS 2.5 runtime, runs the sdl3 crate's library
-tests and its visionOS programs (`uikit_visionos`,
-`uikit_visionos_input`, `uikit_main`, `uikit_callbacks`, `uikit_metal`,
-`uikit_input` and `uikit_vulkan`) on an Apple Vision Pro simulator as
-[above](#visionos-simulator) (the other crates are pure code the iOS and
-tvOS jobs run), with MoltenVK as the other jobs, and links the sdl3
-crate's device build, failing on any skip but those of `egl`, `idb`, the
-simulator's indirect draws (`metal`) and `vulkan` for upstream's
-`SDL_LoadObject()` there (the reason ends with it); `visionos_only` and `visionos_test_args` run it alone,
-with other arguments. The Linux clippy job lints the visionOS builds too
-(the device and the arm64 Simulator). The
+Linux one the Emscripten build. The
 Emscripten job runs the tests under node as [above](#emscripten-under-node),
 with emsdk and emcc's sysroot libraries cached, and the browser programs
 (`emscripten_browser`, `emscripten_video`, `emscripten_events`,
@@ -1437,3 +1479,39 @@ as [above](#emscripten-browser), requiring `browser`, `webgl` and
 `webaudio`, and the persistent storage's program (with its feature and
 path) there and under node. Every job lists its skips in the job summary
 (`tools/ci/list-skips.sh`).
+
+The Linux clippy job also lints the iOS, tvOS and visionOS builds: the
+devices, the arm64 Simulators and the x86-64 ones (`x86_64-apple-ios`,
+and `x86_64-apple-tvos`, a tier 3 target whose standard library it
+builds with `-Zbuild-std`). No SDK is needed to lint, nor to check iOS
+with the minimum supported Rust in the Linux test job, nor for the
+UIKit-only documentation, which the rustdoc job builds for
+`aarch64-apple-ios-sim`.
+
+Three jobs run the tests on the Simulators as
+[above](#apple-simulators), on the macOS 15 runner with Xcode 16.4, each
+on a simulator `tools/ios_run.py --boot` makes and boots while the
+programs build, with MoltenVK (the release the macOS job's is, v1.4.2:
+its `MoltenVK-all.tar`, checked against its SHA-256 and cached between
+runs, whose dynamic `MoltenVK.xcframework` has the Simulators'
+frameworks, in `SDL3_IOS_MOLTENVK`). Each links the device build without
+running it, makes its skip log from the notes the programs print
+(`tools/ci/skips_from_log.py`, as the Emscripten job does, so that the
+apps' skips, written in their own containers, are listed too), and fails
+on any skip but those by design:
+
+| Job | Simulator | Tests | Device build | Skips by design | Run alone with |
+|---|---|---|---|---|---|
+| `ios` | iPhone 16, iOS 18.5 | `--workspace` | `--workspace --all-targets` | `egl`; `metal` (the GPU API's hardware requirements); `vulkan` (the GPU API's and the GPU renderer's checks, for the device features the Vulkan backend needs, named in the reason) | `ios_only`, `ios_test_args` |
+| `tvos` | Apple TV 4K (3rd generation), tvOS 18.5 | `--workspace` | `--workspace --all-targets` | the same | `tvos_only`, `tvos_test_args` |
+| `visionos` | Apple Vision Pro, visionOS 2.5 | the sdl3 crate's library tests and its visionOS programs (`uikit_visionos`, `uikit_visionos_input`, `uikit_main`, `uikit_callbacks`, `uikit_metal`, `uikit_input`, `uikit_vulkan`) | `-p sdl3 --all-targets` | `egl`; `idb`; `metal` (the simulator's indirect draws); `vulkan` (upstream's `SDL_LoadObject()`, which the reason ends with) | `visionos_only`, `visionos_test_args` |
+
+So the Metal and Vulkan renderers' checks must run, and so must `gles`
+on iOS and tvOS, and `coreaudio`, `idb` and `gamecontroller` on iOS.
+Only the iOS job installs idb (the companion's Homebrew formula with an
+Xcode 26 selected for that, and its pinned Python client in a virtual
+environment): the tvOS programs don't use it, and on visionOS the
+touches that need it skip. A manual run of the workflow can run one of
+these jobs alone, and pass it other `cargo test` arguments (in place of
+`--workspace`, or of the visionOS job's list), with which the device
+build and the skip check are left out.
