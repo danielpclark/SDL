@@ -25,10 +25,19 @@ A program runs in one of two ways:
   directory (as are HOME and TMPDIR), but it reads and writes the host's
   files by their paths (`env!("CARGO_MANIFEST_DIR")`, the target
   directory). Only `SIMCTL_CHILD_NAME` variables reach it (as NAME): this
-  script passes on SDL3_*, SDL_*, RUST_* and RUSTC_BOOTSTRAP that way, and
+  script passes on SDL3_*, SDL_*, RUST_*, MVK_* and RUSTC_BOOTSTRAP that way, and
   sets SDL_ASSERT to `abort` unless it is set, so that a failed assertion
   doesn't wait for an answer on the terminal. (Set SIMCTL_CHILD_NAME for
-  any other variable.)
+  any other variable.) With SDL3_IOS_MOLTENVK set (see below), the
+  program finds MoltenVK's framework for the simulator where upstream's
+  offscreen driver looks for it, as `MoltenVK.framework/MoltenVK`: its
+  directory is the program's DYLD_FRAMEWORK_PATH (before what
+  SIMCTL_CHILD_DYLD_FRAMEWORK_PATH holds). And MoltenVK binds descriptors
+  without Metal argument buffers there, as in the apps
+  (MVK_CONFIG_USE_METAL_ARGUMENT_BUFFERS=0, unless it is set): with them,
+  as MoltenVK 1.4.2 takes the Simulators' Metal devices to have (Apple2,
+  which report none), the first draw ends the simulator's Metal service
+  (SimMetalHost), and the program with it (SIGABRT).
 
 * as an app, when the program asks for it: a section `__DATA,__sdl3_runner`
   in its Mach-O file holding the word `app` (a
@@ -53,7 +62,13 @@ A program runs in one of two ways:
   `privacy=SERVICE,...` grants it those services first (`simctl privacy
   grant`: camera, microphone, photos, ...), and revokes those written
   `-SERVICE` (`simctl privacy revoke`: the app is denied them without
-  being asked). The app's bundle identifier
+  being asked). A word `moltenvk` bundles MoltenVK's framework for the
+  simulator (SDL3_IOS_MOLTENVK's, see below) in the app, as
+  `Frameworks/MoltenVK.framework` (signed as the app is), where the app
+  loads it from as `@executable_path/Frameworks/MoltenVK.framework/MoltenVK`
+  (with SDL_HINT_VULKAN_LIBRARY: upstream's UIKit driver itself looks for
+  `libvulkan.dylib` only); the app learns whether the runner did in
+  SDL3_IOS_RUNNER_MOLTENVK: `1`, or why not. The app's bundle identifier
   is also a URL scheme it handles (CFBundleURLTypes), and one it may ask
   about (LSApplicationQueriesSchemes), so that it can open its own URLs.
 
@@ -138,12 +153,25 @@ Environment:
   SDL3_IOS_VERBOSE      1: the simctl commands, with their times, on stderr
   SDL3_IOS_IDB          the idb command for the `tap`, `swipe`, `key` and
                         `text` requests (default `idb` on PATH; 0: none)
+  SDL3_IOS_MOLTENVK     MoltenVK, for the programs that use Vulkan: the
+                        dynamic MoltenVK.xcframework of a MoltenVK release
+                        (MoltenVK/MoltenVK/dynamic/MoltenVK.xcframework in
+                        its MoltenVK-all.tar, whose slices include the
+                        Simulators' frameworks: the one of the program's
+                        platform and CPU is taken), or a MoltenVK.framework
+                        for the program's simulator. A release's frameworks
+                        aren't signed, which the simulator needs: the
+                        spawned programs get a copy signed ad hoc (made
+                        once, in the temporary directory), the apps theirs.
+                        (SDL3_TVOS_MOLTENVK and SDL3_VISIONOS_MOLTENVK, when
+                        set, are taken for tvOS and visionOS programs.)
 
 A program built for devices (aarch64-apple-ios, aarch64-apple-tvos,
 aarch64-apple-visionos) can't run on the simulator: `--bundle` writes its bundle, which needs signing
 for a device.
 """
 import fcntl
+import hashlib
 import json
 import os
 import plistlib
@@ -165,7 +193,7 @@ REQUEST = re.compile(r"sdl3-ios-runner: request (\S+)(?: (.*))?")
 NUMBER = re.compile(r"-?\d+(\.\d+)?")
 
 # The variables a spawned or launched program gets (as SIMCTL_CHILD_NAME).
-FORWARD_PREFIXES = ("SDL3_", "SDL_", "RUST_")
+FORWARD_PREFIXES = ("SDL3_", "SDL_", "RUST_", "MVK_")
 FORWARD_NAMES = ("RUSTC_BOOTSTRAP",)
 
 # LC_BUILD_VERSION's platforms
@@ -196,9 +224,11 @@ class Family:
     Vision Pro)."""
 
     def __init__(self, name, device_platform, simulator_platform, plist_platforms, device_families,
-                 default_device_types, product_family, settings, target, runtime_name=None,
-                 orientations=False):
+                 default_device_types, product_family, settings, target, xcframework_platform,
+                 runtime_name=None, orientations=False):
         self.name = name
+        # (an XCFramework's SupportedPlatform for the platform's libraries)
+        self.xcframework_platform = xcframework_platform
         # (the simulator's variables: SDL3_IOS_..., SDL3_TVOS_...,
         # SDL3_VISIONOS_...)
         self.env = f"SDL3_{name.upper()}_"
@@ -227,17 +257,17 @@ class Family:
 IOS = Family(
     "iOS", PLATFORM_IOS, PLATFORM_IOSSIMULATOR, ("iPhoneSimulator", "iPhoneOS"), [1, 2],
     ("com.apple.CoreSimulator.SimDeviceType.iPhone-16",), "iPhone", "com.apple.Preferences",
-    "aarch64-apple-ios-sim", orientations=True,
+    "aarch64-apple-ios-sim", "ios", orientations=True,
 )
 TVOS = Family(
     "tvOS", PLATFORM_TVOS, PLATFORM_TVOSSIMULATOR, ("AppleTVSimulator", "AppleTVOS"), [3],
     ("com.apple.CoreSimulator.SimDeviceType.Apple-TV-4K-3rd-generation-4K",), "Apple TV", "com.apple.TVSettings",
-    "aarch64-apple-tvos-sim",
+    "aarch64-apple-tvos-sim", "tvos",
 )
 VISIONOS = Family(
     "visionOS", PLATFORM_VISIONOS, PLATFORM_VISIONOSSIMULATOR, ("XRSimulator", "XROS"), [7],
     ("com.apple.CoreSimulator.SimDeviceType.Apple-Vision-Pro",), "Apple Vision", "com.apple.Preferences",
-    "aarch64-apple-visionos-sim", runtime_name="xrOS",
+    "aarch64-apple-visionos-sim", "xros", runtime_name="xrOS",
 )
 FAMILIES = {"ios": IOS, "tvos": TVOS, "visionos": VISIONOS}
 
@@ -390,12 +420,95 @@ def bundle_id(name):
 
 
 # ---------------------------------------------------------------------------
+# MoltenVK
+
+
+def moltenvk_framework(macho):
+    """MoltenVK's framework for the program's platform and CPU (from
+    SDL3_IOS_MOLTENVK) and None, or None and why there's none."""
+    family = macho.family() or IOS
+    variable = family.env + "MOLTENVK" if family.var("MOLTENVK") else "SDL3_IOS_MOLTENVK"
+    path = os.environ.get(variable)
+    if not path:
+        return None, "SDL3_IOS_MOLTENVK isn't set"
+    path = os.path.abspath(path)
+    if path.rstrip("/").endswith(".framework") and os.path.isfile(os.path.join(path, "MoltenVK")):
+        return path, None
+    try:
+        with open(os.path.join(path, "Info.plist"), "rb") as f:
+            libraries = plistlib.load(f).get("AvailableLibraries", [])
+    except (OSError, plistlib.InvalidFileException, AttributeError) as e:
+        return None, f"{variable} ({path}) is neither a MoltenVK.xcframework nor a MoltenVK.framework: {e}"
+    arch = "x86_64" if macho.cpu == CPU_TYPE_X86_64 else "arm64"
+    variant = "simulator" if macho.is_simulator() else None
+    for library in libraries:
+        if (library.get("SupportedPlatform") == family.xcframework_platform
+                and library.get("SupportedPlatformVariant") == variant
+                and arch in library.get("SupportedArchitectures", [])):
+            framework = os.path.join(path, library.get("LibraryIdentifier", ""), library.get("LibraryPath", ""))
+            if os.path.isfile(os.path.join(framework, "MoltenVK")):
+                return framework, None
+            return None, f"{variable}'s {library.get('LibraryIdentifier')} has no {library.get('LibraryPath')}/MoltenVK"
+    where = f"the {family.name} Simulator" if variant else f"{family.name} devices"
+    return None, f"{variable} ({path}) has no MoltenVK for {where} ({arch})"
+
+
+def moltenvk_environment(env):
+    """MoltenVK's settings for the Simulators' Metal devices (see the
+    spawned programs above), unless they are set."""
+    env.setdefault("SIMCTL_CHILD_MVK_CONFIG_USE_METAL_ARGUMENT_BUFFERS", "0")
+
+
+def codesign(path, identity):
+    argv = ["codesign", "--force", "--sign", identity, "--timestamp=none", path]
+    try:
+        result = subprocess.run(argv, stdin=subprocess.DEVNULL, capture_output=True, text=True, errors="replace")
+    except FileNotFoundError:
+        raise Failure("no codesign (set SDL3_IOS_CODESIGN=0 not to sign)") from None
+    if result.returncode != 0:
+        raise Failure(f"{shlex.join(argv)} failed: {result.stderr.strip()}")
+
+
+def signed_moltenvk(framework):
+    """A copy of the framework signed ad hoc, made once in the temporary
+    directory, for the spawned programs: the directory it is in."""
+    binary = os.path.join(framework, "MoltenVK")
+    stat = os.stat(binary)
+    key = f"{os.path.realpath(binary)}:{stat.st_size}:{stat.st_mtime_ns}"
+    digest = hashlib.sha256(key.encode()).hexdigest()[:16]
+    directory = os.path.join(tempfile.gettempdir(), f"sdl3-ios-moltenvk-{os.getuid()}", digest)
+    if os.path.isfile(os.path.join(directory, "MoltenVK.framework", "MoltenVK")):
+        return directory
+    os.makedirs(os.path.dirname(directory), exist_ok=True)
+    staging = tempfile.mkdtemp(prefix="staging-", dir=os.path.dirname(directory))
+    try:
+        copy = os.path.join(staging, "MoltenVK.framework")
+        shutil.copytree(framework, copy, symlinks=True)
+        codesign(copy, "-")
+        try:
+            os.rename(staging, directory)
+        except OSError:
+            # (made meanwhile, by a program run at the same time)
+            if not os.path.isfile(os.path.join(directory, "MoltenVK.framework", "MoltenVK")):
+                raise
+        else:
+            staging = None
+    finally:
+        if staging:
+            shutil.rmtree(staging, ignore_errors=True)
+    return directory
+
+
+# ---------------------------------------------------------------------------
 # The app bundle
 
 
 def write_bundle(program, macho, app, identifier):
-    """PROGRAM's app bundle at APP: the executable, Info.plist and PkgInfo,
-    signed as SDL3_IOS_CODESIGN says."""
+    """PROGRAM's app bundle at APP: the executable, Info.plist and PkgInfo
+    (and MoltenVK's framework, for a program with the word `moltenvk`),
+    signed as SDL3_IOS_CODESIGN says. Returns what SDL3_IOS_RUNNER_MOLTENVK
+    tells the app (None for a program without the word): `1` (bundled),
+    or why not."""
     name = program_name(program)
     executable = re.sub(r"[^A-Za-z0-9_.-]", "-", name)
     os.makedirs(app)
@@ -444,14 +557,22 @@ def write_bundle(program, macho, app, identifier):
     with open(os.path.join(app, "PkgInfo"), "w") as f:
         f.write("APPL????")
     identity = os.environ.get("SDL3_IOS_CODESIGN") or "-"
+    moltenvk = None
+    if "moltenvk" in macho.words:
+        framework, why = moltenvk_framework(macho)
+        if framework:
+            frameworks = os.path.join(app, "Frameworks")
+            os.makedirs(frameworks)
+            shutil.copytree(framework, os.path.join(frameworks, "MoltenVK.framework"), symlinks=True)
+            if identity != "0":
+                codesign(os.path.join(frameworks, "MoltenVK.framework"), identity)
+            moltenvk = "1"
+        else:
+            note(f"MoltenVK isn't bundled: {why}")
+            moltenvk = f"the runner didn't bundle MoltenVK: {why}"
     if identity != "0":
-        argv = ["codesign", "--force", "--sign", identity, "--timestamp=none", app]
-        try:
-            result = subprocess.run(argv, stdin=subprocess.DEVNULL, capture_output=True, text=True, errors="replace")
-        except FileNotFoundError:
-            raise Failure("no codesign (set SDL3_IOS_CODESIGN=0 not to sign)") from None
-        if result.returncode != 0:
-            raise Failure(f"{shlex.join(argv)} failed: {result.stderr.strip()}")
+        codesign(app, identity)
+    return moltenvk
 
 
 def cmd_bundle(args):
@@ -659,12 +780,21 @@ def spawn(udid, program, args, macho):
     if macho.cpu == CPU_TYPE_X86_64:
         argv.append("--arch=x86_64")
     argv += [udid, program, *args]
+    env = child_environment()
+    framework, why = moltenvk_framework(macho)
+    if framework:
+        directory = signed_moltenvk(framework)
+        paths = [directory] + [p for p in env.get("SIMCTL_CHILD_DYLD_FRAMEWORK_PATH", "").split(":") if p]
+        env["SIMCTL_CHILD_DYLD_FRAMEWORK_PATH"] = ":".join(paths)
+        moltenvk_environment(env)
+    elif VERBOSE:
+        note(f"no MoltenVK: {why}")
     if VERBOSE:
         note("running " + shlex.join(argv))
     sys.stdout.flush()
     sys.stderr.flush()
     try:
-        os.execvpe("xcrun", argv, child_environment())
+        os.execvpe("xcrun", argv, env)
     except OSError as e:
         raise Failure(f"can't run xcrun: {e}") from None
 
@@ -702,7 +832,7 @@ def launch(udid, program, args, macho):
     identifier = bundle_id(name)
     with tempfile.TemporaryDirectory(prefix="sdl3-ios-") as temp:
         app = os.path.join(temp, re.sub(r"[^A-Za-z0-9_.-]", "-", name) + ".app")
-        write_bundle(program, macho, app, identifier)
+        moltenvk = write_bundle(program, macho, app, identifier)
         executable = re.sub(r"[^A-Za-z0-9_.-]", "-", name)
         xcrun_simctl("install", udid, app, timeout=600)
         idb, why = find_idb()
@@ -715,7 +845,9 @@ def launch(udid, program, args, macho):
                             xcrun_simctl("privacy", udid, "revoke", service[1:], identifier)
                         else:
                             xcrun_simctl("privacy", udid, "grant", service, identifier)
-            return run_app(udid, identifier, executable, args, timeout, temp, (idb, why, used_idb), macho.family())
+            return run_app(
+                udid, identifier, executable, args, timeout, temp, (idb, why, used_idb), macho.family(), moltenvk,
+            )
         finally:
             if used_idb:
                 # (the companions idb started for the device: the next
@@ -809,7 +941,7 @@ def run_idb(idb, *args):
     return True
 
 
-def run_app(udid, identifier, executable, args, timeout, temp, idb, family):
+def run_app(udid, identifier, executable, args, timeout, temp, idb, family, moltenvk):
     # The app's stdout and stderr go to files, which launchd opens for it
     # before it starts, so that nothing it prints is lost (through `simctl
     # launch --console-pty` a program that is done at once now and then
@@ -822,7 +954,7 @@ def run_app(udid, identifier, executable, args, timeout, temp, idb, family):
     else:
         temp = tempfile.mkdtemp(prefix="sdl3-ios-run-", dir=temp)
     try:
-        return run_app_in(udid, identifier, executable, args, timeout, temp, idb, family)
+        return run_app_in(udid, identifier, executable, args, timeout, temp, idb, family, moltenvk)
     finally:
         shutil.rmtree(temp, ignore_errors=True)
 
@@ -923,12 +1055,16 @@ class Requests:
             self.foreground()
 
 
-def run_app_in(udid, identifier, executable, args, timeout, temp, idb, family):
+def run_app_in(udid, identifier, executable, args, timeout, temp, idb, family, moltenvk):
     out_path = os.path.join(temp, "stdout.txt")
     err_path = os.path.join(temp, "stderr.txt")
     start = time.monotonic()
     env = child_environment()
     env["SIMCTL_CHILD_SDL3_IOS_RUNNER_IDB"] = "1" if idb[0] else idb[1]
+    if moltenvk:
+        env["SIMCTL_CHILD_SDL3_IOS_RUNNER_MOLTENVK"] = moltenvk
+        if moltenvk == "1":
+            moltenvk_environment(env)
     # Now and then the system refuses to launch an app just installed
     # (FrontBoard doesn't know it yet: LaunchServicesDataMismatch). None
     # of the app has run then, so it is launched again after a pause.
