@@ -22,7 +22,7 @@
 //! copies.
 
 use std::fmt::Write;
-use std::path::Path;
+use std::path::PathBuf;
 use std::sync::Arc;
 
 use sdl3_mixer_mpg123::mpg123::*;
@@ -476,11 +476,19 @@ const OWN_FILES: &[(&str, &[u8])] = own_files![
     "mp3_stereo_info.mp3",
 ];
 
+/// The package's directory: where Cargo says it is when it runs the tests
+/// (on Android, the runner's copy of the workspace's test data on the
+/// device: see tools/android_run.py), else where it was built.
+fn manifest_dir() -> PathBuf {
+    std::env::var_os("CARGO_MANIFEST_DIR")
+        .map_or_else(|| env!("CARGO_MANIFEST_DIR").into(), PathBuf::from)
+}
+
 /// [`OWN_FILES`] has every file of testdata/.
 #[test]
 #[cfg_attr(target_os = "emscripten", ignore = "host file system")]
 fn own_files_are_the_testdata_files() {
-    let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("testdata");
+    let dir = manifest_dir().join("testdata");
     let mut names: Vec<String> = std::fs::read_dir(dir)
         .unwrap()
         .map(|e| e.unwrap().file_name().into_string().unwrap())
@@ -497,7 +505,7 @@ fn find(name: &str) -> Option<Vec<u8>> {
     if let Some(&(_, data)) = OWN_FILES.iter().find(|&&(n, _)| n == name) {
         return Some(data.to_vec());
     }
-    let mixer = Path::new(env!("CARGO_MANIFEST_DIR"))
+    let mixer = manifest_dir()
         .join("../sdl3-mixer/src/testdata/audio")
         .join(name);
     std::fs::read(mixer).ok()

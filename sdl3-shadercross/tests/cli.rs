@@ -4,25 +4,36 @@
 use std::path::PathBuf;
 use std::process::Command;
 
+// The package's directory, the target's directory for temporary files and
+// the `shadercross` executable: where Cargo (or a runner, on Android the
+// device's copies: see tools/android_run.py) says they are when it runs
+// the tests, else where they were when it built them.
+
 fn testdata(name: &str) -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+    std::env::var_os("CARGO_MANIFEST_DIR")
+        .map_or_else(|| env!("CARGO_MANIFEST_DIR").into(), PathBuf::from)
         .join("testdata")
         .join(name)
 }
 
 /// A fresh output directory for one test.
 fn out_dir(test: &str) -> PathBuf {
-    let dir = PathBuf::from(env!("CARGO_TARGET_TMPDIR")).join(format!("shadercross-cli-{test}"));
+    let dir = std::env::var_os("CARGO_TARGET_TMPDIR")
+        .map_or_else(|| env!("CARGO_TARGET_TMPDIR").into(), PathBuf::from)
+        .join(format!("shadercross-cli-{test}"));
     let _ = std::fs::remove_dir_all(&dir);
     std::fs::create_dir_all(&dir).unwrap();
     dir
 }
 
 fn shadercross(args: &[&std::ffi::OsStr]) -> std::process::Output {
-    Command::new(env!("CARGO_BIN_EXE_shadercross"))
-        .args(args)
-        .output()
-        .unwrap()
+    Command::new(
+        std::env::var_os("CARGO_BIN_EXE_shadercross")
+            .unwrap_or_else(|| env!("CARGO_BIN_EXE_shadercross").into()),
+    )
+    .args(args)
+    .output()
+    .unwrap()
 }
 
 /// The text of a section of testdata/reference.txt, without its

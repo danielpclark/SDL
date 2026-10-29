@@ -1683,11 +1683,22 @@ fn compare_with(reference: &[u8], out: &str, sections: &[&str]) {
     }
 }
 
+/// The package's directory: where Cargo says it is when it runs the tests
+/// (on Android, the runner's copy of the workspace's test data on the
+/// device: see tools/android_run.py), else where it was built.
+#[cfg(any(feature = "timidity", feature = "fluidsynth", feature = "gme"))]
+fn manifest_dir() -> std::path::PathBuf {
+    std::env::var_os("CARGO_MANIFEST_DIR").map_or_else(
+        || env!("CARGO_MANIFEST_DIR").into(),
+        std::path::PathBuf::from,
+    )
+}
+
 /// sdl3-mixer-timidity's test data: its configuration (which upstream's
 /// TIMIDITY decoder reads from `TIMIDITY_CFG`) and MIDI files.
 #[cfg(any(feature = "timidity", feature = "fluidsynth"))]
 fn timidity_testdata() -> std::path::PathBuf {
-    std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../sdl3-mixer-timidity/testdata")
+    manifest_dir().join("../sdl3-mixer-timidity/testdata")
 }
 
 fn setup() {
@@ -1984,7 +1995,7 @@ fn midi_matches_upstream() {
 /// sdl3-mixer-fluidsynth's test data: its SoundFont and MIDI files.
 #[cfg(feature = "fluidsynth")]
 fn fluidsynth_testdata() -> std::path::PathBuf {
-    std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../sdl3-mixer-fluidsynth/testdata")
+    manifest_dir().join("../sdl3-mixer-fluidsynth/testdata")
 }
 
 /// The MIDI files the FLUIDSYNTH sections play, in the reference's order.
@@ -2109,7 +2120,7 @@ static REFERENCE_GME: &[u8] = include_bytes!("testdata/reference_gme.txt");
 /// sdl3-mixer-gme's test data: rips of tiny sound programs.
 #[cfg(feature = "gme")]
 fn gme_testdata() -> std::path::PathBuf {
-    std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../sdl3-mixer-gme/testdata")
+    manifest_dir().join("../sdl3-mixer-gme/testdata")
 }
 
 /// A GME decoder over the data (a bounded amount of it: libgme plays on

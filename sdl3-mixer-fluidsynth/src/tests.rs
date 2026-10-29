@@ -249,7 +249,12 @@ fn testdata(name: &str) -> Option<Vec<u8>> {
 #[test]
 #[cfg_attr(target_os = "emscripten", ignore = "host file system")]
 fn testdata_is_every_file() {
-    let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("testdata");
+    // (where Cargo says the package is when it runs the test, on Android
+    // the runner's copy of the test data: see tools/android_run.py)
+    let dir = std::path::PathBuf::from(
+        std::env::var_os("CARGO_MANIFEST_DIR").unwrap_or_else(|| env!("CARGO_MANIFEST_DIR").into()),
+    )
+    .join("testdata");
     let mut names = Vec::new();
     for sub in ["", "midi/"] {
         for e in std::fs::read_dir(dir.join(sub)).unwrap() {
