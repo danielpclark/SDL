@@ -40,7 +40,18 @@ const DEFAULT_PATHS: &[&str] = &[
 ];
 #[cfg(target_os = "openbsd")]
 const DEFAULT_PATHS: &[&str] = &["libvulkan.so"];
-#[cfg(not(any(windows, target_vendor = "apple", target_os = "openbsd")))]
+// FIXME (upstream): Android takes the `#else` branch, "libvulkan.so.1",
+// which Android doesn't have (its loader is only "libvulkan.so"), so the
+// offscreen driver never loads Vulkan there; this uses the Android video
+// driver's name (SDL_androidvulkan.c).
+#[cfg(target_os = "android")]
+const DEFAULT_PATHS: &[&str] = &["libvulkan.so"];
+#[cfg(not(any(
+    windows,
+    target_vendor = "apple",
+    target_os = "android",
+    target_os = "openbsd"
+)))]
 const DEFAULT_PATHS: &[&str] = &["libvulkan.so.1"];
 
 /*Should the whole driver fail if it can't create a surface? Rendering to an offscreen buffer is still possible without a surface.
@@ -333,9 +344,14 @@ mod tests {
                 "libMoltenVK.dylib",
             ]
         );
-        #[cfg(target_os = "openbsd")]
+        #[cfg(any(target_os = "android", target_os = "openbsd"))]
         assert_eq!(super::DEFAULT_PATHS, ["libvulkan.so"]);
-        #[cfg(all(unix, not(target_vendor = "apple"), not(target_os = "openbsd")))]
+        #[cfg(all(
+            unix,
+            not(target_vendor = "apple"),
+            not(target_os = "android"),
+            not(target_os = "openbsd")
+        ))]
         assert_eq!(super::DEFAULT_PATHS, ["libvulkan.so.1"]);
     }
 

@@ -518,7 +518,9 @@ impl VulkanRenderer {
             image_sharing_mode: VK_SHARING_MODE_EXCLUSIVE,
             queue_family_index_count: 0,
             p_queue_family_indices: null(),
-            // (SDL_PLATFORM_ANDROID takes VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR.)
+            #[cfg(target_os = "android")]
+            pre_transform: VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR,
+            #[cfg(not(target_os = "android"))]
             pre_transform: capabilities.current_transform,
             composite_alpha: composite_alpha_flag,
             present_mode: sdl_to_vk_present_mode(window_data.present_mode),

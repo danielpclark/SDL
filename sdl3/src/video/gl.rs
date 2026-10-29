@@ -20,7 +20,10 @@
 //! set, and the canvas driver's contexts are WebGL's. Upstream's UIKit build
 //! has OpenGL ES without `SDL_VIDEO_OPENGL` or EGL: the attributes are those
 //! of the Emscripten build, and on iOS and tvOS the UIKit driver's contexts
-//! are EAGL's (visionOS has no OpenGL ES).
+//! are EAGL's (visionOS has no OpenGL ES). Its Android build has OpenGL ES
+//! through EGL without `SDL_VIDEO_OPENGL`: the attributes are those of the
+//! Emscripten build too, and the contexts are EGL's (the offscreen
+//! driver's; the Android driver isn't translated yet).
 //!
 //! A [`GlContext`] is destroyed when dropped; functions are looked up with
 //! [`gl_get_proc_address`] once a library is loaded (by creating an
@@ -612,10 +615,11 @@ const GL_RGBA_FLOAT_MODE_ARB: GLenum = 0x8820;
 
 /// Whether upstream's `SDL_VIDEO_OPENGL` (desktop OpenGL) is built: not on
 /// Emscripten, where upstream builds OpenGL ES 2 only
-/// (`SDL_VIDEO_OPENGL_ES2`), nor on UIKit (OpenGL ES 2 and 1), and the
-/// `#ifdef SDL_VIDEO_OPENGL` parts of `SDL_video.c` take their OpenGL ES
-/// branch.
+/// (`SDL_VIDEO_OPENGL_ES2`), nor on UIKit and Android (OpenGL ES 2 and 1),
+/// and the `#ifdef SDL_VIDEO_OPENGL` parts of `SDL_video.c` take their
+/// OpenGL ES branch.
 const SDL_VIDEO_OPENGL: bool = cfg!(not(any(
+    target_os = "android",
     target_os = "emscripten",
     all(target_vendor = "apple", not(target_os = "macos"))
 )));
@@ -952,7 +956,7 @@ pub fn gl_reset_attributes() {
         retained_backing: 1,
         accelerated: -1, // accelerated or not, both are fine
         // (SDL_VIDEO_OPENGL: 2.1; SDL_VIDEO_OPENGL_ES2 without it, as on
-        // Emscripten and UIKit: OpenGL ES 2.0)
+        // Emscripten, UIKit and Android: OpenGL ES 2.0)
         major_version: 2,
         minor_version: if SDL_VIDEO_OPENGL { 1 } else { 0 },
         profile_mask: if SDL_VIDEO_OPENGL {

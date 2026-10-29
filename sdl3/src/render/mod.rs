@@ -19,7 +19,7 @@
 //! [`Renderer::for_window`]), the Direct3D 12 backend ("direct3d12",
 //! Windows only, next), the Metal backend ("metal", on Apple platforms,
 //! tried first there), the OpenGL backend ("opengl", first elsewhere; not
-//! on the UIKit platforms or Emscripten), the
+//! on the UIKit platforms, Android or Emscripten), the
 //! OpenGL ES 2.0 backend ("opengles2"), the Vulkan backend ("vulkan") or
 //! the GPU backend ("gpu", through the [GPU API](crate::gpu)); the other
 //! GPU backends come with the platform layer.
@@ -340,8 +340,9 @@ const RENDER_DRIVERS: &[&str] = &[
     #[cfg(target_vendor = "apple")]
     metal::METAL_RENDERER,
     // (Emscripten: OpenGL ES 2 and software only, as upstream builds it;
-    // no desktop OpenGL on UIKit either)
+    // no desktop OpenGL on UIKit or Android either)
     #[cfg(not(any(
+        target_os = "android",
         target_os = "emscripten",
         all(target_vendor = "apple", not(target_os = "macos"))
     )))]
