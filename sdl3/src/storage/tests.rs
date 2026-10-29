@@ -131,6 +131,8 @@ fn title_storage_is_read_only() {
     ] {
         assert_eq!(e.kind(), ErrorKind::Unsupported);
     }
+    // (no base path on Android until its filesystem backend, Android PR 5)
+    #[cfg(not(target_os = "android"))]
     assert!(
         Storage::open_title(None, None).is_ok(),
         "the base path exists"
@@ -139,6 +141,10 @@ fn title_storage_is_read_only() {
 
 #[cfg(unix)]
 #[test]
+#[cfg_attr(
+    target_os = "android",
+    ignore = "no pref path until Android's filesystem backend (Android PR 5)"
+)]
 fn user_storage_and_driver_hints() {
     use crate::stdlib::{getenv, setenv_unsafe, unsetenv_unsafe};
     let _l = crate::test_support::test_lock();
