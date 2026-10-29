@@ -315,6 +315,13 @@ pub(crate) mod test_support {
     pub(crate) static SKIPPED: std::sync::Mutex<Vec<(String, String, String)>> =
         std::sync::Mutex::new(Vec::new());
 
+    /// What a `vulkan` skip's reason ends with on visionOS, where upstream's
+    /// `SDL_LoadObject()` refuses every library (so no Vulkan library is
+    /// loaded).
+    #[cfg(target_os = "visionos")]
+    pub(crate) const VISIONOS_LOADSO: &str =
+        "(upstream's SDL_LoadObject() requires iOS 8+, and visionOS's version is below 8)";
+
     /// Report that the calling test skips (some of) its checks because
     /// `capability` (one of [`CAPABILITIES`]) is missing here, and return so
     /// the caller can bail out. Prints a uniform note, records the skip in
@@ -328,6 +335,16 @@ pub(crate) mod test_support {
             "unknown test capability {capability:?}"
         );
         let reason = reason.to_string();
+        // (no Vulkan library loads on visionOS: see the FIXME (upstream) on
+        // crate::loadso::SharedObject::load)
+        #[cfg(target_os = "visionos")]
+        let reason = if capability == "vulkan"
+            && !crate::video::drivers::uikit::is_system_version_at_least(8.0)
+        {
+            format!("{reason} {VISIONOS_LOADSO}")
+        } else {
+            reason
+        };
         if required(capability) {
             panic!("required capability {capability} unavailable: {reason}");
         }

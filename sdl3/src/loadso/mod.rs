@@ -44,6 +44,25 @@ impl SharedObject {
     /// Load a shared object by file name or path. Translation of
     /// `SDL_LoadObject()`.
     pub fn load(sofile: &str) -> Result<SharedObject> {
+        // FIXME (upstream): the check takes visionOS's version for iOS's,
+        // and visionOS's versions (1 and 2) are below 8.0, so every library
+        // is refused there.
+        #[cfg(all(target_vendor = "apple", not(target_os = "macos")))]
+        if !crate::video::drivers::uikit::is_system_version_at_least(8.0) {
+            return Err(Error::new("SDL_LoadObject requires iOS 8+"));
+        }
+        Self::load_unchecked(sofile)
+    }
+
+    /// Load a system framework that upstream links (weakly) on Apple
+    /// platforms: `dlopen()` as [`SharedObject::load`] calls it, without
+    /// UIKit's version check, which upstream's link doesn't go through.
+    #[cfg(target_vendor = "apple")]
+    pub(crate) fn load_framework(sofile: &str) -> Result<SharedObject> {
+        Self::load_unchecked(sofile)
+    }
+
+    fn load_unchecked(sofile: &str) -> Result<SharedObject> {
         sys::load(sofile).map(|handle| SharedObject {
             handle,
             name: sofile.to_owned(),
@@ -294,12 +313,17 @@ mod tests {
     #[test]
     fn missing_object() {
         let err = SharedObject::load("libSDL-no-such-library.so.0").unwrap_err();
-        assert!(
-            err.message()
-                .starts_with("Failed loading libSDL-no-such-library.so.0"),
-            "{}",
-            err.message()
-        );
+        if cfg!(target_os = "visionos") {
+            // (upstream's check of the version, which visionOS's is below)
+            assert_eq!(err.message(), "SDL_LoadObject requires iOS 8+");
+        } else {
+            assert!(
+                err.message()
+                    .starts_with("Failed loading libSDL-no-such-library.so.0"),
+                "{}",
+                err.message()
+            );
+        }
         assert!(SharedObject::load("a\0b").is_err());
     }
 }
