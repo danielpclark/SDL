@@ -203,7 +203,12 @@ fn pattern_texture(r: &mut Renderer, format: PixelFormat, w: i32, h: i32) -> Tex
 }
 
 #[test]
-#[cfg(not(any(windows, target_vendor = "apple", target_os = "emscripten")))] // (direct3d11 and metal come first there: see their tests, UIKit's too; Emscripten's below)
+#[cfg(not(any(
+    windows,
+    target_vendor = "apple",
+    target_os = "android",
+    target_os = "emscripten"
+)))] // (direct3d11 and metal come first there: see their tests, UIKit's too; Android's and Emscripten's below)
 fn driver_list_follows_upstreams_order() {
     use crate::render::{num_render_drivers, render_driver};
     assert_eq!(num_render_drivers(), 5);
@@ -213,6 +218,21 @@ fn driver_list_follows_upstreams_order() {
     assert_eq!(render_driver(3).unwrap(), "gpu");
     assert_eq!(render_driver(4).unwrap(), SOFTWARE_RENDERER);
     assert!(render_driver(5).is_err());
+}
+
+/// Upstream's Android build has the OpenGL ES 2, OpenGL ES, Vulkan, GPU
+/// and software renderers, and no desktop OpenGL; the OpenGL ES (1)
+/// renderer isn't translated.
+#[test]
+#[cfg(target_os = "android")]
+fn android_driver_list_follows_upstreams_order() {
+    use crate::render::{num_render_drivers, render_driver};
+    assert_eq!(num_render_drivers(), 4);
+    assert_eq!(render_driver(0).unwrap(), "opengles2");
+    assert_eq!(render_driver(1).unwrap(), "vulkan");
+    assert_eq!(render_driver(2).unwrap(), "gpu");
+    assert_eq!(render_driver(3).unwrap(), SOFTWARE_RENDERER);
+    assert!(render_driver(4).is_err());
 }
 
 /// Upstream's Emscripten build has the OpenGL ES 2 and software renderers.

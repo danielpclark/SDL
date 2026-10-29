@@ -854,6 +854,7 @@ impl VulkanRenderer {
                     .fetch_add(1, Ordering::SeqCst);
 
                 // On the Android platform, VK_SUBOPTIMAL_KHR is returned whenever the device is rotated. We'll just ignore this for now.
+                #[cfg(not(target_os = "android"))]
                 if present_result == VK_SUBOPTIMAL_KHR {
                     window_data.needs_swapchain_recreate = true;
                 }

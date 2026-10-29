@@ -146,6 +146,16 @@ mod paths {
     pub(super) const DEFAULT_OGL_ES_PVR: &str = "libGLES_CM.dylib"; //???
     pub(super) const DEFAULT_OGL_ES: &str = "libGLESv1_CM.dylib"; //???
 }
+#[cfg(target_os = "android")]
+mod paths {
+    // Android (SDL_VIDEO_DRIVER_ANDROID; no desktop OpenGL)
+    pub(super) const DEFAULT_EGL: &str = "libEGL.so";
+    pub(super) const DEFAULT_OGL: Option<&str> = None;
+    pub(super) const ALT_OGL: Option<&str> = None;
+    pub(super) const DEFAULT_OGL_ES2: &str = "libGLESv2.so";
+    pub(super) const DEFAULT_OGL_ES_PVR: &str = "libGLES_CM.so";
+    pub(super) const DEFAULT_OGL_ES: &str = "libGLESv1_CM.so";
+}
 #[cfg(target_os = "openbsd")]
 mod paths {
     // OpenBSD
@@ -156,7 +166,12 @@ mod paths {
     pub(super) const DEFAULT_OGL_ES_PVR: &str = "libGLES_CM.so";
     pub(super) const DEFAULT_OGL_ES: &str = "libGLESv1_CM.so";
 }
-#[cfg(not(any(windows, target_vendor = "apple", target_os = "openbsd")))]
+#[cfg(not(any(
+    windows,
+    target_vendor = "apple",
+    target_os = "android",
+    target_os = "openbsd"
+)))]
 mod paths {
     // Desktop Linux/Unix-like
     pub(super) const DEFAULT_OGL: Option<&str> = Some("libGL.so.1");
