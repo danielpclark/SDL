@@ -46,6 +46,11 @@ env:
   CARGO_TERM_COLOR: always
   CARGO_INCREMENTAL: 0
   RUST_BACKTRACE: 1
+  # MoltenVK's release, pinned, for the macOS job (its MoltenVK-macos.tar)
+  # and the Simulator jobs (its MoltenVK-all.tar, the only archive of the
+  # release with the Simulators' frameworks)
+  MOLTENVK_VERSION: v1.4.2
+  MOLTENVK_ALL_SHA256: 562a15a29bc358446a56a4091c5f7e08f604184187c1d34f712148b61ef17276
 
 jobs:
   fmt:
@@ -143,12 +148,12 @@ jobs:
       # The GPU drivers of the Windows and macOS jobs, pinned: Mesa for
       # Windows (pal1000/mesa-dist-win's MSVC build: llvmpipe OpenGL and
       # EGL, lavapipe Vulkan) with the Khronos Vulkan loader built from its
-      # SDK tag (Windows has none), and MoltenVK's release build.
+      # SDK tag (Windows has none), and MoltenVK's release build
+      # (MOLTENVK_VERSION, above).
       MESA_VERSION: "26.2.4"
       MESA_SHA256: 351fc8c8b695878ffb3eaa044b3ead08672a48b1a045e3c3e3975811df0f6695
       VULKAN_LOADER_TAG: vulkan-sdk-1.4.363.0
       VULKAN_LOADER_COMMIT: fa218055ff4948b159f31d43f800c808a13d51df
-      MOLTENVK_VERSION: v1.4.2
       MOLTENVK_SHA256: f95765a6229cb7b915990a2890ce12ebe36a730b021545d3d52ae69ce4c4024e
     steps:
       - uses: actions/checkout@v5
@@ -468,6 +473,29 @@ jobs:
       # runner waits for that before the first program runs.
       - name: Boot the simulator
         run: echo "SDL3_IOS_SIMULATOR=$(tools/ios_run.py --boot)" >> "$GITHUB_ENV"
+      # MoltenVK's framework for the iOS Simulator (a slice of the
+      # release's dynamic MoltenVK.xcframework, in its MoltenVK-all.tar),
+      # downloaded once and kept between runs (the archive is checked
+      # again on every run): tools/ios_run.py bundles it in the apps that
+      # ask for it and gives it to the spawned programs (SDL3_IOS_MOLTENVK).
+      - name: Cache MoltenVK
+        uses: actions/cache@v5
+        with:
+          path: ${{ runner.temp }}/moltenvk-cache
+          key: moltenvk-all-${{ env.MOLTENVK_VERSION }}
+      - name: Get MoltenVK
+        env:
+          SLICE: ios-arm64_x86_64-simulator
+        run: |
+          C="$RUNNER_TEMP/moltenvk-cache"
+          mkdir -p "$C"
+          if [ ! -f "$C/moltenvk-all.tar" ]; then
+            curl -fsSL -o "$C/moltenvk-all.tar" "https://github.com/KhronosGroup/MoltenVK/releases/download/$MOLTENVK_VERSION/MoltenVK-all.tar"
+          fi
+          echo "$MOLTENVK_ALL_SHA256  $C/moltenvk-all.tar" | shasum -a 256 -c
+          X=MoltenVK/MoltenVK/dynamic/MoltenVK.xcframework
+          tar xf "$C/moltenvk-all.tar" -C "$RUNNER_TEMP" "$X/Info.plist" "$X/$SLICE"
+          echo "SDL3_IOS_MOLTENVK=$RUNNER_TEMP/$X" >> "$GITHUB_ENV"
       - name: Build the tests
         env:
           TEST_ARGS: ${{ inputs.ios_test_args }}
@@ -492,8 +520,12 @@ jobs:
       # The skips by design: the simulator's Metal device is below what the
       # GPU API's Metal backend asks for (metal, with upstream's "Device
       # does not meet the hardware requirements for SDL_GPU Metal": the
-      # Metal renderer, which has a device there, must not skip), there's
-      # no MoltenVK (vulkan), and the offscreen driver has no EGL on Apple
+      # Metal renderer, which has a device there, must not skip), and
+      # through MoltenVK it has no imageCubeArray or
+      # drawIndirectFirstInstance, which the GPU API's Vulkan backend asks
+      # for (vulkan, the GPU API's and the GPU renderer's checks, with what
+      # the device lacks: the Vulkan renderer's checks, which run on it,
+      # must not skip); and the offscreen driver has no EGL on Apple
       # platforms (egl). Any other skip (idb's, gles's and gamecontroller's
       # too) fails the job, in place of an SDL3_TEST_REQUIRE list.
       - name: Check the skips
@@ -501,10 +533,13 @@ jobs:
         shell: bash
         run: |
           touch "$RUNNER_TEMP/skips.tsv"
-          awk -F '\t' '!($1 == "metal" && index($3, "hardware requirements for SDL_GPU Metal")) && $1 != "vulkan" && $1 != "egl"' "$RUNNER_TEMP/skips.tsv" > "$RUNNER_TEMP/unexpected.tsv"
+          awk -F '\t' -v lacks=": Apple iOS simulator GPU has no imageCubeArray, drawIndirectFirstInstance" '
+            $1 == "metal" && index($3, "hardware requirements for SDL_GPU Metal") { next }
+            $1 == "vulkan" && $3 ~ /^no (Vulkan GPU device|GPU renderer|device) \((SDL_HINT_GPU_DRIVER vulkan unsupported!|PrepareDriver failed)\): / && substr($3, length($3) - length(lacks) + 1) == lacks { next }
+            $1 != "egl"' "$RUNNER_TEMP/skips.tsv" > "$RUNNER_TEMP/unexpected.tsv"
           if [ -s "$RUNNER_TEMP/unexpected.tsv" ]; then
             cat "$RUNNER_TEMP/unexpected.tsv"
-            echo "::error::checks skipped for other capabilities than vulkan and egl, or metal for another reason than the GPU API's hardware requirements (above)"
+            echo "::error::checks skipped for other capabilities than egl, metal for another reason than the GPU API's hardware requirements, or vulkan for another one than the device features the GPU API's Vulkan backend needs (above)"
             exit 1
           fi
       # The results out of the long log: each program's, and on a failure
@@ -570,6 +605,29 @@ jobs:
           cache-on-failure: true
       - name: Boot the simulator
         run: echo "SDL3_TVOS_SIMULATOR=$(tools/ios_run.py --boot tvos)" >> "$GITHUB_ENV"
+      # MoltenVK's framework for the tvOS Simulator (a slice of the
+      # release's dynamic MoltenVK.xcframework, in its MoltenVK-all.tar),
+      # downloaded once and kept between runs (the archive is checked
+      # again on every run): tools/ios_run.py bundles it in the apps that
+      # ask for it and gives it to the spawned programs (SDL3_IOS_MOLTENVK).
+      - name: Cache MoltenVK
+        uses: actions/cache@v5
+        with:
+          path: ${{ runner.temp }}/moltenvk-cache
+          key: moltenvk-all-${{ env.MOLTENVK_VERSION }}
+      - name: Get MoltenVK
+        env:
+          SLICE: tvos-arm64_x86_64-simulator
+        run: |
+          C="$RUNNER_TEMP/moltenvk-cache"
+          mkdir -p "$C"
+          if [ ! -f "$C/moltenvk-all.tar" ]; then
+            curl -fsSL -o "$C/moltenvk-all.tar" "https://github.com/KhronosGroup/MoltenVK/releases/download/$MOLTENVK_VERSION/MoltenVK-all.tar"
+          fi
+          echo "$MOLTENVK_ALL_SHA256  $C/moltenvk-all.tar" | shasum -a 256 -c
+          X=MoltenVK/MoltenVK/dynamic/MoltenVK.xcframework
+          tar xf "$C/moltenvk-all.tar" -C "$RUNNER_TEMP" "$X/Info.plist" "$X/$SLICE"
+          echo "SDL3_IOS_MOLTENVK=$RUNNER_TEMP/$X" >> "$GITHUB_ENV"
       - name: Build the tests
         env:
           TEST_ARGS: ${{ inputs.tvos_test_args }}
@@ -589,18 +647,21 @@ jobs:
           tools/ci/skips_from_log.py "$RUNNER_TEMP/test.log" > "$RUNNER_TEMP/skips.tsv"
           tools/ci/list-skips.sh "$RUNNER_TEMP/skips.tsv" aarch64-apple-tvos-sim
       # The skips by design, as in the iOS job: the GPU API's Metal backend
-      # (the simulator's Metal device is below its requirements), Vulkan
-      # (no MoltenVK) and the offscreen driver's EGL. Any other skip fails
-      # the job.
+      # (the simulator's Metal device is below its requirements) and its
+      # Vulkan backend (the device features MoltenVK hasn't there), and the
+      # offscreen driver's EGL. Any other skip fails the job.
       - name: Check the skips
         if: ${{ !cancelled() && !inputs.tvos_test_args }}
         shell: bash
         run: |
           touch "$RUNNER_TEMP/skips.tsv"
-          awk -F '\t' '!($1 == "metal" && index($3, "hardware requirements for SDL_GPU Metal")) && $1 != "vulkan" && $1 != "egl"' "$RUNNER_TEMP/skips.tsv" > "$RUNNER_TEMP/unexpected.tsv"
+          awk -F '\t' -v lacks=": Apple tvOS simulator GPU has no imageCubeArray, drawIndirectFirstInstance" '
+            $1 == "metal" && index($3, "hardware requirements for SDL_GPU Metal") { next }
+            $1 == "vulkan" && $3 ~ /^no (Vulkan GPU device|GPU renderer|device) \((SDL_HINT_GPU_DRIVER vulkan unsupported!|PrepareDriver failed)\): / && substr($3, length($3) - length(lacks) + 1) == lacks { next }
+            $1 != "egl"' "$RUNNER_TEMP/skips.tsv" > "$RUNNER_TEMP/unexpected.tsv"
           if [ -s "$RUNNER_TEMP/unexpected.tsv" ]; then
             cat "$RUNNER_TEMP/unexpected.tsv"
-            echo "::error::checks skipped for other capabilities than vulkan and egl, or metal for another reason than the GPU API's hardware requirements (above)"
+            echo "::error::checks skipped for other capabilities than egl, metal for another reason than the GPU API's hardware requirements, or vulkan for another one than the device features the GPU API's Vulkan backend needs (above)"
             exit 1
           fi
       - name: The test results
@@ -639,7 +700,7 @@ jobs:
       CARGO_PROFILE_DEV_DEBUG: line-tables-only
       # (the sdl3 library's tests and the visionOS app programs: the other
       # crates are pure code the iOS and tvOS jobs run)
-      DEFAULT_TEST_ARGS: -p sdl3 --lib --test uikit_visionos --test uikit_visionos_input --test uikit_main --test uikit_callbacks --test uikit_metal --test uikit_input
+      DEFAULT_TEST_ARGS: -p sdl3 --lib --test uikit_visionos --test uikit_visionos_input --test uikit_main --test uikit_callbacks --test uikit_metal --test uikit_input --test uikit_vulkan
     steps:
       - uses: actions/checkout@v5
       - name: Select Xcode
@@ -658,6 +719,29 @@ jobs:
           cache-on-failure: true
       - name: Boot the simulator
         run: echo "SDL3_VISIONOS_SIMULATOR=$(tools/ios_run.py --boot visionos)" >> "$GITHUB_ENV"
+      # MoltenVK's framework for the visionOS Simulator (a slice of the
+      # release's dynamic MoltenVK.xcframework, in its MoltenVK-all.tar),
+      # downloaded once and kept between runs (the archive is checked
+      # again on every run): tools/ios_run.py bundles it in the apps that
+      # ask for it and gives it to the spawned programs (SDL3_IOS_MOLTENVK).
+      - name: Cache MoltenVK
+        uses: actions/cache@v5
+        with:
+          path: ${{ runner.temp }}/moltenvk-cache
+          key: moltenvk-all-${{ env.MOLTENVK_VERSION }}
+      - name: Get MoltenVK
+        env:
+          SLICE: xros-arm64_x86_64-simulator
+        run: |
+          C="$RUNNER_TEMP/moltenvk-cache"
+          mkdir -p "$C"
+          if [ ! -f "$C/moltenvk-all.tar" ]; then
+            curl -fsSL -o "$C/moltenvk-all.tar" "https://github.com/KhronosGroup/MoltenVK/releases/download/$MOLTENVK_VERSION/MoltenVK-all.tar"
+          fi
+          echo "$MOLTENVK_ALL_SHA256  $C/moltenvk-all.tar" | shasum -a 256 -c
+          X=MoltenVK/MoltenVK/dynamic/MoltenVK.xcframework
+          tar xf "$C/moltenvk-all.tar" -C "$RUNNER_TEMP" "$X/Info.plist" "$X/$SLICE"
+          echo "SDL3_IOS_MOLTENVK=$RUNNER_TEMP/$X" >> "$GITHUB_ENV"
       - name: Build the tests
         env:
           TEST_ARGS: ${{ inputs.visionos_test_args }}
@@ -676,21 +760,27 @@ jobs:
         run: |
           tools/ci/skips_from_log.py "$RUNNER_TEMP/test.log" > "$RUNNER_TEMP/skips.tsv"
           tools/ci/list-skips.sh "$RUNNER_TEMP/skips.tsv" aarch64-apple-visionos-sim
-      # The skips by design, as in the iOS and tvOS jobs: Vulkan (no
-      # MoltenVK) and the offscreen driver's EGL; idb, which isn't
-      # installed for the visionOS Simulator (uikit_input's real touches);
-      # and the GPU API's indirect draws and dispatches, which the
-      # simulator's Metal device hasn't (Apple1 and Apple2 only: upstream
-      # takes any device on visionOS). Any other skip fails the job.
+      # The skips by design: Vulkan, whose library (MoltenVK) upstream's
+      # SDL_LoadObject() refuses to load on visionOS (it requires iOS 8,
+      # and takes visionOS's version for iOS's: a FIXME (upstream)), with
+      # that in the reason; the offscreen driver's EGL, as in the iOS and
+      # tvOS jobs; idb, which isn't installed for the visionOS Simulator
+      # (uikit_input's real touches); and the GPU API's indirect draws and
+      # dispatches, which the simulator's Metal device hasn't (Apple1 and
+      # Apple2 only: upstream takes any device on visionOS). Any other skip
+      # fails the job.
       - name: Check the skips
         if: ${{ !cancelled() && !inputs.visionos_test_args }}
         shell: bash
         run: |
           touch "$RUNNER_TEMP/skips.tsv"
-          awk -F '\t' '!($1 == "metal" && index($3, "no indirect draws or dispatches")) && $1 != "vulkan" && $1 != "egl" && $1 != "idb"' "$RUNNER_TEMP/skips.tsv" > "$RUNNER_TEMP/unexpected.tsv"
+          awk -F '\t' -v loadso="(upstream's SDL_LoadObject() requires iOS 8+, and visionOS's version is below 8)" '
+            $1 == "metal" && index($3, "no indirect draws or dispatches") { next }
+            $1 == "vulkan" && substr($3, length($3) - length(loadso) + 1) == loadso { next }
+            $1 != "egl" && $1 != "idb"' "$RUNNER_TEMP/skips.tsv" > "$RUNNER_TEMP/unexpected.tsv"
           if [ -s "$RUNNER_TEMP/unexpected.tsv" ]; then
             cat "$RUNNER_TEMP/unexpected.tsv"
-            echo "::error::checks skipped for other capabilities than vulkan, egl and idb, or metal for another reason than the simulator's indirect arguments (above)"
+            echo "::error::checks skipped for other capabilities than egl and idb, metal for another reason than the simulator's indirect arguments, or vulkan for another one than upstream's SDL_LoadObject() on visionOS (above)"
             exit 1
           fi
       - name: The test results
