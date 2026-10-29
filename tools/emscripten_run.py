@@ -572,6 +572,10 @@ def drive(browser, url, config, timeout):
             return 1
 
 
+# How often Chromium is started when its DevTools pipe never answers.
+LAUNCH_ATTEMPTS = 3
+
+
 def run_browser(chrome, program, args):
     directory = os.path.dirname(os.path.abspath(program))
     script = os.path.basename(program)
@@ -597,9 +601,14 @@ def run_browser(chrome, program, args):
             # either (containers without user namespaces): then start once
             # more without it.
             no_sandbox = hasattr(os, "geteuid") and os.geteuid() == 0
+            # Now and then a cold Chromium never answers on its DevTools
+            # pipe: nothing of the page has run then, so it is started
+            # again (with a fresh profile), up to LAUNCH_ATTEMPTS times.
+            attempt = 1
             while True:
+                profile = os.path.join(temp, f"profile-{attempt}")
                 try:
-                    browser = Browser(chrome, os.path.join(temp, "profile"), log, no_sandbox)
+                    browser = Browser(chrome, profile, log, no_sandbox)
                 except OSError as e:
                     note(f"can't start {chrome}: {e}")
                     return 1
@@ -613,7 +622,15 @@ def run_browser(chrome, program, args):
                     note("Chromium exited (its log follows)")
                     show_log(log)
                     return 1
-                except (TimeoutError, RuntimeError, OSError) as e:
+                except TimeoutError as e:
+                    if not browser.started and attempt < LAUNCH_ATTEMPTS:
+                        attempt += 1
+                        note(f"DevTools: {e}; starting Chromium again (attempt {attempt} of {LAUNCH_ATTEMPTS})")
+                        continue
+                    note(f"DevTools: {e} (Chromium's log follows)")
+                    show_log(log)
+                    return 1
+                except (RuntimeError, OSError) as e:
                     note(f"DevTools: {e} (Chromium's log follows)")
                     show_log(log)
                     return 1

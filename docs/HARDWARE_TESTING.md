@@ -501,7 +501,10 @@ one a program that asks for a browser runs under node (with a note) and
 `--use-fake-device-for-media-stream --use-fake-ui-for-media-stream` (a
 fake camera and microphone, allowed without asking), and `--no-sandbox`
 only where the sandbox can't start: as root, or after a first start
-failed (a container without user namespaces). `SDL3_EMSCRIPTEN_TIMEOUT`
+failed (a container without user namespaces). A Chromium that doesn't
+answer on the pipe within 30 s (now and then a cold start never does;
+none of the page has run then) is started again with a fresh profile, up
+to three times. `SDL3_EMSCRIPTEN_TIMEOUT`
 limits a browser run (900 s by default, 0 for none),
 `SDL3_EMSCRIPTEN_CHROME_FLAGS` adds options, and
 `SDL3_EMSCRIPTEN_VERBOSE=1` shows the browser's own log. A page can ask
