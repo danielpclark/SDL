@@ -535,7 +535,7 @@ impl Video {
             Err(e) if self.0 == Backend::Vulkan => {
                 crate::test_support::skip(
                     "vulkan",
-                    format_args!("no GPU renderer ({})", e.message()),
+                    vulkan_no_device_reason(format_args!("no GPU renderer ({})", e.message())),
                 );
                 window.destroy();
                 None
@@ -584,6 +584,16 @@ fn has_d3d12_dxil() -> bool {
             false
         }
     }
+}
+
+/// A Vulkan check's skip reason for want of a device: `what`, with what
+/// the physical devices lack (`crate::gpu::vulkan::no_device_reason()`;
+/// the Emscripten build has no Vulkan backend).
+fn vulkan_no_device_reason(what: std::fmt::Arguments<'_>) -> String {
+    #[cfg(not(target_os = "emscripten"))]
+    return crate::gpu::vulkan::no_device_reason(what);
+    #[cfg(target_os = "emscripten")]
+    what.to_string()
 }
 
 /// A software renderer drawing into an ARGB8888 surface (the format the
@@ -2290,7 +2300,10 @@ fn gpu_renderer_on_an_existing_device_on(backend: Backend) {
     let device = match gpu::Device::new(format, true, Some(backend.driver())) {
         Ok(device) => device,
         Err(e) if backend == Backend::Vulkan => {
-            crate::test_support::skip("vulkan", format_args!("no device ({})", e.message()));
+            crate::test_support::skip(
+                "vulkan",
+                vulkan_no_device_reason(format_args!("no device ({})", e.message())),
+            );
             return;
         }
         Err(e) => panic!("no Direct3D 12 device ({})", e.message()),
@@ -2299,7 +2312,10 @@ fn gpu_renderer_on_an_existing_device_on(backend: Backend) {
     let mut r = match Renderer::for_gpu_device(Some(&device), Some(&window)) {
         Ok(r) => r,
         Err(e) if backend == Backend::Vulkan => {
-            crate::test_support::skip("vulkan", format_args!("no GPU renderer ({})", e.message()));
+            crate::test_support::skip(
+                "vulkan",
+                vulkan_no_device_reason(format_args!("no GPU renderer ({})", e.message())),
+            );
             window.destroy();
             return;
         }
@@ -2582,10 +2598,13 @@ fn gpu_renderer_without_a_window_on(backend: Backend) {
             panic!("no GPU renderer on Direct3D 12 ({})", e.message())
         }
         Err(e) => {
-            crate::test_support::skip(
-                backend.capability(),
-                format_args!("no GPU renderer ({})", e.message()),
-            );
+            let reason = format!("no GPU renderer ({})", e.message());
+            let reason = if backend == Backend::Vulkan {
+                vulkan_no_device_reason(format_args!("{reason}"))
+            } else {
+                reason
+            };
+            crate::test_support::skip(backend.capability(), reason);
             return;
         }
     };

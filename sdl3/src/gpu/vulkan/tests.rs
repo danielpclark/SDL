@@ -663,7 +663,10 @@ fn renderer() -> Option<TestRenderer> {
         .unwrap();
     let video = crate::video::core::driver().unwrap();
     if !device::prepare_driver(&*video, &props) {
-        crate::test_support::skip("vulkan", "no Vulkan GPU device (PrepareDriver failed)");
+        crate::test_support::skip(
+            "vulkan",
+            super::no_device_reason(format_args!("no Vulkan GPU device (PrepareDriver failed)")),
+        );
         return None;
     }
     match device::create_device(true, false, &props) {
@@ -671,7 +674,7 @@ fn renderer() -> Option<TestRenderer> {
         Err(e) => {
             crate::test_support::skip(
                 "vulkan",
-                format_args!("no Vulkan GPU device ({})", e.message()),
+                super::no_device_reason(format_args!("no Vulkan GPU device ({})", e.message())),
             );
             None
         }
@@ -685,7 +688,7 @@ fn front_end_device() -> Option<Device> {
         Err(e) => {
             crate::test_support::skip(
                 "vulkan",
-                format_args!("no Vulkan GPU device ({})", e.message()),
+                super::no_device_reason(format_args!("no Vulkan GPU device ({})", e.message())),
             );
             None
         }

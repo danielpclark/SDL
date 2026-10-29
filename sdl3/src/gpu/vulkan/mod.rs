@@ -46,6 +46,8 @@
 mod binding;
 mod commands;
 mod device;
+#[cfg(test)]
+pub(crate) use device::no_device_reason;
 mod memory;
 mod passes;
 mod pipelines;

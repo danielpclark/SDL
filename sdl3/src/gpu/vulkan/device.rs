@@ -1718,6 +1718,75 @@ pub(super) fn prepare_driver(video: &dyn VideoDriver, props: &Properties) -> boo
     result
 }
 
+/// For the tests' skip reasons: what the physical devices lack of the
+/// Vulkan 1.0 features the backend asks for by default (the ones
+/// `VULKAN_INTERNAL_IsDeviceSuitable()` checks first), as `NAME has no
+/// FEATURE, ...` for each device, or `None` when a device has them all (or
+/// there is no Vulkan to ask).
+#[cfg(test)]
+fn missing_device_features() -> Option<String> {
+    crate::video::vulkan::vulkan_load_library(None).ok()?;
+    let result = (|| {
+        let (vk_get_instance_proc_addr, global) = load_global_functions().ok()?;
+        let (instance, _) = create_instance(false, &global, &VulkanFeatures::default()).ok()?;
+        let lookup = |name: &CStr| {
+            // SAFETY: the loader's vkGetInstanceProcAddr with the live
+            // instance and a NUL-terminated name.
+            unsafe { vk_get_instance_proc_addr(instance, name.as_ptr()) }
+        };
+        // SAFETY: vkGetInstanceProcAddr returns the functions of the names.
+        let inst = unsafe { InstanceFunctions::load(lookup) }.ok()?;
+        let mut count = 0;
+        // SAFETY: the instance, with a null array to query the count, then
+        // room for the devices.
+        let mut devices = unsafe {
+            (inst.enumerate_physical_devices)(instance, &mut count, null_mut());
+            let mut devices = vec![null_mut(); count as usize];
+            (inst.enumerate_physical_devices)(instance, &mut count, devices.as_mut_ptr());
+            devices
+        };
+        devices.truncate(count as usize);
+        let mut lacking = Vec::new();
+        let mut suitable = devices.is_empty();
+        for device in devices {
+            let mut f = VkPhysicalDeviceFeatures::default();
+            let mut properties = VkPhysicalDeviceProperties::default();
+            // SAFETY: a physical device of the instance.
+            unsafe {
+                (inst.get_physical_device_features)(device, &mut f);
+                (inst.get_physical_device_properties)(device, &mut properties);
+            }
+            let missing: Vec<&str> = [
+                ("independentBlend", f.independent_blend),
+                ("imageCubeArray", f.image_cube_array),
+                ("depthClamp", f.depth_clamp),
+                ("shaderClipDistance", f.shader_clip_distance),
+                ("drawIndirectFirstInstance", f.draw_indirect_first_instance),
+                ("sampleRateShading", f.sample_rate_shading),
+                ("samplerAnisotropy", f.sampler_anisotropy),
+            ]
+            .into_iter()
+            .filter(|&(_, supported)| supported == 0)
+            .map(|(name, _)| name)
+            .collect();
+            if missing.is_empty() {
+                suitable = true;
+            } else {
+                lacking.push(format!(
+                    "{} has no {}",
+                    c_name(&properties.device_name),
+                    missing.join(", ")
+                ));
+            }
+        }
+        // SAFETY: the instance just created, with nothing made from it.
+        unsafe { destroy_instance(inst.destroy_instance, instance) };
+        (!suitable).then(|| lacking.join("; "))
+    })();
+    crate::video::vulkan::vulkan_unload_library();
+    result
+}
+
 /// The driver version string of a physical device (vendor-specific
 /// encodings; from `VULKAN_CreateDevice()`).
 pub(super) fn driver_version_string(raw_driver_ver: u32, vendor_id: u32) -> String {
@@ -2009,5 +2078,17 @@ impl VulkanRenderer {
         unsafe { destroy_instance(self.inst.destroy_instance, self.instance) };
 
         crate::video::vulkan::vulkan_unload_library();
+    }
+}
+
+/// A test's skip reason for a failure to make a Vulkan device (or what
+/// needs one): `what`, with what the physical devices lack when none has
+/// the features the backend asks for (as the simulators' Metal devices
+/// don't, through MoltenVK).
+#[cfg(test)]
+pub(crate) fn no_device_reason(what: std::fmt::Arguments<'_>) -> String {
+    match missing_device_features() {
+        Some(why) => format!("{what}: {why}"),
+        None => what.to_string(),
     }
 }
