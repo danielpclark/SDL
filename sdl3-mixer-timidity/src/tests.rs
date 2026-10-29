@@ -406,8 +406,12 @@ fn run(out: &mut String) {
 #[cfg_attr(target_os = "emscripten", ignore = "host file system")]
 fn matches_upstream() {
     // (Cargo runs the tests there; the iOS Simulator runs them in the
-    // device's data directory)
-    std::env::set_current_dir(env!("CARGO_MANIFEST_DIR")).unwrap();
+    // device's data directory. The directory is where Cargo says it is
+    // when it runs them, on Android the runner's copy of the test data on
+    // the device: see tools/android_run.py.)
+    let dir =
+        std::env::var_os("CARGO_MANIFEST_DIR").unwrap_or_else(|| env!("CARGO_MANIFEST_DIR").into());
+    std::env::set_current_dir(dir).unwrap();
     let mut out = String::new();
     run(&mut out);
     let want = String::from_utf8_lossy(REFERENCE);

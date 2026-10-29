@@ -92,7 +92,12 @@ const IMAGES: &[(&str, &[u8])] = images![
 #[test]
 #[cfg_attr(target_os = "emscripten", ignore = "host file system")]
 fn images_are_the_testdata_files() {
-    let dir = concat!(env!("CARGO_MANIFEST_DIR"), "/src/testdata/images");
+    // (where Cargo says the package is when it runs the test, on Android
+    // the runner's copy of the test data: see tools/android_run.py)
+    let dir = std::path::PathBuf::from(
+        std::env::var_os("CARGO_MANIFEST_DIR").unwrap_or_else(|| env!("CARGO_MANIFEST_DIR").into()),
+    )
+    .join("src/testdata/images");
     let mut names: Vec<String> = std::fs::read_dir(dir)
         .unwrap()
         .map(|e| e.unwrap().file_name().into_string().unwrap())

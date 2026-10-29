@@ -36,8 +36,16 @@ impl Lcg {
     }
 }
 
+/// The package's directory: where Cargo says it is when it runs the tests
+/// (on Android, the runner's copy of the workspace's test data on the
+/// device: see tools/android_run.py), else where it was built.
+fn manifest_dir() -> PathBuf {
+    std::env::var_os("CARGO_MANIFEST_DIR")
+        .map_or_else(|| env!("CARGO_MANIFEST_DIR").into(), PathBuf::from)
+}
+
 fn testdata() -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR")).join("testdata")
+    manifest_dir().join("testdata")
 }
 
 /// Flip `flips` random bytes of `data` in `range`.
