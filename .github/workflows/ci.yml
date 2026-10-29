@@ -30,6 +30,14 @@ on:
         description: "The visionOS Simulator job's cargo test arguments in place of its own (e.g. -p sdl3 --test uikit_visionos)"
         type: string
         default: ""
+      android_only:
+        description: Run only the Android emulator job
+        type: boolean
+        default: false
+      android_test_args:
+        description: "The Android emulator job's cargo test arguments in place of --workspace (e.g. -p sdl3 --lib -- video::)"
+        type: string
+        default: ""
 
 permissions:
   contents: read
@@ -55,7 +63,7 @@ env:
 jobs:
   fmt:
     name: rustfmt
-    if: ${{ !inputs.ios_only && !inputs.tvos_only && !inputs.visionos_only }}
+    if: ${{ !inputs.ios_only && !inputs.tvos_only && !inputs.visionos_only && !inputs.android_only }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -67,7 +75,7 @@ jobs:
 
   clippy:
     name: clippy (${{ matrix.os }})
-    if: ${{ !inputs.ios_only && !inputs.tvos_only && !inputs.visionos_only }}
+    if: ${{ !inputs.ios_only && !inputs.tvos_only && !inputs.visionos_only && !inputs.android_only }}
     strategy:
       fail-fast: false
       matrix:
@@ -131,7 +139,7 @@ jobs:
 
   test:
     name: test (${{ matrix.os }}, ${{ matrix.toolchain }})
-    if: ${{ !inputs.ios_only && !inputs.tvos_only && !inputs.visionos_only }}
+    if: ${{ !inputs.ios_only && !inputs.tvos_only && !inputs.visionos_only && !inputs.android_only }}
     strategy:
       fail-fast: false
       matrix:
@@ -332,7 +340,7 @@ jobs:
   # runner, checked with 1.87 in the test job.)
   emscripten:
     name: test (wasm32-unknown-emscripten, node and Chrome)
-    if: ${{ !inputs.ios_only && !inputs.tvos_only && !inputs.visionos_only }}
+    if: ${{ !inputs.ios_only && !inputs.tvos_only && !inputs.visionos_only && !inputs.android_only }}
     runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
@@ -436,7 +444,7 @@ jobs:
   # test job.) Xcode, the simulator's runtime and its device are pinned.
   ios:
     name: test (aarch64-apple-ios-sim, iOS Simulator)
-    if: ${{ !inputs.tvos_only && !inputs.visionos_only }}
+    if: ${{ !inputs.tvos_only && !inputs.visionos_only && !inputs.android_only }}
     runs-on: macos-15
     timeout-minutes: 90
     env:
@@ -594,7 +602,7 @@ jobs:
   # build is linked, not run. (Linted on the Linux clippy runner.)
   tvos:
     name: test (aarch64-apple-tvos-sim, tvOS Simulator)
-    if: ${{ !inputs.ios_only && !inputs.visionos_only }}
+    if: ${{ !inputs.ios_only && !inputs.visionos_only && !inputs.android_only }}
     runs-on: macos-15
     timeout-minutes: 75
     env:
@@ -705,7 +713,7 @@ jobs:
   # (Linted on the Linux clippy runner.)
   visionos:
     name: test (aarch64-apple-visionos-sim, visionOS Simulator)
-    if: ${{ !inputs.ios_only && !inputs.tvos_only }}
+    if: ${{ !inputs.ios_only && !inputs.tvos_only && !inputs.android_only }}
     runs-on: macos-15
     timeout-minutes: 75
     env:
@@ -815,9 +823,178 @@ jobs:
           xcrun simctl spawn "$SDL3_VISIONOS_SIMULATOR" log show --last 30m --style compact \
             --predicate 'processImagePath CONTAINS "/target/" OR processImagePath CONTAINS "/Containers/Bundle/Application/"' | tail -300 || true
 
+  # The test programs built for Android, run on an Android emulator through
+  # tools/android_run.py (the runner in .cargo/config.toml, which pushes
+  # each program with adb and runs it as a process of the device, with the
+  # workspace's test data copied there) and linked with the NDK by
+  # tools/android_link.py: see "Android emulator" in
+  # docs/HARDWARE_TESTING.md. The x86-64 build, and the arm64 one through
+  # the emulator's ARM translation. (Linted on the Linux clippy runner,
+  # checked with 1.87 in the test job.) The emulator, its system image and
+  # the NDK are pinned; nothing of the emulator is cached (the image and a
+  # booted device's snapshot would take 4 GB of the repository's cache for
+  # about 40 s: the emulator boots while the programs build).
+  android:
+    name: test (x86_64-linux-android, Android emulator)
+    if: ${{ !inputs.ios_only && !inputs.tvos_only && !inputs.visionos_only }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      # The emulator's build (37.2.12.0) and the API 35 Google APIs x86-64
+      # system image's revision (Android 15), as the SDK repository has
+      # them, with their archives' SHA-256
+      ANDROID_EMULATOR_BUILD: "16428233"
+      ANDROID_EMULATOR_SHA256: b08fc43d8608d2955f607f1b287beb525041e730086bdca3af152accac3af9c1
+      ANDROID_IMAGE_ARCHIVE: x86_64-35_r09.zip
+      ANDROID_IMAGE_SHA256: c67b9ba0ff5bc0eb6d046871bfa228af14d4d47b02f0cdae94f048e511b7566e
+      SDL3_ANDROID_SYSTEM_IMAGE: "system-images;android-35;google_apis;x86_64"
+      # (on the runner image, which points ANDROID_NDK_ROOT to r27)
+      ANDROID_NDK_VERSION: "29.0.14206865"
+      RUST_TEST_NOCAPTURE: 1
+      CARGO_PROFILE_DEV_DEBUG: line-tables-only
+      # (a program that hangs fails after that, the others still run; the
+      # slowest, sdl3-mixer's and sdl3-image's, take two minutes, six under
+      # the ARM translation)
+      SDL3_ANDROID_TIMEOUT: 900
+      ARM64_TEST_ARGS: -p sdl3 -p sdl3-image -p sdl3-shadercross --lib
+    steps:
+      - uses: actions/checkout@v5
+      # (the runner's /dev/kvm is the kvm group's)
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+          ls -l /dev/kvm
+      # The emulator and the system image from the SDK repository's
+      # archives, checked against their SHA-256 (sdkmanager installs only
+      # the newest ones), in the SDK where it would put them; PulseAudio's
+      # library, which the emulator needs to start (with or without sound);
+      # and the NDK, which the runner image has.
+      - name: Install the emulator, its system image and the NDK
+        run: |
+          D="$RUNNER_TEMP/android-download"
+          mkdir -p "$D"
+          curl -fsSL -o "$D/emulator.zip" "https://dl.google.com/android/repository/emulator-linux_x64-$ANDROID_EMULATOR_BUILD.zip"
+          curl -fsSL -o "$D/image.zip" "https://dl.google.com/android/repository/sys-img/google_apis/$ANDROID_IMAGE_ARCHIVE"
+          echo "$ANDROID_EMULATOR_SHA256  $D/emulator.zip" | sha256sum -c
+          echo "$ANDROID_IMAGE_SHA256  $D/image.zip" | sha256sum -c
+          rm -rf "$ANDROID_HOME/emulator"
+          unzip -q "$D/emulator.zip" -d "$ANDROID_HOME"
+          I="$ANDROID_HOME/$(echo "$SDL3_ANDROID_SYSTEM_IMAGE" | tr ';' /)"
+          rm -rf "$I"
+          mkdir -p "$(dirname "$I")"
+          unzip -q "$D/image.zip" -d "$(dirname "$I")"
+          rm -rf "$D"
+          grep -E '^Pkg.Revision|^AndroidVersion.ApiLevel|^SystemImage.(Abi|TagId)' "$I/source.properties"
+          sudo apt-get install -y -q libpulse0 > /dev/null || { sudo apt-get update -q > /dev/null && sudo apt-get install -y -q libpulse0 > /dev/null; }
+          "$ANDROID_HOME/emulator/emulator" -version | head -1
+          "$ANDROID_HOME/emulator/emulator" -accel-check
+          if [ ! -d "$ANDROID_HOME/ndk/$ANDROID_NDK_VERSION" ]; then
+            yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "ndk;$ANDROID_NDK_VERSION" > /dev/null
+          fi
+          echo "SDL3_ANDROID_NDK=$ANDROID_HOME/ndk/$ANDROID_NDK_VERSION" >> "$GITHUB_ENV"
+      # (rustup is on the runner image)
+      - name: Install Rust
+        run: |
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal --target x86_64-linux-android,aarch64-linux-android
+          rustup default "$RUST_TOOLCHAIN"
+      # (kept when the tests fail too: the build takes most of the job)
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: android
+          cache-on-failure: true
+      # The emulator starts here, on a virtual device the runner writes; it
+      # boots while the programs build (a minute or two with the build
+      # taking the CPUs), and the runner waits for that before the first
+      # program runs.
+      - name: Start the emulator
+        run: echo "SDL3_ANDROID_SERIAL=$(tools/android_run.py --boot)" >> "$GITHUB_ENV"
+      - name: Build the tests
+        env:
+          TEST_ARGS: ${{ inputs.android_test_args }}
+        run: cargo test --no-run --target x86_64-linux-android ${TEST_ARGS:---workspace}
+      - name: cargo test --workspace --target x86_64-linux-android
+        shell: bash
+        env:
+          TEST_ARGS: ${{ inputs.android_test_args }}
+          SDL3_TEST_SKIP_LOG: ${{ runner.temp }}/skips.tsv
+        run: cargo test --target x86_64-linux-android --no-fail-fast ${TEST_ARGS:---workspace} 2>&1 | tee "$RUNNER_TEMP/test.log"
+      # The arm64 build, through the emulator's ARM translation (the image
+      # runs arm64-v8a programs, about three times slower): the libraries
+      # with code of their own for arm64 (sdl3's CPU features, blitters
+      # and assertions, sdl3-image's libyuv paths, sdl3-shadercross's
+      # target checks). The rest is the same code as the x86-64 build's,
+      # and would take the job from about 16 minutes to about 35.
+      - name: cargo test -p sdl3 -p sdl3-image -p sdl3-shadercross --lib --target aarch64-linux-android (ARM translation)
+        if: ${{ !cancelled() && !inputs.android_test_args }}
+        shell: bash
+        env:
+          SDL3_TEST_SKIP_LOG: ${{ runner.temp }}/skips-arm64.tsv
+        run: |
+          cargo test --no-run --target aarch64-linux-android $ARM64_TEST_ARGS
+          cargo test --target aarch64-linux-android --no-fail-fast $ARM64_TEST_ARGS 2>&1 | tee "$RUNNER_TEMP/test-arm64.log"
+      # (the programs write their skips on the device; the runner appends
+      # them to the host's skip log)
+      - name: List the skipped checks
+        if: always()
+        shell: bash
+        run: |
+          touch "$RUNNER_TEMP/skips.tsv" "$RUNNER_TEMP/skips-arm64.tsv"
+          tools/ci/list-skips.sh "$RUNNER_TEMP/skips.tsv" x86_64-linux-android
+          tools/ci/list-skips.sh "$RUNNER_TEMP/skips-arm64.tsv" "aarch64-linux-android, ARM translation"
+      # The skips by design: the desktop OpenGL renderer's checks (egl:
+      # Android has OpenGL ES only, and the renderer isn't built), and the
+      # checks that draw with OpenGL ES or present with Vulkan on the
+      # offscreen driver's windows, which need EGL's device platform (egl,
+      # with upstream's "EXT_device_enumeration not supported" in the
+      # reason) and VK_EXT_headless_surface (vulkan), which Android hasn't:
+      # on Android they draw on the android video driver's windows, which
+      # aren't translated yet. Any other skip fails the job.
+      - name: Check the skips
+        if: ${{ !cancelled() && !inputs.android_test_args }}
+        shell: bash
+        run: |
+          cat "$RUNNER_TEMP/skips.tsv" "$RUNNER_TEMP/skips-arm64.tsv" | awk -F '\t' '
+            $1 == "egl" && $2 ~ /^render::opengl::tests::/ { next }
+            $1 == "egl" && index($3, "(EXT_device_enumeration not supported by the drivers?)") { next }
+            $1 == "vulkan" && index($3, "VK_EXT_headless_surface") { next }
+            { print }' > "$RUNNER_TEMP/unexpected.tsv"
+          if [ -s "$RUNNER_TEMP/unexpected.tsv" ]; then
+            sort -u "$RUNNER_TEMP/unexpected.tsv"
+            echo "::error::checks skipped for other reasons than the desktop OpenGL renderer, EGL's device platform or VK_EXT_headless_surface (above)"
+            exit 1
+          fi
+      - name: The test results
+        if: always()
+        shell: bash
+        run: |
+          touch "$RUNNER_TEMP/test.log" "$RUNNER_TEMP/test-arm64.log"
+          for log in "$RUNNER_TEMP/test.log" "$RUNNER_TEMP/test-arm64.log"; do
+            echo "== $(basename "$log")"
+            perl -pe 's/\e\[[0-9;]*m//g' "$log" | grep -E "^ *(Running|Doc-tests) |^test result: |^error: " || true
+          done
+      - name: The failed tests and the device's log
+        if: failure() && env.SDL3_ANDROID_SERIAL != ''
+        shell: bash
+        run: |
+          touch "$RUNNER_TEMP/test.log" "$RUNNER_TEMP/test-arm64.log"
+          for log in "$RUNNER_TEMP/test.log" "$RUNNER_TEMP/test-arm64.log"; do
+            grep -E -A12 "panicked at|^failures:$|targets? failed" "$log" | cut -c1-400 | head -1500 || true
+            grep -E -B30 "process didn't exit|android_run.py: " "$log" | cut -c1-400 | head -1000 || true
+          done
+          ADB="$ANDROID_HOME/platform-tools/adb"
+          "$ADB" -s "$SDL3_ANDROID_SERIAL" logcat -d -b crash | tail -300 || true
+          "$ADB" -s "$SDL3_ANDROID_SERIAL" logcat -d | tail -300 || true
+          # (the emulator's own log, where tools/android_run.py keeps it)
+          tail -100 "${TMPDIR:-/tmp}/sdl3-android-run-$(id -u)/$SDL3_ANDROID_SERIAL/emulator.log" || true
+      - name: Stop the emulator
+        if: always()
+        run: tools/android_run.py --kill
+
   doc:
     name: rustdoc
-    if: ${{ !inputs.ios_only && !inputs.tvos_only && !inputs.visionos_only }}
+    if: ${{ !inputs.ios_only && !inputs.tvos_only && !inputs.visionos_only && !inputs.android_only }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
