@@ -89,6 +89,11 @@
 //!   `default-features = false`, there is no game music decoder, as in an
 //!   upstream build without libgme.
 //!
+//! Cargo links these crates into the program statically, so the LGPL's
+//! terms for a program linked with the library apply to one built with
+//! the default features, and to an app on iOS, tvOS and visionOS: see the
+//! License section of the repository's README.
+//!
 //! As in the [`sdl3`] crate, the implementation is a line-by-line
 //! translation and the API is designed for Rust: objects are owned handles
 //! whose `Drop` destroys them (`MIX_Destroy*`), the `closeio` flags are gone

@@ -63,9 +63,11 @@
 //! errors are [`Result`](sdl3::Result)s (`NET_FAILURE` is the `Err` next to
 //! a [`Status`]), and every item names the C symbol it translates. The
 //! sockets are the system's, through the `libc` and `windows-sys`
-//! declarations; no C is compiled and no C SDL is loaded. On Emscripten,
-//! as upstream builds it there, the library is the stub: every operation
-//! is unsupported.
+//! declarations; no C is compiled and no C SDL is loaded. On iOS, tvOS
+//! and visionOS they are the BSD sockets of the other Apple platforms
+//! (the local addresses from `getifaddrs`). On Emscripten, as upstream
+//! builds it there, the library is the stub: every operation is
+//! unsupported.
 //!
 //! ```no_run
 //! # fn main() -> sdl3::Result<()> {
