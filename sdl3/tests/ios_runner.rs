@@ -4,7 +4,7 @@
 
 //! A program (`harness = false`) that asks `tools/ios_run.py` to run it as
 //! an app (the `__DATA,__sdl3_runner` section below), as the UIKit test
-//! programs will be: in an app bundle, launched with `simctl launch`. It
+//! programs are: in an app bundle, launched with `simctl launch`. It
 //! checks what such a program sees (its bundle, the variables the runner
 //! passes on, both its output streams) and ends as those programs do, with
 //! the line that gives the runner its exit status. Elsewhere it does

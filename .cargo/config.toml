@@ -65,7 +65,7 @@ runner = "tools/ios_run.py"
 # The same for tvOS: `cargo test --target aarch64-apple-tvos-sim` runs the
 # programs on a simulated Apple TV (a tvOS Simulator runtime is needed).
 # x86_64-apple-tvos is a tier 3 target, built with a nightly toolchain's
-# `-Zbuild-std`.
+# `-Zbuild-std` (or a stable one's with RUSTC_BOOTSTRAP=1, as CI lints it).
 [target.aarch64-apple-tvos-sim]
 runner = "tools/ios_run.py"
 
