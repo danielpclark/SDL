@@ -85,7 +85,11 @@ pub(super) struct WindowData {
     present_mode: PresentMode,
     pub(super) needs_swapchain_recreate: bool,
     pub(super) needs_surface_recreate: bool,
+    // (the size the next swapchain is made with, but on Apple platforms,
+    // which take the surface's current extent)
+    #[cfg_attr(target_vendor = "apple", allow(dead_code))]
     swapchain_create_width: u32,
+    #[cfg_attr(target_vendor = "apple", allow(dead_code))]
     swapchain_create_height: u32,
 
     // Window surface
@@ -407,17 +411,48 @@ impl VulkanRenderer {
 
         let mut requested_image_count = self.allowed_frames_in_flight.load(Ordering::SeqCst);
 
-        // (SDL_PLATFORM_APPLE takes the current extent.)
-        window_data.width = sdl_clamp(
-            window_data.swapchain_create_width,
-            capabilities.min_image_extent.width,
-            capabilities.max_image_extent.width,
-        );
-        window_data.height = sdl_clamp(
-            window_data.swapchain_create_height,
-            capabilities.min_image_extent.height,
-            capabilities.max_image_extent.height,
-        );
+        #[cfg(target_vendor = "apple")]
+        {
+            // FIXME (upstream): a headless surface's current extent (the
+            // offscreen driver's, through MoltenVK's
+            // VK_EXT_headless_surface) is the special value 0xFFFFFFFF
+            // (the swapchain's extent decides), which upstream makes the
+            // swapchain's size, and MoltenVK can't make that swapchain;
+            // there the window's size in pixels is taken (clamped), as on
+            // the other platforms.
+            if capabilities.current_extent.width == u32::MAX
+                && capabilities.current_extent.height == u32::MAX
+            {
+                let _ = window_data.window.sync();
+                let (w, h) = window_data.window.size_in_pixels()?;
+                window_data.width = sdl_clamp(
+                    w as u32,
+                    capabilities.min_image_extent.width,
+                    capabilities.max_image_extent.width,
+                );
+                window_data.height = sdl_clamp(
+                    h as u32,
+                    capabilities.min_image_extent.height,
+                    capabilities.max_image_extent.height,
+                );
+            } else {
+                window_data.width = capabilities.current_extent.width;
+                window_data.height = capabilities.current_extent.height;
+            }
+        }
+        #[cfg(not(target_vendor = "apple"))]
+        {
+            window_data.width = sdl_clamp(
+                window_data.swapchain_create_width,
+                capabilities.min_image_extent.width,
+                capabilities.max_image_extent.width,
+            );
+            window_data.height = sdl_clamp(
+                window_data.swapchain_create_height,
+                capabilities.min_image_extent.height,
+                capabilities.max_image_extent.height,
+            );
+        }
 
         if capabilities.max_image_count > 0 && requested_image_count > capabilities.max_image_count
         {
@@ -787,10 +822,13 @@ impl VulkanRenderer {
 
         // On non-Apple platforms the swapchain capability currentExtent can be different from the window,
         // so we have to query the window size.
-        let _ = window.sync();
-        let (w, h) = window.size_in_pixels()?;
-        window_data.swapchain_create_width = w as u32;
-        window_data.swapchain_create_height = h as u32;
+        #[cfg(not(target_vendor = "apple"))]
+        {
+            let _ = window.sync();
+            let (w, h) = window.size_in_pixels()?;
+            window_data.swapchain_create_width = w as u32;
+            window_data.swapchain_create_height = h as u32;
+        }
 
         // Each window must have its own surface.
         // FIXME: VAllocationCallbacks
