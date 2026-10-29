@@ -122,7 +122,7 @@ const CORE_BLUETOOTH_PATH: &str =
 /// CoreBluetooth, loaded for the life of the process (`None` without it).
 fn core_bluetooth() -> Option<&'static SharedObject> {
     static LIB: OnceLock<Option<SharedObject>> = OnceLock::new();
-    LIB.get_or_init(|| SharedObject::load(CORE_BLUETOOTH_PATH).ok())
+    LIB.get_or_init(|| SharedObject::load_framework(CORE_BLUETOOTH_PATH).ok())
         .as_ref()
 }
 

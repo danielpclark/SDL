@@ -165,7 +165,20 @@ they are used (there is no build script to make aliases):
 * The frameworks are linked as upstream links them, but for those a
   system the program may start on can lack (GameController and
   CoreHaptics, UniformTypeIdentifiers), and CoreBluetooth (below), which
-  are loaded at run time.
+  are loaded at run time (`SharedObject::load_framework()`: without the
+  version check upstream's `SDL_LoadObject()` makes on UIKit, which a
+  link doesn't go through).
+* `SDL_LoadObject()` (`SharedObject::load()`) refuses to load anything
+  before iOS 8 on UIKit, as upstream's, which reads visionOS's version as
+  iOS's, so nothing loads on visionOS (`FIXME (upstream)`): there the
+  Vulkan library isn't loaded, upstream's C failing the same way.
+* Vulkan (`video/drivers/uikit/vulkan.rs`) is MoltenVK's (or a Vulkan
+  loader's): the library `SDL_HINT_VULKAN_LIBRARY` names, else the
+  program's own `vkGetInstanceProcAddr`, else `libvulkan.dylib` (upstream's
+  only default name on UIKit, though `SDL_vulkan.h` says
+  `libMoltenVK.dylib`: a `Note (upstream)`), with surfaces on Metal views.
+  An app bundles MoltenVK's framework (`Frameworks/MoltenVK.framework`)
+  and names it in the hint.
 * `SDL_RunApp()` is `UIApplicationMain()`, which never returns: the main
   function, a closure on `run_app()`'s frame, is reached through a
   pointer in a thread-local variable, so it needs no `'static` bound. As

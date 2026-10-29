@@ -66,8 +66,8 @@ fn frameworks() -> Option<&'static Frameworks> {
     FRAMEWORKS
         .get_or_init(|| {
             Some(Frameworks {
-                game_controller: SharedObject::load(GAME_CONTROLLER_PATH).ok()?,
-                core_haptics: SharedObject::load(CORE_HAPTICS_PATH).ok(),
+                game_controller: SharedObject::load_framework(GAME_CONTROLLER_PATH).ok()?,
+                core_haptics: SharedObject::load_framework(CORE_HAPTICS_PATH).ok(),
             })
         })
         .as_ref()
