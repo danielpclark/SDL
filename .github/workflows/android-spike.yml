@@ -1,0 +1,334 @@
+name: android-spike
+
+# A throwaway Android spike (plan PR 0): this branch only, never main.
+on:
+  push:
+    branches: [claude/diag-android-spike]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  RUST_TOOLCHAIN: "1.99"
+  CARGO_TERM_COLOR: never
+  CARGO_INCREMENTAL: 0
+  RUST_BACKTRACE: 1
+  SPIKE_IMAGE: "system-images;android-35;google_apis;x86_64"
+  SPIKE_NDK_VERSION: "29.0.14206865"
+  SPIKE_BUILD_TOOLS: "35.0.0"
+  UPSTREAM_COMMIT: ea7a2dabfd1ab6b0a5720568ffd207f5825e47f1
+  AVD_CACHE_KEY: android-spike-avd-35-google_apis-x86_64-v1
+  AVD_CACHE_PATHS: |
+    ~/.android/avd
+    /usr/local/lib/android/sdk/system-images/android-35/google_apis/x86_64
+    /usr/local/lib/android/sdk/emulator
+
+# (no -e or pipefail: each step reports what it can; the scripts that must
+# stop on an error set -e themselves)
+defaults:
+  run:
+    shell: bash --noprofile --norc {0}
+
+jobs:
+  platform:
+    name: platform (KVM, boot, adb shell, shell probes, ARM, GPU modes)
+    runs-on: ubuntu-latest
+    timeout-minutes: 110
+    steps:
+      - uses: actions/checkout@v5
+      - name: Runner inventory (before any install)
+        run: android-spike/inventory.sh
+      - uses: actions/cache/restore@v4
+        id: avd
+        with:
+          path: ${{ env.AVD_CACHE_PATHS }}
+          key: ${{ env.AVD_CACHE_KEY }}
+      - name: Setup (KVM, sdkmanager, Rust)
+        run: android-spike/ci_setup.sh
+      - name: Cold boot (no snapshot), then quit, saving the quickboot snapshot
+        if: steps.avd.outputs.cache-hit != 'true'
+        run: |
+          python3 android-spike/emu.py create
+          python3 android-spike/emu.py boot cold -no-snapshot-load
+          adb shell getprop ro.build.fingerprint
+          python3 android-spike/emu.py kill
+          du -sh ~/.android/avd/spike.avd ~/.android/avd/spike.avd/snapshots 2>/dev/null || true
+          du -sh $ANDROID_HOME/system-images/android-35/google_apis/x86_64 $ANDROID_HOME/emulator
+          df -h / | tail -1
+      - name: Save the AVD cache
+        if: steps.avd.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ env.AVD_CACHE_PATHS }}
+          key: ${{ env.AVD_CACHE_KEY }}
+      - name: Boot from the snapshot (cache hit = from the restored cache)
+        run: |
+          echo "cache hit: ${{ steps.avd.outputs.cache-hit }}"
+          python3 android-spike/emu.py boot snapshot -no-snapshot-save
+          df -h / | tail -1
+      - name: Build the spike programs
+        working-directory: android-spike
+        run: |
+          chmod +x link-* *.py *.sh
+          export CARGO_TARGET_X86_64_LINUX_ANDROID_LINKER=$PWD/link-x86_64-linux-android
+          export CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER=$PWD/link-aarch64-linux-android
+          for t in x86_64-linux-android aarch64-linux-android; do
+            s=$(date +%s); cargo build --target $t --bins 2>&1 | tail -2; echo "TIMING spike build $t $(( $(date +%s) - s ))s"
+          done
+      - name: adb shell experiments (as the shell user)
+        run: android-spike/spawn_tests.sh android-spike/target/x86_64-linux-android/debug/probe 2>&1 | tee $RUNNER_TEMP/spawn.txt
+      - name: Shell probes as the shell user
+        run: |
+          D=/data/local/tmp/spike
+          adb push android-spike/target/x86_64-linux-android/debug/uinput_pad $D/uinput_pad >/dev/null
+          for m in gfx audio sensors camera; do echo "===== probe $m (shell uid)"; timeout 120 adb shell $D/probe $m; echo "rc=$?"; done 2>&1 | tee $RUNNER_TEMP/probes-shell.txt
+          echo "===== uinput as shell"; adb shell $D/uinput_pad 1
+      - name: Shell probes as root (adb root)
+        run: |
+          s=$(date +%s); adb root; adb wait-for-device; sleep 2; echo "TIMING adb root $(( $(date +%s) - s ))s"; adb shell id
+          D=/data/local/tmp/spike
+          for m in audio sensors camera; do echo "===== probe $m (root)"; timeout 120 adb shell $D/probe $m; echo "rc=$?"; done 2>&1 | tee $RUNNER_TEMP/probes-root.txt
+          echo "===== uinput gamepad as root, seen by the input service"
+          adb shell $D/uinput_pad 6 & sleep 3
+          adb shell dumpsys input | grep -B2 -A14 "SDL3 Spike" | head -40
+          adb shell getevent -lp 2>/dev/null | grep -A3 "SDL3 Spike" | head
+          wait
+      - name: Device inventory
+        run: android-spike/device_info.sh 2>&1 | tee $RUNNER_TEMP/device.txt
+      - name: ARM translation (an aarch64 program on the x86_64 image)
+        run: |
+          D=/data/local/tmp/spike
+          A=android-spike/target/aarch64-linux-android/debug/probe
+          file $A
+          adb push $A $D/probe-arm64 >/dev/null
+          for m in "exit 3" "ret 7" "info"; do echo "--- probe-arm64 $m"; adb shell $D/probe-arm64 $m 2>&1 | head -12; echo "rc=${PIPESTATUS[0]}"; done
+          s=$(date +%s%N); adb shell $D/probe-arm64 big 200000 | wc -l; echo "arm64 big 200000: $(( ($(date +%s%N) - s) / 1000000 )) ms"
+          s=$(date +%s%N); adb shell $D/probe big 200000 | wc -l; echo "x86_64 big 200000: $(( ($(date +%s%N) - s) / 1000000 )) ms"
+          echo "--- probe-arm64 gfx"; timeout 120 adb shell $D/probe-arm64 gfx 2>&1 | grep -vE "extensions" | head -30
+          echo "--- probe-arm64 audio"; timeout 120 adb shell $D/probe-arm64 audio 2>&1 | head -12
+      - name: Link the workspace for aarch64-linux-android (not run)
+        run: |
+          export CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER=$PWD/android-spike/link-aarch64-linux-android
+          export CARGO_PROFILE_DEV_DEBUG=line-tables-only
+          s=$(date +%s)
+          cargo build --workspace --all-targets --target aarch64-linux-android 2>&1 | grep -E "^(error|warning: unused)|Finished|could not" | head -40 || true
+          echo "TIMING aarch64 workspace build --all-targets $(( $(date +%s) - s ))s"
+          ls target/aarch64-linux-android/debug/deps | wc -l
+          du -sh target/aarch64-linux-android || true
+          rm -rf target/aarch64-linux-android
+          df -h / | tail -1
+      - name: Other GPU modes (cold boots)
+        run: |
+          python3 android-spike/emu.py kill
+          for g in host guest swangle_indirect; do
+            echo "===== -gpu $g"
+            SPIKE_GPU=$g SPIKE_BOOT_LIMIT=300 python3 android-spike/emu.py boot gpu-$g -no-snapshot-load -no-snapshot-save || { echo "boot with -gpu $g failed"; python3 android-spike/emu.py kill; continue; }
+            adb push android-spike/target/x86_64-linux-android/debug/probe /data/local/tmp/spike/probe >/dev/null
+            timeout 120 adb shell /data/local/tmp/spike/probe gfx 2>&1 | grep -vE "extensions" | head -40
+            python3 android-spike/emu.py kill
+          done
+      - name: An arm64-v8a system image on the x86_64 host
+        run: |
+          img="system-images;android-35;google_apis;arm64-v8a"
+          s=$(date +%s); yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install "$img" >/dev/null 2>&1; echo "TIMING sdkmanager arm64 image $(( $(date +%s) - s ))s rc=$?"
+          du -sh $ANDROID_HOME/system-images/android-35/google_apis/arm64-v8a || true
+          SPIKE_AVD=spike-arm SPIKE_IMAGE="$img" python3 android-spike/emu.py create | head -3
+          timeout 240 $ANDROID_HOME/emulator/emulator -avd spike-arm -no-window -no-boot-anim -gpu swiftshader_indirect -no-snapshot -accel auto > $RUNNER_TEMP/emu-arm.log 2>&1 &
+          for i in $(seq 48); do sleep 5; if adb shell getprop sys.boot_completed 2>/dev/null | grep -q 1; then echo "arm64 image booted after $((i*5))s"; break; fi; if ! kill -0 $! 2>/dev/null; then echo "emulator exited after $((i*5))s"; break; fi; done
+          head -60 $RUNNER_TEMP/emu-arm.log
+          adb devices; adb shell getprop ro.product.cpu.abilist 2>&1 | head -2
+          adb emu kill 2>/dev/null || true; wait || true
+      - name: Summary
+        if: always()
+        run: |
+          grep -h "TIMING" $RUNNER_TEMP/*.txt $RUNNER_TEMP/*.log 2>/dev/null | head -40 || true
+          df -h / | tail -1
+      - name: Stop the emulator
+        if: always()
+        run: python3 android-spike/emu.py kill || true
+
+  app:
+    name: app (DEX, APK, JNI, stdio sockets, devices)
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/cache/restore@v4
+        id: avd
+        with:
+          path: ${{ env.AVD_CACHE_PATHS }}
+          key: ${{ env.AVD_CACHE_KEY }}
+      - name: Setup (KVM, sdkmanager, Rust)
+        run: android-spike/ci_setup.sh
+      - name: Start the emulator (in the background)
+        run: |
+          [ -d ~/.android/avd/spike.avd ] || python3 android-spike/emu.py create > $RUNNER_TEMP/create.txt
+          python3 android-spike/emu.py start app -no-snapshot-save
+      - name: Build, DEX, APKs
+        run: android-spike/build_spike.sh 2>&1 | tee $RUNNER_TEMP/build.txt
+      - name: Wait for the boot
+        run: |
+          python3 android-spike/emu.py wait app
+          s=$(date +%s); adb root; adb wait-for-device; sleep 2; echo "TIMING adb root $(( $(date +%s) - s ))s"
+          adb push android-spike/target/x86_64-linux-android/debug/uinput_pad /data/local/tmp/spike/uinput_pad >/dev/null
+      - name: App modes
+        run: android-spike/app_tests.sh $RUNNER_TEMP/spike.apk 2>&1 | tee $RUNNER_TEMP/app.txt
+      - name: Camera with the permission revoked
+        run: |
+          adb shell pm revoke org.libsdl.sdl3_rust.spike android.permission.CAMERA
+          python3 android-spike/app_run.py camera --port 38300 --timeout 60 || true
+          adb shell pm grant org.libsdl.sdl3_rust.spike android.permission.CAMERA
+      - name: The arm64-v8a APK on the x86_64 image
+        run: |
+          adb install -r -t -g $RUNNER_TEMP/spike-arm64.apk
+          adb shell dumpsys package org.libsdl.sdl3_rust.spike | grep -E "primaryCpuAbi|nativeLibraryDir"
+          python3 android-spike/app_run.py basic --port 38310 --timeout 60 || true
+          python3 android-spike/app_run.py gfx --port 38312 --timeout 60 || true
+      - name: Audio without host audio (-no-audio)
+        run: |
+          python3 android-spike/emu.py kill
+          python3 android-spike/emu.py boot noaudio -no-audio -no-snapshot-save
+          adb root; adb wait-for-device; sleep 2
+          adb push android-spike/target/x86_64-linux-android/debug/probe /data/local/tmp/spike/probe >/dev/null
+          timeout 120 adb shell /data/local/tmp/spike/probe audio
+          adb install -r -t -g $RUNNER_TEMP/spike.apk >/dev/null
+          python3 android-spike/app_run.py audio --port 38320 --timeout 60 || true
+      - name: Stop the emulator
+        if: always()
+        run: python3 android-spike/emu.py kill || true
+
+  workspace:
+    name: workspace (cargo test --workspace under adb spawn)
+    runs-on: ubuntu-latest
+    timeout-minutes: 170
+    env:
+      CARGO_PROFILE_DEV_DEBUG: line-tables-only
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/cache/restore@v4
+        id: avd
+        with:
+          path: ${{ env.AVD_CACHE_PATHS }}
+          key: ${{ env.AVD_CACHE_KEY }}
+      - name: Setup (KVM, sdkmanager, Rust)
+        run: android-spike/ci_setup.sh
+      - name: Start the emulator (in the background, during the build)
+        run: |
+          [ -d ~/.android/avd/spike.avd ] || python3 android-spike/emu.py create > $RUNNER_TEMP/create.txt
+          python3 android-spike/emu.py start ws -no-snapshot-save
+      - name: Build the workspace's tests (cargo test --no-run)
+        run: |
+          chmod +x android-spike/link-* android-spike/*.py
+          export CARGO_TARGET_X86_64_LINUX_ANDROID_LINKER=$PWD/android-spike/link-x86_64-linux-android
+          export SPIKE_LINK_LOG=$RUNNER_TEMP/link.log
+          s=$(date +%s)
+          cargo test --workspace --no-run --target x86_64-linux-android --message-format=json-render-diagnostics > $RUNNER_TEMP/build.json 2> $RUNNER_TEMP/build.err || echo "BUILD FAILED rc=$?"
+          echo "TIMING workspace test --no-run $(( $(date +%s) - s ))s"
+          grep -E "^(error|warning: unused)|could not compile" $RUNNER_TEMP/build.err | head -40 || true
+          python3 -c "
+          import json,os
+          ex=[json.loads(l) for l in open('$RUNNER_TEMP/build.json') if l.startswith('{')]
+          ex=[m['executable'] for m in ex if m.get('reason')=='compiler-artifact' and m.get('executable')]
+          sz=sorted(((os.path.getsize(e),e) for e in ex), reverse=True)
+          print('test executables: %d, total %.0f MB' % (len(sz), sum(s for s,_ in sz)/1e6))
+          for s,e in sz[:12]: print('  %8.1f MB %s' % (s/1e6, os.path.basename(e)))
+          "
+          grep -c "link\[" $RUNNER_TEMP/link.log || true
+          grep "link\[app" $RUNNER_TEMP/link.log | head -5 || true
+          du -sh target || true; df -h / | tail -1
+      - name: Wait for the boot (started before the build)
+        run: |
+          python3 android-spike/emu.py wait ws
+          adb root; adb wait-for-device; sleep 2; adb shell id
+      - name: cargo test --workspace through the runner (with the tally)
+        run: |
+          export CARGO_TARGET_X86_64_LINUX_ANDROID_LINKER=$PWD/android-spike/link-x86_64-linux-android
+          export CARGO_TARGET_X86_64_LINUX_ANDROID_RUNNER=$PWD/android-spike/runner.py
+          export SPIKE_TALLY_DIR=$RUNNER_TEMP/tally
+          mkdir -p $SPIKE_TALLY_DIR
+          s=$(date +%s)
+          cargo test --workspace --no-fail-fast --target x86_64-linux-android > $RUNNER_TEMP/test.log 2>&1 || echo "cargo test rc=$?"
+          echo "TIMING workspace cargo test $(( $(date +%s) - s ))s"
+          grep -E "SPIKE-TALLY|^test result|Doc-tests|error: test failed|error: [0-9]+ targets failed|^    [a-z_0-9-]+ (\(|test)|failures:$" $RUNNER_TEMP/test.log | head -400 || true
+      - name: Doctest summary
+        if: always()
+        run: |
+          grep -E "^test .*\(line [0-9]+\).* (FAILED|ok|ignored)" $RUNNER_TEMP/test.log | awk '{print $NF}' | sort | uniq -c || true
+          grep -E "^test .*\(line [0-9]+\).*FAILED" $RUNNER_TEMP/test.log | head -40 || true
+          grep -A12 -E "^---- .*\(line [0-9]+\) stdout ----" $RUNNER_TEMP/test.log | head -150 || true
+          grep -E "^RUN doctest" $RUNNER_TEMP/tally/runner.log | awk '{print $3}' | sort | uniq -c || true
+      - name: Tally
+        if: always()
+        run: |
+          python3 android-spike/tally.py $RUNNER_TEMP/tally 4 | cut -c1-900
+          grep -E "^PUSH" $RUNNER_TEMP/tally/runner.log | sort -k3 -n -r | head -8 || true
+          tail -30 $RUNNER_TEMP/test.log
+      - name: Stop the emulator
+        if: always()
+        run: python3 android-spike/emu.py kill || true
+
+  cref:
+    name: C reference (upstream android-project with Gradle)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/cache/restore@v4
+        with:
+          path: ${{ env.AVD_CACHE_PATHS }}
+          key: ${{ env.AVD_CACHE_KEY }}
+      - name: Setup (KVM, sdkmanager, Rust)
+        run: android-spike/ci_setup.sh
+      - name: Start the emulator (in the background)
+        run: |
+          [ -d ~/.android/avd/spike.avd ] || python3 android-spike/emu.py create > $RUNNER_TEMP/create.txt
+          python3 android-spike/emu.py start cref -no-snapshot-save
+      - name: Build upstream's android-project with Gradle
+        run: android-spike/upstream.sh
+      - name: Run the C trace
+        run: |
+          python3 android-spike/emu.py wait cref
+          android-spike/cref_run.sh $RUNNER_TEMP/cref.apk
+      - name: Stop the emulator
+        if: always()
+        run: python3 android-spike/emu.py kill || true
+
+  arm-runner:
+    name: arm64 Linux runner (KVM? emulator?)
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v5
+      - name: Inventory
+        run: android-spike/inventory.sh || true
+      - name: cmdline-tools, the emulator package, accel-check
+        run: |
+          set +e
+          sudo chmod 666 /dev/kvm 2>/dev/null; ls -l /dev/kvm
+          export ANDROID_HOME=$RUNNER_TEMP/sdk; mkdir -p $ANDROID_HOME/cmdline-tools
+          curl -sSLo $RUNNER_TEMP/clt.zip https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+          unzip -q $RUNNER_TEMP/clt.zip -d $ANDROID_HOME/cmdline-tools && mv $ANDROID_HOME/cmdline-tools/cmdline-tools $ANDROID_HOME/cmdline-tools/latest
+          S=$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager
+          yes | $S --licenses >/dev/null 2>&1
+          $S --list 2>/dev/null | grep -E "^  (emulator|system-images;android-35;google_apis;(arm64-v8a|x86_64))" | head
+          yes | $S --install emulator platform-tools 2>&1 | tail -3
+          ls $ANDROID_HOME/emulator | head; file $ANDROID_HOME/emulator/emulator $ANDROID_HOME/emulator/qemu/*/* 2>/dev/null | head -5
+          $ANDROID_HOME/emulator/emulator -accel-check; echo "accel-check rc=$?"
+          if [ -e /dev/kvm ] && $ANDROID_HOME/emulator/emulator -accel-check >/dev/null 2>&1; then
+            img="system-images;android-35;google_apis;arm64-v8a"
+            s=$(date +%s); yes | $S --install "$img" >/dev/null 2>&1; echo "TIMING arm64 image install $(( $(date +%s) - s ))s"
+            echo no | $ANDROID_HOME/cmdline-tools/latest/bin/avdmanager create avd -n arm -k "$img" -d pixel_6 --force
+            s=$(date +%s)
+            $ANDROID_HOME/emulator/emulator -avd arm -no-window -no-boot-anim -gpu swiftshader_indirect -no-snapshot > $RUNNER_TEMP/emu.log 2>&1 &
+            for i in $(seq 60); do sleep 5; if $ANDROID_HOME/platform-tools/adb shell getprop sys.boot_completed 2>/dev/null | grep -q 1; then echo "TIMING arm64 cold boot $(( $(date +%s) - s ))s"; break; fi; done
+            head -40 $RUNNER_TEMP/emu.log
+            $ANDROID_HOME/platform-tools/adb shell getprop ro.product.cpu.abilist
+            $ANDROID_HOME/platform-tools/adb emu kill
+          fi
+          true

@@ -865,7 +865,7 @@ mod ifaces {
             addr.nl_family = libc::AF_NETLINK as libc::sa_family_t;
             addr.nl_pid = 0; // zero==let the kernel choose a unique number. THIS IS THE SOCKET PORT ID, NOT THE PROCESS ID!
             addr.nl_groups =
-                (libc::RTMGRP_LINK | libc::RTMGRP_IPV4_IFADDR | libc::RTMGRP_IPV6_IFADDR) as u32;
+                (0x1 | 0x10 | 0x100) as u32; // (diag spike: RTMGRP_LINK | _IPV4_IFADDR | _IPV6_IFADDR; not in the libc crate for android)
             if libc::bind(
                 fd,
                 (&addr as *const libc::sockaddr_nl).cast(),

@@ -26,7 +26,7 @@ pub(crate) mod uikit;
 pub(crate) mod wayland;
 #[cfg(windows)]
 pub(crate) mod windows;
-#[cfg(all(unix, not(target_vendor = "apple"), not(target_os = "emscripten")))]
+#[cfg(all(unix, not(target_vendor = "apple"), not(target_os = "android"), not(target_os = "emscripten")))]
 pub(crate) mod x11;
 
 use std::sync::atomic::{AtomicI32, Ordering};

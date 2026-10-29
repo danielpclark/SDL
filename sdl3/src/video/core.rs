@@ -81,7 +81,7 @@ static BOOTSTRAP: &[&VideoBootStrap] = &[
         not(target_os = "emscripten")
     ))]
     &drivers::wayland::video::WAYLAND_PREFERRED_BOOTSTRAP,
-    #[cfg(all(unix, not(target_vendor = "apple"), not(target_os = "emscripten")))]
+    #[cfg(all(unix, not(target_vendor = "apple"), not(target_os = "android"), not(target_os = "emscripten")))]
     &drivers::x11::video::X11_BOOTSTRAP,
     #[cfg(all(
         unix,
@@ -110,7 +110,7 @@ static BOOTSTRAP: &[&VideoBootStrap] = &[
         not(target_os = "emscripten")
     ))]
     &drivers::wayland::video::WAYLAND_PREFERRED_BOOTSTRAP,
-    #[cfg(all(unix, not(target_vendor = "apple"), not(target_os = "emscripten")))]
+    #[cfg(all(unix, not(target_vendor = "apple"), not(target_os = "android"), not(target_os = "emscripten")))]
     &drivers::x11::video::X11_BOOTSTRAP,
     #[cfg(all(
         unix,

@@ -191,7 +191,7 @@ pub(super) static GENERIC_USERBOOTSTRAP: UserStorageBootStrap = UserStorageBootS
 /// Translation of `GENERIC_OpenFileStorage()`.
 pub(super) fn open_file_storage(path: Option<&str>) -> Result<Storage> {
     #[allow(unused_mut)] // (Android never prepends)
-    let mut prepend = None;
+    let mut prepend: Option<String> = None;
 
     #[cfg(target_os = "android")]
     let path = match path {

@@ -1,0 +1,26 @@
+[package]
+name = "android-spike"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+# Throwaway (plan PR 0, diag branch only): not part of the main workspace.
+[workspace]
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "probe"
+path = "src/bin/probe.rs"
+
+[[bin]]
+name = "spike_app"
+path = "src/bin/spike_app.rs"
+
+[[bin]]
+name = "uinput_pad"
+path = "src/bin/uinput_pad.rs"
+
+[profile.dev]
+debug = "line-tables-only"

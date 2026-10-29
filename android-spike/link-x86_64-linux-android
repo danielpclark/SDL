@@ -1,0 +1,2 @@
+#!/bin/sh
+exec python3 "$(dirname "$0")/link.py" x86_64-linux-android "$@"

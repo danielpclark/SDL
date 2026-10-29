@@ -270,12 +270,12 @@ fn sys_set_thread_priority(priority: ThreadPriority) -> Result<()> {
      * for the thread.  SDL will make such changes by default but there is
      * also a hint allowing that behavior to be overridden. */
     let mut pri_policy = match priority {
-        ThreadPriority::Low | ThreadPriority::Normal => libc::SCHED_OTHER,
+        ThreadPriority::Low | ThreadPriority::Normal => SCHED_OTHER_,
         // Apple requires SCHED_RR for high priority threads
         ThreadPriority::High | ThreadPriority::TimeCritical if cfg!(target_vendor = "apple") => {
             libc::SCHED_RR
         }
-        ThreadPriority::High | ThreadPriority::TimeCritical => libc::SCHED_OTHER,
+        ThreadPriority::High | ThreadPriority::TimeCritical => SCHED_OTHER_,
     };
 
     if timecritical_realtime_hint && priority == ThreadPriority::TimeCritical {
@@ -284,7 +284,7 @@ fn sys_set_thread_priority(priority: ThreadPriority) -> Result<()> {
 
     policy = match policyhint.as_deref() {
         Some("current") => policy, // Leave current thread scheduler policy unchanged
-        Some("other") => libc::SCHED_OTHER,
+        Some("other") => SCHED_OTHER_,
         Some("rr") => libc::SCHED_RR,
         Some("fifo") => libc::SCHED_FIFO,
         _ => pri_policy,
@@ -484,3 +484,7 @@ mod tests {
         assert_eq!(t.wait(), 0);
     }
 }
+
+// (diag spike: bionic's libc crate has SCHED_NORMAL, not SCHED_OTHER)
+#[cfg(unix)]
+const SCHED_OTHER_: libc::c_int = 0;
