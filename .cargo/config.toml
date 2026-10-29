@@ -83,3 +83,20 @@ runner = "tools/ios_run.py"
 
 [target.aarch64-apple-visionos]
 runner = "tools/ios_run.py"
+
+# The Android targets link with tools/android_link.py: the Android NDK's
+# clang for the program's ABI (told by its object files), at API level 21
+# (upstream's minimum), with the NDK found as "Android emulator" in
+# docs/HARDWARE_TESTING.md says. (Cargo runs the script through its
+# `#!/usr/bin/env python3` line; checking and linting need no NDK.)
+[target.x86_64-linux-android]
+linker = "tools/android_link.py"
+
+[target.aarch64-linux-android]
+linker = "tools/android_link.py"
+
+[target.i686-linux-android]
+linker = "tools/android_link.py"
+
+[target.armv7-linux-androideabi]
+linker = "tools/android_link.py"
