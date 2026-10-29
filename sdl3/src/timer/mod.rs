@@ -791,13 +791,15 @@ mod tests {
         let _l = crate::test_support::test_lock();
         let count = Arc::new(AtomicUsize::new(0));
         let c = count.clone();
-        let t = Timer::new(Duration::from_millis(2), move |i| {
+        // (long enough not to fire before the drop on a loaded machine, or
+        // under an emulator's ARM translation)
+        let t = Timer::new(Duration::from_millis(200), move |i| {
             c.fetch_add(1, Ordering::SeqCst);
             Some(i)
         })
         .unwrap();
         drop(t);
-        delay(Duration::from_millis(20));
+        delay(Duration::from_millis(300));
         assert_eq!(count.load(Ordering::SeqCst), 0);
 
         let c = count.clone();

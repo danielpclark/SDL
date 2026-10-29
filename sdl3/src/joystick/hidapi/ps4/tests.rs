@@ -82,6 +82,9 @@ fn context() -> Ps4Context {
 
 #[test]
 fn state_reports() {
+    // (init::quit() in another test restarts the tick counter, which the
+    // NOW timestamps are checked against)
+    let _l = crate::test_support::test_lock();
     for case in data::STATE_CASES {
         let device = ds4(case.bluetooth);
         let mut ctx = Ps4Context {

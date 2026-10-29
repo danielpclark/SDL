@@ -105,6 +105,9 @@ fn with_now(events: Vec<String>, expected: &[&str], before: u64, after: u64) -> 
 
 #[test]
 fn state_reports() {
+    // (init::quit() in another test restarts the tick counter, which the
+    // NOW timestamps are checked against)
+    let _l = crate::test_support::test_lock();
     for case in data::STATE_CASES {
         let device = ds5(case.bluetooth);
         let mut ctx = Ps5Context {
