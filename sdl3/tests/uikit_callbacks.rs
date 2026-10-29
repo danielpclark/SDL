@@ -238,24 +238,24 @@ exit: after quit
     extern "C" fn at_exit() {
         let status = checked(|| {
             let iterations = ITERATIONS.lock().unwrap().clone();
-            // (60 Hz: 16.7 ms apart, give or take what the simulator does)
+            // (the display's frames, 16.7 ms apart at 60 Hz, 11.1 ms at
+            // visionOS's 90 Hz, give or take what the simulator does: an
+            // iteration that comes late is followed by an early one on the
+            // next frame, as CADisplayLink keeps to the display's, so it's
+            // their mean that keeps to the frames, while iterations not
+            // paced by the display come microseconds apart)
+            let intervals: Vec<Duration> = iterations.windows(2).map(|w| w[1] - w[0]).collect();
             let paced = iterations.len() == 5
-                && iterations.windows(2).all(|w| {
-                    let d = w[1] - w[0];
-                    d >= Duration::from_millis(4) && d <= Duration::from_millis(100)
-                });
+                && intervals
+                    .iter()
+                    .all(|d| *d >= Duration::from_millis(1) && *d <= Duration::from_millis(100))
+                && intervals.iter().sum::<Duration>() >= Duration::from_millis(4) * 4;
             t(format!(
                 "iterations paced by the display: {}",
                 if paced { "yes" } else { "no" }
             ));
             if !paced {
-                println!(
-                    "iteration intervals: {:?}",
-                    iterations
-                        .windows(2)
-                        .map(|w| w[1] - w[0])
-                        .collect::<Vec<_>>()
-                );
+                println!("iteration intervals: {intervals:?}");
             }
             t(if QUIT.lock().unwrap().is_some() {
                 "exit: after quit"
