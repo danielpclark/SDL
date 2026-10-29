@@ -26,7 +26,7 @@ Every skip names one *capability* (the list is `CAPABILITIES` in
 | `xvfb` | Linux | an X server: `Xvfb` in `PATH` (each X11 test starts its own), or `DISPLAY` |
 | `glx` | Linux | libGL with GLX on that server (Mesa's llvmpipe is enough) |
 | `egl` | Linux, Windows, macOS | libEGL and the GL/GLES libraries (Mesa on Linux; on Windows an EGL such as ANGLE's `libEGL.dll`, which Windows doesn't ship, or Mesa's (below) with `EGL_PLATFORM=windows`; on macOS ANGLE's `libEGL.dylib` and `libGLESv2.dylib`, from the directory `SDL3_TEST_ANGLE_DIR` names or the copy the Android emulator ships in `~/Library/Android/sdk/emulator/lib64/gles_angle`). The offscreen driver has EGL only on Linux and the other Unix systems, so the OpenGL ES 2 renderer's checks, which draw on it, skip on Windows and macOS, as the OpenGL renderer's checks on it do on macOS |
-| `vulkan` | Linux, Windows, macOS | a Vulkan loader and a driver with the surface extensions, `VK_EXT_headless_surface` included for the tests of the Vulkan and GPU renderers and of the GPU API's swapchains on offscreen windows (Mesa's lavapipe is enough; on Windows those tests present to the Windows video driver's windows instead, since the GPU drivers there (NVIDIA's, say) have no `VK_EXT_headless_surface`, and only the offscreen driver's own headless-surface check skips; the tests of the GPU API's Vulkan backend and of the GPU renderer run under `VK_LAYER_KHRONOS_validation` when it is installed, and present to an X11 window too when `DISPLAY` is set); on macOS MoltenVK, by upstream's default names: `libMoltenVK.dylib` itself (in `/usr/local/lib`, say), which runs every check, or the Vulkan loader with it (the Cocoa driver's surface check also tries Homebrew's `/opt/homebrew/lib/libvulkan.1.dylib`), through which the Vulkan renderer's checks skip with `VK_ERROR_INCOMPATIBLE_DRIVER`: MoltenVK's devices then need portability enumeration, which upstream's renderer doesn't ask for. Under Metal's API validation, which the GPU API's Metal devices in debug mode turn on for the rest of the process (as upstream's do, setting `MTL_DEBUG_LAYER=1` unless it's set), MoltenVK misdraws the fills after another render state's in a pass in the GPU renderer's render-state test on the CI runners' Apple Paravirtual device (1.3.0 to 1.4.2, reporting no error), so with a MoltenVK device and `MTL_DEBUG_LAYER` set and not `0` those three checks skip (run the test again with `MTL_DEBUG_LAYER=0` for them; with discrete descriptor binding, `MVK_CONFIG_USE_METAL_ARGUMENT_BUFFERS=0`, more of the renderer's checks misdraw under the layer; Khronos' validation layer, with synchronization validation, finds nothing in them on lavapipe, and they pass on Metal under the same validation) |
+| `vulkan` | Linux, Windows, macOS, the iOS and tvOS Simulators | a Vulkan loader and a driver with the surface extensions, `VK_EXT_headless_surface` included for the tests of the Vulkan and GPU renderers and of the GPU API's swapchains on offscreen windows (Mesa's lavapipe is enough; on Windows those tests present to the Windows video driver's windows instead, since the GPU drivers there (NVIDIA's, say) have no `VK_EXT_headless_surface`, and only the offscreen driver's own headless-surface check skips; the tests of the GPU API's Vulkan backend and of the GPU renderer run under `VK_LAYER_KHRONOS_validation` when it is installed, and present to an X11 window too when `DISPLAY` is set); on macOS MoltenVK, by upstream's default names: `libMoltenVK.dylib` itself (in `/usr/local/lib`, say), which runs every check, or the Vulkan loader with it (the Cocoa driver's surface check also tries Homebrew's `/opt/homebrew/lib/libvulkan.1.dylib`), through which the Vulkan renderer's checks skip with `VK_ERROR_INCOMPATIBLE_DRIVER`: MoltenVK's devices then need portability enumeration, which upstream's renderer doesn't ask for. Under Metal's API validation, which the GPU API's Metal devices in debug mode turn on for the rest of the process (as upstream's do, setting `MTL_DEBUG_LAYER=1` unless it's set), MoltenVK misdraws the fills after another render state's in a pass in the GPU renderer's render-state test on the CI runners' Apple Paravirtual device (1.3.0 to 1.4.2, reporting no error), so with a MoltenVK device and `MTL_DEBUG_LAYER` set and not `0` those three checks skip (run the test again with `MTL_DEBUG_LAYER=0` for them; with discrete descriptor binding, `MVK_CONFIG_USE_METAL_ARGUMENT_BUFFERS=0`, more of the renderer's checks misdraw under the layer; Khronos' validation layer, with synchronization validation, finds nothing in them on lavapipe, and they pass on Metal under the same validation); on the iOS and tvOS Simulators MoltenVK's framework for the simulator, which `tools/ios_run.py` takes from `SDL3_IOS_MOLTENVK` (see [iOS Simulator](#ios-simulator): there the GPU API's Vulkan checks skip, the simulator's device lacking features the backend asks for) |
 | `wayland` | Linux | libwayland-client/-egl/-cursor, libxkbcommon and `sway` (or `weston`) in `PATH`; the input and clipboard tests need sway |
 | `dbus` | Linux | libdbus and `dbus-daemon` (the tests start private buses) |
 | `pulseaudio` | Linux | libpulse, and the `pulseaudio` and `pactl` binaries (the tests start a private server) |
@@ -761,7 +761,8 @@ to boot the first time.
 A test program runs as a process of the simulated device (`xcrun simctl
 spawn`), with the runner's stdin, stdout and stderr and its exit status.
 It sees the simulator's system (its frameworks, no GPU but the
-simulator's Metal device, no MoltenVK, no camera, sensors or battery:
+simulator's Metal device, MoltenVK when `SDL3_IOS_MOLTENVK` names it (see
+below), no camera, sensors or battery:
 UIDevice's battery state is unknown there), is no app (UIKit's
 `UIApplication` is nil, so no URL has a handler), runs in the device's
 data directory (HOME and TMPDIR are there too; SDL's file functions put
@@ -775,7 +776,7 @@ as a device's file system is, though the Mac's volume isn't: a name that
 differs from an existing file's only in case doesn't exist, and can't be
 made either (`EEXIST`), so tests give their files names that differ in
 more than case (as sdl3-image's saving test does for its `.bmp` and
-`.BMP` files). Only the variables `SDL3_*`, `SDL_*`, `RUST_*` and
+`.BMP` files). Only the variables `SDL3_*`, `SDL_*`, `RUST_*`, `MVK_*` and
 `RUSTC_BOOTSTRAP` reach it (simctl passes `SIMCTL_CHILD_NAME` as `NAME`;
 set that for any other), so `SDL3_TEST_REQUIRE`, `SDL3_TEST_SKIP_LOG` and
 the hints work as elsewhere, and the runner sets `SDL_ASSERT=abort` unless
@@ -942,10 +943,30 @@ state, the scenes `uikit_metal` draws, each read back, hashed and
 compared with the software renderer's, vsync, the output following the
 window as it turns), on a Metal window (made again with the OpenGL
 flag), and the default renderer (Metal) on a window that asks for no
-graphics API (made again with the Metal flag). All ten compare a trace
+graphics API (made again with the Metal flag). `uikit_vulkan` (word `app moltenvk`, so the runner bundles MoltenVK, see
+below) traces Vulkan on the UIKit driver: the instance extensions it asks
+for (`VK_KHR_surface` and `VK_EXT_metal_surface`), the default library
+(`libvulkan.dylib`, upstream's only default name on UIKit, which the app
+hasn't) and one that isn't there failing to load, as a Vulkan window does
+then, the bundled MoltenVK loaded through `SDL_HINT_VULKAN_LIBRARY`
+(`@executable_path/Frameworks/MoltenVK.framework/MoltenVK`), the loads
+counted and unloaded; an instance with those extensions and one without,
+the physical device (the simulator's, through MoltenVK), its queue
+families and the features the GPU API's Vulkan backend asks for; a
+surface on a Vulkan window (its Metal view becomes the window's view),
+refused without an instance and on the instance without the extensions,
+`SDL_Vulkan_GetPresentationSupport()` (the driver has no such check:
+always supported) and Vulkan's answer, the surface's capabilities (its
+extent is the drawable's size), the surface destroyed; the Vulkan renderer
+on a window that asks for no graphics API (its state and Vulkan
+properties, the scenes `uikit_metal` draws, each read back, hashed and
+compared with the software renderer's, vsync, the output following the
+window as it turns); and the GPU API's Vulkan backend, which refuses the
+simulator's device (below). All eleven compare a trace
 with upstream's C SDL's, from the same programs in C run the same way on
-the CI's simulator (an iPhone 16 with iOS 18.5); `uikit_metal`'s and
-`uikit_gles`'s hashes are of the same pixels (`uikit_gles`'s C program is
+the CI's simulator (an iPhone 16 with iOS 18.5, with MoltenVK v1.4.2 for
+`uikit_vulkan`); `uikit_metal`'s, `uikit_gles`'s and `uikit_vulkan`'s
+hashes are of the same pixels (`uikit_gles`'s C program is
 built on an upstream whose GLES2 program cache keeps its list's tail,
 which upstream's loses, freeing an entry twice when the renderer is
 destroyed: the `Note (upstream)` on the Rust cache). The simulator's Metal
@@ -954,19 +975,39 @@ family, so the renderer lists the packed 16-bit formats, but its Metal
 refuses them (an assertion ends the process, upstream's too), so they
 aren't drawn there.
 
+Vulkan runs on the simulator's Metal device through MoltenVK, from
+`SDL3_IOS_MOLTENVK`: the dynamic `MoltenVK.xcframework` of a MoltenVK
+release (in its `MoltenVK-all.tar`, the release's only archive with the
+Simulators' frameworks; the runner takes the slice of the program's
+platform), or a `MoltenVK.framework` for the simulator. The runner gives
+the spawned programs a copy signed ad hoc (the release's isn't signed,
+which the simulator needs), as their `DYLD_FRAMEWORK_PATH`, where the
+offscreen driver's default `MoltenVK.framework/MoltenVK` finds it, and
+bundles it in the apps that ask for it as `Frameworks/MoltenVK.framework`
+(`SDL3_IOS_RUNNER_MOLTENVK` tells them). MoltenVK takes the simulator's
+Metal device (Apple2) to have Metal argument buffers, and with them the
+first draw ends the simulator's Metal service (SimMetalHost: "Connection
+to SimMetalHost ... XPC service was lost"), and the program with it
+(SIGABRT), upstream's C as well; so the runner has MoltenVK bind
+descriptors without them (`MVK_CONFIG_USE_METAL_ARGUMENT_BUFFERS=0`,
+unless it is set). The Vulkan renderer's tests and the offscreen driver's
+Vulkan check run there then, on its headless surfaces.
+
 The simulator has no GPU the GPU API can use: its Metal device supports
 only the Apple2 and Common1 families, below the Apple3 upstream's Metal
 backend asks for ("Device does not meet the hardware requirements for
-SDL_GPU Metal", as upstream's C says there too), and there's no MoltenVK,
-so the GPU API's Metal tests skip `metal` (the CI job allows no other
-`metal` skip: the Metal renderer has a device there), and the Vulkan
-renderer's, the GPU API's Vulkan backend's and the GPU renderer's tests
-skip `vulkan`. The
+SDL_GPU Metal", as upstream's C says there too), and through MoltenVK it
+has no `imageCubeArray` or `drawIndirectFirstInstance`, which the Vulkan
+backend asks for (`VULKAN_INTERNAL_IsDeviceSuitable()`: "SDL_HINT_GPU_DRIVER
+vulkan unsupported!"), so the GPU API's Metal tests skip `metal` (the CI
+job allows no other `metal` skip: the Metal renderer has a device there),
+and the GPU API's Vulkan backend's and the GPU renderer's tests skip
+`vulkan`, with what the device lacks in the reason ("...: Apple iOS
+simulator GPU has no imageCubeArray, drawIndirectFirstInstance"). The
 offscreen driver has no EGL there, as on macOS (`egl`). The UIKit video
 driver only starts in an app, so the spawned programs use the offscreen
 and dummy drivers there, as elsewhere (and so its message boxes only
-show in an app); its windows' Vulkan views and the OpenGL ES 1 renderer
-aren't translated yet.
+show in an app); the OpenGL ES 1 renderer isn't translated yet.
 
 CoreAudio runs there as on a device, its audio going to the Mac's
 output and coming from its input (the runner's are a "Speaker" and a
@@ -1168,7 +1209,8 @@ cargo test --workspace --target aarch64-apple-tvos-sim
 
 The simulated Apple TV is much like the simulated iPhone: the
 simulator's Metal device (Apple1 and Apple2 only: no GPU API, as above),
-no MoltenVK, camera, sensors or Bluetooth, the Mac's audio, the built-in
+MoltenVK as on iOS (the tvOS Simulator's slice), no camera, sensors or
+Bluetooth, the Mac's audio, the built-in
 "Gamepad" controller and GameController's coalesced keyboard
 ("Keyboard"). Its display is a 1920x1080-point TV (3840x2160 pixels, 60
 Hz, one mode), whose safe area keeps the overscan margins out (80 points
@@ -1206,13 +1248,14 @@ tvOS ones are:
   buttons (the menu button the pause button, B) set, closed, opened with
   `SDL_HINT_APPLE_TV_REMOTE_ALLOW_ROTATION`, and none with the joystick
   hint off;
-* `uikit_callbacks`, `uikit_main`, `uikit_metal` and `uikit_gles`, which
-  run on tvOS too: the main callbacks; the app delegate, the lifecycle (a
-  trip to the background and back), the event pump and URLs, without the
-  battery monitoring and the status bar's notification; the Metal views
-  and renderer, and OpenGL ES contexts with the OpenGL ES 2 renderer
-  (EAGL is on tvOS too), each scene against the software renderer's, where
-  nothing turns.
+* `uikit_callbacks`, `uikit_main`, `uikit_metal`, `uikit_gles` and
+  `uikit_vulkan`, which run on tvOS too: the main callbacks; the app
+  delegate, the lifecycle (a trip to the background and back), the event
+  pump and URLs, without the battery monitoring and the status bar's
+  notification; the Metal views and renderer, OpenGL ES contexts with the
+  OpenGL ES 2 renderer (EAGL is on tvOS too), and Vulkan through MoltenVK
+  with the Vulkan renderer, each scene against the software renderer's,
+  where nothing turns.
 
 Each compares its trace with upstream's C SDL's, from the same program in
 C run the same way on the CI's simulator (an Apple TV 4K (3rd generation)
@@ -1259,8 +1302,15 @@ linear sRGB, as upstream's (`SDL_SetupRendererColorspace()`), so the
 software renderer can't be made there. There's the Mac's audio, the
 built-in "Gamepad" controller and the coalesced keyboard ("Keyboard"),
 no battery (the power state is unknown), no CoreMotion sensors, no
-camera (none is built), no MoltenVK, and no virtual joysticks (upstream's
-CMake build has none without HIDAPI, which it doesn't build there).
+camera (none is built), no Vulkan, and no virtual joysticks (upstream's
+CMake build has none without HIDAPI, which it doesn't build there). No
+library loads there: upstream's `SDL_LoadObject()` refuses to before iOS
+8, and takes visionOS's version (2.5) for iOS's (a `FIXME (upstream)`), so
+MoltenVK, which the runner gives the programs as on iOS, isn't loaded,
+and the Vulkan checks skip, `vulkan`, with that in the reason ("...
+(upstream's SDL_LoadObject() requires iOS 8+, and visionOS's version is
+below 8)"). (The GameController and CoreHaptics frameworks, which
+upstream links, are loaded without that check.)
 Processes are POSIX (the host's `/bin/sh` runs). The `background`
 request brings the Settings app (`com.apple.Preferences`) to the front.
 The UIKit programs for iOS and tvOS alone are empty there, and the
@@ -1288,15 +1338,17 @@ visionOS ones are:
   controllerWithExtendedGamepad]`) posted as connected, opened as a
   gamepad (while it's open the presses without a key are nothing), its
   d-pad and buttons set, closed and disconnected;
-* `uikit_callbacks`, `uikit_main`, `uikit_metal` and `uikit_input`, which
-  run on visionOS too: the main callbacks; the app delegate, the
+* `uikit_callbacks`, `uikit_main`, `uikit_metal`, `uikit_input` and
+  `uikit_vulkan`, which run on visionOS too: the main callbacks; the app
+  delegate, the
   lifecycle, the event pump and URLs, without the status bar's
   notification; the Metal views and renderer, each scene's hash compared
   with upstream's alone (no software renderer, and the custom blend mode
   blends in linear sRGB), where nothing turns; the touches, the pointer,
   the Pencil, the pinch gesture and the game controllers' mice given to
   the view's handlers as stand-ins, without idb (which isn't set up for
-  the visionOS Simulator: its real touches skip, `idb`).
+  the visionOS Simulator: its real touches skip, `idb`); and Vulkan's
+  library failing to load, as upstream's does there (above).
 
 Each compares its trace with upstream's C SDL's, from the same program in
 C run the same way on the CI's simulator (an Apple Vision Pro with
@@ -1342,29 +1394,36 @@ iOS 18.5 runtime, installs idb (the companion's Homebrew formula with an
 Xcode 26 selected for that, and its pinned Python client in a virtual
 environment), runs the tests on an iPhone 16 simulator as
 [above](#ios-simulator) (booted by `tools/ios_run.py --boot` while the
-programs build), links the device build without running it, and makes its
-skip log from the notes the programs print (`tools/ci/skips_from_log.py`,
-as the Emscripten job does, so that the apps' skips, written in their
-own containers, are listed too), failing on any skip but the simulator's
-of `metal`, `vulkan` and `egl` (above: so `idb` and `gles` are
-required); a manual run
+programs build) with MoltenVK (the release the macOS job's is,
+v1.4.2: its `MoltenVK-all.tar`, checked against its SHA-256 and cached
+between runs, whose dynamic `MoltenVK.xcframework` has the Simulators'
+frameworks, in `SDL3_IOS_MOLTENVK`), links the device build without
+running it, and makes its skip log from the notes the programs print
+(`tools/ci/skips_from_log.py`, as the Emscripten job does, so that the
+apps' skips, written in their own containers, are listed too), failing
+on any skip but the simulator's of `metal` (the GPU API's hardware
+requirements), `vulkan` (the GPU API's and the GPU renderer's checks,
+for the device features the Vulkan backend needs, with those in the
+reason: the Vulkan renderer's must run) and `egl` (above: so `idb` and
+`gles` are required); a manual run
 of the workflow can run that job alone (`ios_only`) and pass it other
 `cargo test` arguments (`ios_test_args`). The tvOS job, on the same image,
 Xcode and tvOS 18.5 runtime, runs the workspace's tests on an Apple TV 4K
 (3rd generation) simulator as [above](#tvos-simulator) and links the
-device build, with the iOS job's skip check (no idb: the tvOS programs
-don't use it); `tvos_only` and `tvos_test_args` run it alone, with other
+device build, with MoltenVK and the iOS job's skip check (no idb: the
+tvOS programs don't use it); `tvos_only` and `tvos_test_args` run it alone, with other
 arguments. The Linux clippy job lints the tvOS builds too (the device, the
 arm64 Simulator, and the x86-64 Simulator, a tier 3 target whose standard
 library it builds with `-Zbuild-std`). The visionOS job, on the same
 image, Xcode and visionOS 2.5 runtime, runs the sdl3 crate's library
 tests and its visionOS programs (`uikit_visionos`,
-`uikit_visionos_input`, `uikit_main`, `uikit_callbacks`, `uikit_metal`
-and `uikit_input`) on an Apple Vision Pro simulator as
+`uikit_visionos_input`, `uikit_main`, `uikit_callbacks`, `uikit_metal`,
+`uikit_input` and `uikit_vulkan`) on an Apple Vision Pro simulator as
 [above](#visionos-simulator) (the other crates are pure code the iOS and
-tvOS jobs run), and links the sdl3 crate's device build, failing on any
-skip but those of `vulkan`, `egl`, `idb` and the simulator's indirect
-draws (`metal`); `visionos_only` and `visionos_test_args` run it alone,
+tvOS jobs run), with MoltenVK as the other jobs, and links the sdl3
+crate's device build, failing on any skip but those of `egl`, `idb`, the
+simulator's indirect draws (`metal`) and `vulkan` for upstream's
+`SDL_LoadObject()` there (the reason ends with it); `visionos_only` and `visionos_test_args` run it alone,
 with other arguments. The Linux clippy job lints the visionOS builds too
 (the device and the arm64 Simulator). The
 Emscripten job runs the tests under node as [above](#emscripten-under-node),
