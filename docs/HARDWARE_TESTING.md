@@ -1491,6 +1491,13 @@ with the minimum supported Rust in the Linux test job, nor for the
 UIKit-only documentation, which the rustdoc job builds for
 `aarch64-apple-ios-sim`.
 
+It lints the four Android ABIs too (`aarch64-linux-android`,
+`armv7-linux-androideabi`, `x86_64-linux-android` and
+`i686-linux-android`); the Linux test job checks `aarch64-linux-android`
+and `armv7-linux-androideabi` with the minimum supported Rust, and the
+rustdoc job documents `aarch64-linux-android`. No NDK is needed for any
+of them. Nothing is linked or run for Android yet.
+
 Three jobs run the tests on the Simulators as
 [above](#apple-simulators), on the macOS 15 runner with Xcode 16.4, each
 on a simulator `tools/ios_run.py --boot` makes and boots while the

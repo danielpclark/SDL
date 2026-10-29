@@ -80,11 +80,12 @@ jobs:
           toolchain: ${{ env.RUST_TOOLCHAIN }}
           # Intel Macs: the x86-64 build is linted on the Apple Silicon
           # runner; Emscripten, iOS, tvOS and visionOS (the devices, the
-          # arm64 Simulators and the x86-64 ones) on the Linux one (no emcc
-          # or SDK is needed to lint; rust-src builds the standard library
-          # of x86_64-apple-tvos, a tier 3 target)
+          # arm64 Simulators and the x86-64 ones) and Android (its four
+          # ABIs) on the Linux one (no emcc, SDK or NDK is needed to lint;
+          # rust-src builds the standard library of x86_64-apple-tvos, a
+          # tier 3 target)
           components: ${{ matrix.os == 'ubuntu-latest' && 'clippy,rust-src' || 'clippy' }}
-          targets: ${{ matrix.os == 'macos-latest' && 'x86_64-apple-darwin' || matrix.os == 'ubuntu-latest' && 'wasm32-unknown-emscripten,aarch64-apple-ios,aarch64-apple-ios-sim,x86_64-apple-ios,aarch64-apple-tvos,aarch64-apple-tvos-sim,aarch64-apple-visionos,aarch64-apple-visionos-sim' || '' }}
+          targets: ${{ matrix.os == 'macos-latest' && 'x86_64-apple-darwin' || matrix.os == 'ubuntu-latest' && 'wasm32-unknown-emscripten,aarch64-apple-ios,aarch64-apple-ios-sim,x86_64-apple-ios,aarch64-apple-tvos,aarch64-apple-tvos-sim,aarch64-apple-visionos,aarch64-apple-visionos-sim,aarch64-linux-android,armv7-linux-androideabi,x86_64-linux-android,i686-linux-android' || '' }}
       - uses: Swatinem/rust-cache@v2
       - run: cargo clippy --workspace --all-targets -- -D warnings
       - if: matrix.os == 'macos-latest'
@@ -114,6 +115,16 @@ jobs:
         run: cargo clippy --workspace --all-targets --target aarch64-apple-visionos -- -D warnings
       - if: matrix.os == 'ubuntu-latest'
         run: cargo clippy --workspace --all-targets --target aarch64-apple-visionos-sim -- -D warnings
+      # (Android: the 64-bit and the 32-bit ARM and x86 ABIs, all tier 2
+      # targets)
+      - if: matrix.os == 'ubuntu-latest'
+        run: cargo clippy --workspace --all-targets --target aarch64-linux-android -- -D warnings
+      - if: matrix.os == 'ubuntu-latest'
+        run: cargo clippy --workspace --all-targets --target armv7-linux-androideabi -- -D warnings
+      - if: matrix.os == 'ubuntu-latest'
+        run: cargo clippy --workspace --all-targets --target x86_64-linux-android -- -D warnings
+      - if: matrix.os == 'ubuntu-latest'
+        run: cargo clippy --workspace --all-targets --target i686-linux-android -- -D warnings
       # sdl3-mixer's zlib-only build (no `timidity`, `fluidsynth`, `mpg123` or
       # `gme` feature)
       - run: cargo clippy -p sdl3-mixer --all-targets --no-default-features -- -D warnings
@@ -160,9 +171,10 @@ jobs:
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ matrix.toolchain == 'pinned' && env.RUST_TOOLCHAIN || matrix.toolchain }}
-          # Emscripten and iOS build with the minimum supported version too
-          # (no emcc or SDK is needed to check)
-          targets: ${{ matrix.toolchain == '1.87' && matrix.os == 'ubuntu-latest' && 'wasm32-unknown-emscripten,aarch64-apple-ios' || '' }}
+          # Emscripten, iOS and Android (64-bit and 32-bit ARM) build with
+          # the minimum supported version too (no emcc, SDK or NDK is needed
+          # to check)
+          targets: ${{ matrix.toolchain == '1.87' && matrix.os == 'ubuntu-latest' && 'wasm32-unknown-emscripten,aarch64-apple-ios,aarch64-linux-android,armv7-linux-androideabi' || '' }}
       - uses: Swatinem/rust-cache@v2
         with:
           key: ${{ matrix.toolchain }}
@@ -170,6 +182,10 @@ jobs:
         run: cargo check --target wasm32-unknown-emscripten
       - if: matrix.toolchain == '1.87' && matrix.os == 'ubuntu-latest'
         run: cargo check --target aarch64-apple-ios
+      - if: matrix.toolchain == '1.87' && matrix.os == 'ubuntu-latest'
+        run: cargo check --target aarch64-linux-android
+      - if: matrix.toolchain == '1.87' && matrix.os == 'ubuntu-latest'
+        run: cargo check --target armv7-linux-androideabi
       # What the Linux tests that would otherwise skip need (see
       # docs/HARDWARE_TESTING.md): an X server, Mesa's software GL, EGL and
       # Vulkan, a headless Wayland compositor, the PulseAudio binary, and a
@@ -808,12 +824,16 @@ jobs:
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN }}
-          targets: aarch64-apple-ios-sim
+          targets: aarch64-apple-ios-sim,aarch64-linux-android
       - uses: Swatinem/rust-cache@v2
       - run: cargo doc --workspace --no-deps
         env:
           RUSTDOCFLAGS: -D warnings
       # The Apple and UIKit-only documentation (no SDK is needed)
       - run: cargo doc --workspace --no-deps --target aarch64-apple-ios-sim
+        env:
+          RUSTDOCFLAGS: -D warnings
+      # The Android documentation (no NDK is needed)
+      - run: cargo doc --workspace --no-deps --target aarch64-linux-android
         env:
           RUSTDOCFLAGS: -D warnings
