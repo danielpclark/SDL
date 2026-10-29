@@ -227,7 +227,13 @@ fn enumerate_and_glob() {
     assert!(glob_directory(&tmp.path("missing"), None, GlobFlags::NONE).is_err());
 }
 
-#[cfg(all(unix, not(target_vendor = "apple"), not(target_os = "emscripten")))]
+// (the XDG paths are the Unix backend's; Android's are its own)
+#[cfg(all(
+    unix,
+    not(target_vendor = "apple"),
+    not(target_os = "android"),
+    not(target_os = "emscripten")
+))]
 #[test]
 fn xdg_paths() {
     use crate::stdlib::{setenv_unsafe, unsetenv_unsafe};
@@ -290,6 +296,10 @@ fn xdg_paths() {
 
 #[test]
 #[cfg_attr(target_os = "emscripten", ignore = "no executable name on Emscripten")]
+#[cfg_attr(
+    target_os = "android",
+    ignore = "no base path until Android's filesystem backend (Android PR 5)"
+)]
 fn base_path_and_exe_name() {
     let base = get_base_path().unwrap();
     assert!(base.ends_with(std::path::MAIN_SEPARATOR) || base.ends_with('/'));
