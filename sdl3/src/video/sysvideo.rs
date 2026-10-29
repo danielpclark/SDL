@@ -694,6 +694,12 @@ pub(crate) trait VideoDriver: Send + Sync {
     fn vulkan_unload_library(&self) -> Option<()> {
         None
     }
+    /// The path a successful `vulkan_load_library` copied to
+    /// `vulkan_config.loader_path` (`None`: the video core keeps the
+    /// `path` it was given).
+    fn vulkan_loader_path(&self) -> Option<Option<String>> {
+        None
+    }
 
     // * * * Event manager functions
 
