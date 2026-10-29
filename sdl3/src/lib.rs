@@ -44,6 +44,17 @@
 //! link options (`-sALLOW_MEMORY_GROWTH=1`, a larger `-sSTACK_SIZE`,
 //! `-sMAX_WEBGL_VERSION=2` for OpenGL ES 3.0 contexts): see "Emscripten" in
 //! the repository's README.
+//!
+//! iOS, tvOS and visionOS (flat windows), configured as upstream's CMake
+//! build for each is: the UIKit video driver (with Metal views, OpenGL ES
+//! through EAGL on iOS and tvOS, and Vulkan through MoltenVK, which an app
+//! bundles and names in [`hints::VULKAN_LIBRARY`]), CoreAudio with the
+//! app's audio session, the MFi and HIDAPI controller drivers, CoreMotion,
+//! the CoreMedia camera on iOS, and the UIKit power, URL and filesystem
+//! backends. There a program starts through [`app::run_app`]
+//! (`UIApplicationMain()`, which never returns), and the UIKit driver only
+//! starts in an app, on its main thread: see "iOS, tvOS and visionOS" in
+//! the repository's README.
 
 #![forbid(unsafe_op_in_unsafe_fn)]
 #![warn(missing_debug_implementations)]
@@ -216,7 +227,7 @@ pub(crate) mod test_support {
         ("uinput", "a writable /dev/uinput"),
         (
             "hidapi",
-            "the HID backend: hidraw/libudev, hid.dll, or IOKit",
+            "the HID backend: hidraw/libudev, hid.dll, IOKit, or CoreBluetooth",
         ),
         ("ipv6", "IPv6 sockets on the loopback interface (::1)"),
         ("tzdata", "the time zone database in /usr/share/zoneinfo"),

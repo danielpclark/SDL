@@ -7,19 +7,20 @@
 //! swap intervals, and the EGL accessors.
 //!
 //! This is upstream's default desktop build (`SDL_VIDEO_OPENGL`, plus
-//! `SDL_VIDEO_OPENGL_EGL` on Unix and Windows): the X11 driver provides GLX
-//! and EGL contexts, the Windows driver WGL and EGL ones, with every
-//! library (libGL, opengl32.dll, libEGL, libGLESv2, ...) loaded at run
-//! time. The EGL contexts of the offscreen driver
-//! (`SDL_offscreenopengles.c`) aren't translated yet.
+//! `SDL_VIDEO_OPENGL_EGL` on Unix, Windows and macOS): the X11 driver
+//! provides GLX and EGL contexts, the Wayland and offscreen drivers EGL
+//! ones, the Windows driver WGL and EGL ones, the Cocoa driver NSOpenGL
+//! and EGL (ANGLE) ones, with every library (libGL, opengl32.dll, libEGL,
+//! libGLESv2, ...) loaded at run time.
 //!
 //! On Emscripten it is upstream's Emscripten build instead, with OpenGL ES 2
 //! only (`SDL_VIDEO_OPENGL_ES2` without `SDL_VIDEO_OPENGL`): the
 //! attributes default to an OpenGL ES 2.0 context, the attributes desktop
 //! OpenGL has (double buffering, accumulation buffers, stereo) are the ones
 //! set, and the canvas driver's contexts are WebGL's. Upstream's UIKit build
-//! has OpenGL ES (EAGL, not translated yet) without `SDL_VIDEO_OPENGL` or
-//! EGL: the attributes are those of the Emscripten build.
+//! has OpenGL ES without `SDL_VIDEO_OPENGL` or EGL: the attributes are those
+//! of the Emscripten build, and on iOS and tvOS the UIKit driver's contexts
+//! are EAGL's (visionOS has no OpenGL ES).
 //!
 //! A [`GlContext`] is destroyed when dropped; functions are looked up with
 //! [`gl_get_proc_address`] once a library is loaded (by creating an
