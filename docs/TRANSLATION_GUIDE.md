@@ -444,6 +444,56 @@ window's settings (`SDL_PROP_WINDOW_CREATE_VISIONOS_SETTINGS_STRING`)
 are kept and given back, but every window is a flat one; the bridge's
 functions only the Swift code calls aren't translated.
 
+## Android
+
+Android builds and lints; nothing runs there yet, and its platform layer
+(`core/android`, the Java, the Android drivers) isn't translated.
+
+### Platform macros
+
+| C | Rust |
+|---|------|
+| `SDL_PLATFORM_ANDROID`, `SDL_VIDEO_DRIVER_ANDROID` | `target_os = "android"` |
+| `SDL_PLATFORM_LINUX` (not defined on Android) | `target_os = "linux"` |
+| `__linux__` (defined on Android) | `any(target_os = "linux", target_os = "android")` |
+| `SDL_PLATFORM_UNIX` (defined on Android) | `all(unix, not(target_vendor = "apple"))` |
+| `__ANDROID_API__ >= N` | evaluated at upstream's floor, API 21 (so `HAVE_NL_LANGINFO` and `HAVE_ST_MTIM`, 26, are off) |
+
+* The desktop Unix code (X11, Wayland, `core/linux`: D-Bus, the IME,
+  udev, evdev) is `all(unix, not(target_vendor = "apple"), not(target_os
+  = "android"), not(target_os = "emscripten"))`, as CMake's
+  `UNIX AND NOT ANDROID` branches; `core/unix` isn't built either, as
+  CMake's Android branch doesn't build it.
+* The four ABIs are tier 2 targets, for the minimum supported Rust too:
+  `aarch64-linux-android`, `x86_64-linux-android`, and the 32-bit
+  `armv7-linux-androideabi` and `i686-linux-android`, where `time_t` and
+  `c_long` are 32 bits, as upstream's 32-bit builds have them. `c_char` is
+  unsigned on the ARM ABIs. There is no native thread-local storage
+  (emulated TLS), which makes clippy misreport the `const` initializers
+  of `thread_local!` (allowed per crate on Android).
+* Where the libc crate lacks a constant of Bionic's headers (`SCHED_OTHER`
+  is `SCHED_NORMAL`, the `RTMGRP_*` groups), it is defined where it is
+  used, with its header's value.
+
+### What is built
+
+As upstream's CMake build for Android, except where Android's own backend
+isn't translated yet, where the dummy one (or none, as upstream without
+it) stands in:
+
+| | Upstream | Here |
+|---|---|---|
+| video | android, offscreen, dummy | offscreen and dummy (the android driver: later) |
+| OpenGL ES, EGL | GLES 1 and 2 through EGL (`libEGL.so`, `libGLESv2.so`, `libGLESv1_CM.so`), no desktop OpenGL | the same (the offscreen driver's EGL) |
+| Vulkan | `libvulkan.so` | the same (the offscreen driver's: `FIXME (upstream)`, which tries `libvulkan.so.1`) |
+| renderers | OpenGL ES 2, OpenGL ES, Vulkan, GPU, software | OpenGL ES 2, Vulkan, GPU, software (the OpenGL ES 1 renderer isn't translated anywhere) |
+| audio | AAudio, OpenSL ES | dummy and disk (later) |
+| joysticks | android, HIDAPI (off by default), virtual | HIDAPI with no HID backend (the Android one: later), virtual |
+| haptic | android, HIDAPI | dummy (the android driver: later), HIDAPI |
+| sensor, camera, power, locale, URL, dialog, filesystem paths | Android's | dummy, or no backend (later) |
+| file operations, threads, time, timer, `loadso` | POSIX, pthread, Unix, Unix, `dlopen` | the same |
+| process, tray, notification | dummy, dummy, none | the same |
+
 ## Testing
 
 Each module carries unit tests that pin behaviour to upstream's: known hash

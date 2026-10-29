@@ -54,7 +54,8 @@ A **direct, pure-Rust translation of [Simple DirectMedia Layer](https://github.c
 > Siri Remote on tvOS) and HIDAPI (Steam Controllers over Bluetooth LE)
 > controller drivers, CoreMotion, the CoreMedia camera on iOS, and the
 > UIKit power, URL, filesystem and main backends (see
-> [iOS, tvOS and visionOS](#ios-tvos-and-visionos)). The
+> [iOS, tvOS and visionOS](#ios-tvos-and-visionos)). Android builds and
+> lints; nothing runs there yet. The
 > remaining front ends and platform backends come next; see
 > [docs/ROADMAP.md](docs/ROADMAP.md).
 
@@ -235,6 +236,12 @@ node and in headless Chrome: see [below](#emscripten).
 
 iOS, tvOS and visionOS build too, and on a Mac with Xcode the tests run
 on their Simulators: see [below](#ios-tvos-and-visionos).
+
+Android (`aarch64-linux-android`, `armv7-linux-androideabi`,
+`x86_64-linux-android`, `i686-linux-android`) builds and lints, with
+`cargo check --target …` or `cargo clippy --target …` and no NDK; nothing
+is linked or run there yet, and its platform layer isn't translated (the
+shared backends are built, and dummy ones stand in for Android's own).
 
 Tests of the platform backends that need something from the system (an X
 server, a PipeWire server, a GPU, a camera, a macOS window server session)

@@ -692,7 +692,9 @@ After the Apple mobile platforms, in this order:
 
 1. **Android**: the video driver, AAudio, the joystick, sensor, camera,
    filesystem, locale and power backends, and the JNI glue
-   (`core/android/SDL_android.c`).
+   (`core/android/SDL_android.c`). So far it builds and lints (the four
+   ABIs, with the shared code's Android gates as upstream's); nothing
+   runs yet.
 2. **KMS/DRM**: the video driver (`video/kmsdrm/`), with the console
    evdev keyboard, mouse and touch reader (`core/linux/SDL_evdev.c`,
    `SDL_evdev_kbd.c`).
