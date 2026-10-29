@@ -190,18 +190,15 @@ pub(super) static GENERIC_USERBOOTSTRAP: UserStorageBootStrap = UserStorageBootS
 
 /// Translation of `GENERIC_OpenFileStorage()`.
 pub(super) fn open_file_storage(path: Option<&str>) -> Result<Storage> {
-    #[allow(unused_mut)] // (Android never prepends)
-    let mut prepend = None;
-
     #[cfg(target_os = "android")]
-    let path = match path {
+    let (path, prepend): (&str, Option<String>) = match path {
         // Use a base path of "." so the filesystem operations fall back to internal storage and the asset system
-        Some(p) if !p.is_empty() => p,
-        _ => "./",
+        Some(p) if !p.is_empty() => (p, None),
+        _ => ("./", None),
     };
 
     #[cfg(not(target_os = "android"))]
-    let path = {
+    let (path, prepend) = {
         let path = match path {
             Some(p) if !p.is_empty() => p,
             _ if cfg!(windows) => "C:/",
@@ -219,10 +216,12 @@ pub(super) fn open_file_storage(path: Option<&str>) -> Result<Storage> {
         } else {
             b[0] == b'/' // some sort of absolute Unix-style path.
         };
-        if !is_absolute {
-            prepend = Some(filesystem::get_current_directory()?);
-        }
-        path
+        let prepend = if !is_absolute {
+            Some(filesystem::get_current_directory()?)
+        } else {
+            None
+        };
+        (path, prepend)
     };
 
     let appended_separator = if path.ends_with('/') || (cfg!(windows) && path.ends_with('\\')) {

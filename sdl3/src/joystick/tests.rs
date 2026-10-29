@@ -572,7 +572,8 @@ fn driver_order() {
         target_os = "linux",
         target_os = "macos",
         target_os = "ios",
-        target_os = "tvos"
+        target_os = "tvos",
+        target_os = "android"
     ))]
     {
         let hidapi_driver: &dyn JoystickDriver = &hidapi::HIDAPI_JOYSTICK_DRIVER;
@@ -668,6 +669,15 @@ fn driver_order() {
         }
         #[cfg(target_os = "visionos")]
         assert_eq!(JOYSTICK_DRIVERS.len(), 1);
+    }
+    #[cfg(target_os = "android")]
+    {
+        // HIDAPI, then the virtual driver (the Android driver isn't
+        // translated yet); no dummy driver
+        const {
+            assert!(HIDAPI_DRIVER_INDEX < VIRTUAL_DRIVER_INDEX);
+        }
+        assert_eq!(JOYSTICK_DRIVERS.len(), 2);
     }
     #[cfg(target_os = "emscripten")]
     {

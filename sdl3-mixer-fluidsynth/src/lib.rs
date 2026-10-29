@@ -69,6 +69,10 @@
 
 #![forbid(unsafe_code)]
 #![warn(missing_debug_implementations)]
+// Android has no native thread-local storage (its targets' TLS is
+// emulated), where `thread_local!` takes std's OS-key path and clippy
+// asks for the `const { ... }` initializers these already have.
+#![cfg_attr(target_os = "android", allow(clippy::missing_const_for_thread_local))]
 // The translation keeps upstream's code shape (its branches, constants,
 // counters and arithmetic, including its quirks), which these lints would
 // have rewritten.

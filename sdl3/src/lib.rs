@@ -55,9 +55,20 @@
 //! (`UIApplicationMain()`, which never returns), and the UIKit driver only
 //! starts in an app, on its main thread: see "iOS, tvOS and visionOS" in
 //! the repository's README.
+//!
+//! Android (`aarch64-linux-android`, `armv7-linux-androideabi`,
+//! `x86_64-linux-android`, `i686-linux-android`) builds, without its
+//! platform layer yet: there are only the shared backends (the offscreen
+//! and dummy video drivers, EGL and OpenGL ES, Vulkan, the HIDAPI and
+//! virtual joysticks, POSIX threads, time and file operations), and dummy
+//! ones where upstream's are Android's own.
 
 #![forbid(unsafe_op_in_unsafe_fn)]
 #![warn(missing_debug_implementations)]
+// Android has no native thread-local storage (its targets' TLS is
+// emulated), where `thread_local!` takes std's OS-key path and clippy
+// asks for the `const { ... }` initializers these already have.
+#![cfg_attr(target_os = "android", allow(clippy::missing_const_for_thread_local))]
 
 pub mod app;
 pub mod assert;

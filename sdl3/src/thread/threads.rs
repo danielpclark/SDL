@@ -252,6 +252,12 @@ pub fn set_current_thread_priority(priority: ThreadPriority) -> Result<()> {
 #[cfg(all(unix, not(target_os = "emscripten")))]
 fn sys_set_thread_priority(priority: ThreadPriority) -> Result<()> {
     use crate::hints;
+    // (Bionic's <sched.h>: `#define SCHED_OTHER SCHED_NORMAL`; the libc
+    // crate has only SCHED_NORMAL for Android)
+    #[cfg(target_os = "android")]
+    const SCHED_OTHER: libc::c_int = libc::SCHED_NORMAL;
+    #[cfg(not(target_os = "android"))]
+    const SCHED_OTHER: libc::c_int = libc::SCHED_OTHER;
     // SAFETY: pthread_self() has no preconditions.
     let thread = unsafe { libc::pthread_self() };
     let policyhint = hints::get(hints::THREAD_PRIORITY_POLICY);
@@ -270,12 +276,12 @@ fn sys_set_thread_priority(priority: ThreadPriority) -> Result<()> {
      * for the thread.  SDL will make such changes by default but there is
      * also a hint allowing that behavior to be overridden. */
     let mut pri_policy = match priority {
-        ThreadPriority::Low | ThreadPriority::Normal => libc::SCHED_OTHER,
+        ThreadPriority::Low | ThreadPriority::Normal => SCHED_OTHER,
         // Apple requires SCHED_RR for high priority threads
         ThreadPriority::High | ThreadPriority::TimeCritical if cfg!(target_vendor = "apple") => {
             libc::SCHED_RR
         }
-        ThreadPriority::High | ThreadPriority::TimeCritical => libc::SCHED_OTHER,
+        ThreadPriority::High | ThreadPriority::TimeCritical => SCHED_OTHER,
     };
 
     if timecritical_realtime_hint && priority == ThreadPriority::TimeCritical {
@@ -284,7 +290,7 @@ fn sys_set_thread_priority(priority: ThreadPriority) -> Result<()> {
 
     policy = match policyhint.as_deref() {
         Some("current") => policy, // Leave current thread scheduler policy unchanged
-        Some("other") => libc::SCHED_OTHER,
+        Some("other") => SCHED_OTHER,
         Some("rr") => libc::SCHED_RR,
         Some("fifo") => libc::SCHED_FIFO,
         _ => pri_policy,

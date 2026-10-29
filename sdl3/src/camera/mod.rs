@@ -58,7 +58,7 @@ use crate::error::{Error, Result};
 use crate::events::{CameraDeviceEvent, Event, EventType};
 use crate::hints;
 use crate::properties::Properties;
-use crate::thread::{ReentrantMutex, ReentrantMutexGuard, Thread, ThreadPriority};
+use crate::thread::{ReentrantMutex, ReentrantMutexGuard, Thread};
 use crate::video::surface::{
     convert_pixels, Pixels, ScaleMode, Surface, PROP_SURFACE_ROTATION_FLOAT,
 };
@@ -956,8 +956,14 @@ pub fn camera_supported_formats(instance_id: CameraID) -> Result<Vec<CameraSpec>
 
 /// Translation of `SDL_CameraThreadSetup()`.
 pub(crate) fn camera_thread_setup(_device: &CameraDevice) {
-    // The camera capture is always a high priority thread
-    let _ = crate::thread::set_current_thread_priority(ThreadPriority::High);
+    //camera_driver.impl.ThreadInit(device);
+    // (SDL_VIDEO_DRIVER_ANDROID: a TODO, commented out upstream; the
+    // priority is left alone.)
+    #[cfg(not(target_os = "android"))]
+    {
+        // The camera capture is always a high priority thread
+        let _ = crate::thread::set_current_thread_priority(crate::thread::ThreadPriority::High);
+    }
 }
 
 /// One iteration of the device thread: acquire a frame, then convert or

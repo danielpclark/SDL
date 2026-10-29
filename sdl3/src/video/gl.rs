@@ -895,7 +895,12 @@ pub fn gl_extension_supported(extension: &str) -> bool {
 #[cfg_attr(
     not(any(
         windows,
-        all(unix, not(target_vendor = "apple"), not(target_os = "emscripten"))
+        all(
+            unix,
+            not(target_vendor = "apple"),
+            not(target_os = "android"),
+            not(target_os = "emscripten")
+        )
     )),
     allow(dead_code)
 )]

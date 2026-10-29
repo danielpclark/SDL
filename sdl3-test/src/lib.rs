@@ -26,6 +26,10 @@
 
 #![forbid(unsafe_op_in_unsafe_fn)]
 #![warn(missing_debug_implementations)]
+// Android has no native thread-local storage (its targets' TLS is
+// emulated), where `thread_local!` takes std's OS-key path and clippy
+// asks for the `const { ... }` initializers these already have.
+#![cfg_attr(target_os = "android", allow(clippy::missing_const_for_thread_local))]
 
 pub mod assert;
 pub mod common;

@@ -224,7 +224,12 @@ pub(crate) fn create_device_name(
 // (used by uri_to_local)
 #[cfg_attr(
     not(any(
-        all(unix, not(target_vendor = "apple"), not(target_os = "emscripten")),
+        all(
+            unix,
+            not(target_vendor = "apple"),
+            not(target_os = "android"),
+            not(target_os = "emscripten")
+        ),
         windows
     )),
     allow(dead_code)
@@ -285,7 +290,12 @@ fn uri_decode(src: &[u8], len: usize) -> Vec<u8> {
 // (used by the D-Bus code and the X11 and Windows video drivers)
 #[cfg_attr(
     not(any(
-        all(unix, not(target_vendor = "apple"), not(target_os = "emscripten")),
+        all(
+            unix,
+            not(target_vendor = "apple"),
+            not(target_os = "android"),
+            not(target_os = "emscripten")
+        ),
         windows
     )),
     allow(dead_code)
@@ -351,7 +361,12 @@ pub(crate) fn uri_to_local(uri: &str) -> Option<Vec<u8>> {
 /// digits, `+`, `-` or `.`, then `:`. Translation of `SDL_IsURI()`.
 // (used by the D-Bus code)
 #[cfg_attr(
-    not(all(unix, not(target_vendor = "apple"), not(target_os = "emscripten"))),
+    not(all(
+        unix,
+        not(target_vendor = "apple"),
+        not(target_os = "android"),
+        not(target_os = "emscripten")
+    )),
     allow(dead_code)
 )]
 pub(crate) fn is_uri(uri: &str) -> bool {

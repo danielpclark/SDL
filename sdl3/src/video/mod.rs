@@ -64,7 +64,12 @@ pub(crate) mod vulkan_utils;
 pub mod window;
 mod yuv;
 
-#[cfg(all(unix, not(target_vendor = "apple"), not(target_os = "emscripten")))]
+#[cfg(all(
+    unix,
+    not(target_vendor = "apple"),
+    not(target_os = "android"),
+    not(target_os = "emscripten")
+))]
 pub use drivers::x11::events::{set_x11_event_hook, X11EventHook};
 
 pub use self::core::{
