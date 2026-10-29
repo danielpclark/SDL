@@ -117,6 +117,11 @@ Upstream's `EM_ASM`/`EM_JS` blocks become Rust macros of the internal
 
 ## Apple mobile platforms
 
+iOS, tvOS and visionOS share upstream's UIKit code and most of its Apple
+code; this is how their C becomes Rust here.
+
+### Platform macros
+
 Upstream's Apple platform macros become these `cfg`s, spelled out where
 they are used (there is no build script to make aliases):
 
@@ -137,18 +142,82 @@ they are used (there is no build script to make aliases):
   where that is a bug, as `SDL_GetPlatform()`'s "tvOS").
 * The simulators are told by `target_abi`, not `target_env`, which the
   minimum supported Rust leaves empty there.
-* What is built follows upstream's CMake build for the platform (as for
-  macOS and Emscripten): on iOS the UIKit pieces, the Apple-wide ones
-  (`core/apple`, the filesystem, locale, log, time and timer backends, the
-  GPU API's Metal backend) and the dummy ones upstream uses there; a
-  macOS-only backend (Cocoa, IOKit, LaunchServices) is
-  `target_os = "macos"`, and so is an Apple-wide one until its UIKit half
-  is translated (the notifications). Until then a subsystem falls back to what else is built,
-  as upstream would without the piece (the offscreen and dummy video
-  drivers, the dummy audio driver...). The UIKit pieces that backends
-  other than the video driver share (UIDevice, UIApplication, the form
-  factor, which upstream keeps in the video driver) are in
-  `core/apple/uikit`, which links UIKit.
+* Mac Catalyst and watchOS aren't targets here. Upstream's
+  `TARGET_OS_MACCATALYST` branches are kept as `cfg`s, unbuilt.
+* An Objective-C method declared at run time takes its type encoding
+  through `objc::encoding()`, which writes `BOOL` as the platform's (`c`
+  on x86-64 macOS and Mac Catalyst, `B` elsewhere, the x86-64 Simulator
+  too).
+* `aarch64-apple-ios`, `aarch64-apple-ios-sim` and `x86_64-apple-ios` are
+  tier 2 targets, also for the minimum supported Rust, which checks iOS.
+  The tvOS and visionOS targets (`aarch64-apple-tvos`, `-tvos-sim`,
+  `aarch64-apple-visionos`, `-visionos-sim`) are tier 2 targets of the
+  pinned toolchain but tier 3 for the minimum supported Rust, which has
+  no standard library for them, so tvOS and visionOS aren't checked with
+  it. `x86_64-apple-tvos` (the Intel Macs' tvOS Simulator) is tier 3,
+  built with `-Zbuild-std` (in CI, linted on the pinned toolchain with
+  `RUSTC_BOOTSTRAP=1`); there's no x86-64 visionOS Simulator.
+
+### What is built
+
+What is built follows upstream's CMake build for the platform, as for
+macOS and Emscripten:
+
+| | iOS | tvOS | visionOS |
+|---|---|---|---|
+| video | UIKit | UIKit, no orientations, status bar or pasteboard | UIKit, flat windows on one fake display |
+| OpenGL ES (EAGL), the OpenGL ES 2 renderer | yes | yes (below) | no |
+| Metal renderer, the GPU API's Metal backend | yes | yes | yes |
+| Vulkan (MoltenVK) | yes | yes | built; nothing loads (below) |
+| audio | CoreAudio with the audio session | the same | the same |
+| joysticks | HIDAPI (off by default), MFi, virtual | the same, with the Siri Remote | MFi only (below) |
+| sensors | CoreMotion | dummy | CoreMotion |
+| camera | CoreMedia | none | none |
+| power | UIDevice's battery | no battery | UIDevice's battery |
+| filesystem | Cocoa, the pref path in Application Support | Cocoa, the pref path in Caches, no user folders | Cocoa, the pref path in Application Support |
+| process | POSIX | dummy (CMake finds no `posix_spawn()`) | POSIX |
+| haptic, dialog, tray | dummy (HIDAPI's haptics on iOS and tvOS) | dummy | dummy |
+| notification | not translated yet (dummy) | none (dummy), as upstream | not translated yet (dummy) |
+
+The Apple-wide pieces (`core/apple`, the filesystem, locale, log, time
+and timer backends, the GPU API's Metal backend) are the same as on
+macOS. A macOS-only backend (Cocoa, IOKit, LaunchServices) is
+`target_os = "macos"`, and so is an Apple-wide one whose UIKit half
+isn't translated yet (the notifications: UserNotifications on iOS and
+visionOS); a subsystem then falls back to what else is built, as
+upstream would without the piece (the dummy notification backend). The
+UIKit pieces that backends other than the video driver share (UIDevice,
+UIApplication, the form factor, which upstream keeps in the video
+driver) are in `core/apple/uikit`, which links UIKit.
+
+Where upstream's Xcode project (`SDL_build_config_ios.h`) and its CMake
+build differ, the translation picks one, marked `Note` in the code:
+
+* OpenGL ES on tvOS: the Xcode project's. EAGL and the OpenGL ES 2
+  renderer are built on iOS and tvOS (`all(any(target_os = "ios",
+  target_os = "tvos"), not(target_abi = "macabi"))`); the CMake build
+  leaves them out on tvOS. The C references of the tvOS tests are
+  upstream's CMake build with OpenGL ES allowed on tvOS.
+* The virtual joystick on visionOS: the CMake build's. CMake's
+  `SDL_VIRTUAL_JOYSTICK` needs `SDL_HIDAPI`, which visionOS doesn't
+  build, so the virtual joystick functions fail there with upstream's
+  "SDL not built with virtual-joystick support" (`Note (upstream)`:
+  the Xcode project builds it).
+* The CoreMedia camera on iOS only: CMake's `MACOS OR IOS`, which
+  `SDL_build_config_ios.h` agrees with.
+* CoreBluetooth loaded at run time (below), where the CMake build links
+  it.
+
+### Frameworks and run-time checks
+
+* The frameworks are linked as upstream links them, but for those a
+  system the program may start on can lack (GameController and
+  CoreHaptics, UniformTypeIdentifiers), and CoreBluetooth (below), which
+  are loaded at run time (`SharedObject::load_framework()`: without the
+  version check upstream's `SDL_LoadObject()` makes on UIKit, which a
+  link doesn't go through). Symbols newer than the deployment target
+  (`UITextContentTypeOneTimeCode`, the camera's device types) are looked
+  up at run time, as weakly linked symbols would be.
 * `@available(macOS 11.0, iOS 14.0, tvOS 14.0, *)` is
   `available!(macos(11, 0), ios(14, 0), tvos(14, 0))`
   (`core::apple::foundation`), checked at run time; a platform it doesn't
@@ -158,27 +227,13 @@ they are used (there is no build script to make aliases):
   platform upstream's `@available` names: `available!(macos(11, 0))`
   alone passes on iOS and tvOS (as the MFi driver's did before its UIKit
   half: its checks are upstream's macOS, iOS and tvOS versions now).
-* An Objective-C method declared at run time takes its type encoding
-  through `objc::encoding()`, which writes `BOOL` as the platform's (`c`
-  on x86-64 macOS and Mac Catalyst, `B` elsewhere, the x86-64 Simulator
-  too).
-* The frameworks are linked as upstream links them, but for those a
-  system the program may start on can lack (GameController and
-  CoreHaptics, UniformTypeIdentifiers), and CoreBluetooth (below), which
-  are loaded at run time (`SharedObject::load_framework()`: without the
-  version check upstream's `SDL_LoadObject()` makes on UIKit, which a
-  link doesn't go through).
 * `SDL_LoadObject()` (`SharedObject::load()`) refuses to load anything
   before iOS 8 on UIKit, as upstream's, which reads visionOS's version as
   iOS's, so nothing loads on visionOS (`FIXME (upstream)`): there the
   Vulkan library isn't loaded, upstream's C failing the same way.
-* Vulkan (`video/drivers/uikit/vulkan.rs`) is MoltenVK's (or a Vulkan
-  loader's): the library `SDL_HINT_VULKAN_LIBRARY` names, else the
-  program's own `vkGetInstanceProcAddr`, else `libvulkan.dylib` (upstream's
-  only default name on UIKit, though `SDL_vulkan.h` says
-  `libMoltenVK.dylib`: a `Note (upstream)`), with surfaces on Metal views.
-  An app bundles MoltenVK's framework (`Frameworks/MoltenVK.framework`)
-  and names it in the hint.
+
+### The app and the UIKit video driver
+
 * `SDL_RunApp()` is `UIApplicationMain()`, which never returns: the main
   function, a closure on `run_app()`'s frame, is reached through a
   pointer in a thread-local variable, so it needs no `'static` bound. As
@@ -216,12 +271,10 @@ they are used (there is no build script to make aliases):
   (`keyboard::send_keyboard_unicode_code()`, which takes upstream's
   `Uint32`; `send_keyboard_unicode_key()` takes a `char`). The key
   commands' inputs are compared with UIKit's constant strings by
-  address, as upstream does. `UITextContentTypeOneTimeCode` (iOS 12) is
-  looked up at run time, as a weakly linked symbol would be, and the
-  game controllers' keyboards (`GCKeyboard`) are GameController's,
-  loaded at run time. When the text field can't become the first
-  responder, starting text input fails with an error of its own
-  (`Note`: upstream fails without one).
+  address, as upstream does. The game controllers' keyboards
+  (`GCKeyboard`) are GameController's, loaded at run time. When the text
+  field can't become the first responder, starting text input fails
+  with an error of its own (`Note`: upstream fails without one).
 * The clipboard is the general `UIPasteboard`'s text (the driver has
   upstream's `SetClipboardText`, `GetClipboardText` and
   `HasClipboardText`, not the data entry points, so the clipboard front
@@ -234,6 +287,9 @@ they are used (there is no build script to make aliases):
   the bootstrap's message box, as the driver, only shows one in an app,
   on its main thread (`Note`), and fails with upstream's "Could not show
   message box." elsewhere.
+
+### Graphics
+
 * Metal views are upstream's `SDL_uikitmetalview`, a subclass of the
   run-time `SDL_uikitview` (so it becomes the window's view as any of
   them does). The Metal renderer and the GPU API's blit shaders take
@@ -244,27 +300,24 @@ they are used (there is no build script to make aliases):
   header: the renderer's tests macOS, then tvOS (simulator, device), then
   the rest (simulator, device), while `Metal_Blit.h` tests
   `SDL_PLATFORM_IOS` first, so tvOS takes the iOS blit libraries and its
-  own are never used (`FIXME (upstream)`; they aren't generated). The
-  renderer's other UIKit branches are `cfg`s too (`CONSTANT_ALIGN()`,
-  256 on macOS, the simulators and Mac Catalyst, the type's alignment on
-  the devices; vsync, which only Mac layers can turn off; the iOS and
-  tvOS feature sets' maximum texture size; no EDR on tvOS), and so are
-  visionOS's RealityKit paths (a curved window's texture, through the
-  Swift bridge's stand-ins: below). visionOS takes the iOS libraries of
-  both (upstream has none of its own).
-* OpenGL ES (EAGL) is upstream's on iOS and tvOS, not on visionOS or Mac
-  Catalyst: the `cfg` is `all(any(target_os = "ios", target_os =
-  "tvos"), not(target_abi = "macabi"))`, as the Xcode project's
-  `SDL_build_config_ios.h` builds it (`Note`: upstream's CMake build
-  leaves it out on tvOS too). OpenGLES.framework is linked there, as
-  upstream links it. `SDLEAGLContext` is an `EAGLContext` subclass
-  declared at run time whose `sdlView` (strong) is an instance variable
-  released in its `dealloc`, as ARC would; `SDL_uikitopenglview`'s
-  instance variables are a Rust structure the view points to, its
-  `context` a weak reference made with the runtime's `objc_storeWeak()`
-  and `objc_loadWeakRetained()` (what ARC's `weak` compiles to), so a
-  view outliving its context sees nil as upstream's does. The context
-  handle owns the reference `alloc`/`init` gave (`CFBridgingRetain`).
+  own are never used (`FIXME (upstream)`; they aren't generated).
+  visionOS takes the iOS libraries of both (upstream has none of its
+  own). The renderer's other UIKit branches are `cfg`s too
+  (`CONSTANT_ALIGN()`, 256 on macOS, the simulators and Mac Catalyst, the
+  type's alignment on the devices; vsync, which only Mac layers can turn
+  off; the iOS and tvOS feature sets' maximum texture size; no EDR on
+  tvOS), and so are visionOS's RealityKit paths (a curved window's
+  texture, through the Swift bridge's stand-ins: see visionOS below).
+* OpenGL ES (EAGL) is built on iOS and tvOS (see "What is built").
+  OpenGLES.framework is linked there, as upstream links it.
+  `SDLEAGLContext` is an `EAGLContext` subclass declared at run time
+  whose `sdlView` (strong) is an instance variable released in its
+  `dealloc`, as ARC would; `SDL_uikitopenglview`'s instance variables
+  are a Rust structure the view points to, its `context` a weak
+  reference made with the runtime's `objc_storeWeak()` and
+  `objc_loadWeakRetained()` (what ARC's `weak` compiles to), so a view
+  outliving its context sees nil as upstream's does. The context handle
+  owns the reference `alloc`/`init` gave (`CFBridgingRetain`).
   `UIKit_GL_GetProcAddress()` is `dlsym(RTLD_DEFAULT, ...)` as upstream;
   the OpenGL ES 2 renderer looks its functions up through it on UIKit too,
   where upstream's `__SDL_NOGETPROCADDR__` takes them from the linked
@@ -277,6 +330,21 @@ they are used (there is no build script to make aliases):
   iOS Simulator three seconds after a power query (`FIXME (upstream)`,
   in `power/uikit.rs`). The OpenGL ES 1 renderer (`SDL_render_gles.c`),
   which upstream builds there, isn't translated yet.
+* Vulkan (`video/drivers/uikit/vulkan.rs`) is MoltenVK's (or a Vulkan
+  loader's): the library `SDL_HINT_VULKAN_LIBRARY` names, else the
+  program's own `vkGetInstanceProcAddr`, else `libvulkan.dylib` (upstream's
+  only default name on UIKit, though `SDL_vulkan.h` says
+  `libMoltenVK.dylib`: a `Note (upstream)`), with surfaces on Metal views.
+  An app bundles MoltenVK's framework (`Frameworks/MoltenVK.framework`)
+  and names it in the hint. On visionOS nothing loads (above).
+
+### Audio, controllers, sensors and the camera
+
+* CoreAudio's UIKit half (upstream's `!MACOSX_COREAUDIO` parts) is
+  `audio/drivers/coreaudio/session.rs`: the app's `AVAudioSession`, its
+  category and options from the hints and what is open, and
+  `SDLInterruptionListener`, declared at run time. There are no HAL
+  devices, only the default ones, as upstream's. AVFoundation is linked.
 * The MFi joystick driver (`joystick/apple`, `SDL_IOS_JoystickDriver`) is
   built on every Apple platform, as upstream's: on iOS and tvOS after the
   HIDAPI driver, which leaves it the controllers HIDAPI doesn't take (as
@@ -315,73 +383,15 @@ they are used (there is no build script to make aliases):
   queue and the caller's thread without a lock), and the reports are
   copied within their buffers (`FIXME (upstream)`: upstream copies whole
   reports into shorter buffers, and sends a byte past a feature report).
-* tvOS (`target_os = "tvos"`) builds what upstream's tvOS build has:
-  the UIKit pieces less what tvOS hasn't, each upstream's
-  `SDL_PLATFORM_TVOS` branch a `cfg`. The video driver has no
-  orientations, status bar, home indicator, pinch gesture, pointer or
-  Pencil (the pen's code is built and never called, as upstream's), and
-  observes no keyboard notifications; its root view controller is a
-  `GCEventViewController` (above), its view's four
-  `UISwipeGestureRecognizer`s turn the Siri Remote's swipes into arrow
-  keys (`swipeGesture:`), and its presses are the remote's buttons, both
-  only while no remote is opened as a joystick. tvOS has no pasteboard:
-  setting the clipboard's text fails with upstream's error, and there's
-  none to get. The pref path is in Caches (the system may empty it: an
-  Apple TV app has no other place to keep files) and there are no user
-  folders; the power state is "no battery"; there's no camera,
-  CoreMotion (the dummy sensor driver) or notification backend, and
-  processes are the dummy backend (CMake finds no `posix_spawn()` there).
-  OpenGL ES (EAGL) is built as `SDL_build_config_ios.h` builds it (above);
-  the C references of the tvOS tests are upstream's CMake build with
-  OpenGL ES allowed on tvOS, as the Xcode project's. The Metal renderer
-  takes upstream's tvOS libraries, and the GPU API its iOS ones (above).
-  `aarch64-apple-tvos` and `aarch64-apple-tvos-sim` are tier 2 targets of
-  the pinned toolchain; `x86_64-apple-tvos` (the Intel Macs' simulator) is
-  tier 3, built with `-Zbuild-std` (in CI, linted on the pinned toolchain
-  with `RUSTC_BOOTSTRAP=1`). They're all tier 3 for the minimum supported
-  Rust, which has no standard library for them, so tvOS isn't checked
-  with it.
-* visionOS (`target_os = "visionos"`, flat windows only) builds what
-  upstream's CMake visionOS build has: the UIKit pieces, each upstream
-  `SDL_PLATFORM_VISIONOS` branch a `cfg` (no `UIScreen`: one fake
-  1280x720-point display, `SDL_XR_SCREENWIDTH` by `SDL_XR_SCREENHEIGHT`,
-  of density 2 at 90 Hz; a window the size it asks for, the window
-  scene asked for that size through a `UIWindowSceneGeometryPreferencesVision`
-  when the window is made and resized; no status bar, interface
-  orientation or screen notifications; GCMouse scrolls clamped to a tick),
-  no OpenGL ES, no HIDAPI, and so no virtual joystick driver either (CMake's
-  `SDL_VIRTUAL_JOYSTICK` needs `SDL_HIDAPI`: the virtual joystick
-  functions fail with upstream's "SDL not built with virtual-joystick
-  support"; `Note (upstream)`: the Xcode project builds it there), the
-  MFi driver alone, CoreMotion, POSIX processes, no camera; no depth clip
-  mode in the GPU API (always clipped, as upstream asserts); and every
-  renderer's output colorspace linear sRGB (`SDL_SetupRendererColorspace()`,
-  `render::setup_renderer_colorspace()`), so the software renderer can't be
-  made there, as upstream's can't. Upstream's Swift code (curved windows
-  and their RealityKit texture, the pointer mode, the settings and HDR
-  headroom sliders) isn't translated: SwiftUI and RealityKit have no
-  Objective-C interface. Its bridge (`SDL_UIKitBridge.m`) is
-  `video/drivers/uikit/bridge.rs`, whose functions the driver and the
-  Metal renderer call are stand-ins with what upstream's answer without a
-  curved window (`SDL_UIKit_HasCurvedWindow()` is false, the curved
-  texture nil, `initializeVisionOSCurvedUI` does nothing; `Note`), so a
-  window's settings (`SDL_PROP_WINDOW_CREATE_VISIONOS_SETTINGS_STRING`)
-  are kept and given back, but every window is a flat one; the bridge's
-  functions only the Swift code calls aren't translated.
-  `aarch64-apple-visionos` and `aarch64-apple-visionos-sim` are tier 2
-  targets of the pinned toolchain (there's no x86-64 visionOS Simulator),
-  tier 3 for the minimum supported Rust, so visionOS isn't checked with it.
 * The CoreMotion sensor driver (`sensor/coremotion.rs`) is built on iOS
   and visionOS, as upstream's CMake builds it, first in the sensor driver
   list (no dummy driver there); CoreMotion is linked.
 * The CoreMedia camera driver (`camera/coremedia.rs`) is built on macOS
-  and iOS (`target_os = "ios"`: CMake's `MACOS OR IOS`, and
-  `SDL_build_config_ios.h` leaves it out on tvOS and visionOS), before the
-  dummy driver as upstream; in it `SDL_PLATFORM_IOS` and
-  `USE_UIKIT_DEVICE_ROTATION` are `target_os = "ios"`. The device types the
-  discovery session asks for are looked up at run time on both, as weakly
-  linked symbols would be. A frame's rotation is upstream's tables, the
-  interface's orientation from the UIKit video driver
+  and iOS (see "What is built"), before the dummy driver as upstream; in
+  it `SDL_PLATFORM_IOS` and `USE_UIKIT_DEVICE_ROTATION` are
+  `target_os = "ios"`. The device types the discovery session asks for
+  are looked up at run time on both. A frame's rotation is upstream's
+  tables, the interface's orientation from the UIKit video driver
   (`get_interface_orientation()`) and the device's from `UIDevice`, whose
   orientation notifications are on while a camera is open; an interface
   orientation outside the tables (unknown: upstream reads before them)
@@ -389,6 +399,50 @@ they are used (there is no build script to make aliases):
   are labelled by their values (`Note (upstream)`: upstream's comments swap
   the two landscape rows). The permission check's `@available(macOS 14, *)`
   is always taken on iOS, as upstream's.
+
+### tvOS
+
+tvOS (`target_os = "tvos"`) builds what upstream's tvOS build has: the
+UIKit pieces less what tvOS hasn't, each upstream's `SDL_PLATFORM_TVOS`
+branch a `cfg`. The video driver has no orientations, status bar, home
+indicator, pinch gesture, pointer or Pencil (the pen's code is built and
+never called, as upstream's), and observes no keyboard notifications;
+its root view controller is a `GCEventViewController` (above), its
+view's four `UISwipeGestureRecognizer`s turn the Siri Remote's swipes
+into arrow keys (`swipeGesture:`), and its presses are the remote's
+buttons, both only while no remote is opened as a joystick. tvOS has no
+pasteboard: setting the clipboard's text fails with upstream's error, and
+there's none to get. The pref path is in Caches (the system may empty
+it: an Apple TV app has no other place to keep files) and there are no
+user folders; the power state is "no battery". The Metal renderer takes
+upstream's tvOS libraries, and the GPU API its iOS ones (above).
+
+### visionOS
+
+visionOS (`target_os = "visionos"`, flat windows only) builds what
+upstream's CMake visionOS build has: the UIKit pieces, each upstream
+`SDL_PLATFORM_VISIONOS` branch a `cfg`: no `UIScreen`, so one fake
+1280x720-point display, `SDL_XR_SCREENWIDTH` by `SDL_XR_SCREENHEIGHT`,
+of density 2 at 90 Hz; a window the size it asks for, the window scene
+asked for that size through a `UIWindowSceneGeometryPreferencesVision`
+when the window is made and resized; no status bar, interface
+orientation or screen notifications; GCMouse scrolls clamped to a tick;
+no depth clip mode in the GPU API (always clipped, as upstream asserts);
+and every renderer's output colorspace linear sRGB
+(`SDL_SetupRendererColorspace()`, `render::setup_renderer_colorspace()`),
+so the software renderer can't be made there, as upstream's can't.
+
+Upstream's Swift code (curved windows and their RealityKit texture, the
+pointer mode, the settings and HDR headroom sliders, the immersive
+spaces) isn't translated: SwiftUI and RealityKit have no Objective-C
+interface. Its bridge (`SDL_UIKitBridge.m`) is
+`video/drivers/uikit/bridge.rs`, whose functions the driver and the
+Metal renderer call are stand-ins with what upstream's answer without a
+curved window (`SDL_UIKit_HasCurvedWindow()` is false, the curved
+texture nil, `initializeVisionOSCurvedUI` does nothing; `Note`), so a
+window's settings (`SDL_PROP_WINDOW_CREATE_VISIONOS_SETTINGS_STRING`)
+are kept and given back, but every window is a flat one; the bridge's
+functions only the Swift code calls aren't translated.
 
 ## Testing
 
