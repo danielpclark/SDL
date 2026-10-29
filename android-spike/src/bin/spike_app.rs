@@ -28,6 +28,7 @@ static ACTIVITY: AtomicPtr<c_void> = AtomicPtr::new(std::ptr::null_mut());
 static RUNNABLE_CLS: AtomicPtr<c_void> = AtomicPtr::new(std::ptr::null_mut());
 static WINDOW: AtomicPtr<c_void> = AtomicPtr::new(std::ptr::null_mut());
 static FOCUSED: AtomicBool = AtomicBool::new(false);
+static DESTROYED: AtomicBool = AtomicBool::new(false);
 static RUNNABLE_RAN: AtomicBool = AtomicBool::new(false);
 static INMEM_RAN: AtomicBool = AtomicBool::new(false);
 static TOUCHES: AtomicI32 = AtomicI32::new(0);
@@ -191,6 +192,7 @@ extern "system" fn on_create(env: *mut c_void, this: jobject, bundle: jobject) {
     let exc2 = e.exception_clear();
     say!("onCreate: SDLSurface created and set as the content view (exception={exc2})");
     let mode2 = mode.clone();
+    let exit_how = e.str_of(intent, "getStringExtra", &[jl(e.new_string("exit"))], "(Ljava/lang/String;)Ljava/lang/String;");
     std::thread::Builder::new()
         .name("SDLThread".into())
         .spawn(move || {
@@ -200,8 +202,31 @@ extern "system" fn on_create(env: *mut c_void, this: jobject, bundle: jobject) {
                 say!("worker: the probe panicked");
                 101
             });
+            // Exit only once the activity has resumed: a process that dies
+            // during the launch is relaunched by the activity manager.
+            let resumed = wait(&|| RESUMES.load(SeqCst) > 0, 5);
             say!("sdl3-android-runner: exit {code}");
-            std::process::exit(code);
+            match exit_how.as_str() {
+                "exit" => std::process::exit(code),
+                "finish" => {
+                    let e = env_for(vm());
+                    let rc = RUNNABLE_CLS.load(SeqCst);
+                    let r = e.new_object(rc, e.method(rc, "<init>", "()V"), &[]);
+                    e.set_long_field(r, e.field(rc, "ptr", "J"), 3);
+                    let a = activity();
+                    let acls = e.get_object_class(a);
+                    e.call_void(a, e.method(acls, "runOnUiThread", "(Ljava/lang/Runnable;)V"), &[jl(r)]);
+                    let d = wait(&|| DESTROYED.load(SeqCst), 5);
+                    logcat(&format!("finish: onDestroy after {d:?}; _exit({code})"));
+                    unsafe { _exit(code) }
+                }
+                _ => {
+                    // _exit: libc's exit() runs the static destructors while
+                    // hwui's threads still run, and they abort
+                    logcat(&format!("resumed after {resumed:?}; _exit({code})"));
+                    unsafe { _exit(code) }
+                }
+            }
         })
         .unwrap();
 }
@@ -219,6 +244,7 @@ extern "system" fn on_pause(env: *mut c_void, this: jobject) {
 extern "system" fn on_destroy(env: *mut c_void, this: jobject) {
     let exc = super_void(Env(env), this, "onDestroy", "()V", &[]);
     say!("onDestroy (native): super done, exception={exc}");
+    DESTROYED.store(true, SeqCst);
 }
 extern "system" fn on_focus(env: *mut c_void, this: jobject, f: u8) {
     let exc = super_void(Env(env), this, "onWindowFocusChanged", "(Z)V", &[jz(f != 0)]);
@@ -290,6 +316,12 @@ extern "system" fn runnable_run(env: *mut c_void, this: jobject) {
     say!("SDLNativeRunnable.run (native): ptr=0x{p:x} thread {}", thread_desc());
     if p == 2 {
         call_sdl_main();
+    }
+    if p == 3 {
+        let a = activity();
+        let acls = e.get_object_class(a);
+        e.call_void(a, e.method(acls, "finish", "()V"), &[]);
+        say!("finish() called: exception={}", e.exception_clear());
     }
     RUNNABLE_RAN.store(true, SeqCst);
 }

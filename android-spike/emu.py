@@ -93,10 +93,18 @@ def wait(label, limit=float(os.environ.get("SPIKE_BOOT_LIMIT", "600"))):
 def kill():
     t = time.time()
     r = sh("adb", "emu", "kill", timeout=60)
-    while time.time() - t < 120:
-        if sh("pidof", "qemu-system-x86_64", "qemu-system-x86_64-headless").returncode != 0:
+    names = ("qemu-system-x86_64", "qemu-system-x86_64-headless", "qemu-system-aarch64")
+    limit = 120 if r.returncode == 0 else 5
+    while time.time() - t < limit:
+        if sh("pidof", *names).returncode != 0:
             break
         time.sleep(1)
+    left = sh("pidof", *names).stdout.split()
+    if left:
+        # (a hung emulator: no console to ask; kill it by pid)
+        print("killing emulator pids %s" % left)
+        sh("kill", "-9", *left)
+        time.sleep(2)
     sh("adb", "kill-server")
     print("TIMING emulator kill: %.1fs (adb emu kill rc=%d %s)" % (time.time() - t, r.returncode, r.stdout.strip()), flush=True)
 

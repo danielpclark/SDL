@@ -126,27 +126,28 @@ jobs:
           du -sh target/aarch64-linux-android || true
           rm -rf target/aarch64-linux-android
           df -h / | tail -1
-      - name: Other GPU modes (cold boots)
-        run: |
-          python3 android-spike/emu.py kill
-          for g in host guest swangle_indirect; do
-            echo "===== -gpu $g"
-            SPIKE_GPU=$g SPIKE_BOOT_LIMIT=300 python3 android-spike/emu.py boot gpu-$g -no-snapshot-load -no-snapshot-save || { echo "boot with -gpu $g failed"; python3 android-spike/emu.py kill; continue; }
-            adb push android-spike/target/x86_64-linux-android/debug/probe /data/local/tmp/spike/probe >/dev/null
-            timeout 120 adb shell /data/local/tmp/spike/probe gfx 2>&1 | grep -vE "extensions" | head -40
-            python3 android-spike/emu.py kill
-          done
       - name: An arm64-v8a system image on the x86_64 host
         run: |
           img="system-images;android-35;google_apis;arm64-v8a"
           s=$(date +%s); yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install "$img" >/dev/null 2>&1; echo "TIMING sdkmanager arm64 image $(( $(date +%s) - s ))s rc=$?"
           du -sh $ANDROID_HOME/system-images/android-35/google_apis/arm64-v8a || true
           SPIKE_AVD=spike-arm SPIKE_IMAGE="$img" python3 android-spike/emu.py create | head -3
+          python3 android-spike/emu.py kill
           timeout 240 $ANDROID_HOME/emulator/emulator -avd spike-arm -no-window -no-boot-anim -gpu swiftshader_indirect -no-snapshot -accel auto > $RUNNER_TEMP/emu-arm.log 2>&1 &
           for i in $(seq 48); do sleep 5; if adb shell getprop sys.boot_completed 2>/dev/null | grep -q 1; then echo "arm64 image booted after $((i*5))s"; break; fi; if ! kill -0 $! 2>/dev/null; then echo "emulator exited after $((i*5))s"; break; fi; done
           head -60 $RUNNER_TEMP/emu-arm.log
           adb devices; adb shell getprop ro.product.cpu.abilist 2>&1 | head -2
           adb emu kill 2>/dev/null || true; wait || true
+      - name: Other GPU modes (cold boots)
+        run: |
+          python3 android-spike/emu.py kill
+          for g in swangle_indirect guest host; do
+            echo "===== -gpu $g"
+            SPIKE_GPU=$g SPIKE_BOOT_LIMIT=180 python3 android-spike/emu.py boot gpu-$g -no-snapshot-load -no-snapshot-save || { echo "boot with -gpu $g failed"; python3 android-spike/emu.py kill; continue; }
+            adb push android-spike/target/x86_64-linux-android/debug/probe /data/local/tmp/spike/probe >/dev/null
+            timeout 120 adb shell /data/local/tmp/spike/probe gfx 2>&1 | grep -vE "extensions" | head -40
+            python3 android-spike/emu.py kill
+          done
       - name: Summary
         if: always()
         run: |
@@ -269,7 +270,9 @@ jobs:
       - name: Tally
         if: always()
         run: |
-          python3 android-spike/tally.py $RUNNER_TEMP/tally 4 | cut -c1-900
+          python3 android-spike/tally.py $RUNNER_TEMP/tally 10 | cut -c1-1500
+          echo "--- the programs run without the JSON tally (not libtest: doctests, harness = false)"
+          grep -E "^RUN" $RUNNER_TEMP/tally/runner.log | cut -c1-200 | head -80
           grep -E "^PUSH" $RUNNER_TEMP/tally/runner.log | sort -k3 -n -r | head -8 || true
           tail -30 $RUNNER_TEMP/test.log
       - name: Stop the emulator
@@ -304,6 +307,9 @@ jobs:
 
   arm-runner:
     name: arm64 Linux runner (KVM? emulator?)
+    # (answered by runs 40881250749 and 40884764425: no /dev/kvm, no SDK, and
+    # sdkmanager has no emulator package for linux-aarch64)
+    if: false
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 30
     continue-on-error: true

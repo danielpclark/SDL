@@ -32,3 +32,9 @@ for m in "${modes[@]}"; do
   echo "app_run rc=$?"
   port=$((port + 2))
 done
+for how in exit finish; do
+  h "app mode basic, exiting with $how"
+  python3 "$here/app_run.py" basic --exit $how --port $port --timeout 60
+  port=$((port + 2))
+  sleep 2; echo "pid 2 s later: '$(adb shell pidof $pkg)'"
+done

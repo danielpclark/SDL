@@ -24,6 +24,7 @@ ap.add_argument("mode")
 ap.add_argument("--port", type=int, default=38100)
 ap.add_argument("--timeout", type=float, default=90)
 ap.add_argument("--pkg", default="org.libsdl.sdl3_rust.spike")
+ap.add_argument("--exit", default="", help="how the app exits after the sentinel: _exit (default), exit, finish")
 ap.add_argument("--logcat", default="spike:V AndroidRuntime:E DEBUG:V libc:V art:W ActivityManager:W ActivityTaskManager:I *:F")
 a = ap.parse_args()
 
@@ -100,10 +101,10 @@ for p in (a.port, a.port + 1):
 
 adb("logcat", "-c")
 adb("logcat", "-b", "crash", "-c")
-print("=== app mode %s" % a.mode, flush=True)
+print("=== app mode %s%s" % (a.mode, " (exit: %s)" % a.exit if a.exit else ""), flush=True)
 ts_start = ts()
 r = adb("shell", "am", "start", "-W", "-S", "-n", "%s/org.libsdl.app.SDLActivity" % a.pkg, "--es", "mode", a.mode,
-        "--ei", "port", str(a.port))
+        "--ei", "port", str(a.port), *(["--es", "exit", a.exit] if a.exit else []))
 print("am start -W (%.2fs): %s" % (ts() - ts_start, " | ".join(r.stdout.strip().splitlines())), flush=True)
 
 threads = []
