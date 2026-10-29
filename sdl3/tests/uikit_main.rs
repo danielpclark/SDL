@@ -448,7 +448,13 @@ quit
             m.pixel_density,
             m.refresh_rate
         ));
-        t(format!("events: {}", list(take_queued(""))));
+        // (the simulator's keyboard is GameController's coalesced keyboard:
+        // added when video starts if GameController has found it by then,
+        // else when its connect notification comes, a moment later)
+        let queued = pump_until(Duration::from_secs(5), "", |seen| {
+            seen.iter().any(|event| event == "KEYBOARD_ADDED")
+        });
+        t(format!("events: {}", list(queued)));
 
         // The app becomes active around when the main function starts
         // (before it, or when it pumps events), with the application
