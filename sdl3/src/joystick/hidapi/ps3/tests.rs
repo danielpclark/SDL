@@ -147,6 +147,9 @@ fn device_kinds() {
 
 #[test]
 fn state_reports() {
+    // (init::quit() in another test restarts the tick counter, which the
+    // NOW timestamps are checked against)
+    let _l = crate::test_support::test_lock();
     for (name, reports) in data::CASES {
         let kind = name.split(' ').next().unwrap();
         let device = match kind {
