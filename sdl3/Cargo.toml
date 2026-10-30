@@ -312,3 +312,11 @@ harness = false
 [[test]]
 name = "android_main"
 harness = false
+
+# Android's small backends in an app (the filesystem paths, the assets and
+# content:// files, the storage, the locale, the battery, URLs, toasts,
+# permissions), against upstream's C (in docs/HARDWARE_TESTING.md, "Android
+# emulator").
+[[test]]
+name = "android_backends"
+harness = false
