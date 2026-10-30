@@ -23,6 +23,7 @@ pub union Jvalue {
     pub z: u8,
     pub i: i32,
     pub j: i64,
+    pub f: f32,
     pub l: Jobject,
 }
 
@@ -284,4 +285,161 @@ pub fn call_int(env: JNIEnv, obj: Jobject, name: &str, sig: &str, args: &[Jvalue
     };
     assert!(!exception(env), "{name}{sig} threw");
     result
+}
+
+/// `CallBooleanMethodA()` of `obj`'s `name`.
+pub fn call_boolean(env: JNIEnv, obj: Jobject, name: &str, sig: &str, args: &[Jvalue]) -> bool {
+    let method = method(env, obj, name, sig);
+    // SAFETY: jni.h's function 39, with the method's arguments.
+    let result = unsafe {
+        let call: unsafe extern "system" fn(JNIEnv, Jobject, MethodId, *const Jvalue) -> u8 =
+            function(env, 39);
+        call(env, obj, method, args.as_ptr())
+    };
+    assert!(!exception(env), "{name}{sig} threw");
+    result != 0
+}
+
+/// `GetStaticMethodID()` of `class`'s `name`.
+fn static_method(env: JNIEnv, class: Jobject, name: &str, sig: &str) -> MethodId {
+    let (cname, csig) = (CString::new(name).unwrap(), CString::new(sig).unwrap());
+    // SAFETY: jni.h's function 113.
+    let method = unsafe {
+        let get: unsafe extern "system" fn(
+            JNIEnv,
+            Jobject,
+            *const c_char,
+            *const c_char,
+        ) -> MethodId = function(env, 113);
+        get(env, class, cname.as_ptr(), csig.as_ptr())
+    };
+    assert!(
+        !exception(env) && !method.is_null(),
+        "GetStaticMethodID({name}{sig})"
+    );
+    method
+}
+
+/// `CallStaticObjectMethodA()` of `class`'s `name`: a local reference.
+pub fn call_static_object(
+    env: JNIEnv,
+    class: Jobject,
+    name: &str,
+    sig: &str,
+    args: &[Jvalue],
+) -> Jobject {
+    let method = static_method(env, class, name, sig);
+    // SAFETY: jni.h's function 116, with the method's arguments.
+    let result = unsafe {
+        let call: unsafe extern "system" fn(JNIEnv, Jobject, MethodId, *const Jvalue) -> Jobject =
+            function(env, 116);
+        call(env, class, method, args.as_ptr())
+    };
+    assert!(!exception(env), "{name}{sig} threw");
+    result
+}
+
+/// `CallStaticLongMethodA()` of `class`'s `name`.
+pub fn call_static_long(
+    env: JNIEnv,
+    class: Jobject,
+    name: &str,
+    sig: &str,
+    args: &[Jvalue],
+) -> i64 {
+    let method = static_method(env, class, name, sig);
+    // SAFETY: jni.h's function 134, with the method's arguments.
+    let result = unsafe {
+        let call: unsafe extern "system" fn(JNIEnv, Jobject, MethodId, *const Jvalue) -> i64 =
+            function(env, 134);
+        call(env, class, method, args.as_ptr())
+    };
+    assert!(!exception(env), "{name}{sig} threw");
+    result
+}
+
+/// `CallBooleanMethodA()` of `obj`'s `name`: its result, or the exception
+/// it throws (a local reference, cleared).
+pub fn call_boolean_catching(
+    env: JNIEnv,
+    obj: Jobject,
+    name: &str,
+    sig: &str,
+    args: &[Jvalue],
+) -> Result<bool, Jobject> {
+    let method = method(env, obj, name, sig);
+    // SAFETY: jni.h's functions 39, 228, 15 and 17.
+    unsafe {
+        let call: unsafe extern "system" fn(JNIEnv, Jobject, MethodId, *const Jvalue) -> u8 =
+            function(env, 39);
+        let result = call(env, obj, method, args.as_ptr());
+        let check: unsafe extern "system" fn(JNIEnv) -> u8 = function(env, 228);
+        if check(env) == 0 {
+            return Ok(result != 0);
+        }
+        let occurred: unsafe extern "system" fn(JNIEnv) -> Jobject = function(env, 15);
+        let thrown = occurred(env);
+        let clear: unsafe extern "system" fn(JNIEnv) = function(env, 17);
+        clear(env);
+        Err(thrown)
+    }
+}
+
+/// `GetFieldID()` of `class`'s `name`.
+fn field_id(env: JNIEnv, class: Jobject, name: &str, sig: &str) -> *mut c_void {
+    let (cname, csig) = (CString::new(name).unwrap(), CString::new(sig).unwrap());
+    // SAFETY: jni.h's function 94.
+    let field = unsafe {
+        let get: unsafe extern "system" fn(
+            JNIEnv,
+            Jobject,
+            *const c_char,
+            *const c_char,
+        ) -> *mut c_void = function(env, 94);
+        get(env, class, cname.as_ptr(), csig.as_ptr())
+    };
+    assert!(!exception(env) && !field.is_null(), "GetFieldID({name})");
+    field
+}
+
+/// `SetIntField()` of `obj`'s (a `class`) `name`.
+pub fn set_int_field(env: JNIEnv, class: Jobject, obj: Jobject, name: &str, value: i32) {
+    let field = field_id(env, class, name, "I");
+    // SAFETY: jni.h's function 109, of an int field.
+    unsafe {
+        let set: unsafe extern "system" fn(JNIEnv, Jobject, *mut c_void, i32) = function(env, 109);
+        set(env, obj, field, value);
+    }
+}
+
+/// `SetFloatField()` of `obj`'s (a `class`) `name`.
+pub fn set_float_field(env: JNIEnv, class: Jobject, obj: Jobject, name: &str, value: f32) {
+    let field = field_id(env, class, name, "F");
+    // SAFETY: jni.h's function 111, of a float field.
+    unsafe {
+        let set: unsafe extern "system" fn(JNIEnv, Jobject, *mut c_void, f32) = function(env, 111);
+        set(env, obj, field, value);
+    }
+}
+
+/// `NewObjectArray()` of `length` nulls of `class`: a local reference.
+pub fn new_object_array(env: JNIEnv, length: i32, class: Jobject) -> Jobject {
+    // SAFETY: jni.h's function 172.
+    let array = unsafe {
+        let f: unsafe extern "system" fn(JNIEnv, i32, Jobject, Jobject) -> Jobject =
+            function(env, 172);
+        f(env, length, class, std::ptr::null_mut())
+    };
+    assert!(!exception(env) && !array.is_null(), "NewObjectArray()");
+    array
+}
+
+/// `SetObjectArrayElement()`.
+pub fn set_object_array_element(env: JNIEnv, array: Jobject, index: i32, value: Jobject) {
+    // SAFETY: jni.h's function 174.
+    unsafe {
+        let f: unsafe extern "system" fn(JNIEnv, Jobject, i32, Jobject) = function(env, 174);
+        f(env, array, index, value);
+    }
+    assert!(!exception(env), "SetObjectArrayElement()");
 }
