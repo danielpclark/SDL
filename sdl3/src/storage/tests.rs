@@ -104,13 +104,17 @@ fn file_storage() {
     assert!(storage.path_info("saves/old.dat").is_err());
     storage.close().unwrap();
 
-    // Relative base paths are made absolute from the current directory.
+    // Relative base paths are made absolute from the current directory
+    // (on Android: they are the internal storage's, then the assets', as
+    // upstream's file operations take them).
     let rel = Storage::open_file(Some("relative-dir")).unwrap();
-    assert!(rel
-        .path_info("x")
-        .unwrap_err()
-        .message()
-        .starts_with("Can't stat"));
+    assert!(rel.path_info("x").unwrap_err().message().starts_with(
+        if cfg!(target_os = "android") {
+            "No such file or directory"
+        } else {
+            "Can't stat"
+        }
+    ));
 }
 
 #[test]
@@ -131,8 +135,6 @@ fn title_storage_is_read_only() {
     ] {
         assert_eq!(e.kind(), ErrorKind::Unsupported);
     }
-    // (no base path on Android until its filesystem backend, Android PR 5)
-    #[cfg(not(target_os = "android"))]
     assert!(
         Storage::open_title(None, None).is_ok(),
         "the base path exists"
@@ -141,10 +143,6 @@ fn title_storage_is_read_only() {
 
 #[cfg(unix)]
 #[test]
-#[cfg_attr(
-    target_os = "android",
-    ignore = "no pref path until Android's filesystem backend (Android PR 5)"
-)]
 fn user_storage_and_driver_hints() {
     use crate::stdlib::{getenv, setenv_unsafe, unsetenv_unsafe};
     let _l = crate::test_support::test_lock();
@@ -172,16 +170,33 @@ fn user_storage_and_driver_hints() {
         format!("{}/", tmp.0)
     };
 
-    let user = Storage::open_user(Some(&org), &game, None).unwrap();
-    user.write_file("save.txt", b"1").unwrap();
-    assert_eq!(
-        std::fs::read(format!("{root}{org}/{game}/save.txt")).unwrap(),
-        b"1"
-    );
-    drop(user);
+    // (Android's pref path is the app's internal storage, whatever the
+    // names, which a program that isn't an app, as a spawned test is,
+    // hasn't, without the app's Java VM. tests/android_backends.rs has an
+    // app's)
+    #[cfg(target_os = "android")]
+    let no_app = crate::core::android::env::java_vm().is_none();
+    #[cfg(not(target_os = "android"))]
+    let no_app = false;
+    if no_app {
+        assert_eq!(
+            Storage::open_user(Some(&org), &game, None)
+                .unwrap_err()
+                .message(),
+            "No available user storage driver"
+        );
+    } else {
+        let user = Storage::open_user(Some(&org), &game, None).unwrap();
+        user.write_file("save.txt", b"1").unwrap();
+        assert_eq!(
+            std::fs::read(format!("{root}{org}/{game}/save.txt")).unwrap(),
+            b"1"
+        );
+        drop(user);
+    }
 
     hints::set(hints::STORAGE_USER_DRIVER, "nope,GENERIC").unwrap();
-    assert!(Storage::open_user(None, &game, None).is_ok());
+    assert_eq!(Storage::open_user(None, &game, None).is_ok(), !no_app);
     hints::set(hints::STORAGE_USER_DRIVER, "nope").unwrap();
     assert_eq!(
         Storage::open_user(None, &game, None).unwrap_err().message(),

@@ -10,23 +10,25 @@
 
 // The POSIX operations everywhere but on Windows, which has its own
 // (upstream's SDL_FSOPS_POSIX and SDL_FSOPS_WINDOWS), and the Unix paths
-// except on Windows, Apple platforms and Emscripten, which have their own
-// (SDL_FILESYSTEM_UNIX, SDL_FILESYSTEM_WINDOWS, SDL_FILESYSTEM_COCOA and
-// SDL_FILESYSTEM_EMSCRIPTEN), and Android, whose backend
-// (SDL_FILESYSTEM_ANDROID) isn't translated yet: the dummy one
-// (SDL_FILESYSTEM_DUMMY) stands in there.
+// except on Windows, Apple platforms, Android and Emscripten, which have
+// their own (SDL_FILESYSTEM_UNIX, SDL_FILESYSTEM_WINDOWS,
+// SDL_FILESYSTEM_COCOA, SDL_FILESYSTEM_ANDROID and
+// SDL_FILESYSTEM_EMSCRIPTEN).
+#[cfg(target_os = "android")]
+mod android;
 #[cfg(target_vendor = "apple")]
 mod cocoa;
-#[cfg(target_os = "android")]
-mod dummy;
 #[cfg(target_os = "emscripten")]
 mod emscripten;
 #[cfg(not(windows))]
 mod fsops;
+#[cfg(target_os = "android")]
+use android as sys;
+/// (`SDL_IOFromFile()`'s relative paths are the file operations')
+#[cfg(target_os = "android")]
+pub(crate) use android::in_internal_storage;
 #[cfg(target_vendor = "apple")]
 use cocoa as sys;
-#[cfg(target_os = "android")]
-use dummy as sys;
 #[cfg(target_os = "emscripten")]
 use emscripten as sys;
 #[cfg(not(any(
@@ -73,7 +75,8 @@ use crate::time::Time;
 /// | TEMPLATES   | X       | X         |      | X          |       |            |
 /// | VIDEOS      | X       | X*        |      | X          |       |            |
 ///
-/// Note that on macOS/iOS, the Videos folder is called "Movies".
+/// Note that on macOS/iOS, the Videos folder is called "Movies". Android
+/// has none of them.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub enum Folder {
     /// The folder which contains all of the current user's data, preferences, and documents. It usually contains most of the other folders. If a requested folder does not exist, the home folder can be considered a safe fallback to store a user's documents.
@@ -504,16 +507,21 @@ pub(crate) fn internal_glob_directory(
     let mut path = path;
 
     // if path ends with any slash, chop them off, so we don't confuse the pattern matcher later.
-    if path.len() > 1 && (path.ends_with('/') || path.ends_with('\\')) {
-        let trimmed = path.trim_end_matches(['/', '\\']);
-        // (never chop the first character)
-        path = if trimmed.is_empty() {
-            &path[..1]
-        } else {
-            trimmed
-        };
-    }
-    let pathlen = path.len();
+    let pathlen = if cfg!(target_os = "android") && path == "assets://" {
+        // don't chop '//' off this if we're looking for the root of the asset tree.
+        path.len() - 1 // we'll add a 1 again later.
+    } else {
+        if path.len() > 1 && (path.ends_with('/') || path.ends_with('\\')) {
+            let trimmed = path.trim_end_matches(['/', '\\']);
+            // (never chop the first character)
+            path = if trimmed.is_empty() {
+                &path[..1]
+            } else {
+                trimmed
+            };
+        }
+        path.len()
+    };
 
     if pattern.is_none() {
         flags = GlobFlags(flags.0 & !GlobFlags::CASE_INSENSITIVE.0); // avoid some unnecessary allocations and work later.

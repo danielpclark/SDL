@@ -9,10 +9,18 @@
 //!
 //! On iOS (`SDL_PLATFORM_IOS`: every UIKit platform), whose apps can't
 //! write to their current directory, relative paths are in the pref path
-//! (`SDL_GetPrefPath("", "")`).
+//! (`SDL_GetPrefPath("", "")`). On Android they are in the app's internal
+//! storage (`SDL_GetAndroidInternalStoragePath()`; in a program that
+//! isn't an app, which has none, in the current directory), and the app
+//! package's assets are files and directories too: `assets://` paths, and
+//! relative paths that aren't in the internal storage (their path info; a
+//! directory's enumeration only when the internal storage path is
+//! relative, which in an app it isn't: see [`enumerate_directory`]).
 
 use std::ops::ControlFlow;
 
+#[cfg(target_os = "android")]
+use super::android::in_internal_storage;
 use super::{EnumerationResult, PathInfo, PathType};
 use crate::error::{Error, Result};
 use crate::io::{strerror, IoStatus, IoStream};
@@ -26,19 +34,38 @@ fn in_pref_path(path: &str) -> Result<String> {
     Ok(format!("{base}{path}"))
 }
 
-/// Translation of `SDL_SYS_EnumerateDirectory()`.
+/// Translation of `SDL_SYS_EnumerateDirectory()`. FIXME (upstream): on
+/// Android, a relative path that isn't a directory of the internal
+/// storage was meant to be looked for among the assets ("Maybe it's an
+/// asset... that didn't use an "assets://" URL?"), but the path tried is
+/// the internal storage's, which is absolute, and absolute paths don't
+/// fall back: so it never is.
 pub(super) fn enumerate_directory(
     path: &str,
     cb: &mut dyn FnMut(&str, &str) -> EnumerationResult,
 ) -> Result<()> {
-    #[allow(unused_mut)] // (only UIKit makes it absolute)
+    #[allow(unused_mut)] // (only UIKit and Android make it absolute)
     let mut apath: Option<String> = None; // absolute path (for Android, iOS, etc). Overrides `path`.
 
-    #[cfg(all(target_vendor = "apple", not(target_os = "macos")))]
+    #[cfg(any(
+        target_os = "android",
+        all(target_vendor = "apple", not(target_os = "macos"))
+    ))]
     if path.is_empty() {
         return Err(Error::new("No such file or directory"));
     } else if !path.starts_with('/') {
-        apath = Some(in_pref_path(path)?);
+        #[cfg(target_os = "android")]
+        {
+            if path.starts_with("assets://") {
+                let pathwithsep = format!("{path}{}", if !path.ends_with('/') { "/" } else { "" });
+                return crate::core::android::assets::enumerate_asset_directory(&pathwithsep, cb);
+            }
+            apath = Some(in_internal_storage(path));
+        }
+        #[cfg(not(target_os = "android"))]
+        {
+            apath = Some(in_pref_path(path)?);
+        }
     }
 
     let full = apath.as_deref().unwrap_or(path);
@@ -51,13 +78,31 @@ pub(super) fn enumerate_directory(
         format!("{}/", full.trim_end_matches('/'))
     };
 
-    let dir = std::fs::read_dir(if pathwithsep.is_empty() {
+    let dir = match std::fs::read_dir(if pathwithsep.is_empty() {
         // opendir("") fails with ENOENT; std refuses the empty path too.
         std::path::Path::new("")
     } else {
         std::path::Path::new(&pathwithsep)
-    })
-    .map_err(|e| Error::new(format!("Can't open directory: {}", strerror(&e))))?;
+    }) {
+        Ok(dir) => dir,
+        Err(e) => {
+            // Maybe it's an asset... that didn't use an "assets://" URL?
+            // (don't fall back to asset tree for absolute paths, in case
+            // opendir() failed for other reasons, like opendir("/")
+            // returning EACCES.)
+            #[cfg(target_os = "android")]
+            if !pathwithsep.starts_with('/') {
+                return crate::core::android::assets::enumerate_asset_directory(
+                    &pathwithsep[extralen..],
+                    cb,
+                );
+            }
+            return Err(Error::new(format!(
+                "Can't open directory: {}",
+                strerror(&e)
+            )));
+        }
+    };
 
     // (readdir()'s "." and ".." entries are never reported by std.)
     for ent in dir {
@@ -87,6 +132,15 @@ pub(super) fn remove_path(path: &str) -> Result<()> {
         path
     } else {
         apath = in_pref_path(path)?;
+        &apath
+    };
+    #[cfg(target_os = "android")]
+    let apath;
+    #[cfg(target_os = "android")]
+    let path = if path.starts_with('/') {
+        path
+    } else {
+        apath = in_internal_storage(path);
         &apath
     };
     let rc = match std::fs::symlink_metadata(path) {
@@ -123,6 +177,24 @@ pub(super) fn rename_path(oldpath: &str, newpath: &str) -> Result<()> {
         };
         let newpath = if !newpath.starts_with('/') {
             anewpath = format!("{base}{newpath}");
+            &anewpath
+        } else {
+            newpath
+        };
+        (oldpath, newpath)
+    };
+    #[cfg(target_os = "android")]
+    let (aoldpath, anewpath);
+    #[cfg(target_os = "android")]
+    let (oldpath, newpath) = {
+        let oldpath = if !oldpath.starts_with('/') {
+            aoldpath = in_internal_storage(oldpath);
+            &aoldpath
+        } else {
+            oldpath
+        };
+        let newpath = if !newpath.starts_with('/') {
+            anewpath = in_internal_storage(newpath);
             &anewpath
         } else {
             newpath
@@ -179,7 +251,10 @@ pub(super) fn create_directory(path: &str) -> Result<()> {
         use std::os::unix::fs::DirBuilderExt;
         builder.mode(0o770);
     }
-    #[cfg(not(all(target_vendor = "apple", not(target_os = "macos"))))]
+    #[cfg(not(any(
+        target_os = "android",
+        all(target_vendor = "apple", not(target_os = "macos"))
+    )))]
     let rc = builder.create(path);
     #[cfg(all(target_vendor = "apple", not(target_os = "macos")))]
     let rc = if path.starts_with('/') {
@@ -187,14 +262,21 @@ pub(super) fn create_directory(path: &str) -> Result<()> {
     } else {
         builder.create(in_pref_path(path)?)
     };
+    #[cfg(target_os = "android")]
+    let rc = if path.starts_with('/') {
+        builder.create(path)
+    } else {
+        builder.create(in_internal_storage(path))
+    };
     match rc {
         Ok(()) => Ok(()),
         Err(e) => {
             // FIXME (upstream): on iOS a relative path is made in the pref
-            // path, but whether it already is a directory is asked of the
-            // path as given, in the current directory: a relative directory
-            // that exists is a failure (EEXIST), unless the current
-            // directory has one of that name too.
+            // path (on Android in the internal storage), but whether it
+            // already is a directory is asked of the path as given, in the
+            // current directory: a relative directory that exists is a
+            // failure (EEXIST), unless the current directory has one of
+            // that name too.
             if e.kind() == std::io::ErrorKind::AlreadyExists
                 && std::fs::metadata(path).is_ok_and(|m| m.is_dir())
             {
@@ -222,9 +304,32 @@ fn system_time(t: std::io::Result<std::time::SystemTime>) -> Time {
     }
 }
 
-/// Translation of `SDL_SYS_GetPathInfo()`; like `stat()`, symlinks are followed.
+/// Translation of `SDL_SYS_GetPathInfo()`; like `stat()`, symlinks are
+/// followed. On Android, a path that isn't there (an absolute one too) is
+/// looked for among the assets.
 pub(super) fn get_path_info(path: &str) -> Result<PathInfo> {
-    #[cfg(not(all(target_vendor = "apple", not(target_os = "macos"))))]
+    #[cfg(target_os = "android")]
+    let rc = {
+        if path.is_empty() {
+            return Err(Error::new("No such file or directory"));
+        } else if path.starts_with('/') {
+            std::fs::metadata(path)
+        } else if path.starts_with("assets://") {
+            return crate::core::android::assets::get_asset_path_info(path);
+        } else {
+            std::fs::metadata(in_internal_storage(path))
+        }
+    };
+    #[cfg(target_os = "android")]
+    let rc = match rc {
+        Ok(statbuf) => Ok(statbuf),
+        // Maybe it's an asset... that didn't use an "assets://" URL?
+        Err(_) => return crate::core::android::assets::get_asset_path_info(path),
+    };
+    #[cfg(not(any(
+        target_os = "android",
+        all(target_vendor = "apple", not(target_os = "macos"))
+    )))]
     let rc = std::fs::metadata(path);
     // (on iOS a relative path in the pref path, else in the current directory)
     #[cfg(all(target_vendor = "apple", not(target_os = "macos")))]
