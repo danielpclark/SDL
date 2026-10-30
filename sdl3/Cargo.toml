@@ -342,3 +342,10 @@ harness = false
 [[test]]
 name = "android_recreate"
 harness = false
+
+# The android video driver's input in an app (touches, the pinch, the
+# mouse, its cursors and relative mode, pens), real (the runner's input
+# requests) and made in the program, against upstream's C.
+[[test]]
+name = "android_input"
+harness = false
