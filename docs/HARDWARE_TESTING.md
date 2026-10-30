@@ -1595,8 +1595,11 @@ and `java` for `apksigner`):
   (`SDL3_ANDROID_KEYSTORE`), made with `keytool` when there's none.
 
 The package is `org.libsdl.sdl3_rust.NAME` (`SDL3_ANDROID_PACKAGE`). The
-runner installs it, launches it (`am start -W`), and uninstalls it when it
-ends. Android starts upstream's `SDLActivity`, whose class loads
+runner installs it, launches it (`am start -W`, with a launcher's intent:
+the MAIN action and the LAUNCHER category, as when a person starts the
+app; launched again, the activity comes back to the front, being
+`singleTop`), and uninstalls it when it ends. Android starts upstream's
+`SDLActivity`, whose class loads
 `libmain.so` (`System.loadLibrary("main")`, where upstream's `onCreate()`
 loads `SDL3` and `main`), which registers its native methods
 (`JNI_OnLoad()`); the activity's `onStart()` (`onResume()` before API 24)
@@ -1638,8 +1641,18 @@ a run when the device's log shows that ART didn't verify the app's classes
 one (a debuggable app's install has none: CI's android job verifies the
 package with `adb shell cmd package compile -m verify -f PACKAGE`, which
 runs dex2oat's `verify` filter, as ART does). An app can ask the
-runner for `background`, `foreground` and `input ARGUMENTS`
-(`sdl3-android-runner: request WHAT`, `android_support::request()`).
+runner for what only the host can do (`sdl3-android-runner: request WHAT
+[ARGUMENTS]`, `android_support::request()`): `background` (the HOME key),
+`foreground` (the activity launched again), `back` (the BACK key), `input
+ARGUMENTS`, `am ARGUMENTS`, `cmd ARGUMENTS`, `trim-memory LEVEL` (`am
+send-trim-memory`), `night yes|no|auto` (`cmd uimode night`), `locale
+[TAGS]` (`cmd locale set-app-locales`) and `logcat TAGS` (the app's lines
+of the device's log); the runner answers each on the app's stdout socket
+when it's done (`sdl3-android-runner: reply LINE` for the log's lines,
+then `sdl3-android-runner: done`), which `request()` returns. An app's
+process the system thinks cached is frozen about ten seconds after it
+leaves the foreground, so a program waits in the background no longer
+than that.
 
 The app programs so far: `sdl3/tests/android_runner.rs` (the runner's
 app mode: the process, the SDL thread, `main`'s arguments, the
@@ -1649,7 +1662,28 @@ the JNI layer's checks, which need an app's Java VM (the thread
 environments, references and frames, exceptions, strings, fields and
 arrays, nonvirtual calls, class lookup on native threads, the registered
 natives, the DEX file through an `InMemoryDexClassLoader`, the manifest's
-variables).
+variables, the shims of upstream's anonymous classes, the activity's
+command handler, the lifecycle event queue), and `android_main.rs`, an
+app's main and lifecycle against upstream's C: its arguments and thread,
+SDL's main thread, the device (its API level and form factor), the JNI
+environment and the activity, `SDL_Log` at each priority in the device's
+log, the lifecycle natives called in-process, a pause with
+`SDL_HINT_ANDROID_BLOCK_ON_PAUSE` on and off, memory trimmed, trips to the
+background with the hint on and off, the system's dark mode, the app's
+locale, `SDL_SendAndroidMessage()`, and the back button (`onBackPressed()`
+with the trap's hint, the BACK key with the trap's callback, and
+`SDL_SendAndroidBackButton()`, which finishes the activity while main runs:
+`SDL_EVENT_TERMINATING`), with the dummy video driver.
+
+The expected traces of the app programs are upstream's C SDL's: the same
+program in C, as upstream's android-project's app (built with Gradle,
+CMake and the NDK, outside the repository), run on the same emulator with
+`tools/android_run.py --run-apk APK [PACKAGE]`, which installs a package
+made elsewhere, launches it the same way, and takes its process's lines
+of the device's log with the tag SDL/APP (its `SDL_Log()`s) as its output,
+the requests among them answered on its own stdout (a C program has no
+socket to read them from: `sdl3-android-runner: reply LINE`), and its exit
+status from the exit line.
 
 What runs where, in spawned programs: everything pure (the satellites'
 decoders, the converters, the parsers), the file operations, threads,
