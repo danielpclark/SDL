@@ -450,9 +450,10 @@ Android builds and lints, and the tests run on the Android emulator as
 spawned processes and as apps (`tools/android_run.py`: "Android emulator"
 in docs/HARDWARE_TESTING.md). Its platform layer is begun: the JNI layer,
 the app's start and lifecycle, the event pump's Android parts, the log,
-and the small backends: the filesystem paths, the assets and
-`content://` files, the locale, URLs, the battery, toasts and permissions
-(below); the Android drivers (video, audio, input, ...) aren't
+the small backends: the filesystem paths, the assets and
+`content://` files, the locale, URLs, the battery, toasts and permissions,
+and the video driver: its window, its surface, OpenGL ES through EGL and
+Vulkan (below); the other Android drivers (audio, input, ...) aren't
 translated yet.
 
 A test that reads its package's files does so at run time, through
@@ -517,10 +518,12 @@ device; the same for `CARGO_TARGET_TMPDIR` and `CARGO_BIN_EXE_NAME`.
   override (`getLibraries()`, `getArguments()`, `onUnhandledMessage()`)
   are fixed: `Note`s.
 * What a later driver owns is stubbed where upstream calls it: the
-  activity's surface (`java::surface`, null until `SDLSurface`), the
-  video driver's window (`video::drivers::android::window()`, none), the
-  keyboard, the audio drivers' pause, and the controller, HID, clipboard
-  and audio managers (comments where upstream calls them).
+  surface's touch, mouse and key events (`SDLSurface.onTouch()`,
+  `onKey()`, `onCapturedPointerEvent()` and the scale gestures: they
+  return what upstream's do for an event they ignore), the screen
+  keyboard (`isScreenKeyboardShown()` is false), the audio drivers'
+  pause, and the controller, HID, clipboard and audio managers (comments
+  where upstream calls them).
 * The app's `main` runs on the activity's "SDLThread" thread
   (`nativeRunMain()`, through the generic `SDL_RunApp()`; the main
   callbacks are the generic ones too), which isn't SDL's main thread until
@@ -557,6 +560,45 @@ device; the same for `CARGO_TARGET_TMPDIR` and `CARGO_BIN_EXE_NAME`.
   (`__android_log_write()` of liblog, the tag `SDL/CATEGORY`), then to
   stderr, as upstream's does.
 
+### The video driver
+
+* `video/drivers/android/` is SDL_androidvideo.c (`mod.rs`: the display,
+  its modes from `nativeSetScreenResolution()`, the orientations, the
+  safe area, the system theme), SDL_androidwindow.c (`window.rs`: the one
+  window, its `ANativeWindow` and EGL surface), SDL_androidevents.c
+  (`events.rs`: the lifecycle, and the EGL context's backup on a pause
+  and restore on a resume, with `SDL_EVENT_RENDER_DEVICE_RESET` when it
+  is lost), SDL_androidgl.c (`gl.rs`) and SDL_androidvulkan.c
+  (`vulkan.rs`). The natives the surface and the activity call
+  (`onNativeSurfaceCreated()`, `onNativeResize()`,
+  `onNativeRotationChanged()`, `onNativeInsetsChanged()`, ...) are in
+  `core/android/sdl_android.rs`, as in SDL_android.c.
+* `SDLSurface` is `java::surface` (its callbacks `native` entries of
+  `classes.rs`), with `SDLSensorManager` (`java::sensor_manager`), and
+  the activity's layout (`setContentView()`, `setWindowStyle()`,
+  `setOrientation()` and `SDL_HINT_ORIENTATIONS`,
+  `onSystemUiVisibilityChange()`) is `java::activity`'s.
+* The driver needs the app's Java VM: a program that isn't an app skips
+  it (`Note`), as UIKit's outside an app, so spawned programs keep the
+  offscreen and dummy drivers.
+* Creating a renderer (a window's or a surface's) waits for the
+  activity to be active, and holds its lock meanwhile, as upstream's
+  `SDL_CreateRendererWithProperties()` does on Android.
+* `SDL_HINT_ANDROID_TRAP_BACK_BUTTON` is watched by the driver
+  (`video_init()`), as upstream's hint callback.
+* The Vulkan renderer's Android parts are translated with it: textures of
+  hardware buffers (`SDL_PIXELFORMAT_EXTERNAL_OES`,
+  `TextureCreateInfo::vulkan_android_hardware_buffer`, with the YCbCr
+  conversions of their external formats) and the surface and swapchain
+  made again when the window is restored. Android's surfaces are
+  pre-rotated (the swapchain's transform is the display's rotation):
+  upstream's viewport, clip rectangle and reads of a rotated swapchain
+  image are elsewhere than the projection draws (`FIXME (upstream)`),
+  which the renderer maps through the rotation here.
+* The GPU API makes its surfaces with the video device's own
+  `Vulkan_CreateSurface()`, as upstream's, which leaves the window's
+  flags alone (`SDL_Vulkan_CreateSurface()` makes it a Vulkan window).
+
 ### What is built
 
 As upstream's CMake build for Android, except where Android's own backend
@@ -565,8 +607,8 @@ it) stands in:
 
 | | Upstream | Here |
 |---|---|---|
-| video | android, offscreen, dummy | offscreen and dummy (of the android driver, its events and the system theme, whatever the driver: the rest later) |
-| OpenGL ES, EGL | GLES 1 and 2 through EGL (`libEGL.so`, `libGLESv2.so`, `libGLESv1_CM.so`), no desktop OpenGL | the same (the offscreen driver's EGL) |
+| video | android, offscreen, dummy | the same (android in apps only) |
+| OpenGL ES, EGL | GLES 1 and 2 through EGL (`libEGL.so`, `libGLESv2.so`, `libGLESv1_CM.so`), no desktop OpenGL | the same |
 | Vulkan | `libvulkan.so` | the same (the offscreen driver's: `FIXME (upstream)`, which tries `libvulkan.so.1`) |
 | renderers | OpenGL ES 2, OpenGL ES, Vulkan, GPU, software | OpenGL ES 2, Vulkan, GPU, software (the OpenGL ES 1 renderer isn't translated anywhere) |
 | audio | AAudio, OpenSL ES | dummy and disk (later) |
