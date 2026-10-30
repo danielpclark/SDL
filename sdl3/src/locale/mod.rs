@@ -1,7 +1,8 @@
 // Rust translation of src/locale/SDL_locale.c, SDL_syslocale.h,
 // src/locale/unix/SDL_syslocale.c, src/locale/windows/SDL_syslocale.c,
-// src/locale/macos/SDL_syslocale.m, src/locale/dummy/SDL_syslocale.c and
-// include/SDL3/SDL_locale.h from Simple DirectMedia Layer.
+// src/locale/macos/SDL_syslocale.m, src/locale/android/SDL_syslocale.c,
+// src/locale/dummy/SDL_syslocale.c and include/SDL3/SDL_locale.h from
+// Simple DirectMedia Layer.
 // Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
 // This is an altered (translated) version of the original software; see LICENSE.txt.
 
@@ -10,10 +11,12 @@
 //! The Unix backend (from the `LANG` and `LANGUAGE` environment variables)
 //! is used on Unix systems other than Apple's, Android and Haiku, the
 //! Windows backend (`GetUserPreferredUILanguages()`, or the user locale's
-//! language and country where that's missing) on Windows, and the macOS
-//! one (`NSLocale.preferredLanguages`) on Apple platforms; elsewhere the
-//! dummy backend reports that the operation is unsupported until the
-//! platform layer arrives. `SDL_HINT_PREFERRED_LOCALES` overrides them.
+//! language and country where that's missing) on Windows, the macOS
+//! one (`NSLocale.preferredLanguages`) on Apple platforms, and the Android
+//! one (the activity's `getPreferredLocales()`: `LocaleList`'s adjusted
+//! default) on Android; elsewhere the dummy backend reports that the
+//! operation is unsupported until the platform layer arrives.
+//! `SDL_HINT_PREFERRED_LOCALES` overrides them.
 
 use crate::error::Result;
 use crate::hints;
@@ -495,10 +498,32 @@ mod sys {
     }
 }
 
+/// The Android backend: the activity's locales, through JNI. Translation of
+/// `locale/android/SDL_syslocale.c`.
+#[cfg(target_os = "android")]
+mod sys {
+    use super::strlcat;
+
+    /// Translation of `SDL_SYS_GetPreferredLocales()` (Android) and
+    /// `Android_JNI_GetLocale()`'s copy: the locales, cut to the buffer.
+    /// Note (upstream): false without an error when they can't be had (no
+    /// app); here the error's message is empty.
+    pub(super) fn get_preferred_locales(buf: &mut String, buflen: usize) -> crate::Result<()> {
+        match crate::core::android::get_locale() {
+            Some(locales) => {
+                strlcat(buf, &locales, buflen);
+                Ok(())
+            }
+            None => Err(crate::Error::new("")),
+        }
+    }
+}
+
 #[cfg(not(any(
     windows,
     target_vendor = "apple",
     target_os = "emscripten",
+    target_os = "android",
     all(
         unix,
         not(any(
