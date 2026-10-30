@@ -122,6 +122,16 @@ pub fn shutdown() {
     init::quit();
 }
 
+/// The checks of the Android JNI layer, which need the Java VM of an app
+/// (sdl3/tests/android_jni.rs runs them as one): each one's name and
+/// outcome. In a program spawned from the shell, a single failed one: no
+/// Java VM. Not an API.
+#[cfg(target_os = "android")]
+#[doc(hidden)]
+pub fn __android_jni_checks() -> Vec<(&'static str, std::result::Result<(), String>)> {
+    core::android::tests_in_app::run()
+}
+
 /// Shared by every test that touches process-global state (hints, log output,
 /// subsystem init, the event queue), so those tests don't race each other.
 #[cfg(test)]
