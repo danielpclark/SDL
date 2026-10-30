@@ -289,7 +289,9 @@ pub(crate) fn init_sensors() -> Result<()> {
 }
 
 /// Whether there are any sensors opened by the application.
-/// Translation of `SDL_SensorsOpened()`.
+/// Translation of `SDL_SensorsOpened()`. (The event loop's polling
+/// interval asks, which Android's event pump doesn't have.)
+#[cfg_attr(target_os = "android", allow(dead_code))]
 pub(crate) fn sensors_opened() -> bool {
     let _lock = lock_sensors();
     with_sensors(|s| !s.is_empty())

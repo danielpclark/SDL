@@ -36,7 +36,8 @@
 //! listeners and receivers, ...) are added with their translations. The
 //! anonymous classes upstream creates (`new Runnable() {...}`, dialog
 //! listeners) can't be declared with upstream's names (`SDLActivity$1`),
-//! which are the compiler's.
+//! which are the compiler's: they are two classes of their own,
+//! `SDLNativeRunnable` and `SDLNativeListener` (`super::java::anonymous`).
 
 #[cfg(target_os = "android")]
 use std::ffi::c_void;
@@ -169,12 +170,19 @@ const fn constructor(access: u32, descriptor: &'static str) -> Method {
 }
 
 #[cfg(target_os = "android")]
-use super::java::activity;
+use super::java::{activity, anonymous};
 
 /// `org.libsdl.app.SDLActivity`.
 pub(crate) const SDL_ACTIVITY: &str = "org/libsdl/app/SDLActivity";
+/// `org.libsdl.app.SDLActivity.SDLCommandHandler`.
+pub(crate) const SDL_COMMAND_HANDLER: &str = "org/libsdl/app/SDLActivity$SDLCommandHandler";
 /// `org.libsdl.app.SDLMain`.
 pub(crate) const SDL_MAIN: &str = "org/libsdl/app/SDLMain";
+/// `org.libsdl.app.SDLNativeRunnable`, upstream's anonymous `Runnable`s.
+pub(crate) const SDL_NATIVE_RUNNABLE: &str = "org/libsdl/app/SDLNativeRunnable";
+/// `org.libsdl.app.SDLNativeListener`, the invocation handler of the
+/// proxies that are upstream's other anonymous classes.
+pub(crate) const SDL_NATIVE_LISTENER: &str = "org/libsdl/app/SDLNativeListener";
 
 /// The classes, each after the classes of the file it extends or
 /// implements.
@@ -186,7 +194,14 @@ pub(crate) static CLASSES: &[Class] = &[
         access: PUBLIC,
         superclass: "android/app/Activity",
         interfaces: &[],
-        fields: &[],
+        fields: &[
+            // Handler for the messages
+            Field {
+                name: "commandHandler",
+                descriptor: "Landroid/os/Handler;",
+                access: 0,
+            },
+        ],
         methods: &[
             Method {
                 name: "<clinit>",
@@ -221,6 +236,13 @@ pub(crate) static CLASSES: &[Class] = &[
                 activity::on_configuration_changed[_]
             ),
             native!(PROTECTED, "onDestroy", "()V", activity::on_destroy[]),
+            native!(PUBLIC, "onBackPressed", "()V", activity::on_back_pressed[]),
+            native!(
+                PUBLIC,
+                "dispatchKeyEvent",
+                "(Landroid/view/KeyEvent;)Z",
+                activity::dispatch_key_event[_]
+            ),
             // C functions we call
             native!(PUBLIC | STATIC, "nativeGetVersion", "()Ljava/lang/String;", super::native_get_version[]),
             native!(PUBLIC | STATIC, "nativeSetupJNI", "()V", super::native_setup_jni[]),
@@ -230,6 +252,7 @@ pub(crate) static CLASSES: &[Class] = &[
                 "()I",
                 super::native_get_compiled_subsystems[]
             ),
+            native!(PUBLIC | STATIC, "nativeIsHIDAPIEnabled", "()Z", super::native_is_hidapi_enabled[]),
             native!(PUBLIC | STATIC, "nativeInitMainThread", "()V", super::native_init_main_thread[]),
             native!(PUBLIC | STATIC, "nativeCleanupMainThread", "()V", super::native_cleanup_main_thread[]),
             native!(
@@ -238,11 +261,59 @@ pub(crate) static CLASSES: &[Class] = &[
                 "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/Object;)I",
                 super::native_run_main[_, _, _]
             ),
+            native!(PUBLIC | STATIC, "nativeLowMemory", "()V", super::native_low_memory[]),
+            native!(PUBLIC | STATIC, "nativeSendQuit", "()V", super::native_send_quit[]),
+            native!(PUBLIC | STATIC, "nativeQuit", "()V", super::native_quit[]),
+            native!(PUBLIC | STATIC, "nativePause", "()V", super::native_pause[]),
+            native!(PUBLIC | STATIC, "nativeResume", "()V", super::native_resume[]),
+            native!(
+                PUBLIC | STATIC,
+                "nativeFocusChanged",
+                "(Z)V",
+                super::native_focus_changed[_]
+            ),
+            native!(
+                PUBLIC | STATIC,
+                "onNativeDropFile",
+                "(Ljava/lang/String;)V",
+                super::on_native_drop_file[_]
+            ),
+            native!(
+                PUBLIC | STATIC,
+                "onNativeKeyDown",
+                "(I)V",
+                super::on_native_key_down[_]
+            ),
+            native!(
+                PUBLIC | STATIC,
+                "onNativeKeyUp",
+                "(I)V",
+                super::on_native_key_up[_]
+            ),
+            native!(
+                PUBLIC | STATIC,
+                "nativeGetHint",
+                "(Ljava/lang/String;)Ljava/lang/String;",
+                super::native_get_hint[_]
+            ),
+            native!(
+                PUBLIC | STATIC,
+                "nativeGetHintBoolean",
+                "(Ljava/lang/String;Z)Z",
+                super::native_get_hint_boolean[_, _]
+            ),
             native!(
                 PUBLIC | STATIC,
                 "nativeSetenv",
                 "(Ljava/lang/String;Ljava/lang/String;)V",
                 super::native_setenv[_, _]
+            ),
+            native!(PUBLIC | STATIC, "onNativeLocaleChanged", "()V", super::on_native_locale_changed[]),
+            native!(
+                PUBLIC | STATIC,
+                "onNativeDarkModeChanged",
+                "(Z)V",
+                super::on_native_dark_mode_changed[_]
             ),
             native!(
                 PUBLIC | STATIC,
@@ -258,6 +329,24 @@ pub(crate) static CLASSES: &[Class] = &[
             ),
         ],
     },
+    // SDLActivity.java's `protected static class SDLCommandHandler extends
+    // Handler`, the handler of the messages from SDL's thread.
+    Class {
+        name: SDL_COMMAND_HANDLER,
+        access: PUBLIC,
+        superclass: "android/os/Handler",
+        interfaces: &[],
+        fields: &[],
+        methods: &[
+            constructor(PUBLIC, "()V"),
+            native!(
+                PUBLIC,
+                "handleMessage",
+                "(Landroid/os/Message;)V",
+                activity::command_handler_handle_message[_]
+            ),
+        ],
+    },
     // SDLActivity.java's `class SDLMain implements Runnable`, the SDL
     // thread's code.
     Class {
@@ -269,6 +358,48 @@ pub(crate) static CLASSES: &[Class] = &[
         methods: &[
             constructor(0, "()V"),
             native!(PUBLIC, "run", "()V", activity::sdl_main_run[]),
+        ],
+    },
+    // Upstream's anonymous `Runnable`s (`new Runnable() {...}`): a Rust
+    // closure in `ptr`, run once (super::java::anonymous).
+    Class {
+        name: SDL_NATIVE_RUNNABLE,
+        access: FINAL,
+        superclass: "java/lang/Object",
+        interfaces: &["java/lang/Runnable"],
+        fields: &[Field {
+            name: "ptr",
+            descriptor: "J",
+            access: PRIVATE,
+        }],
+        methods: &[
+            constructor(0, "()V"),
+            native!(PUBLIC, "run", "()V", anonymous::runnable_run[]),
+            native!(PROTECTED, "finalize", "()V", anonymous::runnable_finalize[]),
+        ],
+    },
+    // Upstream's other anonymous classes (listeners, callbacks): proxies of
+    // their interfaces, whose invocation handler calls a Rust closure in
+    // `ptr` (super::java::anonymous).
+    Class {
+        name: SDL_NATIVE_LISTENER,
+        access: FINAL,
+        superclass: "java/lang/Object",
+        interfaces: &["java/lang/reflect/InvocationHandler"],
+        fields: &[Field {
+            name: "ptr",
+            descriptor: "J",
+            access: PRIVATE,
+        }],
+        methods: &[
+            constructor(0, "()V"),
+            native!(
+                PUBLIC,
+                "invoke",
+                "(Ljava/lang/Object;Ljava/lang/reflect/Method;[Ljava/lang/Object;)Ljava/lang/Object;",
+                anonymous::listener_invoke[_, _, _]
+            ),
+            native!(PROTECTED, "finalize", "()V", anonymous::listener_finalize[]),
         ],
     },
 ];

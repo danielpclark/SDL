@@ -115,7 +115,12 @@ impl ThreadBuilder {
         }
         let run_shared = shared.clone();
         let handle = builder
-            .spawn(move || run_thread(&run_shared, f))
+            .spawn(move || {
+                // (RunThread(): an SDL thread can use JNI)
+                #[cfg(target_os = "android")]
+                crate::core::android::setup_thread();
+                run_thread(&run_shared, f)
+            })
             .map_err(|e| Error::new(format!("Couldn't create thread: {e}")))?;
 
         // Everything is running now

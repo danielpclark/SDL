@@ -829,16 +829,20 @@ impl FormFactor {
 /// The device's form factor. Translation of `SDL_GetDeviceFormFactor()`.
 ///
 /// iOS (`SDL_PLATFORM_IOS`: every UIKit platform) asks UIKit for the
-/// device's user interface idiom, and Android/OpenHarmony would ask the
-/// OS (that backend isn't translated yet, so Android reports `Unknown`);
-/// other platforms are fixed.
+/// device's user interface idiom, and Android its `SDLActivity`
+/// (`getDeviceFormFactor()`: TV, headset, tablet, from a diagonal of 7
+/// inches, or phone; `Unknown` in a program that isn't an app, which has
+/// no Java VM); other platforms are fixed.
 pub fn device_form_factor() -> FormFactor {
     #[cfg(all(target_vendor = "apple", not(target_os = "macos")))]
     return crate::core::apple::uikit::device_form_factor();
-    #[cfg(not(all(target_vendor = "apple", not(target_os = "macos"))))]
-    if cfg!(target_os = "android") {
-        FormFactor::Unknown
-    } else if cfg!(target_os = "horizon") {
+    #[cfg(target_os = "android")]
+    return crate::core::android::get_android_device_form_factor();
+    #[cfg(not(any(
+        all(target_vendor = "apple", not(target_os = "macos")),
+        target_os = "android"
+    )))]
+    if cfg!(target_os = "horizon") {
         FormFactor::Handheld
     } else {
         FormFactor::Desktop

@@ -1,20 +1,32 @@
 // Rust translation of src/core/android/SDL_android.c from Simple
 // DirectMedia Layer (part: the library's loading, the registration of the
-// native methods, SDLActivity's natives that start the SDL thread and set
-// the environment, and the manifest's environment variables).
+// native methods, SDLActivity's natives that start the SDL thread, set the
+// environment and pass the activity's lifecycle on, the lifecycle event
+// queue, the activity mutex, the manifest's environment variables, and the
+// entry points of SDL_system.h that need no backend of their own).
 // Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
 // This is an altered (translated) version of the original software; see LICENSE.txt.
 
 //! `JNI_OnLoad()`, which registers the native methods of the classes of
 //! [`super::classes`] (upstream's `register_methods()` of its tables:
 //! `SDLActivity_tab` so far) and caches them, with the app's class loader,
-//! for the threads that aren't the VM's; and `SDLActivity`'s natives that
-//! run the app's `SDL_main` (`nativeSetupJNI()`, `nativeInitMainThread()`,
-//! `nativeRunMain()`, ...) and set its environment (`nativeSetenv()`,
-//! `Android_JNI_GetManifestEnvironmentVariables()`). The rest of
-//! SDL_android.c (the lifecycle events, the video, audio and controller
-//! natives, the assets, paths, permissions, ...) comes with the backends
-//! that use it.
+//! for the threads that aren't the VM's; `SDLActivity`'s natives that run
+//! the app's `SDL_main` (`nativeSetupJNI()`, `nativeInitMainThread()`,
+//! `nativeRunMain()`, ...), set its environment (`nativeSetenv()`,
+//! `Android_JNI_GetManifestEnvironmentVariables()`) and pass the
+//! activity's lifecycle to SDL's thread (`nativePause()`, `nativeResume()`,
+//! `nativeLowMemory()`, `nativeSendQuit()`, `nativeQuit()`, ...), through
+//! the lifecycle event queue (`Android_SendLifecycleEvent()`,
+//! `Android_WaitLifecycleEvent()`), which the event pump reads
+//! (`video::drivers::android::events`); the activity mutex; and
+//! SDL_system.h's `SDL_GetAndroidJNIEnv()`, `SDL_GetAndroidActivity()`,
+//! `SDL_GetAndroidSDKVersion()`, `SDL_IsAndroidTV()`, `SDL_IsChromebook()`,
+//! `SDL_IsDeXMode()`, `SDL_SendAndroidBackButton()` and
+//! `SDL_SendAndroidMessage()` (the `crate::android` module), with
+//! `SDL_IsAndroidTablet()` and `SDL_GetAndroidDeviceFormFactor()` for
+//! `SDL_GetDeviceFormFactor()`. The rest of SDL_android.c (the video,
+//! audio and controller natives, the assets, paths, permissions, ...)
+//! comes with the backends that use it.
 //!
 //! This library is exported as libSDL3.so's is: a program that links it
 //! has its `JNI_OnLoad()` (as an app with upstream's static library has),
@@ -24,9 +36,12 @@ use super::classes::{self, Class, Code, CLASSES, SDL_ACTIVITY};
 use super::env::{self, Arg, Env, Global, Obj, Value};
 use super::jni::*;
 use super::ndk::LogPriority;
+use crate::thread::{RawMutex, Semaphore};
 use std::ffi::{c_char, c_int, c_void, CString};
 use std::ptr::{self, NonNull};
 use std::sync::atomic::{AtomicBool, AtomicI32, AtomicPtr, Ordering};
+use std::sync::{Mutex, MutexGuard};
+use std::time::Duration;
 
 /// Main activity: `mActivityClass` (`SDLActivity`, a global reference that
 /// is never deleted, as upstream's).
@@ -294,8 +309,19 @@ pub(crate) fn setup_jni(env: Env<'_>, cls: Obj<'_>) {
         log(LogPriority::Error, "failed to found a JavaVM");
     }
 
-    // (the activity mutex, and the lifecycle mutex and semaphore, come
-    // with the lifecycle events)
+    /* Use a mutex to prevent concurrency issues between Java Activity and Native thread code, when using 'Android_Window'.
+     * (Eg. Java sending Touch events, while native code is destroying the main SDL_Window. )
+     */
+    // (Android_ActivityMutex: a static here, which can't fail to be made;
+    // see lock_activity_mutex())
+
+    // (Android_LifecycleMutex and Android_LifecycleEventSem: made anew, a
+    // semaphore of 0; see Lifecycle)
+    {
+        let mut lifecycle = lifecycle();
+        lifecycle.created = true;
+        while LIFECYCLE_EVENT_SEM.try_wait() {}
+    }
 
     if let Some(class) = Global::new(env, cls) {
         let raw = class.obj().raw();
@@ -333,6 +359,19 @@ pub(crate) extern "system" fn native_get_compiled_subsystems(
     _cls: jclass,
 ) -> jint {
     get_compiled_subsystems()
+}
+
+/// Whether SDL is built with HIDAPI (it is). Translation of
+/// `nativeIsHIDAPIEnabled()`.
+pub(crate) fn is_hidapi_enabled() -> bool {
+    true
+}
+
+pub(crate) extern "system" fn native_is_hidapi_enabled(
+    _env: *mut JNIEnv,
+    _cls: jclass,
+) -> jboolean {
+    is_hidapi_enabled() as jboolean
 }
 
 /// Translation of `nativeCheckSDLThreadCounter()`: the count of the
@@ -517,6 +556,526 @@ pub(crate) extern "system" fn native_run_main(
         )
     };
     run_main(env, library, function, array)
+}
+
+// ---------------------------------------------------------------------------
+// The lifecycle event queue, and the natives that fill it
+
+/// What the activity tells SDL's thread. Translation of
+/// `SDL_AndroidLifecycleEvent`.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum LifecycleEvent {
+    Wake,
+    Pause,
+    Resume,
+    LowMemory,
+    Destroy,
+}
+
+/// `SDL_NUM_ANDROID_LIFECYCLE_EVENTS`: the room upstream's queue has.
+const NUM_LIFECYCLE_EVENTS: usize = 5;
+
+/// The queue (`Android_LifecycleEvents` and `Android_NumLifecycleEvents`),
+/// guarded by `Android_LifecycleMutex`, and whether that mutex and the
+/// semaphore exist: upstream's `nativeSetupJNI()` makes them,
+/// `nativeQuit()` destroys them.
+struct Lifecycle {
+    created: bool,
+    events: Vec<LifecycleEvent>,
+}
+
+static LIFECYCLE: Mutex<Lifecycle> = Mutex::new(Lifecycle {
+    created: false,
+    events: Vec::new(),
+});
+
+/// `Android_LifecycleEventSem` (a static, emptied where upstream makes a
+/// new one).
+static LIFECYCLE_EVENT_SEM: Semaphore = Semaphore::new(0);
+
+fn lifecycle() -> MutexGuard<'static, Lifecycle> {
+    LIFECYCLE.lock().unwrap_or_else(|e| e.into_inner())
+}
+
+/// Translation of `FindLifecycleEvent()`.
+fn find_lifecycle_event(events: &[LifecycleEvent], event: LifecycleEvent) -> Option<usize> {
+    events.iter().position(|&e| e == event)
+}
+
+/// Translation of `RemoveLifecycleEvent()`.
+fn remove_lifecycle_event(events: &mut Vec<LifecycleEvent>, index: usize) {
+    events.remove(index);
+}
+
+/// Drop file (the activity's "Open with"). Translation of
+/// `onNativeDropFile()`.
+pub(crate) fn on_drop_file(filename: &str) {
+    crate::events::window::send_drop_file(None, None, filename);
+    crate::events::window::send_drop_complete(None);
+}
+
+pub(crate) extern "system" fn on_native_drop_file(
+    env: *mut JNIEnv,
+    _cls: jclass,
+    filename: jstring,
+) {
+    // SAFETY: a native method's environment and argument.
+    let (env, filename) = unsafe { (Env::from_raw(env), Obj::from_raw(filename)) };
+    match env.get_string(filename) {
+        Ok(path) => on_drop_file(&path),
+        Err(thrown) => drop(thrown),
+    }
+}
+
+/// Low memory. Translation of `nativeLowMemory()`.
+pub(crate) fn low_memory() {
+    send_lifecycle_event(LifecycleEvent::LowMemory);
+}
+
+pub(crate) extern "system" fn native_low_memory(_env: *mut JNIEnv, _cls: jclass) {
+    low_memory();
+}
+
+/// Locale: requires `android:configChanges="layoutDirection|locale"` in
+/// AndroidManifest.xml. Translation of `onNativeLocaleChanged()`.
+pub(crate) fn on_locale_changed() {
+    crate::events::queue::send_app_event(crate::events::EventType::LOCALE_CHANGED);
+}
+
+pub(crate) extern "system" fn on_native_locale_changed(_env: *mut JNIEnv, _cls: jclass) {
+    on_locale_changed();
+}
+
+/// Dark mode. Translation of `onNativeDarkModeChanged()`.
+pub(crate) fn on_dark_mode_changed(enabled: bool) {
+    crate::video::drivers::android::set_dark_mode(enabled);
+}
+
+pub(crate) extern "system" fn on_native_dark_mode_changed(
+    _env: *mut JNIEnv,
+    _cls: jclass,
+    enabled: jboolean,
+) {
+    on_dark_mode_changed(enabled != 0);
+}
+
+/// Send Quit event to "SDLThread" thread. Translation of
+/// `nativeSendQuit()`.
+pub(crate) fn send_quit() {
+    send_lifecycle_event(LifecycleEvent::Destroy);
+}
+
+pub(crate) extern "system" fn native_send_quit(_env: *mut JNIEnv, _cls: jclass) {
+    send_quit();
+}
+
+/// Activity ends. Translation of `nativeQuit()`. Note: the activity mutex
+/// stays (upstream destroys it, after which locking it does nothing; see
+/// [`lock_activity_mutex`]), and the message is the one without an error
+/// (errors are values here: there's no `SDL_GetError()`).
+pub(crate) fn quit() {
+    {
+        let mut lifecycle = lifecycle();
+        lifecycle.created = false;
+        // Android_NumLifecycleEvents = 0;
+        lifecycle.events.clear();
+        while LIFECYCLE_EVENT_SEM.try_wait() {}
+    }
+
+    // (Internal_Android_Destroy_AssetManager(): the assets come with the
+    // file I/O)
+
+    log(LogPriority::Verbose, "SDLActivity thread ends");
+}
+
+pub(crate) extern "system" fn native_quit(_env: *mut JNIEnv, _cls: jclass) {
+    quit();
+}
+
+/// Pause. Translation of `nativePause()`.
+pub(crate) fn pause() {
+    log(LogPriority::Verbose, "nativePause()");
+
+    send_lifecycle_event(LifecycleEvent::Pause);
+}
+
+pub(crate) extern "system" fn native_pause(_env: *mut JNIEnv, _cls: jclass) {
+    pause();
+}
+
+/// Resume. Translation of `nativeResume()`.
+pub(crate) fn resume() {
+    log(LogPriority::Verbose, "nativeResume()");
+
+    send_lifecycle_event(LifecycleEvent::Resume);
+}
+
+pub(crate) extern "system" fn native_resume(_env: *mut JNIEnv, _cls: jclass) {
+    resume();
+}
+
+/// Translation of `nativeFocusChanged()`.
+pub(crate) fn focus_changed(has_focus: bool) {
+    lock_activity_mutex();
+
+    if let Some(window) = crate::video::drivers::android::window() {
+        log(LogPriority::Verbose, "nativeFocusChanged()");
+        let event = if has_focus {
+            crate::events::EventType::WINDOW_FOCUS_GAINED
+        } else {
+            crate::events::EventType::WINDOW_FOCUS_LOST
+        };
+        crate::events::window::send_window_event(window, event, 0, 0);
+    }
+
+    unlock_activity_mutex();
+}
+
+pub(crate) extern "system" fn native_focus_changed(
+    _env: *mut JNIEnv,
+    _cls: jclass,
+    has_focus: jboolean,
+) {
+    focus_changed(has_focus != 0);
+}
+
+/// Keydown. Translation of `onNativeKeyDown()`.
+pub(crate) fn on_key_down(keycode: jint) {
+    lock_activity_mutex();
+
+    if crate::video::drivers::android::window().is_some() {
+        crate::video::drivers::android::on_key_down(keycode);
+    }
+
+    unlock_activity_mutex();
+}
+
+pub(crate) extern "system" fn on_native_key_down(_env: *mut JNIEnv, _cls: jclass, keycode: jint) {
+    on_key_down(keycode);
+}
+
+/// Keyup. Translation of `onNativeKeyUp()`.
+pub(crate) fn on_key_up(keycode: jint) {
+    lock_activity_mutex();
+
+    if crate::video::drivers::android::window().is_some() {
+        crate::video::drivers::android::on_key_up(keycode);
+    }
+
+    unlock_activity_mutex();
+}
+
+pub(crate) extern "system" fn on_native_key_up(_env: *mut JNIEnv, _cls: jclass, keycode: jint) {
+    on_key_up(keycode);
+}
+
+/// A hint's value. Translation of `nativeGetHint()`.
+pub(crate) fn get_hint(name: &str) -> Option<String> {
+    crate::hints::get(name)
+}
+
+pub(crate) extern "system" fn native_get_hint(
+    env: *mut JNIEnv,
+    _cls: jclass,
+    name: jstring,
+) -> jstring {
+    // SAFETY: a native method's environment and argument.
+    let (env, name) = unsafe { (Env::from_raw(env), Obj::from_raw(name)) };
+    let Ok(utfname) = env.get_string(name) else {
+        return ptr::null_mut();
+    };
+    // (NewStringUTF(NULL) is null)
+    match get_hint(&utfname) {
+        Some(hint) => env
+            .new_string(&hint)
+            .map_or(ptr::null_mut(), env::Local::into_raw),
+        None => ptr::null_mut(),
+    }
+}
+
+/// A hint's value as a boolean. Translation of `nativeGetHintBoolean()`.
+pub(crate) fn get_hint_boolean(name: &str, default_value: bool) -> bool {
+    crate::hints::get_bool(name, default_value)
+}
+
+pub(crate) extern "system" fn native_get_hint_boolean(
+    env: *mut JNIEnv,
+    _cls: jclass,
+    name: jstring,
+    default_value: jboolean,
+) -> jboolean {
+    // SAFETY: a native method's environment and argument.
+    let (env, name) = unsafe { (Env::from_raw(env), Obj::from_raw(name)) };
+    let Ok(utfname) = env.get_string(name) else {
+        return default_value;
+    };
+    get_hint_boolean(&utfname, default_value != 0) as jboolean
+}
+
+/// Queue a lifecycle event for SDL's thread, merged with those queued:
+/// one wake and one low memory at most, a pause and a resume cancel each
+/// other, and a destroy replaces them all. Translation of
+/// `Android_SendLifecycleEvent()`. (Upstream's queue has room for
+/// [`NUM_LIFECYCLE_EVENTS`], which it asserts; this one grows.)
+pub(crate) fn send_lifecycle_event(event: LifecycleEvent) {
+    let mut lifecycle = lifecycle();
+    let created = lifecycle.created;
+    let events = &mut lifecycle.events;
+    let mut add_event = true;
+
+    match event {
+        LifecycleEvent::Wake => {
+            // We don't need more than one wake queued
+            if find_lifecycle_event(events, LifecycleEvent::Wake).is_some() {
+                add_event = false;
+            }
+        }
+        LifecycleEvent::Pause => {
+            // If we have a resume queued, just stay in the paused state
+            if let Some(index) = find_lifecycle_event(events, LifecycleEvent::Resume) {
+                remove_lifecycle_event(events, index);
+                add_event = false;
+            }
+        }
+        LifecycleEvent::Resume => {
+            // If we have a pause queued, just stay in the resumed state
+            if let Some(index) = find_lifecycle_event(events, LifecycleEvent::Pause) {
+                remove_lifecycle_event(events, index);
+                add_event = false;
+            }
+        }
+        LifecycleEvent::LowMemory => {
+            // We don't need more than one low memory event queued
+            if find_lifecycle_event(events, LifecycleEvent::LowMemory).is_some() {
+                add_event = false;
+            }
+        }
+        LifecycleEvent::Destroy => {
+            // Remove all other events, we're done!
+            while !events.is_empty() {
+                remove_lifecycle_event(events, 0);
+            }
+        }
+    }
+
+    if add_event {
+        debug_assert!(events.len() < NUM_LIFECYCLE_EVENTS);
+        events.push(event);
+        // (SDL_SignalSemaphore() of a semaphore that doesn't exist does
+        // nothing)
+        if created {
+            LIFECYCLE_EVENT_SEM.signal();
+        }
+    }
+}
+
+/// Wait up to `timeout` (`None`: as long as it takes) for the next
+/// lifecycle event, with the activity mutex released meanwhile when this
+/// thread holds it (so that the activity can send the event). Translation
+/// of `Android_WaitLifecycleEvent()`. FIXME (upstream): without the
+/// semaphore (before `nativeSetupJNI()`, as in a program that isn't an
+/// app, or after `nativeQuit()`), `SDL_WaitSemaphoreTimeoutNS(NULL, ...)`
+/// succeeds at once, so upstream's loop never ends (an event pump that
+/// never returns); here no event comes.
+pub(crate) fn wait_lifecycle_event(timeout: Option<Duration>) -> Option<LifecycleEvent> {
+    let mut got_event = None;
+
+    let mut relock_count = 0;
+    lock_activity_mutex();
+    while ACTIVITY_MUTEX_COUNT.load(Ordering::Acquire) > 1 {
+        // We came into this function with the activity lock held, we need to unlock so lifecycle events can be dispatched
+        relock_count += 1;
+        unlock_activity_mutex();
+    }
+    unlock_activity_mutex();
+
+    if lifecycle().created {
+        while got_event.is_none() && LIFECYCLE_EVENT_SEM.wait_timeout(timeout) {
+            let mut lifecycle = lifecycle();
+            if !lifecycle.events.is_empty() {
+                got_event = Some(lifecycle.events[0]);
+                remove_lifecycle_event(&mut lifecycle.events, 0);
+            }
+        }
+    }
+
+    while relock_count > 0 {
+        lock_activity_mutex();
+        relock_count -= 1;
+    }
+    got_event
+}
+
+/// `Android_ActivityMutex`, which upstream's `nativeSetupJNI()` makes and
+/// `nativeQuit()` destroys (locking it before or after does nothing).
+/// Note: here it's a static, there from the start, never destroyed.
+static ACTIVITY_MUTEX: RawMutex = RawMutex::new();
+
+/// `Android_ActivityMutexCount`: how many times the thread that holds the
+/// activity mutex has locked it.
+static ACTIVITY_MUTEX_COUNT: AtomicI32 = AtomicI32::new(0);
+
+/// Lock the activity mutex (recursive). Translation of
+/// `Android_LockActivityMutex()`.
+pub(crate) fn lock_activity_mutex() {
+    ACTIVITY_MUTEX.lock();
+    ACTIVITY_MUTEX_COUNT.fetch_add(1, Ordering::AcqRel);
+}
+
+/// Translation of `Android_UnlockActivityMutex()`.
+pub(crate) fn unlock_activity_mutex() {
+    ACTIVITY_MUTEX_COUNT.fetch_sub(1, Ordering::AcqRel);
+    ACTIVITY_MUTEX.unlock();
+}
+
+// ---------------------------------------------------------------------------
+// Functions exposed to SDL applications in SDL_system.h
+
+/// Run `f` with the current thread's environment: `None` without one (a
+/// program that isn't an app has no Java VM). Note (upstream): upstream
+/// calls its Java statics with the environment `Android_JNI_GetEnv()`
+/// gives, a null one there (which crashes), and leaves an exception the
+/// Java method throws pending (where the next JNI call aborts, as CheckJNI
+/// does in a debuggable app); here the exception is described in the log
+/// and cleared, and the result is `None`.
+fn with_env<T>(f: impl for<'a> FnOnce(Env<'a>) -> env::JniResult<'a, T>) -> Option<T> {
+    let env = env::get_env()?;
+    match f(env) {
+        Ok(value) => Some(value),
+        Err(thrown) => {
+            thrown.describe();
+            None
+        }
+    }
+}
+
+/// Trigger the Android system back button behavior. Translation of
+/// `SDL_SendAndroidBackButton()` (`SDLActivity.manualBackButton()`).
+pub(crate) fn send_android_back_button() {
+    with_env(super::java::activity::manual_back_button);
+}
+
+/// Send a user command (0x8000 or more) to `SDLActivity` (to its command
+/// handler, on the main thread, which gives it to `onUnhandledMessage()`).
+/// Translation of `SDL_SendAndroidMessage()`. Note: upstream gives false
+/// without an error when the message wasn't sent (no activity, or a
+/// looper that is quitting); an error here.
+pub(crate) fn send_android_message(command: u32, param: i32) -> crate::error::Result<()> {
+    if command < 0x8000 {
+        return Err(crate::error::Error::invalid_param("command"));
+    }
+    if send_message(command as i32, param) {
+        Ok(())
+    } else {
+        Err(crate::error::Error::new(
+            "SDLActivity's handler didn't take the message",
+        ))
+    }
+}
+
+/// The current thread's JNI environment (`JNIEnv *`), attaching the thread
+/// to the Java VM if it isn't. Translation of `SDL_GetAndroidJNIEnv()`.
+pub(crate) fn get_android_jni_env() -> Option<NonNull<c_void>> {
+    env::get_env().and_then(|env| NonNull::new(env.raw().cast()))
+}
+
+/// The activity (`SDLActivity.getContext()`), as a local reference of the
+/// current thread's environment, which the caller deletes. Translation of
+/// `SDL_GetAndroidActivity()`.
+pub(crate) fn get_android_activity() -> Option<NonNull<c_void>> {
+    // See SDL_system.h for caveats on using this function.
+
+    let env = env::get_env()?;
+
+    // return SDLActivity.getContext();
+    let context = super::java::activity::get_context(env)?;
+    NonNull::new(context.into_raw().cast())
+}
+
+/// Translation of `SDL_IsChromebook()`.
+pub(crate) fn is_chromebook() -> bool {
+    with_env(super::java::activity::is_chromebook).unwrap_or(false)
+}
+
+/// Translation of `SDL_IsDeXMode()`.
+pub(crate) fn is_dex_mode() -> bool {
+    with_env(super::java::activity::is_dex_mode).unwrap_or(false)
+}
+
+/// Translation of `Android_JNI_SetupThread()` (in [`env`]): an SDL
+/// thread's start attaches it to the Java VM.
+pub(crate) use super::env::setup_thread;
+
+/// The device's API level (its `ro.build.version.sdk`), read once; 0 when
+/// it can't be read. Translation of `SDL_GetAndroidSDKVersion()`.
+pub(crate) fn get_android_sdk_version() -> i32 {
+    static SDK_VERSION: AtomicI32 = AtomicI32::new(0);
+    let mut sdk_version = SDK_VERSION.load(Ordering::Relaxed);
+    if sdk_version == 0 {
+        let mut sdk = [0 as c_char; libc::PROP_VALUE_MAX as usize];
+        // SAFETY: a C string, and room for a property's value.
+        let length = unsafe {
+            libc::__system_property_get(c"ro.build.version.sdk".as_ptr(), sdk.as_mut_ptr())
+        };
+        if length != 0 {
+            // SAFETY: the property's value, NUL-terminated.
+            let value = unsafe { std::ffi::CStr::from_ptr(sdk.as_ptr()) };
+            sdk_version = crate::stdlib::atoi(&value.to_string_lossy());
+            SDK_VERSION.store(sdk_version, Ordering::Relaxed);
+        }
+    }
+    sdk_version
+}
+
+/// Translation of `SDL_IsAndroidTablet()` (in SDL_android.h, not
+/// SDL_system.h, and unused upstream: `SDL_IsTablet()` is the form
+/// factor's).
+#[allow(dead_code)]
+pub(crate) fn is_android_tablet() -> bool {
+    with_env(super::java::activity::is_tablet).unwrap_or(false)
+}
+
+/// Translation of `SDL_IsAndroidTV()` (in SDL_android.h, not
+/// SDL_system.h, and unused upstream: `SDL_IsTV()` is the form factor's).
+#[allow(dead_code)]
+pub(crate) fn is_android_tv() -> bool {
+    with_env(super::java::activity::is_android_tv).unwrap_or(false)
+}
+
+/// The form factor `SDLActivity.getDeviceFormFactor()` names. Translation
+/// of `SDL_GetAndroidDeviceFormFactor()`.
+pub(crate) fn get_android_device_form_factor() -> crate::init::FormFactor {
+    use crate::init::FormFactor;
+    let mut form_factor = FormFactor::Unknown;
+
+    if let Some(string) = with_env(super::java::activity::get_device_form_factor) {
+        form_factor = match string.as_str() {
+            "tv" => FormFactor::Tv,
+            "tablet" => FormFactor::Tablet,
+            "phone" => FormFactor::Phone,
+            "car" => FormFactor::Car,
+            "headset" => FormFactor::Headset,
+            "watch" => FormFactor::Watch,
+            _ => FormFactor::Unknown,
+        };
+    }
+
+    form_factor
+}
+
+/// Translation of `Android_JNI_SendMessage()`.
+pub(crate) fn send_message(command: i32, param: i32) -> bool {
+    with_env(|env| super::java::activity::send_message(env, command, param)).unwrap_or(false)
+}
+
+/// Turn the back button's trap on or off (from API 33, a callback of the
+/// activity's back dispatcher, which makes the back button a key).
+/// Translation of `Android_JNI_SetBackButtonTrapActive()`, which the
+/// android video driver calls when `SDL_HINT_ANDROID_TRAP_BACK_BUTTON`
+/// changes.
+pub(crate) fn set_back_button_trap_active(enabled: bool) {
+    // (midSetBackButtonTrapEnabled: there is one)
+    with_env(|env| super::java::activity::set_back_button_trap_enabled(env, enabled));
 }
 
 /// Set an environment variable at startup (the manifest's): the process's
