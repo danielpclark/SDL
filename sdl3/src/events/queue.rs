@@ -23,6 +23,7 @@ use super::window::video;
 use super::{Event, EventType};
 use crate::error::Result;
 use crate::hints;
+#[cfg(not(target_os = "android"))]
 use crate::init::InitFlags;
 use crate::thread::{RawMutex, RawMutexGuard, Semaphore};
 use crate::timer;
@@ -34,15 +35,17 @@ pub const MAX_QUEUED_EVENTS: usize = 65535;
 
 /// Determines how often we pump events if joystick or sensor subsystems are active.
 /// Translation of `ENUMERATION_POLL_INTERVAL_NS`.
+#[cfg(not(target_os = "android"))]
 const ENUMERATION_POLL_INTERVAL: Duration = Duration::from_secs(3);
 
 /// Determines how often to pump events if joysticks or sensors are actively being read.
 /// Translation of `EVENT_POLL_INTERVAL_NS`.
+#[cfg(not(target_os = "android"))]
 const EVENT_POLL_INTERVAL: Duration = Duration::from_millis(1);
 
 /// Determines how often to pump events if tray items are active.
 /// Translation of `TRAY_POLL_INTERVAL_NS`.
-#[cfg(unix)]
+#[cfg(all(unix, not(target_os = "android")))]
 const TRAY_POLL_INTERVAL: Duration = Duration::from_millis(50);
 
 // Determines how often to pump events if DBus is active
@@ -476,8 +479,12 @@ fn cut_event(q: &mut EventQueue, index: usize) -> Event {
     event
 }
 
-/// Translation of `SDL_SendWakeupEvent()`.
+/// Translation of `SDL_SendWakeupEvent()`: on Android, a wake for the
+/// lifecycle event queue, which the event pump waits on.
 fn send_wakeup_event() {
+    #[cfg(target_os = "android")]
+    crate::core::android::send_lifecycle_event(crate::core::android::LifecycleEvent::Wake);
+    #[cfg(not(target_os = "android"))]
     if let Some(video) = video() {
         video.send_wakeup_event();
     }
@@ -853,7 +860,11 @@ fn pump_events_internal(push_sentinel: bool) {
     ))]
     crate::core::linux::dbus::pump_events();
 
+    // Android event processing is independent of the video subsystem
+    #[cfg(target_os = "android")]
+    crate::video::drivers::android::events::pump_events(Some(Duration::ZERO));
     // Get events from the video subsystem
+    #[cfg(not(target_os = "android"))]
     if let Some(video) = video() {
         video.pump_events();
     }
@@ -890,7 +901,9 @@ pub fn poll() -> Option<Event> {
 }
 
 /// Translation of `SDL_events_get_polling_interval()`; `None` means no
-/// periodic polling is required (`SDL_MAX_SINT64`).
+/// periodic polling is required (`SDL_MAX_SINT64`). (Not on Android,
+/// whose event pump waits for the activity's lifecycle.)
+#[cfg(not(target_os = "android"))]
 fn events_get_polling_interval() -> Option<Duration> {
     let mut poll_interval: Option<Duration> = None;
     let mut min = |interval: Duration| {
@@ -935,6 +948,8 @@ fn events_get_polling_interval() -> Option<Duration> {
 
 /// Translation of `SDL_WaitEventTimeout_Device()`. Returns `Ok(Some)` with an
 /// event, `Ok(None)` on timeout and `Err` if the backend can't reliably wait.
+/// (Not on Android.)
+#[cfg(not(target_os = "android"))]
 fn wait_event_timeout_device(
     video: &dyn super::window::VideoHooks,
     wakeup_window: super::WindowID,
@@ -1053,6 +1068,33 @@ pub fn wait_timeout(timeout: Option<Duration>) -> Result<Option<Event>> {
     // We should have completely handled timeoutNS == 0 above
     debug_assert!(timeout != Some(Duration::ZERO));
 
+    // On Android the event pump waits, for the activity's lifecycle events
+    // and the wakes of new events
+    #[cfg(target_os = "android")]
+    {
+        let _ = start;
+        loop {
+            pump_events_internal(true);
+
+            let mut events = get_events(EventType::FIRST, EventType::LAST, 1)?;
+            if !events.is_empty() {
+                return Ok(Some(events.remove(0)));
+            }
+
+            let mut delay = None;
+            if timeout.is_some_and(|t| t > Duration::ZERO) {
+                let now = timer::ticks();
+                if now >= expiration {
+                    // Timeout expired and no events
+                    return Ok(None);
+                }
+                delay = Some(expiration - now);
+            }
+            crate::video::drivers::android::events::pump_events(delay);
+        }
+    }
+
+    #[cfg(not(target_os = "android"))]
     if let Some(video) = video() {
         if video.can_wait() {
             // Look if a shown window is available to send the wakeup event.
@@ -1069,6 +1111,7 @@ pub fn wait_timeout(timeout: Option<Duration>) -> Result<Option<Event>> {
         }
     }
 
+    #[cfg(not(target_os = "android"))]
     loop {
         pump_events_internal(true);
 
@@ -1280,6 +1323,8 @@ pub use super::quit::send_quit;
 
 /// Translation of `SDL_InitEvents()`.
 pub(crate) fn init_events() -> Result<()> {
+    #[cfg(target_os = "android")]
+    crate::video::drivers::android::events::init_events();
     let mut callbacks = Vec::new();
     callbacks.push(hints::watch(hints::AUTO_UPDATE_JOYSTICKS, |c| {
         auto_update_joysticks_changed(c.new_value)
@@ -1318,6 +1363,8 @@ pub(crate) fn quit_events() {
         .lock()
         .unwrap_or_else(|e| e.into_inner())
         .clear();
+    #[cfg(target_os = "android")]
+    crate::video::drivers::android::events::quit_events();
 }
 
 /// The number of events currently queued (including the poll sentinel).

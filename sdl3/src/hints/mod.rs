@@ -159,6 +159,13 @@ pub fn set_with_priority(name: &str, value: Option<&str>, priority: Priority) ->
     if let Some((callbacks, old_value)) = to_notify {
         notify(&callbacks, name, old_value.as_deref(), value);
     }
+
+    #[cfg(target_os = "android")]
+    if name == ANDROID_ALLOW_RECREATE_ACTIVITY {
+        // Special handling for this hint, which needs to persist outside the normal application flow
+        crate::core::android::set_allow_recreate_activity(string_to_bool(value, false));
+    }
+
     Ok(result)
 }
 
@@ -193,7 +200,24 @@ fn reset_one(
     if let Some((callbacks, old_value)) = to_notify {
         notify(&callbacks, name, old_value.as_deref(), env.as_deref());
     }
+    #[cfg(target_os = "android")]
+    reset_allow_recreate_activity(name, env.as_deref());
     true
+}
+
+/// `SDL_ResetHint()`'s and `ResetHintsCallback()`'s special handling of
+/// `SDL_HINT_ANDROID_ALLOW_RECREATE_ACTIVITY`: back to the environment's
+/// value.
+#[cfg(target_os = "android")]
+fn reset_allow_recreate_activity(name: &str, env: Option<&str>) {
+    if name == ANDROID_ALLOW_RECREATE_ACTIVITY {
+        // Special handling for this hint, which needs to persist outside the normal application flow
+        if let Some(env) = env {
+            crate::core::android::set_allow_recreate_activity(string_to_bool(Some(env), false));
+        } else {
+            crate::core::android::set_allow_recreate_activity(false);
+        }
+    }
 }
 
 /// Reset a hint to its default: the environment variable's value, or unset.
@@ -204,7 +228,16 @@ pub fn reset(name: &str) -> bool {
         return false;
     }
     let guard = HINTS.lock();
-    reset_one(&guard, name)
+    // (SDL_ResetHint() does this for a hint that was never set too, once
+    // there are hints)
+    #[cfg(target_os = "android")]
+    let have_hints = guard.borrow().is_some();
+    let result = reset_one(&guard, name);
+    #[cfg(target_os = "android")]
+    if have_hints && !result {
+        reset_allow_recreate_activity(name, environment_variable(name).as_deref());
+    }
+    result
 }
 
 /// Reset all hints to their defaults. Translation of `SDL_ResetHints()`.

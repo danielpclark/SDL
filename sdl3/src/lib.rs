@@ -63,6 +63,8 @@
 //! translated), whose "SDLThread" calls the app library's `SDL_main`
 //! (`libmain.so`), with this crate's `JNI_OnLoad()` (see "Android emulator" in the
 //! repository's docs/HARDWARE_TESTING.md for how the tests are packaged).
+//! The activity's lifecycle becomes SDL's application events, whatever the
+//! video driver, and `android` (on Android) has SDL_system.h's Android functions.
 //! The backends are the shared ones so far (the offscreen and dummy video
 //! drivers, EGL and OpenGL ES, Vulkan, the HIDAPI and virtual joysticks,
 //! POSIX threads, time and file operations), and dummy ones where
@@ -75,6 +77,8 @@
 // asks for the `const { ... }` initializers these already have.
 #![cfg_attr(target_os = "android", allow(clippy::missing_const_for_thread_local))]
 
+#[cfg(target_os = "android")]
+pub mod android;
 pub mod app;
 pub mod assert;
 pub mod atomic;
@@ -135,6 +139,17 @@ pub fn shutdown() {
 #[doc(hidden)]
 pub fn __android_jni_checks() -> Vec<(&'static str, std::result::Result<(), String>)> {
     core::android::tests_in_app::run()
+}
+
+/// Turn the back button's trap on or off, as the android video driver does
+/// when `SDL_HINT_ANDROID_TRAP_BACK_BUTTON` changes
+/// (`Android_JNI_SetBackButtonTrapActive()`, which upstream's C reference
+/// programs reach through `SDLActivity.setBackButtonTrapEnabled()`): for
+/// sdl3/tests/android_main.rs, before that driver. Not an API.
+#[cfg(target_os = "android")]
+#[doc(hidden)]
+pub fn __android_set_back_button_trap_active(enabled: bool) {
+    core::android::set_back_button_trap_active(enabled);
 }
 
 /// Shared by every test that touches process-global state (hints, log output,

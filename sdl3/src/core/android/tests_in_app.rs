@@ -2,8 +2,9 @@
 // Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
 // This is an altered (translated) version of the original software; see LICENSE.txt.
 
-//! The checks of [`super::env`] and of the registration, which need a
-//! Java VM: a program spawned from the shell has none, so they run in an
+//! The checks of [`super::env`], of the registration, of the anonymous
+//! classes' shims (`super::java::anonymous`), of the activity's command
+//! handler and of the lifecycle event queue, which need a Java VM: a program spawned from the shell has none, so they run in an
 //! app, sdl3/tests/android_jni.rs (through `sdl3::__android_jni_checks()`),
 //! on its SDL thread (a VM's thread, the activity's SDLThread) and on
 //! threads of its own (attached here). In a spawned program the first
@@ -42,7 +43,7 @@ pub(crate) fn run() -> Vec<(&'static str, Check)> {
     let Some(env) = env::java_vm().and_then(|_| env::get_env()) else {
         return vec![("java_vm", Err("no Java VM (not an app)".to_string()))];
     };
-    let checks: [(&'static str, CheckFn); 12] = [
+    let checks: [(&'static str, CheckFn); 15] = [
         ("java_vm", java_vm),
         ("registered", registered),
         ("strings", strings),
@@ -55,6 +56,9 @@ pub(crate) fn run() -> Vec<(&'static str, Check)> {
         ("native_threads", native_threads),
         ("in_memory_dex", in_memory_dex),
         ("manifest_environment", manifest_environment),
+        ("anonymous", anonymous),
+        ("command_handler", command_handler),
+        ("lifecycle_queue", lifecycle_queue),
     ];
     checks
         .iter()
@@ -607,5 +611,197 @@ fn manifest_environment(_env: Env<'_>) -> Check {
     let assert =
         std::env::var("SDL_ASSERT").map_err(|_| "no SDL_ASSERT from the manifest".to_string())?;
     ensure!(!assert.is_empty(), "SDL_ASSERT is empty");
+    Ok(())
+}
+
+/// Upstream's anonymous classes, as the DEX file's shims: a runnable
+/// (whose closure runs once, on the thread that runs it) and a listener
+/// (a proxy of an interface, `Runnable` here, whose methods reach the
+/// closure, and whose `Object` methods are the proxy's identity's).
+fn anonymous(env: Env<'_>) -> Check {
+    use super::java::anonymous;
+    use std::sync::atomic::AtomicUsize;
+    static RUNS: AtomicUsize = AtomicUsize::new(0);
+    RUNS.store(0, Ordering::SeqCst);
+    let runnable = ok(
+        "runnable()",
+        anonymous::runnable(env, |_env| {
+            RUNS.fetch_add(1, Ordering::SeqCst);
+        }),
+    )?;
+    let thread_class = ok("FindClass()", env.find_class(c"java/lang/Thread"))?;
+    for _ in 0..2 {
+        let thread = ok(
+            "new Thread()",
+            env.new_object(
+                thread_class.obj(),
+                c"(Ljava/lang/Runnable;)V",
+                &[Arg::Object(runnable.obj())],
+            ),
+        )?;
+        ok(
+            "start()",
+            env.call_method(thread.obj(), c"start", c"()V", &[]),
+        )?;
+        ok(
+            "join()",
+            env.call_method(thread.obj(), c"join", c"()V", &[]),
+        )?;
+    }
+    ensure!(
+        RUNS.load(Ordering::SeqCst) == 1,
+        "the runnable ran {} times",
+        RUNS.load(Ordering::SeqCst)
+    );
+
+    let listener = ok(
+        "listener()",
+        anonymous::listener(env, c"java/lang/Runnable", |_env, method, args| {
+            if method == "run" && args.is_null() {
+                RUNS.fetch_add(10, Ordering::SeqCst);
+            }
+            Ok(None)
+        }),
+    )?;
+    ok(
+        "run()",
+        env.call_method(listener.obj(), c"run", c"()V", &[]),
+    )?;
+    ensure!(
+        RUNS.load(Ordering::SeqCst) == 11,
+        "the listener's run(): {}",
+        RUNS.load(Ordering::SeqCst)
+    );
+    let system = ok("FindClass()", env.find_class(c"java/lang/System"))?;
+    let identity = ok(
+        "identityHashCode()",
+        env.call_static_method(
+            system.obj(),
+            c"identityHashCode",
+            c"(Ljava/lang/Object;)I",
+            &[Arg::Object(listener.obj())],
+        ),
+    )?
+    .int();
+    let hash = ok(
+        "hashCode()",
+        env.call_method(listener.obj(), c"hashCode", c"()I", &[]),
+    )?
+    .int();
+    ensure!(hash == identity, "hashCode() {hash}, identity {identity}");
+    let equals = |other: Obj<'_>| {
+        ok(
+            "equals()",
+            env.call_method(
+                listener.obj(),
+                c"equals",
+                c"(Ljava/lang/Object;)Z",
+                &[Arg::Object(other)],
+            ),
+        )
+        .map(env::Value::boolean)
+    };
+    ensure!(
+        equals(listener.obj())?,
+        "the listener isn't equal to itself"
+    );
+    ensure!(!equals(runnable.obj())?, "the listener equals the runnable");
+    let text = ok(
+        "toString()",
+        env.call_method(listener.obj(), c"toString", c"()Ljava/lang/String;", &[]),
+    )?
+    .object()
+    .ok_or("toString() returned null")?;
+    let text = ok("GetStringRegion()", env.get_string(text.obj()))?;
+    ensure!(
+        text == format!("SDLNativeListener@{identity:x}"),
+        "toString() = {text:?}"
+    );
+    Ok(())
+}
+
+/// The activity's command handler: `sendMessage()`'s messages reach it,
+/// on the main thread (the window's keep-screen-on flag, on then off).
+fn command_handler(env: Env<'_>) -> Check {
+    const FLAG_KEEP_SCREEN_ON: i32 = 0x80;
+    let activity = super::java::activity::singleton(env).ok_or("no activity")?;
+    for on in [1, 0] {
+        let sent = ok(
+            "sendMessage()",
+            super::java::activity::send_message(env, 5, on),
+        )?;
+        ensure!(
+            sent,
+            "sendMessage(COMMAND_SET_KEEP_SCREEN_ON, {on}) wasn't sent"
+        );
+        let end = std::time::Instant::now() + std::time::Duration::from_secs(5);
+        loop {
+            let window = ok(
+                "getWindow()",
+                env.call_method(
+                    activity.obj(),
+                    c"getWindow",
+                    c"()Landroid/view/Window;",
+                    &[],
+                ),
+            )?
+            .object()
+            .ok_or("no window")?;
+            let attributes = ok(
+                "getAttributes()",
+                env.call_method(
+                    window.obj(),
+                    c"getAttributes",
+                    c"()Landroid/view/WindowManager$LayoutParams;",
+                    &[],
+                ),
+            )?
+            .object()
+            .ok_or("no attributes")?;
+            let flags = ok("flags", env.get_field(attributes.obj(), c"flags", c"I"))?.int();
+            if (flags & FLAG_KEEP_SCREEN_ON != 0) == (on != 0) {
+                break;
+            }
+            ensure!(
+                std::time::Instant::now() < end,
+                "the window's flags {flags:#x} after COMMAND_SET_KEEP_SCREEN_ON {on}"
+            );
+            std::thread::sleep(std::time::Duration::from_millis(20));
+        }
+    }
+    Ok(())
+}
+
+/// The lifecycle event queue's merges: one wake and one low memory at
+/// most, a pause and a resume cancelling each other, a destroy replacing
+/// everything; and a wait that times out.
+fn lifecycle_queue(_env: Env<'_>) -> Check {
+    use super::LifecycleEvent::*;
+    use std::time::Duration;
+    let drain = || {
+        let mut events = Vec::new();
+        while let Some(event) = super::wait_lifecycle_event(Some(Duration::ZERO)) {
+            events.push(event);
+        }
+        events
+    };
+    drain();
+    for event in [Wake, Wake, LowMemory, LowMemory, Pause, Resume, Resume] {
+        super::send_lifecycle_event(event);
+    }
+    let events = drain();
+    ensure!(events == [Wake, LowMemory, Resume], "{events:?}");
+    for event in [Pause, Wake, Destroy] {
+        super::send_lifecycle_event(event);
+    }
+    let events = drain();
+    ensure!(events == [Destroy], "{events:?}");
+    let start = std::time::Instant::now();
+    let none = super::wait_lifecycle_event(Some(Duration::from_millis(100)));
+    ensure!(
+        none.is_none() && start.elapsed() >= Duration::from_millis(90),
+        "{none:?} after {:?}",
+        start.elapsed()
+    );
     Ok(())
 }
