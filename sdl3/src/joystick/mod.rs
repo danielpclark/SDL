@@ -986,7 +986,9 @@ pub(crate) fn init_joysticks() -> Result<()> {
 }
 
 /// Whether there are any joysticks opened by the application.
-/// Translation of `SDL_JoysticksOpened()`.
+/// Translation of `SDL_JoysticksOpened()`. (The event loop's polling
+/// interval asks, which Android's event pump doesn't have.)
+#[cfg_attr(target_os = "android", allow(dead_code))]
 pub(crate) fn joysticks_opened() -> bool {
     let _lock = lock_joysticks();
     with_state(|s| !s.joysticks.is_empty())

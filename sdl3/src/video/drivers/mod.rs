@@ -8,9 +8,12 @@
 //! Emscripten, in a page), and the dummy and offscreen drivers, both only
 //! available when requested with
 //! [`hints::VIDEO_DRIVER`](crate::hints::VIDEO_DRIVER). Android's driver
-//! isn't translated yet: there, only the dummy and offscreen drivers are
-//! built.
+//! is translated so far as the event pump needs it (the activity's
+//! lifecycle, the system's theme), whatever the driver: there, only the
+//! dummy and offscreen drivers are built.
 
+#[cfg(target_os = "android")]
+pub(crate) mod android;
 #[cfg(target_os = "macos")]
 pub(crate) mod cocoa;
 pub(crate) mod dummy;

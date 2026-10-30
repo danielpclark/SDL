@@ -15,4 +15,6 @@
 //! [`super::env::Thrown::catch_exception`].
 
 pub(crate) mod activity;
+pub(crate) mod anonymous;
 pub(crate) mod sdl;
+pub(crate) mod surface;

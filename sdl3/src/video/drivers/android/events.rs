@@ -1,0 +1,222 @@
+// Rust translation of src/video/android/SDL_androidevents.c from Simple
+// DirectMedia Layer.
+// Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
+// This is an altered (translated) version of the original software; see LICENSE.txt.
+
+//! The activity's lifecycle as SDL's application events: SDL's event pump
+//! on Android ([`pump_events`], whatever the video driver) takes the
+//! lifecycle events the activity queues (`core::android`'s
+//! `send_lifecycle_event()`) and sends `SDL_EVENT_WILL_ENTER_BACKGROUND`
+//! and `SDL_EVENT_DID_ENTER_BACKGROUND` for a pause,
+//! `SDL_EVENT_WILL_ENTER_FOREGROUND` and `SDL_EVENT_DID_ENTER_FOREGROUND`
+//! for a resume, `SDL_EVENT_LOW_MEMORY`, and `SDL_EVENT_QUIT` and
+//! `SDL_EVENT_TERMINATING` when the activity is destroyed. While the app
+//! is paused, with `SDL_HINT_ANDROID_BLOCK_ON_PAUSE` (the default) the
+//! pump blocks until the app resumes (and the audio is paused); without
+//! it, each pump waits up to 100 ms for the next lifecycle event.
+//!
+//! What upstream does with the driver's window (its EGL context's backup
+//! when the app pauses, and restore when it resumes) and the audio
+//! drivers' devices (AAudio's and OpenSL ES's, paused) comes with them.
+
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::time::Duration;
+
+use crate::core::android::{self as core_android, LifecycleEvent};
+use crate::events::EventType;
+
+/*
+ * Android_ResumeSem and Android_PauseSem are signaled from Java_org_libsdl_app_SDLActivity_nativePause and Java_org_libsdl_app_SDLActivity_nativeResume
+ */
+/// `Android_EventsInitialized`.
+static EVENTS_INITIALIZED: AtomicBool = AtomicBool::new(false);
+/// `Android_BlockOnPause`.
+static BLOCK_ON_PAUSE: AtomicBool = AtomicBool::new(true);
+/// `Android_Paused`.
+static PAUSED: AtomicBool = AtomicBool::new(false);
+/// `Android_PausedAudio`.
+static PAUSED_AUDIO: AtomicBool = AtomicBool::new(false);
+/// `Android_Destroyed`.
+static DESTROYED: AtomicBool = AtomicBool::new(false);
+
+/// Translation of `Android_InitEvents()` (from `SDL_InitEvents()`).
+pub(crate) fn init_events() {
+    if !EVENTS_INITIALIZED.load(Ordering::Acquire) {
+        BLOCK_ON_PAUSE.store(
+            crate::hints::get_bool(crate::hints::ANDROID_BLOCK_ON_PAUSE, true),
+            Ordering::Release,
+        );
+        PAUSED.store(false, Ordering::Release);
+        DESTROYED.store(false, Ordering::Release);
+        EVENTS_INITIALIZED.store(true, Ordering::Release);
+    }
+}
+
+/// Translation of `Android_PauseAudio()`.
+fn pause_audio() {
+    // (OPENSLES_PauseDevices() and AAUDIO_PauseDevices(): those audio
+    // drivers come later)
+    PAUSED_AUDIO.store(true, Ordering::Release);
+}
+
+/// Translation of `Android_ResumeAudio()`.
+fn resume_audio() {
+    if PAUSED_AUDIO.load(Ordering::Acquire) {
+        // (OPENSLES_ResumeDevices() and AAUDIO_ResumeDevices(): see
+        // pause_audio())
+        PAUSED_AUDIO.store(false, Ordering::Release);
+    }
+}
+
+/// Translation of `Android_OnPause()`.
+fn on_pause() {
+    crate::video::on_application_will_enter_background();
+    crate::video::on_application_did_enter_background();
+
+    /* The semantics are that as soon as the enter background event
+     * has been queued, the app will block. The application should
+     * do any life cycle handling in an event filter while the event
+     * was being queued.
+     */
+    // (android_egl_context_backup() of Android_Window, under the activity
+    // mutex: there's no window of the driver's yet, see super::window())
+
+    if BLOCK_ON_PAUSE.load(Ordering::Acquire) {
+        // We're blocking, also pause audio
+        pause_audio();
+    }
+
+    PAUSED.store(true, Ordering::Release);
+}
+
+/// Translation of `Android_OnResume()`.
+fn on_resume() {
+    PAUSED.store(false, Ordering::Release);
+
+    crate::video::on_application_will_enter_foreground();
+
+    resume_audio();
+
+    // Restore the GL Context from here, as this operation is thread dependent
+    // (android_egl_context_restore() of Android_Window, under the activity
+    // mutex, unless a quit is queued: see on_pause())
+
+    crate::video::on_application_did_enter_foreground();
+}
+
+/// Translation of `Android_OnLowMemory()`.
+fn on_low_memory() {
+    crate::events::queue::send_app_event(EventType::LOW_MEMORY);
+}
+
+/// Translation of `Android_OnDestroy()`.
+fn on_destroy() {
+    // Make sure we unblock any audio processing before we quit
+    resume_audio();
+
+    /* Discard previous events. The user should have handled state storage
+     * in SDL_EVENT_WILL_ENTER_BACKGROUND. After nativeSendQuit() is called, no
+     * events other than SDL_EVENT_QUIT and SDL_EVENT_TERMINATING should fire */
+    crate::events::flush_events(EventType::FIRST, EventType::LAST);
+    crate::events::send_quit();
+    crate::events::queue::send_app_event(EventType::TERMINATING);
+
+    DESTROYED.store(true, Ordering::Release);
+}
+
+/// Translation of `Android_HandleLifecycleEvent()`.
+fn handle_lifecycle_event(event: LifecycleEvent) {
+    match event {
+        LifecycleEvent::Wake => {
+            // Nothing to do, just return
+        }
+        LifecycleEvent::Pause => on_pause(),
+        LifecycleEvent::Resume => on_resume(),
+        LifecycleEvent::LowMemory => on_low_memory(),
+        LifecycleEvent::Destroy => on_destroy(),
+    }
+}
+
+/// How long to wait for a lifecycle event: as long as it takes while
+/// paused with the block on pause, at least 100 ms while paused without
+/// it, else `timeout`. Translation of `GetLifecycleEventTimeout()`. FIXME
+/// (upstream): its `paused` parameter is unused (it reads
+/// `Android_Paused`), so after a pause [`pump_events`] blocks at once,
+/// where its comment says it returns "to process events one more time
+/// before blocking".
+fn get_lifecycle_event_timeout(_paused: bool, timeout: Option<Duration>) -> Option<Duration> {
+    let mut timeout = timeout;
+    if PAUSED.load(Ordering::Acquire) {
+        if BLOCK_ON_PAUSE.load(Ordering::Acquire) {
+            timeout = None;
+        } else if timeout == Some(Duration::ZERO) {
+            timeout = Some(Duration::from_millis(100));
+        }
+    }
+    timeout
+}
+
+/// Handle the lifecycle events the activity has queued, waiting up to
+/// `timeout` (`None`: as long as it takes) for the first, then for the
+/// others as [`get_lifecycle_event_timeout`] says. Translation of
+/// `Android_PumpEvents()`.
+pub(crate) fn pump_events(timeout: Option<Duration>) {
+    let mut timeout = timeout;
+    let mut paused = PAUSED.load(Ordering::Acquire);
+
+    while !DESTROYED.load(Ordering::Acquire) {
+        let Some(event) =
+            core_android::wait_lifecycle_event(get_lifecycle_event_timeout(paused, timeout))
+        else {
+            break;
+        };
+        handle_lifecycle_event(event);
+
+        match event {
+            LifecycleEvent::Wake => {
+                // Finish handling events quickly if we're not paused
+                timeout = Some(Duration::ZERO);
+            }
+            LifecycleEvent::Pause => {
+                // Finish handling events at the current timeout and return to process events one more time before blocking.
+            }
+            LifecycleEvent::Resume => {
+                // Finish handling events at the resume state timeout
+                paused = false;
+            }
+            _ => {}
+        }
+    }
+}
+
+/// Wait until the app isn't paused, then lock the activity mutex; an
+/// error once the activity is destroyed. Translation of
+/// `Android_WaitActiveAndLockActivity()` (which the driver's windows use).
+#[allow(dead_code)] // (used by the driver's windows)
+pub(crate) fn wait_active_and_lock_activity() -> crate::error::Result<()> {
+    /* Make sure we have pumped all events so that Android_Paused state is correct */
+    while !DESTROYED.load(Ordering::Acquire) {
+        let Some(event) = core_android::wait_lifecycle_event(Some(Duration::ZERO)) else {
+            break;
+        };
+        handle_lifecycle_event(event);
+    }
+
+    while PAUSED.load(Ordering::Acquire) && !DESTROYED.load(Ordering::Acquire) {
+        pump_events(None);
+    }
+
+    if DESTROYED.load(Ordering::Acquire) {
+        return Err(crate::error::Error::new(
+            "Android activity has been destroyed",
+        ));
+    }
+
+    core_android::lock_activity_mutex();
+    Ok(())
+}
+
+/// Translation of `Android_QuitEvents()` (from `SDL_QuitEvents()`).
+pub(crate) fn quit_events() {
+    EVENTS_INITIALIZED.store(false, Ordering::Release);
+}

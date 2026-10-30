@@ -445,6 +445,28 @@ impl<'a> Thrown<'a> {
         }
     }
 
+    /// Java's `catch (A | B e)` of the classes (`java/lang/InterruptedException`):
+    /// the exception, cleared, when it's an instance of one of them; else
+    /// it's thrown again, pending.
+    pub(crate) fn catch_any(self, classes: &[&CStr]) -> Result<Local<'a>, Thrown<'a>> {
+        let env = self.env;
+        let throwable = self.catch();
+        let caught = classes.iter().any(|name| {
+            env.find_class(name)
+                .map(|class| env.is_instance_of(throwable.obj(), class.obj()))
+                .unwrap_or_else(|thrown| {
+                    thrown.clear();
+                    false
+                })
+        });
+        if caught {
+            Ok(throwable)
+        } else {
+            env.throw(throwable.obj());
+            Err(Thrown { env })
+        }
+    }
+
     /// `ExceptionClear()`.
     pub(crate) fn clear(self) {
         self.env.exception_clear();
@@ -997,6 +1019,26 @@ impl<'a> Env<'a> {
     pub(crate) fn is_instance_of(self, obj: Obj<'_>, class: Obj<'_>) -> bool {
         // SAFETY: valid references.
         unsafe { (self.table().IsInstanceOf)(self.raw(), obj.raw(), class.raw()) != 0 }
+    }
+
+    // Monitors
+
+    /// Run `f` holding `obj`'s monitor (`MonitorEnter()`, then
+    /// `MonitorExit()`): Java's `synchronized (obj) { ... }`.
+    pub(crate) fn synchronized<R>(self, obj: Obj<'_>, f: impl FnOnce() -> R) -> JniResult<'a, R> {
+        // SAFETY: a valid reference.
+        let status = unsafe { (self.table().MonitorEnter)(self.raw(), obj.raw()) };
+        self.check()?;
+        assert_eq!(status, JNI_OK, "MonitorEnter()");
+        struct Exit<'e, 'o>(Env<'e>, Obj<'o>);
+        impl Drop for Exit<'_, '_> {
+            fn drop(&mut self) {
+                // SAFETY: the monitor entered above, on this thread.
+                unsafe { (self.0.table().MonitorExit)(self.0.raw(), self.1.raw()) };
+            }
+        }
+        let _exit = Exit(self, obj);
+        Ok(f())
     }
 
     /// `RegisterNatives()`.
