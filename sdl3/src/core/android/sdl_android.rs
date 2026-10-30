@@ -3,8 +3,9 @@
 // native methods, SDLActivity's natives that start the SDL thread, set the
 // environment and pass the activity's lifecycle on, the lifecycle event
 // queue, the activity mutex, the manifest's environment variables, the
-// entry points of SDL_system.h, the storage paths, the package's name and
-// the content resolver's files).
+// entry points of SDL_system.h, the storage paths, the package's name,
+// toasts, permissions, the locale, URLs, the content resolver's files and
+// the battery).
 // Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
 // This is an altered (translated) version of the original software; see LICENSE.txt.
 
@@ -25,10 +26,12 @@
 //! `SDL_IsDeXMode()`, `SDL_SendAndroidBackButton()` and
 //! `SDL_SendAndroidMessage()` (the `crate::android` module), with
 //! `SDL_IsAndroidTablet()` and `SDL_GetAndroidDeviceFormFactor()` for
-//! `SDL_GetDeviceFormFactor()`; and what the filesystem and the file I/O
-//! use: the storage paths (`SDL_GetAndroidInternalStoragePath()`,
-//! `...External...`, `SDL_GetAndroidCachePath()`), the package's name and
-//! the content resolver's files (`content://`). The assets are
+//! `SDL_GetDeviceFormFactor()`; and what the small backends use: the
+//! storage paths (`SDL_GetAndroidInternalStoragePath()`, `...External...`,
+//! `SDL_GetAndroidCachePath()`), the package's name, toasts
+//! (`SDL_ShowAndroidToast()`), permissions (`SDL_RequestAndroidPermission()`
+//! and `nativePermissionResult()`), the locale, URLs, the content
+//! resolver's files (`content://`) and the battery. The assets are
 //! [`super::assets`]. The rest of SDL_android.c (the video, audio and
 //! controller natives, ...) comes with the backends that use it.
 //!
@@ -1151,7 +1154,8 @@ pub(crate) fn get_manifest_environment_variables() {
 }
 
 // ---------------------------------------------------------------------------
-// The paths, the package and files of the content resolver
+// The paths, the package, toasts, permissions, the locale, URLs, files of
+// the content resolver and the battery
 
 /// The current thread's environment, or the error of having none (a
 /// program that isn't an app: upstream dereferences the null environment
@@ -1376,6 +1380,28 @@ pub(crate) fn get_android_package_name() -> crate::error::Result<String> {
     })
 }
 
+/// Show a toast (on the main thread). Translation of
+/// `SDL_ShowAndroidToast()` and `Android_JNI_ShowToast()`. Note
+/// (upstream): false without an error when there's no activity (or
+/// showing it threw); here the error's message is empty.
+pub(crate) fn show_android_toast(
+    message: &str,
+    duration: i32,
+    gravity: i32,
+    x_offset: i32,
+    y_offset: i32,
+) -> crate::error::Result<()> {
+    let env = env_or_error()?;
+    let shown = with_env_of(env, |env| {
+        super::java::activity::show_toast(env, message, duration, gravity, x_offset, y_offset)
+    });
+    if shown == Some(true) {
+        Ok(())
+    } else {
+        Err(crate::error::Error::new(""))
+    }
+}
+
 /// `f` with `env`, whose exception (pending) is described and cleared (see
 /// [`with_env`]).
 fn with_env_of<'a, T>(env: Env<'a>, f: impl FnOnce(Env<'a>) -> env::JniResult<'a, T>) -> Option<T> {
@@ -1386,6 +1412,95 @@ fn with_env_of<'a, T>(env: Env<'a>, f: impl FnOnce(Env<'a>) -> env::JniResult<'a
             None
         }
     }
+}
+
+/// The callback of a permission's request: the permission, and whether it
+/// is granted.
+pub(crate) type PermissionCallback = Box<dyn FnOnce(&str, bool) + Send>;
+
+/// A request waiting for its answer. Translation of
+/// `NativePermissionRequestInfo`.
+struct NativePermissionRequestInfo {
+    request_code: i32,
+    permission: String,
+    callback: PermissionCallback,
+}
+
+/// `pending_permissions`, the requests waiting for their answers (the
+/// newest first). Note: upstream guards them with `SDL_event_lock`; here
+/// a mutex of their own.
+static PENDING_PERMISSIONS: Mutex<Vec<NativePermissionRequestInfo>> = Mutex::new(Vec::new());
+
+/// A request's answer, to its callback (called on this thread, without the
+/// lock held), once. Translation of `nativePermissionResult()`.
+pub(crate) fn permission_result(request_code: i32, result: bool) {
+    let info = {
+        let mut pending = PENDING_PERMISSIONS
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+        pending
+            .iter()
+            .position(|info| info.request_code == request_code)
+            .map(|i| pending.remove(i))
+    };
+    if let Some(info) = info {
+        (info.callback)(&info.permission, result);
+    }
+}
+
+pub(crate) extern "system" fn native_permission_result(
+    _env: *mut JNIEnv,
+    _cls: jclass,
+    request_code: jint,
+    result: jboolean,
+) {
+    permission_result(request_code, result != 0);
+}
+
+/// Request `permission` (an Android permission's name), whose answer goes
+/// to `callback`: at once (on this thread, before this returns) when it's
+/// granted already, else on the main thread once the user has answered.
+/// Translation of `SDL_RequestAndroidPermission()`. Note (upstream): the
+/// request is submitted even when the activity's method throws (as
+/// without one), and its callback then never called; without a Java VM
+/// (no app), here it fails.
+pub(crate) fn request_android_permission(
+    permission: &str,
+    callback: PermissionCallback,
+) -> crate::error::Result<()> {
+    static NEXT_REQUEST_CODE: AtomicI32 = AtomicI32::new(0);
+    let env = env_or_error()?;
+
+    let request_code = NEXT_REQUEST_CODE.fetch_add(1, Ordering::AcqRel);
+    PENDING_PERMISSIONS
+        .lock()
+        .unwrap_or_else(|e| e.into_inner())
+        .insert(
+            0,
+            NativePermissionRequestInfo {
+                request_code,
+                permission: permission.to_owned(),
+                callback,
+            },
+        );
+
+    with_env_of(env, |env| {
+        super::java::activity::request_permission(env, permission, request_code)
+    });
+
+    Ok(())
+}
+
+/// The user's locales (`ll_CC,...`), or `None` when they can't be had.
+/// Translation of `Android_JNI_GetLocale()`.
+pub(crate) fn get_locale() -> Option<String> {
+    with_env(super::java::activity::get_preferred_locales)
+}
+
+/// Open a URL (the activity that views it), whether one does. Translation
+/// of `Android_JNI_OpenURL()`.
+pub(crate) fn open_url(url: &str) -> bool {
+    with_env(|env| super::java::activity::open_url(env, url)).unwrap_or(false)
 }
 
 /// A file descriptor of the content resolver's file of `uri` (a
@@ -1437,4 +1552,147 @@ pub(crate) fn open_file_descriptor(uri: &str, mode: &str) -> crate::error::Resul
     }
 
     Ok(fd)
+}
+
+/// What `Android_JNI_GetPowerInfo()` gives: whether the device is plugged
+/// in, whether it's charged, whether it has a battery, the seconds left (-1:
+/// never known) and the battery's percent.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) struct PowerInfo {
+    pub(crate) plugged: bool,
+    pub(crate) charged: bool,
+    pub(crate) battery: bool,
+    pub(crate) seconds: i32,
+    pub(crate) percent: i32,
+}
+
+/// The battery's state, from the sticky `ACTION_BATTERY_CHANGED` intent
+/// (`registerReceiver(null, filter)`), or `None` (-1: an error) when an
+/// extra is missing. Translation of `Android_JNI_GetPowerInfo()`, asked
+/// for everything (`SDL_GetPowerInfo_Android()` is its only caller).
+pub(crate) fn get_power_info() -> Option<PowerInfo> {
+    let env = env::get_env()?;
+    let mut refs = env::LocalReferenceHolder::setup("Android_JNI_GetPowerInfo");
+    let env = refs.init(env).ok()?;
+    match power_info(env) {
+        Ok(info) => info,
+        Err(thrown) => {
+            // (Note (upstream): left pending, for the next JNI call)
+            thrown.describe();
+            None
+        }
+    }
+}
+
+fn power_info(env: Env<'_>) -> env::JniResult<'_, Option<PowerInfo>> {
+    // context = SDLActivity.getContext();
+    let Some(context) = super::java::activity::get_context(env) else {
+        // (Note (upstream): a method called on null, which ART aborts on)
+        return Ok(None);
+    };
+
+    let action = env.new_string("android.intent.action.BATTERY_CHANGED")?;
+
+    let cls = env.find_class(c"android/content/IntentFilter")?;
+
+    let filter = env.new_object(
+        cls.obj(),
+        c"(Ljava/lang/String;)V",
+        &[Arg::Object(action.obj())],
+    )?;
+
+    drop(action);
+
+    // (the activity class's registerReceiver(), on the context)
+    let intent = match activity_class() {
+        Some(activity) => {
+            let mid = env.get_method_id(
+                activity,
+                c"registerReceiver",
+                c"(Landroid/content/BroadcastReceiver;Landroid/content/IntentFilter;)Landroid/content/Intent;",
+            )?;
+            // SAFETY: the activity class's method, called on the context
+            // (the activity: the class's instance).
+            unsafe {
+                env.call_method_id(
+                    context.obj(),
+                    mid,
+                    c"(Landroid/content/BroadcastReceiver;Landroid/content/IntentFilter;)Landroid/content/Intent;",
+                    &[Arg::Object(Obj::NULL), Arg::Object(filter.obj())],
+                )?
+            }
+            .object()
+        }
+        None => None,
+    };
+
+    drop(filter);
+
+    let Some(intent) = intent else {
+        // (GetObjectClass() of null: Note (upstream), which ART aborts on)
+        return Ok(None);
+    };
+
+    let plug = int_extra(env, intent.obj(), "plugged")?; // == BatteryManager.EXTRA_PLUGGED (API 5)
+    if plug == -1 {
+        return Ok(None);
+    }
+    // 1 == BatteryManager.BATTERY_PLUGGED_AC
+    // 2 == BatteryManager.BATTERY_PLUGGED_USB
+    let plugged = 0 < plug;
+
+    let status = int_extra(env, intent.obj(), "status")?; // == BatteryManager.EXTRA_STATUS (API 5)
+    if status == -1 {
+        return Ok(None);
+    }
+    // 5 == BatteryManager.BATTERY_STATUS_FULL
+    let charged = status == 5;
+
+    let present = bool_extra(env, intent.obj(), "present")?; // == BatteryManager.EXTRA_PRESENT (API 5)
+    let battery = present;
+
+    let seconds = -1; // not possible
+
+    let level = int_extra(env, intent.obj(), "level")?; // == BatteryManager.EXTRA_LEVEL (API 5)
+    let scale = int_extra(env, intent.obj(), "scale")?; // == BatteryManager.EXTRA_SCALE (API 5)
+
+    if level == -1 || scale == -1 {
+        return Ok(None);
+    }
+    // (Note (upstream): a scale of 0 divides by zero; here the percent is 0)
+    let percent = (level * 100).checked_div(scale).unwrap_or(0);
+
+    Ok(Some(PowerInfo {
+        plugged,
+        charged,
+        battery,
+        seconds,
+        percent,
+    }))
+}
+
+/// `intent.getIntExtra(key, -1)`.
+fn int_extra<'a>(env: Env<'a>, intent: Obj<'_>, key: &str) -> env::JniResult<'a, jint> {
+    let iname = env.new_string(key)?;
+    Ok(env
+        .call_method(
+            intent,
+            c"getIntExtra",
+            c"(Ljava/lang/String;I)I",
+            &[Arg::Object(iname.obj()), Arg::Int(-1)],
+        )?
+        .int())
+}
+
+/// `intent.getBooleanExtra(key, false)`.
+fn bool_extra<'a>(env: Env<'a>, intent: Obj<'_>, key: &str) -> env::JniResult<'a, bool> {
+    let bname = env.new_string(key)?;
+    Ok(env
+        .call_method(
+            intent,
+            c"getBooleanExtra",
+            c"(Ljava/lang/String;Z)Z",
+            &[Arg::Object(bname.obj()), Arg::Boolean(false)],
+        )?
+        .boolean())
 }

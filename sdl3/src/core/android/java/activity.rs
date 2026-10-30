@@ -28,8 +28,10 @@
 //! listener, the file dialogs' results (`onActivityResult()`), and what
 //! the activity offers SDL's C side for the video driver (text input,
 //! cursors, orientation, message boxes, ...). They come with the backends
-//! that use them. What it offers the file I/O is here: the content
-//! resolver's files (`openFileDescriptor()`). With no surface,
+//! that use them. What it offers the small backends is here: permissions
+//! (`requestPermission()`, `onRequestPermissionsResult()`), URLs
+//! (`openURL()`), toasts (`showToast()`), the content resolver's files
+//! (`openFileDescriptor()`) and the locales (`getPreferredLocales()`). With no surface,
 //! the state machine starts the SDL thread as soon as the activity is
 //! resumed, as upstream's does without one.
 //!
@@ -2148,6 +2150,81 @@ fn manifest_environment_variables(env: Env<'_>) -> JniResult<'_, bool> {
     Ok(true)
 }
 
+/// `PackageManager.PERMISSION_GRANTED`.
+const PERMISSION_GRANTED: jint = 0;
+
+/// This method is called by SDL using JNI: ask for `permission`, whose
+/// answer goes to `nativePermissionResult()` (at once when it's granted
+/// already, else from `onRequestPermissionsResult()`, once the user has
+/// answered the system's dialog). Translation of `requestPermission()`.
+pub(crate) fn request_permission<'a>(
+    env: Env<'a>,
+    permission: &str,
+    request_code: jint,
+) -> JniResult<'a, ()> {
+    if super::super::sdk_int(env) < 23
+    /* Android 6.0 (M) */
+    {
+        super::super::permission_result(request_code, true);
+        return Ok(());
+    }
+
+    let activity = context_or_throw(env)?;
+    let permission = env.new_string(permission)?;
+    let granted = env
+        .call_method(
+            activity.obj(),
+            c"checkSelfPermission",
+            c"(Ljava/lang/String;)I",
+            &[Arg::Object(permission.obj())],
+        )?
+        .int();
+    if granted != PERMISSION_GRANTED {
+        let string = env.find_class(c"java/lang/String")?;
+        let permissions = env.new_object_array(1, string.obj(), permission.obj())?;
+        env.call_method(
+            activity.obj(),
+            c"requestPermissions",
+            c"([Ljava/lang/String;I)V",
+            &[Arg::Object(permissions.obj()), Arg::Int(request_code)],
+        )?;
+    } else {
+        super::super::permission_result(request_code, true);
+    }
+    Ok(())
+}
+
+/// Translation of `onRequestPermissionsResult()`: the first permission's
+/// answer to `nativePermissionResult()`.
+pub(crate) extern "system" fn on_request_permissions_result(
+    env: *mut JNIEnv,
+    _this: jobject,
+    request_code: jint,
+    _permissions: jobject,
+    grant_results: jobject,
+) {
+    // SAFETY: a native method's environment and arguments.
+    let (env, grant_results) = unsafe { (Env::from_raw(env), Obj::from_raw(grant_results)) };
+    native(env, |env| {
+        let result = if grant_results.is_null() {
+            // (grantResults.length of null)
+            return null_pointer(env, c"Attempt to get length of null array");
+        } else {
+            env.get_array_length(grant_results) > 0
+                && env.get_int_array_element(grant_results, 0)? == PERMISSION_GRANTED
+        };
+        super::super::permission_result(request_code, result);
+        Ok(())
+    });
+}
+
+/// `Intent.FLAG_ACTIVITY_NO_HISTORY`.
+const FLAG_ACTIVITY_NO_HISTORY: jint = 0x40000000;
+/// `Intent.FLAG_ACTIVITY_MULTIPLE_TASK`.
+const FLAG_ACTIVITY_MULTIPLE_TASK: jint = 0x08000000;
+/// `Intent.FLAG_ACTIVITY_NEW_DOCUMENT`.
+const FLAG_ACTIVITY_NEW_DOCUMENT: jint = 0x00080000;
+
 /// `Uri.parse(uri)`.
 fn parse_uri<'a>(env: Env<'a>, uri: &str) -> JniResult<'a, Local<'a>> {
     let uri_class = env.find_class(c"android/net/Uri")?;
@@ -2161,6 +2238,147 @@ fn parse_uri<'a>(env: Env<'a>, uri: &str) -> JniResult<'a, Local<'a>> {
         )?
         .object()
         .expect("Uri.parse() gives a Uri"))
+}
+
+/// This method is called by SDL using JNI: the URL viewed (`ACTION_VIEW`)
+/// by the activity that answers it, false when none does (or something
+/// else threw). Translation of `openURL()`.
+pub(crate) fn open_url<'a>(env: Env<'a>, url: &str) -> JniResult<'a, bool> {
+    let opened = (|| -> JniResult<'a, ()> {
+        let intent_class = env.find_class(c"android/content/Intent")?;
+        let action = env.new_string("android.intent.action.VIEW")?; // Intent.ACTION_VIEW
+        let i = env.new_object(
+            intent_class.obj(),
+            c"(Ljava/lang/String;)V",
+            &[Arg::Object(action.obj())],
+        )?;
+        let uri = parse_uri(env, url)?;
+        env.call_method(
+            i.obj(),
+            c"setData",
+            c"(Landroid/net/Uri;)Landroid/content/Intent;",
+            &[Arg::Object(uri.obj())],
+        )?;
+
+        let flags =
+            FLAG_ACTIVITY_NO_HISTORY | FLAG_ACTIVITY_MULTIPLE_TASK | FLAG_ACTIVITY_NEW_DOCUMENT;
+        env.call_method(
+            i.obj(),
+            c"addFlags",
+            c"(I)Landroid/content/Intent;",
+            &[Arg::Int(flags)],
+        )?;
+
+        let singleton = singleton_or_throw(env)?;
+        env.call_method(
+            singleton.obj(),
+            c"startActivity",
+            c"(Landroid/content/Intent;)V",
+            &[Arg::Object(i.obj())],
+        )?;
+        Ok(())
+    })();
+    match opened {
+        Ok(()) => Ok(true),
+        // catch (Exception ex)
+        Err(thrown) => {
+            drop(thrown.catch_exception()?);
+            Ok(false)
+        }
+    }
+}
+
+/// This method is called by SDL using JNI: a toast of `message` for
+/// `duration` (0: short, 1: long), at `gravity` (when it's 0 or more) and
+/// the offsets, shown on the main thread; false without an activity.
+/// Translation of `showToast()`, whose `OneShotTask` (a local class that
+/// implements `Runnable`) is an `SDLNativeRunnable` here (Note: another
+/// name).
+pub(crate) fn show_toast<'a>(
+    env: Env<'a>,
+    message: &str,
+    duration: jint,
+    gravity: jint,
+    x_offset: jint,
+    y_offset: jint,
+) -> JniResult<'a, bool> {
+    let Some(singleton) = singleton(env) else {
+        return Ok(false);
+    };
+
+    let shown = (|| -> JniResult<'a, ()> {
+        let message = message.to_owned();
+        let task = anonymous::runnable(env, move |env| {
+            // (OneShotTask.run())
+            if let Err(thrown) =
+                one_shot_task_run(env, &message, duration, gravity, x_offset, y_offset)
+            {
+                // catch(Exception ex): Log.e(TAG, ex.getMessage()) (Note
+                // (upstream): Log.e() of a null message throws; here it's
+                // logged as "null")
+                match thrown.catch_exception() {
+                    Ok(ex) => match message_of(env, ex.obj()) {
+                        Ok((_, text)) => log(LogPriority::Error, &text),
+                        Err(thrown) => drop(thrown),
+                    },
+                    // (an Error: pending, for the looper)
+                    Err(thrown) => drop(thrown),
+                }
+            }
+        })?;
+        env.call_method(
+            singleton.obj(),
+            c"runOnUiThread",
+            c"(Ljava/lang/Runnable;)V",
+            &[Arg::Object(task.obj())],
+        )?;
+        Ok(())
+    })();
+    match shown {
+        Ok(()) => Ok(true),
+        // catch(Exception ex)
+        Err(thrown) => {
+            drop(thrown.catch_exception()?);
+            Ok(false)
+        }
+    }
+}
+
+/// `OneShotTask.run()`'s `try` block: the toast, made and shown.
+fn one_shot_task_run<'a>(
+    env: Env<'a>,
+    message: &str,
+    duration: jint,
+    gravity: jint,
+    x_offset: jint,
+    y_offset: jint,
+) -> JniResult<'a, ()> {
+    let singleton = singleton_or_throw(env)?;
+    let toast_class = env.find_class(c"android/widget/Toast")?;
+    let text = env.new_string(message)?;
+    let toast = env
+        .call_static_method(
+            toast_class.obj(),
+            c"makeText",
+            c"(Landroid/content/Context;Ljava/lang/CharSequence;I)Landroid/widget/Toast;",
+            &[
+                Arg::Object(singleton.obj()),
+                Arg::Object(text.obj()),
+                Arg::Int(duration),
+            ],
+        )?
+        .object()
+        .expect("Toast.makeText() gives a toast");
+    if gravity >= 0 {
+        env.call_method(
+            toast.obj(),
+            c"setGravity",
+            c"(III)V",
+            &[Arg::Int(gravity), Arg::Int(x_offset), Arg::Int(y_offset)],
+        )?;
+    }
+    env.call_method(toast.obj(), c"show", c"()V", &[])?;
+    Ok(())
 }
 
 /// This method is called by SDL using JNI: a file descriptor of the
@@ -2207,6 +2425,101 @@ pub(crate) fn open_file_descriptor<'a>(env: Env<'a>, uri: &str, mode: &str) -> J
             Ok(-1)
         }
     }
+}
+
+/// This method is called by SDL using JNI: the user's locales, most
+/// preferred first, as `ll_CC` separated by commas (`LocaleList`'s
+/// adjusted default from API 24, else the activity's locale).
+/// Translation of `getPreferredLocales()`.
+pub(crate) fn get_preferred_locales<'a>(env: Env<'a>) -> JniResult<'a, String> {
+    let mut result = String::new();
+    if super::super::sdk_int(env) >= 24
+    /* Android 7 (N) */
+    {
+        let locale_list = env.find_class(c"android/os/LocaleList")?;
+        let locales = env
+            .call_static_method(
+                locale_list.obj(),
+                c"getAdjustedDefault",
+                c"()Landroid/os/LocaleList;",
+                &[],
+            )?
+            .object()
+            .expect("a locale list");
+        let size = env.call_method(locales.obj(), c"size", c"()I", &[])?.int();
+        for i in 0..size {
+            if i != 0 {
+                result += ",";
+            }
+            let locale = env
+                .call_method(
+                    locales.obj(),
+                    c"get",
+                    c"(I)Ljava/util/Locale;",
+                    &[Arg::Int(i)],
+                )?
+                .object();
+            result += &format_locale(env, locale.as_ref().map_or(Obj::NULL, Local::obj))?;
+        }
+    } else {
+        let current = {
+            let s = statics();
+            s.current_locale
+                .as_ref()
+                .and_then(|l| env.new_local_ref(l.obj()))
+        };
+        if let Some(current) = current {
+            result = format_locale(env, current.obj())?;
+        }
+    }
+    Ok(result)
+}
+
+/// `a == "literal"` of Java: whether `a` is the string literal's object
+/// (literals are interned: `"literal".intern()`).
+fn is_literal<'a>(env: Env<'a>, a: Obj<'_>, literal: &str) -> JniResult<'a, bool> {
+    let s = env.new_string(literal)?;
+    let interned = env
+        .call_method(s.obj(), c"intern", c"()Ljava/lang/String;", &[])?
+        .object();
+    Ok(env.is_same_object(a, interned.as_ref().map_or(Obj::NULL, Local::obj)))
+}
+
+/// A locale as `ll` or `ll_CC`. Translation of `formatLocale()`, whose
+/// comparisons of strings are Java's `==` (the same object: the locale's
+/// strings are interned, so it is their equality there).
+pub(crate) fn format_locale<'a>(env: Env<'a>, locale: Obj<'_>) -> JniResult<'a, String> {
+    if locale.is_null() {
+        return null_pointer(env, c"Attempt to invoke virtual method 'java.lang.String java.util.Locale.getLanguage()' on a null object reference");
+    }
+    let language = env
+        .call_method(locale, c"getLanguage", c"()Ljava/lang/String;", &[])?
+        .object();
+    let language = language.as_ref().map_or(Obj::NULL, Local::obj);
+    let lang = if is_literal(env, language, "in")? {
+        // Indonesian is "id" according to ISO 639.2, but on Android is "in" because of Java backwards compatibility
+        "id".to_string()
+    } else if is_literal(env, language, "")? {
+        // Make sure language is never empty
+        "und".to_string()
+    } else if language.is_null() {
+        "null".to_string()
+    } else {
+        env.get_string(language)?
+    };
+
+    let country = env
+        .call_method(locale, c"getCountry", c"()Ljava/lang/String;", &[])?
+        .object();
+    let country = country.as_ref().map_or(Obj::NULL, Local::obj);
+    let result = if is_literal(env, country, "")? {
+        lang
+    } else if country.is_null() {
+        format!("{lang}_null")
+    } else {
+        format!("{lang}_{}", env.get_string(country)?)
+    };
+    Ok(result)
 }
 
 /// Simple runnable to start the SDL application. Translation of

@@ -308,6 +308,12 @@ pub(crate) static CLASSES: &[Class] = &[
                 "(Ljava/lang/String;Ljava/lang/String;)V",
                 super::native_setenv[_, _]
             ),
+            native!(
+                PUBLIC | STATIC,
+                "nativePermissionResult",
+                "(IZ)V",
+                super::native_permission_result[_, _]
+            ),
             native!(PUBLIC | STATIC, "onNativeLocaleChanged", "()V", super::on_native_locale_changed[]),
             native!(
                 PUBLIC | STATIC,
@@ -326,6 +332,13 @@ pub(crate) static CLASSES: &[Class] = &[
                 "nativeCheckSDLThreadCounter",
                 "()I",
                 super::native_check_sdl_thread_counter[]
+            ),
+            // Permissions
+            native!(
+                PUBLIC,
+                "onRequestPermissionsResult",
+                "(I[Ljava/lang/String;[I)V",
+                activity::on_request_permissions_result[_, _, _]
             ),
         ],
     },

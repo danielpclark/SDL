@@ -190,6 +190,8 @@ fn power_info_is_consistent() {
         #[cfg(windows)]
         assert_eq!((info.time_left, info.percent), (None, None), "{info:?}");
     }
+    // (Android: the battery's intent is an app's, which a program spawned
+    // from the shell isn't: tests/android_backends.rs has an app's)
     #[cfg(not(any(target_os = "linux", target_vendor = "apple", windows)))]
     assert_eq!(info.state, PowerState::Unknown);
     // (UIKit: no battery on tvOS, nor in the simulator, which reports its

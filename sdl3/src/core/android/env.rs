@@ -1456,6 +1456,15 @@ impl<'a> Env<'a> {
         self.check()
     }
 
+    /// `GetIntArrayRegion()` of one element: `array[index]` of an `int[]`.
+    pub(crate) fn get_int_array_element(self, array: Obj<'_>, index: jsize) -> JniResult<'a, jint> {
+        let mut value: jint = 0;
+        // SAFETY: a valid array, and room for one element.
+        unsafe { (self.table().GetIntArrayRegion)(self.raw(), array.raw(), index, 1, &mut value) };
+        self.check()?;
+        Ok(value)
+    }
+
     /// `NewByteArray()` and `SetByteArrayRegion()`: a Java `byte[]` of the
     /// bytes.
     pub(crate) fn new_byte_array(self, bytes: &[u8]) -> JniResult<'a, Local<'a>> {
