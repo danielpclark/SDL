@@ -494,6 +494,9 @@ mod tests {
         }
         assert_eq!(p2.get_number("b"), Some(2));
         p.dump();
+        // (the tests that quit SDL, which destroys the global properties,
+        // hold the test lock)
+        let _l = crate::test_support::test_lock();
         assert_eq!(Properties::global(), Properties::global());
         Properties::global().set("sdl3.test", true).unwrap();
         assert_eq!(Properties::global().get_bool("sdl3.test"), Some(true));
