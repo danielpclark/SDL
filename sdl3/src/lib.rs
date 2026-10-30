@@ -57,11 +57,16 @@
 //! the repository's README.
 //!
 //! Android (`aarch64-linux-android`, `armv7-linux-androideabi`,
-//! `x86_64-linux-android`, `i686-linux-android`) builds, without its
-//! platform layer yet: there are only the shared backends (the offscreen
-//! and dummy video drivers, EGL and OpenGL ES, Vulkan, the HIDAPI and
-//! virtual joysticks, POSIX threads, time and file operations), and dummy
-//! ones where upstream's are Android's own.
+//! `x86_64-linux-android`, `i686-linux-android`) builds, with the start of
+//! its platform layer: an app is upstream's `SDLActivity` (its classes
+//! a DEX file this crate writes and keeps in the library, its Java
+//! translated), whose "SDLThread" calls the app library's `SDL_main`
+//! (`libmain.so`), with this crate's `JNI_OnLoad()` (see "Android emulator" in the
+//! repository's docs/HARDWARE_TESTING.md for how the tests are packaged).
+//! The backends are the shared ones so far (the offscreen and dummy video
+//! drivers, EGL and OpenGL ES, Vulkan, the HIDAPI and virtual joysticks,
+//! POSIX threads, time and file operations), and dummy ones where
+//! upstream's are Android's own.
 
 #![forbid(unsafe_op_in_unsafe_fn)]
 #![warn(missing_debug_implementations)]
