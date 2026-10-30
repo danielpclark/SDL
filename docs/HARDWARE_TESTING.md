@@ -1723,7 +1723,22 @@ ES 2 renderer's scenes against the software renderer's, the context kept
 across a trip to the background), `android_vulkan.rs` (the Vulkan surface
 of the window, the Vulkan renderer's scenes, the GPU API's swapchain and
 the GPU renderer) and `android_recreate.rs` (the activity recreated by a
-density change, which ends the process).
+density change, which ends the process). And its input, against
+upstream's C too: `android_input.rs`, with real input (the runner's
+`input` requests: `adb shell input`'s tap and swipe, the mouse's tap and
+wheel, the stylus's tap) and, for what `input` can't make (it has one
+pointer, the mouse's primary button or none, no pressure, hovering,
+eraser or captured pointer), stand-ins: `MotionEvent.obtain()`'s events
+injected into the app's own window (`Instrumentation.sendPointerSync()`,
+`sendTrackballEventSync()` for the captured pointer's, which an app may
+do without the `INJECT_EVENTS` permission), through the framework's
+input pipeline to the surface (two fingers, a pinch, a cancelled touch,
+the mouse's hovering, buttons and wheel, the relative mode's captured
+pointer, the stylus's hovering, pressure, button and eraser); the touch
+devices and mice, `SDL_HINT_TOUCH_MOUSE_EVENTS` and
+`SDL_HINT_MOUSE_TOUCH_EVENTS` on and off, the cursors (the surface's
+pointer icon, `View.getPointerIcon()`) and the relative mode (the pointer
+captured, `View.hasPointerCapture()`).
 
 The expected traces of the app programs are upstream's C SDL's: the same
 program in C, as upstream's android-project's app (built with Gradle,
