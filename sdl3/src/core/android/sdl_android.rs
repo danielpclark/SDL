@@ -2,8 +2,9 @@
 // DirectMedia Layer (part: the library's loading, the registration of the
 // native methods, SDLActivity's natives that start the SDL thread, set the
 // environment and pass the activity's lifecycle on, the lifecycle event
-// queue, the activity mutex, the manifest's environment variables, and the
-// entry points of SDL_system.h that need no backend of their own).
+// queue, the activity mutex, the manifest's environment variables, the
+// entry points of SDL_system.h, the storage paths, the package's name and
+// the content resolver's files).
 // Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
 // This is an altered (translated) version of the original software; see LICENSE.txt.
 
@@ -24,9 +25,12 @@
 //! `SDL_IsDeXMode()`, `SDL_SendAndroidBackButton()` and
 //! `SDL_SendAndroidMessage()` (the `crate::android` module), with
 //! `SDL_IsAndroidTablet()` and `SDL_GetAndroidDeviceFormFactor()` for
-//! `SDL_GetDeviceFormFactor()`. The rest of SDL_android.c (the video,
-//! audio and controller natives, the assets, paths, permissions, ...)
-//! comes with the backends that use it.
+//! `SDL_GetDeviceFormFactor()`; and what the filesystem and the file I/O
+//! use: the storage paths (`SDL_GetAndroidInternalStoragePath()`,
+//! `...External...`, `SDL_GetAndroidCachePath()`), the package's name and
+//! the content resolver's files (`content://`). The assets are
+//! [`super::assets`]. The rest of SDL_android.c (the video, audio and
+//! controller natives, ...) comes with the backends that use it.
 //!
 //! This library is exported as libSDL3.so's is: a program that links it
 //! has its `JNI_OnLoad()` (as an app with upstream's static library has),
@@ -37,7 +41,7 @@ use super::env::{self, Arg, Env, Global, Obj, Value};
 use super::jni::*;
 use super::ndk::LogPriority;
 use crate::thread::{RawMutex, Semaphore};
-use std::ffi::{c_char, c_int, c_void, CString};
+use std::ffi::{c_char, c_int, c_void, CStr, CString};
 use std::ptr::{self, NonNull};
 use std::sync::atomic::{AtomicBool, AtomicI32, AtomicPtr, Ordering};
 use std::sync::{Mutex, MutexGuard};
@@ -682,8 +686,7 @@ pub(crate) fn quit() {
         while LIFECYCLE_EVENT_SEM.try_wait() {}
     }
 
-    // (Internal_Android_Destroy_AssetManager(): the assets come with the
-    // file I/O)
+    super::assets::destroy_asset_manager();
 
     log(LogPriority::Verbose, "SDLActivity thread ends");
 }
@@ -1145,4 +1148,293 @@ pub(crate) fn get_manifest_environment_variables() {
             HAS_ENVIRONMENT_VARIABLES.store(true, Ordering::Release);
         }
     }
+}
+
+// ---------------------------------------------------------------------------
+// The paths, the package and files of the content resolver
+
+/// The current thread's environment, or the error of having none (a
+/// program that isn't an app: upstream dereferences the null environment
+/// `Android_JNI_GetEnv()` gives there, after logging this).
+fn env_or_error() -> crate::error::Result<Env<'static>> {
+    env::get_env().ok_or_else(|| crate::error::Error::new("Failed, there is no JavaVM"))
+}
+
+/// A path the context gives, as a `File` (`context.METHOD(args)`), by
+/// `path_method` (`getCanonicalPath()` or `getAbsolutePath()`), or the
+/// error `none` when it's null. (Upstream's three storage paths, whose
+/// duplication its own FIXME notes.)
+fn context_path(
+    func: &'static str,
+    method: &CStr,
+    descriptor: &CStr,
+    args: &[Arg<'_>],
+    none: &'static str,
+    path_method: &CStr,
+) -> crate::error::Result<String> {
+    use crate::error::Error;
+    let env = env_or_error()?;
+    let mut refs = env::LocalReferenceHolder::setup(func);
+    let env = refs.init(env)?;
+
+    // context = SDLActivity.getContext();
+    let Some(context) = super::java::activity::get_context(env) else {
+        // (Note (upstream): only the internal storage path checks; the
+        // others call a method of null, which ART aborts on)
+        return Err(Error::new("Couldn't get Android context!"));
+    };
+
+    // fileObj = context.METHOD();
+    let file_object = match env.call_method(context.obj(), method, descriptor, args) {
+        Ok(file) => file.object(),
+        Err(thrown) => {
+            drop(thrown);
+            return Err(env::exception_occurred(env, false).unwrap_or_else(|| Error::new(none)));
+        }
+    };
+    let Some(file_object) = file_object else {
+        return Err(Error::new(none));
+    };
+
+    // path = fileObject.PATH_METHOD();
+    let path_string =
+        match env.call_method(file_object.obj(), path_method, c"()Ljava/lang/String;", &[]) {
+            Ok(path) => path.object(),
+            Err(thrown) => {
+                drop(thrown);
+                // (Note (upstream): only the internal storage's
+                // getCanonicalPath() is checked for an exception; the others'
+                // getAbsolutePath() throws none)
+                return Err(env::exception_occurred(env, false).unwrap_or_else(|| Error::new(none)));
+            }
+        };
+    let Some(path_string) = path_string else {
+        return Err(Error::new(none));
+    };
+    env.get_string(path_string.obj()).map_err(|thrown| {
+        drop(thrown);
+        env::exception_occurred(env, false).unwrap_or_else(|| Error::new(none))
+    })
+}
+
+/// A path computed once (upstream's `static char *`, kept once it is had).
+fn cached_path(
+    cache: &'static Mutex<Option<String>>,
+    get: impl FnOnce() -> crate::error::Result<String>,
+) -> crate::error::Result<String> {
+    let mut cached = cache.lock().unwrap_or_else(|e| e.into_inner());
+    if let Some(path) = &*cached {
+        return Ok(path.clone());
+    }
+    let path = get()?;
+    *cached = Some(path.clone());
+    Ok(path)
+}
+
+/// The app's internal storage (`context.getFilesDir().getCanonicalPath()`:
+/// `/data/data/PACKAGE/files`), computed once. Translation of
+/// `SDL_GetAndroidInternalStoragePath()`.
+pub(crate) fn get_android_internal_storage_path() -> crate::error::Result<String> {
+    static S_ANDROID_INTERNAL_FILES_PATH: Mutex<Option<String>> = Mutex::new(None);
+    cached_path(&S_ANDROID_INTERNAL_FILES_PATH, || {
+        context_path(
+            "SDL_GetAndroidInternalStoragePath",
+            c"getFilesDir",
+            c"()Ljava/io/File;",
+            &[],
+            "Couldn't get internal directory",
+            c"getCanonicalPath",
+        )
+    })
+}
+
+/// `SDL_ANDROID_EXTERNAL_STORAGE_READ`.
+pub(crate) const ANDROID_EXTERNAL_STORAGE_READ: u32 = 0x01;
+/// `SDL_ANDROID_EXTERNAL_STORAGE_WRITE`.
+pub(crate) const ANDROID_EXTERNAL_STORAGE_WRITE: u32 = 0x02;
+
+/// The external storage's state (`Environment.getExternalStorageState()`,
+/// logged): read and write when it's `mounted`, read when `mounted_ro`,
+/// else 0. Translation of `SDL_GetAndroidExternalStorageState()`.
+pub(crate) fn get_android_external_storage_state() -> u32 {
+    let Some(env) = env::get_env() else {
+        return 0;
+    };
+    let mut refs = env::LocalReferenceHolder::setup("SDL_GetAndroidExternalStorageState");
+    let Ok(env) = refs.init(env) else {
+        return 0;
+    };
+
+    let state = env
+        .find_class(c"android/os/Environment")
+        .and_then(|cls| {
+            env.call_static_method(
+                cls.obj(),
+                c"getExternalStorageState",
+                c"()Ljava/lang/String;",
+                &[],
+            )
+        })
+        .map(Value::object);
+    let state_string = match state {
+        Ok(Some(state)) => env.get_string(state.obj()).unwrap_or_else(|thrown| {
+            thrown.clear();
+            String::new()
+        }),
+        Ok(None) => String::new(),
+        Err(thrown) => {
+            // (Note (upstream): left pending, for the next JNI call)
+            thrown.describe();
+            String::new()
+        }
+    };
+
+    // Print an info message so people debugging know the storage state
+    log(
+        LogPriority::Info,
+        &format!("external storage state: {state_string}"),
+    );
+
+    if state_string == "mounted" {
+        ANDROID_EXTERNAL_STORAGE_READ | ANDROID_EXTERNAL_STORAGE_WRITE
+    } else if state_string == "mounted_ro" {
+        ANDROID_EXTERNAL_STORAGE_READ
+    } else {
+        0
+    }
+}
+
+/// The app's external storage (`context.getExternalFilesDir(null)
+/// .getAbsolutePath()`: `/storage/emulated/0/Android/data/PACKAGE/files`),
+/// computed once. Translation of `SDL_GetAndroidExternalStoragePath()`.
+pub(crate) fn get_android_external_storage_path() -> crate::error::Result<String> {
+    static S_ANDROID_EXTERNAL_FILES_PATH: Mutex<Option<String>> = Mutex::new(None);
+    cached_path(&S_ANDROID_EXTERNAL_FILES_PATH, || {
+        context_path(
+            "SDL_GetAndroidExternalStoragePath",
+            c"getExternalFilesDir",
+            c"(Ljava/lang/String;)Ljava/io/File;",
+            &[Arg::Object(Obj::NULL)],
+            "Couldn't get external directory",
+            c"getAbsolutePath",
+        )
+    })
+}
+
+/// The app's cache (`context.getCacheDir().getAbsolutePath()`:
+/// `/data/user/0/PACKAGE/cache`), computed once. Translation of
+/// `SDL_GetAndroidCachePath()`.
+pub(crate) fn get_android_cache_path() -> crate::error::Result<String> {
+    // !!! FIXME: lots of duplication with SDL_GetAndroidExternalStoragePath and SDL_GetAndroidInternalStoragePath; consolidate these functions!
+    static S_ANDROID_CACHE_PATH: Mutex<Option<String>> = Mutex::new(None);
+    cached_path(&S_ANDROID_CACHE_PATH, || {
+        context_path(
+            "SDL_GetAndroidCachePath",
+            c"getCacheDir",
+            c"()Ljava/io/File;",
+            &[],
+            "Couldn't get cache directory",
+            c"getAbsolutePath",
+        )
+    })
+}
+
+/// The app's package name (`context.getPackageName()`), not cached (the
+/// executable's name, which `SDL_GetExeName()` caches). Translation of
+/// `SDL_GetAndroidPackageName()`.
+pub(crate) fn get_android_package_name() -> crate::error::Result<String> {
+    use crate::error::Error;
+    // this doesn't currently cache this, because it's only used by SDL_GetExeName, which _does_ cache it.
+    let env = env_or_error()?;
+    let mut refs = env::LocalReferenceHolder::setup("SDL_GetAndroidPackageName");
+    let env = refs.init(env)?;
+
+    // context = SDLActivity.getContext();
+    let Some(context) = super::java::activity::get_context(env) else {
+        return Err(Error::new("Couldn't get Android context!"));
+    };
+
+    let name = match env.call_method(
+        context.obj(),
+        c"getPackageName",
+        c"()Ljava/lang/String;",
+        &[],
+    ) {
+        Ok(name) => name.object(),
+        Err(thrown) => {
+            drop(thrown);
+            return Err(env::exception_occurred(env, false).unwrap_or_else(|| Error::new("")));
+        }
+    };
+    let Some(name) = name else {
+        // (GetStringUTFChars() of null: Note (upstream), which ART aborts on)
+        return Err(Error::new(""));
+    };
+    env.get_string(name.obj()).map_err(|thrown| {
+        drop(thrown);
+        env::exception_occurred(env, false).unwrap_or_else(|| Error::new(""))
+    })
+}
+
+/// `f` with `env`, whose exception (pending) is described and cleared (see
+/// [`with_env`]).
+fn with_env_of<'a, T>(env: Env<'a>, f: impl FnOnce(Env<'a>) -> env::JniResult<'a, T>) -> Option<T> {
+    match f(env) {
+        Ok(value) => Some(value),
+        Err(thrown) => {
+            thrown.describe();
+            None
+        }
+    }
+}
+
+/// A file descriptor of the content resolver's file of `uri` (a
+/// `content://` URI), opened in the `fopen()`-style `mode`, which the
+/// caller owns. Translation of `Android_JNI_OpenFileDescriptor()`. Note
+/// (upstream): an exception other than `FileNotFoundException` (a URI of
+/// an unknown provider: `SecurityException`, `IllegalArgumentException`)
+/// is left pending there, and its 0 taken for a descriptor (stdin's);
+/// here it's described in the log, and it's -1.
+pub(crate) fn open_file_descriptor(uri: &str, mode: &str) -> crate::error::Result<c_int> {
+    // Get fopen-style modes
+    let (mut moderead, mut modewrite, mut modeappend, mut modeupdate) =
+        (false, false, false, false);
+
+    for cmode in mode.chars() {
+        match cmode {
+            'a' => modeappend = true,
+            'r' => moderead = true,
+            'w' => modewrite = true,
+            '+' => modeupdate = true,
+            _ => {}
+        }
+    }
+
+    // Translate fopen-style modes to ContentResolver modes.
+    // Android only allows "r", "w", "wt", "wa", "rw" or "rwt".
+    let mut content_resolver_mode = "r";
+
+    if moderead {
+        if modewrite {
+            content_resolver_mode = "rwt";
+        } else {
+            content_resolver_mode = if modeupdate { "rw" } else { "r" };
+        }
+    } else if modewrite {
+        content_resolver_mode = if modeupdate { "rwt" } else { "wt" };
+    } else if modeappend {
+        content_resolver_mode = if modeupdate { "rw" } else { "wa" };
+    }
+
+    let env = env_or_error()?;
+    let fd = with_env_of(env, |env| {
+        super::java::activity::open_file_descriptor(env, uri, content_resolver_mode)
+    })
+    .unwrap_or(-1);
+
+    if fd == -1 {
+        return Err(crate::error::Error::new("Unspecified error in JNI"));
+    }
+
+    Ok(fd)
 }

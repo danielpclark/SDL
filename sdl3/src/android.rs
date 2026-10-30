@@ -5,10 +5,11 @@
 
 //! What SDL offers an Android app of its platform: the Java VM's
 //! environment of a thread and the activity (for an app's own JNI calls),
-//! the device's API level and form, the back button, and messages to the
-//! activity. They need the app's Java VM: in a program that isn't an app
-//! (one started from the shell) there's none, and they give `None`, false
-//! or nothing. (The device's form factor, TV or tablet, is
+//! the device's API level and form, the back button, messages to the
+//! activity, and the app's storage paths. They
+//! need the app's Java VM: in a program that isn't an app (one started
+//! from the shell) there's none, and they give `None`, false, nothing or
+//! an error. (The device's form factor, TV or tablet, is
 //! [`init::device_form_factor`](crate::init::device_form_factor).)
 
 use std::ffi::c_void;
@@ -81,4 +82,50 @@ pub fn send_back_button() {
 /// It is safe to call this function from any thread.
 pub fn send_message(command: u32, param: i32) -> Result<()> {
     core_android::send_android_message(command, param)
+}
+
+/// [`external_storage_state`]'s flag: external storage can be read.
+/// `SDL_ANDROID_EXTERNAL_STORAGE_READ`. See the official Android developer
+/// guide for more information:
+/// <http://developer.android.com/guide/topics/data/data-storage.html>
+pub const EXTERNAL_STORAGE_READ: u32 = core_android::ANDROID_EXTERNAL_STORAGE_READ;
+
+/// [`external_storage_state`]'s flag: external storage can be written.
+/// `SDL_ANDROID_EXTERNAL_STORAGE_WRITE`.
+pub const EXTERNAL_STORAGE_WRITE: u32 = core_android::ANDROID_EXTERNAL_STORAGE_WRITE;
+
+/// The path used for internal storage for this Android application, which
+/// is unique to your application and cannot be written to by other
+/// applications: typically `/data/data/your.app.package/files`
+/// (`android.content.Context.getFilesDir()`). Translation of
+/// `SDL_GetAndroidInternalStoragePath()`.
+pub fn internal_storage_path() -> Result<String> {
+    core_android::get_android_internal_storage_path()
+}
+
+/// The current state of external storage for this Android application: a
+/// bitmask of [`EXTERNAL_STORAGE_READ`] and [`EXTERNAL_STORAGE_WRITE`], 0
+/// when external storage is currently unavailable. Translation of
+/// `SDL_GetAndroidExternalStorageState()`.
+pub fn external_storage_state() -> u32 {
+    core_android::get_android_external_storage_state()
+}
+
+/// The path used for external storage for this Android application, which
+/// is unique to your application, but is public and can be written to by
+/// other applications: typically
+/// `/storage/sdcard0/Android/data/your.app.package/files`
+/// (`android.content.Context.getExternalFilesDir()`). Translation of
+/// `SDL_GetAndroidExternalStoragePath()`.
+pub fn external_storage_path() -> Result<String> {
+    core_android::get_android_external_storage_path()
+}
+
+/// The path used for caching data for this Android application, which is
+/// unique to your application, but is public and can be written to by other
+/// applications: typically `/data/data/your.app.package/cache/`
+/// (`android.content.Context.getCacheDir()`). Translation of
+/// `SDL_GetAndroidCachePath()`.
+pub fn cache_path() -> Result<String> {
+    core_android::get_android_cache_path()
 }

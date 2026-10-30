@@ -117,13 +117,19 @@ fn file_operations() {
     assert!(copy_file(&tmp.path("missing"), &tmp.path("x")).is_err());
 
     rename_path(&tmp.path("a/b/copy.txt"), &tmp.path("a/b/moved.txt")).unwrap();
+    // (on Android, a path that isn't there is looked for among the app's
+    // assets, which have none of that name)
     assert_eq!(
         get_path_info(&tmp.path("a/b/copy.txt"))
             .unwrap_err()
             .message()
             .split(':')
             .next(),
-        Some("Can't stat")
+        Some(if cfg!(target_os = "android") {
+            "No such file or directory"
+        } else {
+            "Can't stat"
+        })
     );
     assert!(rename_path(&tmp.path("nope"), &tmp.path("nope2"))
         .unwrap_err()
@@ -296,16 +302,30 @@ fn xdg_paths() {
 
 #[test]
 #[cfg_attr(target_os = "emscripten", ignore = "no executable name on Emscripten")]
-#[cfg_attr(
-    target_os = "android",
-    ignore = "no base path until Android's filesystem backend (Android PR 5)"
-)]
 fn base_path_and_exe_name() {
     let base = get_base_path().unwrap();
     assert!(base.ends_with(std::path::MAIN_SEPARATOR) || base.ends_with('/'));
-    let exe = get_exe_name().unwrap();
-    assert!(!exe.is_empty() && !exe.contains('/'));
-    assert!(std::path::Path::new(&format!("{base}{exe}")).exists());
+    // (Android's base path is the app package's assets, and its executable's
+    // name the package's: which a program that isn't an app, as a spawned
+    // test is, hasn't, without the app's Java VM. tests/android_backends.rs
+    // has an app's)
+    #[cfg(target_os = "android")]
+    {
+        assert_eq!(base, "assets://");
+        match crate::core::android::env::java_vm() {
+            None => assert_eq!(
+                get_exe_name().unwrap_err().message(),
+                "Failed, there is no JavaVM"
+            ),
+            Some(_) => assert!(get_exe_name().unwrap().contains('.')),
+        }
+    }
+    #[cfg(not(target_os = "android"))]
+    {
+        let exe = get_exe_name().unwrap();
+        assert!(!exe.is_empty() && !exe.contains('/'));
+        assert!(std::path::Path::new(&format!("{base}{exe}")).exists());
+    }
 }
 
 /// What upstream's `filesystem/emscripten` reports under node, built with

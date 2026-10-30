@@ -156,6 +156,10 @@ pub const PROP_IOSTREAM_MEMORY_SIZE_NUMBER: &str = "SDL.iostream.memory.size";
 /// SDL_PROP_IOSTREAM_DYNAMIC_CHUNKSIZE_NUMBER: how many bytes a dynamic
 /// memory stream grows by (default 1024).
 pub const PROP_IOSTREAM_DYNAMIC_CHUNKSIZE_NUMBER: &str = "SDL.iostream.dynamic.chunksize";
+/// SDL_PROP_IOSTREAM_ANDROID_AASSET_POINTER: the `AAsset *` of a stream of
+/// an Android app's asset (as a number), which
+/// [`IoStream::from_file`] opens through the NDK's asset manager.
+pub const PROP_IOSTREAM_ANDROID_AASSET_POINTER: &str = "SDL.iostream.android.aasset";
 
 /// `strerror(errno)`: the OS error text without std's " (os error N)" suffix.
 pub(crate) fn strerror(e: &std::io::Error) -> String {
@@ -997,6 +1001,12 @@ impl IoStream<'static> {
     /// their current directory, a relative path is opened in the pref path
     /// ([`get_pref_path(Some(""), "")`](crate::filesystem::get_pref_path))
     /// if it can be, else in the current directory.
+    ///
+    /// On Android, an absolute path is opened on the filesystem, a
+    /// `content://` URI through the app's content resolver, and a relative
+    /// path in the app's internal storage; when that fails (and for an
+    /// `assets://` path), the file is the app package's asset of that path
+    /// (read-only, whatever the mode: [`PROP_IOSTREAM_ANDROID_AASSET_POINTER`]).
     pub fn from_file(file: impl AsRef<std::path::Path>, mode: &str) -> Result<IoStream<'static>> {
         let path = file.as_ref();
         if path.as_os_str().is_empty() {
@@ -1005,6 +1015,76 @@ impl IoStream<'static> {
         if mode.is_empty() {
             return Err(Error::invalid_param("mode"));
         }
+        #[cfg(target_os = "android")]
+        return Self::from_file_android(path, mode);
+        #[cfg(not(target_os = "android"))]
+        Self::from_file_stdio(path, mode)
+    }
+
+    /// `SDL_IOFromFile()`'s Android paths. FIXME (upstream): a relative
+    /// path of the internal storage that is a directory reports the
+    /// freed path in its error (`%s is a directory`); here the path.
+    #[cfg(target_os = "android")]
+    fn from_file_android(path: &std::path::Path, mode: &str) -> Result<IoStream<'static>> {
+        use crate::core::android as core_android;
+        use std::os::unix::ffi::OsStrExt;
+        let file = String::from_utf8_lossy(path.as_os_str().as_bytes()).into_owned();
+        // (fopen(), whose failure falls through to the assets)
+        let fopen = |path: &str| open_options(mode).and_then(|opts| opts.open(path).ok());
+
+        // Try to open the file on the filesystem first
+        if file.starts_with('/') {
+            if let Some(fp) = fopen(&file) {
+                if fp.metadata().map(|m| m.is_dir()).unwrap_or(false) {
+                    return Err(Error::new(format!("{file} is a directory")));
+                }
+                return Ok(IoStream::from_std_file(fp, mode, true));
+            }
+        } else if file.starts_with("content://") {
+            // Try opening content:// URI
+            // (SDL error is already set.)
+            let fd = core_android::open_file_descriptor(&file, mode)?;
+
+            // (fdopen(): a mode it takes, and a descriptor)
+            // SAFETY: fcntl() of a descriptor number.
+            let flags = unsafe { libc::fcntl(fd, libc::F_GETFL) };
+            if open_options(mode).is_none() || flags == -1 {
+                let e = if flags == -1 {
+                    std::io::Error::last_os_error()
+                } else {
+                    std::io::Error::from_raw_os_error(libc::EINVAL)
+                };
+                // SAFETY: the descriptor the content resolver gave, ours.
+                unsafe { libc::close(fd) };
+                return Err(Error::new(format!(
+                    "Unable to open file descriptor ({fd}) from URI {file}: {}",
+                    strerror(&e)
+                )));
+            }
+            use std::os::fd::FromRawFd;
+            // SAFETY: the descriptor the content resolver gave, ours.
+            let fp = unsafe { File::from_raw_fd(fd) };
+            return Ok(IoStream::from_std_file(fp, mode, true));
+        } else if !file.starts_with("assets://") {
+            // Try opening it from internal storage if it's a relative path
+            // (in a program that isn't an app, the current directory's)
+            let path = crate::filesystem::in_internal_storage(&file);
+            if let Some(fp) = fopen(&path) {
+                if fp.metadata().map(|m| m.is_dir()).unwrap_or(false) {
+                    return Err(Error::new(format!("{path} is a directory")));
+                }
+                return Ok(IoStream::from_std_file(fp, mode, true));
+            }
+        }
+
+        // Try to open the file from the asset system?
+        let iodata = core_android::assets::file_open(&file, mode)?;
+        Ok(IoStream::open(iodata))
+    }
+
+    /// `SDL_IOFromFile()` of the platforms but Android: `fopen()`.
+    #[cfg(not(target_os = "android"))]
+    fn from_file_stdio(path: &std::path::Path, mode: &str) -> Result<IoStream<'static>> {
         let display = path.display();
         // We can't write to the current directory, so use a writable path
         #[cfg(all(target_vendor = "apple", not(target_os = "macos")))]
@@ -1286,10 +1366,22 @@ mod tests {
     #[test]
     fn files() {
         let path = tmp("files");
+        // (on Android, a file that can't be opened is looked for among the
+        // app's assets, which a program that isn't an app, as a spawned
+        // test is, can't open without the app's Java VM)
+        #[cfg(target_os = "android")]
+        let no_app = crate::core::android::env::java_vm().is_none();
+        #[cfg(not(target_os = "android"))]
+        let no_app = false;
+        let missing = if no_app {
+            "Couldn't create asset manager"
+        } else {
+            "Couldn't open "
+        };
         assert!(IoStream::from_file(&path, "rb")
             .unwrap_err()
             .message()
-            .starts_with("Couldn't open "));
+            .starts_with(missing));
         assert!(IoStream::from_file(&path, "").is_err());
 
         // Small buffered writes, then a large direct one.
