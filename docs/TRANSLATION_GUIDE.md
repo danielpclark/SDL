@@ -449,7 +449,9 @@ functions only the Swift code calls aren't translated.
 Android builds and lints, and the tests run on the Android emulator as
 spawned processes and as apps (`tools/android_run.py`: "Android emulator"
 in docs/HARDWARE_TESTING.md). Its platform layer is begun: the JNI layer,
-the app's start and lifecycle, the event pump's Android parts and the log
+the app's start and lifecycle, the event pump's Android parts, the log,
+and the small backends: the filesystem paths, the assets and
+`content://` files, the locale, URLs, the battery, toasts and permissions
 (below); the Android drivers (video, audio, input, ...) aren't
 translated yet.
 
@@ -532,9 +534,25 @@ device; the same for `CARGO_TARGET_TMPDIR` and `CARGO_BIN_EXE_NAME`.
   themselves to the Java VM when they start (`Android_JNI_SetupThread()`).
 * SDL_system.h's Android functions are the `sdl3::android` module
   (`jni_env()`, `activity()`, `sdk_version()`, `is_chromebook()`,
-  `is_dex_mode()`, `send_back_button()`, `send_message()`); a program
-  that isn't an app has no Java VM, where they give `None` or false
-  (upstream dereferences a null environment).
+  `is_dex_mode()`, `send_back_button()`, `send_message()`,
+  `internal_storage_path()`, `external_storage_state()`,
+  `external_storage_path()`, `cache_path()`, `request_permission()`,
+  `show_toast()`); a program that isn't an app has no Java VM, where they
+  give `None`, false or the error `Failed, there is no JavaVM` (upstream
+  dereferences a null environment). Where upstream returns false without
+  setting an error (a toast without an activity, a URL no activity views),
+  the error's message is empty: `Note`s.
+* The app package's assets (SDL_android.c's APK tree and
+  `AAssetManager` I/O) are `core::android::assets`, linked to
+  `libandroid` as upstream links it: `IoStream::from_file()` opens an
+  absolute path on the filesystem, a `content://` URI through the content
+  resolver, a relative one in the internal storage, and otherwise (and
+  `assets://` paths) the asset; the file operations take relative paths in
+  the internal storage, and fall back to the assets for path info (an
+  absolute path's too), as upstream's `SDL_sysfsops.c` does. A program
+  that isn't an app has no assets, and no internal storage: its relative
+  paths are the current directory's, as on the other Unix platforms (a
+  `Note`: upstream needs an app there).
 * The log's default output writes to Android's log too
   (`__android_log_write()` of liblog, the tag `SDL/CATEGORY`), then to
   stderr, as upstream's does.
@@ -554,7 +572,8 @@ it) stands in:
 | audio | AAudio, OpenSL ES | dummy and disk (later) |
 | joysticks | android, HIDAPI (off by default), virtual | HIDAPI with no HID backend (the Android one: later), virtual |
 | haptic | android, HIDAPI | dummy (the android driver: later), HIDAPI |
-| sensor, camera, power, locale, URL, dialog, filesystem paths | Android's | dummy, or no backend (later) |
+| power, locale, URL, filesystem paths, assets | Android's | the same |
+| sensor, camera, dialog | Android's | dummy, or no backend (later) |
 | file operations, threads, time, timer, `loadso` | POSIX, pthread, Unix, Unix, `dlopen` | the same |
 | process, tray, notification | dummy, dummy, none | the same |
 
