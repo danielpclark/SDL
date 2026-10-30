@@ -932,7 +932,8 @@ jobs:
       # own way: android_runner.rs compares them), and android_spawned.rs
       # the same way; then both with an exit status of 3, which the runner
       # must give; then the app package itself: dexdump (which verifies
-      # the DEX file as ART does), apksigner and zipalign check it.
+      # the DEX file as ART does), apksigner and zipalign check it; and
+      # android_backends.rs's, with its assets and permissions.
       - name: The app mode's arguments, variables and exit status, and the app package
         if: ${{ !cancelled() }}
         shell: bash
@@ -975,6 +976,10 @@ jobs:
           "$ADB" logcat -d | grep -E "dex2oat|ArtService|VerifyError|Rejecting class|[Vv]erification" | grep -E "$P|org[./]libsdl" | tee "$RUNNER_TEMP/verify.txt" | tail -20
           if grep -E "VerifyError|Rejecting class|[Vv]erification (of .*)?failed|status=FAILED" "$RUNNER_TEMP/verify.txt"; then exit 1; fi
           "$ADB" uninstall "$P"
+          CARGO_MANIFEST_DIR="$PWD/sdl3" tools/android_run.py --apk "$(exe android_backends)" "$RUNNER_TEMP/android_backends.apk"
+          unzip -l "$RUNNER_TEMP/android_backends.apk" 'assets/*'
+          "$BT/aapt2" dump permissions "$RUNNER_TEMP/android_backends.apk"
+          "$BT/zipalign" -c -P 16 4 "$RUNNER_TEMP/android_backends.apk"
       # The arm64 build, through the emulator's ARM translation (the image
       # runs arm64-v8a programs, about three times slower): the libraries
       # with code of their own for arm64 (sdl3's CPU features, blitters
