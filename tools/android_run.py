@@ -1116,13 +1116,19 @@ def xml_attribute(value):
     )
 
 
+def manifest_value(value):
+    """A value as a manifest's `android:value`: aapt2 reads backslash
+    escapes there (`\\\\` is a backslash), as in a resource string."""
+    return xml_attribute(value.replace("\\", "\\\\"))
+
+
 def manifest(package, env):
     """The app's AndroidManifest.xml: upstream's android-project's (its
     features and permissions, its application's and activity's
     attributes), with this package's name, the INTERNET permission (for the
     runner's sockets) and the variables as `SDL_ENV.NAME` meta-data."""
     meta = "".join(
-        f'        <meta-data android:name="SDL_ENV.{xml_attribute(name)}" android:value="{xml_attribute(value)}" />\n'
+        f'        <meta-data android:name="SDL_ENV.{xml_attribute(name)}" android:value="{manifest_value(value)}" />\n'
         for name, value in sorted(env.items())
     )
     return f'''<?xml version="1.0" encoding="utf-8"?>

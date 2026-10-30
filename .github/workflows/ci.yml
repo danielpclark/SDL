@@ -937,7 +937,7 @@ jobs:
         if: ${{ !cancelled() }}
         shell: bash
         env:
-          SDL3_ANDROID_RUNNER_CHECK: "two words, \"quoted\", 'single', a\\backslash, <&>, \u00e9\u20ac\U0001F600"
+          SDL3_ANDROID_RUNNER_CHECK: "two  words\ttab, \"quoted\", 'single', a\\backslash, <&>, \u00e9\u20ac\U0001F600"
           SDL3_ANDROID_VERBOSE: 1
         run: |
           set -o pipefail
