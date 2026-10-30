@@ -40,6 +40,8 @@ pub(crate) mod jni;
 pub(crate) mod ndk;
 #[cfg(target_os = "android")]
 pub(crate) mod sdl_android;
+#[cfg(target_os = "android")]
+pub(crate) mod tests_in_app;
 
 #[cfg(target_os = "android")]
 pub(crate) use sdl_android::*;
