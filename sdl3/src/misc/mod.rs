@@ -1,7 +1,7 @@
 // Rust translation of src/misc/SDL_url.c, SDL_sysurl.h,
 // src/misc/unix/SDL_sysurl.c, src/misc/windows/SDL_sysurl.c,
 // src/misc/macos/SDL_sysurl.m, src/misc/ios/SDL_sysurl.m,
-// src/misc/emscripten/SDL_sysurl.c,
+// src/misc/emscripten/SDL_sysurl.c, src/misc/android/SDL_sysurl.c,
 // src/misc/dummy/SDL_sysurl.c and include/SDL3/SDL_misc.h from Simple DirectMedia Layer.
 // Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
 // This is an altered (translated) version of the original software; see LICENSE.txt.
@@ -12,7 +12,8 @@
 //! `xdg-open` (on Unix systems other than Apple's, Android and Haiku); the
 //! Windows backend hands the URL to `ShellExecuteW()`, the macOS one to
 //! LaunchServices (`LSOpenCFURLRef()`), the UIKit one to the app's
-//! `UIApplication` (`openURL:options:completionHandler:`), and the
+//! `UIApplication` (`openURL:options:completionHandler:`), the Android
+//! one to the activity that views it (an intent, `ACTION_VIEW`), and the
 //! Emscripten one opens it in a
 //! new browser tab (`window.open()`); elsewhere the dummy backend reports
 //! that the operation is unsupported until the platform layer arrives.
@@ -218,10 +219,24 @@ fn sys_open_url(url: &str) -> Result<()> {
     Ok(())
 }
 
+/// Translation of `SDL_SYS_OpenURL()` (Android): the activity's
+/// `openURL()`, an `ACTION_VIEW` intent of the URL. Note (upstream): false
+/// without an error when no activity views it (or there's no app); here
+/// the error's message is empty.
+#[cfg(target_os = "android")]
+fn sys_open_url(url: &str) -> Result<()> {
+    if crate::core::android::open_url(url) {
+        Ok(())
+    } else {
+        Err(crate::error::Error::new(""))
+    }
+}
+
 #[cfg(not(any(
     windows,
     target_vendor = "apple",
     target_os = "emscripten",
+    target_os = "android",
     all(
         unix,
         not(any(

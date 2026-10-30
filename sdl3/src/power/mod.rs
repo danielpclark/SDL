@@ -9,13 +9,16 @@
 //! over D-Bus, `/sys/class/power_supply`, `/proc/acpi` and `/proc/apm`,
 //! tried in that order), the Windows one (`GetSystemPowerStatus()`) and
 //! the UIKit one (UIDevice's battery monitoring; no battery on tvOS), the
-//! macOS one (IOKit's power sources) and the Emscripten one (the
-//! browser's Battery Status API). Elsewhere (the Android, ... backends are
-//! not translated) no backend is compiled in, so the answer is
-//! [`PowerState::Unknown`], as in an `SDL_POWER_DISABLED` build.
+//! macOS one (IOKit's power sources), the Android one (the battery's
+//! sticky intent, `ACTION_BATTERY_CHANGED`) and the Emscripten one (the
+//! browser's Battery Status API). Elsewhere no backend is compiled in, so
+//! the answer is [`PowerState::Unknown`], as in an `SDL_POWER_DISABLED`
+//! build.
 
 use std::time::Duration;
 
+#[cfg(target_os = "android")]
+mod android;
 #[cfg(target_os = "emscripten")]
 mod emscripten;
 #[cfg(target_os = "linux")]
@@ -81,6 +84,8 @@ static IMPLEMENTATIONS: &[GetPowerInfoImpl] = &[
     // handles macOS, Darwin.
     #[cfg(target_os = "macos")]
     macos::get_power_info_macosx,
+    #[cfg(target_os = "android")]
+    android::get_power_info_android,
     // handles Emscripten
     #[cfg(target_os = "emscripten")]
     emscripten::get_power_info_emscripten,

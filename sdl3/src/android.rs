@@ -6,7 +6,7 @@
 //! What SDL offers an Android app of its platform: the Java VM's
 //! environment of a thread and the activity (for an app's own JNI calls),
 //! the device's API level and form, the back button, messages to the
-//! activity, and the app's storage paths. They
+//! activity, the app's storage paths, runtime permissions and toasts. They
 //! need the app's Java VM: in a program that isn't an app (one started
 //! from the shell) there's none, and they give `None`, false, nothing or
 //! an error. (The device's form factor, TV or tablet, is
@@ -128,4 +128,49 @@ pub fn external_storage_path() -> Result<String> {
 /// `SDL_GetAndroidCachePath()`.
 pub fn cache_path() -> Result<String> {
     core_android::get_android_cache_path()
+}
+
+/// Request a permission at runtime, asynchronously: `callback` gets the
+/// permission (an Android permission's name, from
+/// <https://developer.android.com/reference/android/Manifest.permission>)
+/// and whether it is granted, once a decision has been made. Translation of
+/// `SDL_RequestAndroidPermission()`.
+///
+/// You do not need to call this for built-in functionality of SDL;
+/// recording from a microphone or reading images from a camera, using
+/// standard SDL APIs, will manage permission requests for you.
+///
+/// This function never blocks. The callback may be called on a different
+/// thread (the activity's main thread), and possibly much later, as it
+/// might wait on a user to respond to a system dialog. If permission has
+/// already been granted for a specific entitlement, the callback will still
+/// fire, on the current thread and before this function returns. The result
+/// of the request is only ever reported through the callback; an error
+/// means the request wasn't submitted (no app).
+///
+/// It is safe to call this function from any thread.
+pub fn request_permission(
+    permission: &str,
+    callback: impl FnOnce(&str, bool) + Send + 'static,
+) -> Result<()> {
+    core_android::request_android_permission(permission, Box::new(callback))
+}
+
+/// Show an Android toast notification (a lightweight notification unique to
+/// Android: <https://developer.android.com/guide/topics/ui/notifiers/toasts>),
+/// on the UI thread: `message` for `duration` (0: short, 1: long), at
+/// `gravity` (a value of
+/// <https://developer.android.com/reference/android/view/Gravity>, or -1 for
+/// no preference) offset by `xoffset` and `yoffset` (used when `gravity` is
+/// 0 or more). Translation of `SDL_ShowAndroidToast()`.
+///
+/// It is safe to call this function from any thread.
+pub fn show_toast(
+    message: &str,
+    duration: i32,
+    gravity: i32,
+    xoffset: i32,
+    yoffset: i32,
+) -> Result<()> {
+    core_android::show_android_toast(message, duration, gravity, xoffset, yoffset)
 }
