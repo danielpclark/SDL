@@ -306,6 +306,10 @@ pub(crate) mod test_support {
             "webaudio",
             "a running Web Audio AudioContext in that browser",
         ),
+        (
+            "android-sdk",
+            "the Android SDK's build-tools (dexdump) and NDK (jni.h), which the host checks of the DEX file and the JNI tables read",
+        ),
     ];
 
     /// Whether `SDL3_TEST_REQUIRE` (`all`, or a comma-separated list of
