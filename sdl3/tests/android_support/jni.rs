@@ -212,3 +212,76 @@ pub fn is_attached(vm: JavaVm) -> bool {
         get_env(vm.0, &mut out, 0x0001_0004) == 0 // JNI_VERSION_1_4: JNI_OK
     }
 }
+
+/// `NewStringUTF()`: a local reference.
+pub fn new_string(env: JNIEnv, s: &str) -> Jobject {
+    let cs = CString::new(s).unwrap();
+    // SAFETY: jni.h's function 167, of a C string.
+    let string = unsafe {
+        let f: unsafe extern "system" fn(JNIEnv, *const c_char) -> Jobject = function(env, 167);
+        f(env, cs.as_ptr())
+    };
+    assert!(!exception(env) && !string.is_null(), "NewStringUTF({s:?})");
+    string
+}
+
+/// `NewObjectA()` of `class`'s constructor `sig`: a local reference.
+pub fn new_object(env: JNIEnv, class: Jobject, sig: &str, args: &[Jvalue]) -> Jobject {
+    let (cname, csig) = (CString::new("<init>").unwrap(), CString::new(sig).unwrap());
+    // SAFETY: jni.h's functions 33 and 30, with the constructor's arguments.
+    let object = unsafe {
+        let get: unsafe extern "system" fn(
+            JNIEnv,
+            Jobject,
+            *const c_char,
+            *const c_char,
+        ) -> MethodId = function(env, 33);
+        let method = get(env, class, cname.as_ptr(), csig.as_ptr());
+        assert!(
+            !exception(env) && !method.is_null(),
+            "GetMethodID(<init>{sig})"
+        );
+        let new: unsafe extern "system" fn(JNIEnv, Jobject, MethodId, *const Jvalue) -> Jobject =
+            function(env, 30);
+        new(env, class, method, args.as_ptr())
+    };
+    assert!(!exception(env) && !object.is_null(), "new {sig}");
+    object
+}
+
+/// `GetStaticObjectField()` of `class`'s `name`: a local reference.
+pub fn get_static_object_field(env: JNIEnv, class: Jobject, name: &str, sig: &str) -> Jobject {
+    let (cname, csig) = (CString::new(name).unwrap(), CString::new(sig).unwrap());
+    // SAFETY: jni.h's functions 144 and 145.
+    let value = unsafe {
+        let get_id: unsafe extern "system" fn(
+            JNIEnv,
+            Jobject,
+            *const c_char,
+            *const c_char,
+        ) -> *mut c_void = function(env, 144);
+        let field = get_id(env, class, cname.as_ptr(), csig.as_ptr());
+        assert!(
+            !exception(env) && !field.is_null(),
+            "GetStaticFieldID({name})"
+        );
+        let get: unsafe extern "system" fn(JNIEnv, Jobject, *mut c_void) -> Jobject =
+            function(env, 145);
+        get(env, class, field)
+    };
+    assert!(!exception(env), "the field {name}");
+    value
+}
+
+/// `CallIntMethodA()` of `obj`'s `name`.
+pub fn call_int(env: JNIEnv, obj: Jobject, name: &str, sig: &str, args: &[Jvalue]) -> i32 {
+    let method = method(env, obj, name, sig);
+    // SAFETY: jni.h's function 51, with the method's arguments.
+    let result = unsafe {
+        let call: unsafe extern "system" fn(JNIEnv, Jobject, MethodId, *const Jvalue) -> i32 =
+            function(env, 51);
+        call(env, obj, method, args.as_ptr())
+    };
+    assert!(!exception(env), "{name}{sig} threw");
+    result
+}
