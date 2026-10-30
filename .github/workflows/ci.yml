@@ -952,7 +952,7 @@ jobs:
           }
           for t in android_runner android_spawned; do
             rc=0
-            SDL3_ANDROID_RUNNER_EXIT=3 tools/android_run.py "$(exe $t)" || rc=$?
+            env -u SDL3_ANDROID_RUNNER_CHECK SDL3_ANDROID_RUNNER_EXIT=3 tools/android_run.py "$(exe $t)" || rc=$?
             echo "$t: exit status $rc"
             test "$rc" = 3
           done
