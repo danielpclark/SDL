@@ -1610,7 +1610,8 @@ What the program gets:
   `CARGO_TARGET_TMPDIR` (an app has directories of its own), as the
   manifest's `SDL_ENV.NAME` meta-data, which upstream's `SDLActivity` sets
   as variables when SDL first reads the environment
-  (`sdl3::stdlib::getenv()` and SDL's environment do). aapt2 types the
+  (`sdl3::stdlib::getenv()` and SDL's environment do). aapt2 reads
+  backslash escapes in them (so the runner doubles backslashes), and types the
   values that read as numbers, booleans, colors or resource references,
   which would reach the app changed (`01` as `1`), so those are left out
   with a note;

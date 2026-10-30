@@ -89,6 +89,7 @@ variables a spawned program gets but HOME, TMPDIR and CARGO_TARGET_TMPDIR
 (an app has its own directories), as the manifest's meta-data
 `SDL_ENV.NAME`, which upstream's SDLActivity sets as environment variables
 (`getManifestEnvironmentVariables()`) when SDL first reads one. (aapt2
+reads backslash escapes there, so backslashes are doubled; and it
 types a value that reads as a number, a boolean, a color or a resource
 reference, so a variable whose value wouldn't come through as it is, as
 `01`, `+1` or `#fff`, is left out, with a note.) An app's stdout and stderr
