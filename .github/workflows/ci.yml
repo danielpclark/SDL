@@ -162,7 +162,10 @@ jobs:
       # down (an audio endpoint, GameInput, a camera). Not vulkan and egl on
       # Windows and macOS either, which a few checks skip by design there:
       # "Check the GPU skips" below fails on any other skip of them.
-      LINUX_REQUIRE: x11,xvfb,glx,egl,vulkan,wayland,dbus,pulseaudio,pipewire,alsa,udev,hidapi,tzdata,locales
+      LINUX_REQUIRE: x11,xvfb,glx,egl,vulkan,wayland,dbus,pulseaudio,pipewire,alsa,udev,hidapi,tzdata,locales,android-sdk
+      # The Android SDK's build-tools whose dexdump checks the DEX file
+      # (android-sdk, with the NDK's jni.h: the runner image has both)
+      SDL3_ANDROID_BUILD_TOOLS: "35.0.0"
       WINDOWS_REQUIRE: wgl
       # The GPU drivers of the Windows and macOS jobs, pinned: Mesa for
       # Windows (pal1000/mesa-dist-win's MSVC build: llvmpipe OpenGL and
@@ -850,6 +853,10 @@ jobs:
       SDL3_ANDROID_SYSTEM_IMAGE: "system-images;android-35;google_apis;x86_64"
       # (on the runner image, which points ANDROID_NDK_ROOT to r27)
       ANDROID_NDK_VERSION: "29.0.14206865"
+      # The build-tools and platform the app packages are made with (on the
+      # runner image)
+      SDL3_ANDROID_BUILD_TOOLS: "35.0.0"
+      SDL3_ANDROID_PLATFORM: "35"
       RUST_TEST_NOCAPTURE: 1
       CARGO_PROFILE_DEV_DEBUG: line-tables-only
       # (a program that hangs fails after that, the others still run; the
@@ -920,6 +927,54 @@ jobs:
           TEST_ARGS: ${{ inputs.android_test_args }}
           SDL3_TEST_SKIP_LOG: ${{ runner.temp }}/skips.tsv
         run: cargo test --target x86_64-linux-android --no-fail-fast ${TEST_ARGS:---workspace} 2>&1 | tee "$RUNNER_TEMP/test.log"
+      # The app mode once more, with arguments and a variable (the same
+      # string, which comes through the manifest and the arguments each its
+      # own way: android_runner.rs compares them), and android_spawned.rs
+      # the same way; then both with an exit status of 3, which the runner
+      # must give; then the app package itself: dexdump (which verifies
+      # the DEX file as ART does), apksigner and zipalign check it.
+      - name: The app mode's arguments, variables and exit status, and the app package
+        if: ${{ !cancelled() }}
+        shell: bash
+        env:
+          SDL3_ANDROID_RUNNER_CHECK: "two  words\ttab, \"quoted\", 'single', a\\backslash, <&>, \u00e9\u20ac\U0001F600"
+          SDL3_ANDROID_VERBOSE: 1
+        run: |
+          set -o pipefail
+          # (its output again at the end of the log when the job fails)
+          exec > >(tee "$RUNNER_TEMP/app-mode.log") 2>&1
+          for t in android_runner android_spawned; do
+            cargo test --target x86_64-linux-android -p sdl3 --test $t -- "$SDL3_ANDROID_RUNNER_CHECK" second ''
+          done
+          exe() {
+            cargo test --target x86_64-linux-android -p sdl3 --test "$1" --no-run --message-format=json 2>/dev/null |
+              python3 -c 'import json, sys; print([m["executable"] for m in map(json.loads, sys.stdin) if m.get("executable")][-1])'
+          }
+          for t in android_runner android_spawned; do
+            rc=0
+            env -u SDL3_ANDROID_RUNNER_CHECK SDL3_ANDROID_RUNNER_EXIT=3 tools/android_run.py "$(exe $t)" || rc=$?
+            echo "$t: exit status $rc"
+            test "$rc" = 3
+          done
+          BT="$ANDROID_HOME/build-tools/$SDL3_ANDROID_BUILD_TOOLS"
+          tools/android_run.py --apk "$(exe android_runner)" "$RUNNER_TEMP/android_runner.apk"
+          unzip -l "$RUNNER_TEMP/android_runner.apk"
+          "$BT/dexdump" -c "$RUNNER_TEMP/android_runner.apk"
+          "$BT/dexdump" -d "$RUNNER_TEMP/android_runner.apk" | tee "$RUNNER_TEMP/dexdump.txt" | head -80
+          if grep -E "ERROR|Failure" "$RUNNER_TEMP/dexdump.txt"; then exit 1; fi
+          "$BT/apksigner" verify --min-sdk-version 21 --print-certs "$RUNNER_TEMP/android_runner.apk"
+          "$BT/zipalign" -c -P 16 -v 4 "$RUNNER_TEMP/android_runner.apk" | tail -5
+          # ART's verifier on the device (dex2oat's verify filter, forced)
+          ADB="$ANDROID_HOME/platform-tools/adb"
+          P=org.libsdl.sdl3_rust.android_runner
+          "$ADB" logcat -b all -c
+          "$ADB" install -r -t "$RUNNER_TEMP/android_runner.apk"
+          "$ADB" shell cmd package compile -m verify -f "$P" | tee "$RUNNER_TEMP/compile.txt"
+          grep -q Success "$RUNNER_TEMP/compile.txt"
+          "$ADB" shell pm art dump "$P" | head -20
+          "$ADB" logcat -d | grep -E "dex2oat|ArtService|VerifyError|Rejecting class|[Vv]erification" | grep -E "$P|org[./]libsdl" | tee "$RUNNER_TEMP/verify.txt" | tail -20
+          if grep -E "VerifyError|Rejecting class|[Vv]erification (of .*)?failed|status=FAILED" "$RUNNER_TEMP/verify.txt"; then exit 1; fi
+          "$ADB" uninstall "$P"
       # The arm64 build, through the emulator's ARM translation (the image
       # runs arm64-v8a programs, about three times slower): the libraries
       # with code of their own for arm64 (sdl3's CPU features, blitters
@@ -988,6 +1043,9 @@ jobs:
           "$ADB" -s "$SDL3_ANDROID_SERIAL" logcat -d | tail -300 || true
           # (the emulator's own log, where tools/android_run.py keeps it)
           tail -100 "${TMPDIR:-/tmp}/sdl3-android-run-$(id -u)/$SDL3_ANDROID_SERIAL/emulator.log" || true
+          # (last: the app mode's step, whose output the logs above push out of a
+          # log's last lines)
+          if [ -f "$RUNNER_TEMP/app-mode.log" ]; then echo "== the app mode's step"; tail -200 "$RUNNER_TEMP/app-mode.log"; fi
       - name: Stop the emulator
         if: always()
         run: tools/android_run.py --kill
