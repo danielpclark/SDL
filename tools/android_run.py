@@ -172,10 +172,33 @@ ARGUMENTS are shell words):
               the package of the activity on top (`dumpsys activity`), once
               it is the app's or another's (within 8 s): the answer is
               `top: the app` or `top: PACKAGE`
+  rotate 0|1|2|3
+              the display turned to that rotation (0, 90, 180 or 270
+              degrees): the rotation locked (`settings put system
+              accelerometer_rotation 0`), then `settings put system
+              user_rotation N`; both settings are restored once the app
+              ends
+  density DPI|reset
+              `wm density DPI`, the display's density (a configuration
+              change that recreates the activity, upstream's not handling
+              it: see its manifest's configChanges); reset once the app
+              ends
 The runner answers each request on the app's stdout socket, once it's
 done: its lines (`sdl3-android-runner: reply LINE`), then
 `sdl3-android-runner: done` (android_support's `request()` reads them).
 The app waits for what follows itself.
+
+An app whose process is to end by itself (upstream's activity, recreated
+after its SDL main thread has ended, calls `System.exit(0)`) prints
+`sdl3-android-runner: exit N once the process ends` in place of the exit
+line: the runner then waits for the process to end, for up to 60 s, and
+its status is N if it does (a failure if it doesn't), whatever Android
+launches next (which the runner stops).
+
+A run whose app's process Android froze (its cached apps freezer: none
+of the app's activities is in front, as after BACK finished the
+activity) fails once the runner finds it frozen at two checks ten
+seconds apart, rather than at SDL3_ANDROID_TIMEOUT.
 
 `--run-apk APK [PACKAGE]` runs an app package made elsewhere (upstream's
 android-project and its C, with Gradle) the same way, as far as it can:
@@ -1011,6 +1034,14 @@ class Run:
 # Apps
 
 SENTINEL = re.compile(r"sdl3-android-runner: exit (-?\d+)")
+# The exit status, once the process ends by itself.
+SENTINEL_ON_END = re.compile(r"sdl3-android-runner: exit (-?\d+) once the process ends")
+# How long the runner waits for that.
+END_TIMEOUT = 60
+# How often the runner checks whether Android froze the app's process (a
+# cached process, about ten seconds after none of its activities is in
+# front any more): frozen at two checks in a row fails the run.
+FREEZE_CHECK = 10
 REQUEST = re.compile(r"sdl3-android-runner: request (\S+)(?: (.*))?")
 # A request's answer: its lines, then its end.
 REPLY = "sdl3-android-runner: reply "
@@ -1414,6 +1445,8 @@ class Stream:
         self.closed = False
         self.pending = b""
         self.status = None
+        # (the status once the process ends: SENTINEL_ON_END)
+        self.status_on_end = None
         self.tail = []
 
     def accept(self):
@@ -1453,6 +1486,10 @@ class Stream:
             if match:
                 self.status = int(match.group(1)) & 0xFF
                 continue
+            match = SENTINEL_ON_END.fullmatch(text) if self.sentinel else None
+            if match:
+                self.status_on_end = int(match.group(1)) & 0xFF
+                continue
             self.tail.append(text)
             del self.tail[:-40]
             self.out.write(text + "\n")
@@ -1464,7 +1501,7 @@ class Stream:
 
     def reply(self, lines):
         """Answer a request: its lines, then the end of the answer."""
-        if self.connection is None:
+        if self.connection is None or self.closed:
             return
         data = "".join(f"{REPLY}{line}\n" for line in lines) + DONE + "\n"
         self.connection.setblocking(True)
@@ -1477,7 +1514,7 @@ class Stream:
 
     def drain(self, deadline):
         """Read the rest (the app has been stopped)."""
-        if self.connection is None:
+        if self.connection is None or self.closed:
             return
         self.connection.setblocking(True)
         while not self.closed:
@@ -1506,6 +1543,9 @@ class AppRequests:
     def __init__(self, serial, package):
         self.serial = serial
         self.package = package
+        # (the settings to restore once the app ends: name -> value)
+        self.saved_settings = {}
+        self.density_changed = False
 
     def handle(self, what, args=""):
         """Do WHAT: the lines of its answer."""
@@ -1561,6 +1601,21 @@ class AppRequests:
             return self.toast()
         elif what == "top-activity":
             return self.top_activity(words[0] if words else "other")
+        elif what == "rotate":
+            if len(words) != 1 or words[0] not in ("0", "1", "2", "3"):
+                note(f"request {what} {args}: not `rotate 0|1|2|3` (ignored)")
+                return []
+            for name in ("accelerometer_rotation", "user_rotation"):
+                if name not in self.saved_settings:
+                    result = adb_shell(self.serial, f"settings get system {name}", check=False)
+                    self.saved_settings[name] = result.stdout.strip()
+            command = f"settings put system accelerometer_rotation 0 && settings put system user_rotation {words[0]}"
+        elif what == "density":
+            if len(words) != 1 or not (words[0] == "reset" or words[0].isdigit()):
+                note(f"request {what} {args}: not `density DPI|reset` (ignored)")
+                return []
+            self.density_changed = words[0] != "reset"
+            command = f"wm density {words[0]}"
         else:
             note(f"unknown request {what!r} (ignored)")
             return []
@@ -1568,6 +1623,19 @@ class AppRequests:
         if result.returncode != 0:
             note(f"request {what} {args}: failed ({result.returncode}): {(result.stderr or result.stdout).strip()}")
         return []
+
+    def restore(self):
+        """Put back what the requests changed for the device (the rotation,
+        the density), once the app has ended."""
+        for name, value in self.saved_settings.items():
+            if value and value != "null":
+                adb_shell(self.serial, f"settings put system {name} {shlex.quote(value)}", check=False)
+            else:
+                adb_shell(self.serial, f"settings delete system {name}", check=False)
+        self.saved_settings = {}
+        if self.density_changed:
+            adb_shell(self.serial, "wm density reset", check=False)
+            self.density_changed = False
 
     def logcat(self, tags):
         """The app's lines of the device's log with those tags, as `P/TAG:
@@ -1674,6 +1742,12 @@ def app_pid(serial, package):
     return result.stdout.strip() or None
 
 
+def app_frozen(serial, package):
+    """Whether Android's cached apps freezer froze the app's process."""
+    result = adb_shell(serial, f"dumpsys activity processes {package}", check=False, timeout=30)
+    return "isFrozen=true" in result.stdout
+
+
 def install(serial, apk, package):
     result = adb(serial, "install", "-r", "-t", apk, check=False, timeout=600)
     output = (result.stdout + result.stderr).strip()
@@ -1748,12 +1822,25 @@ def run_app(serial, package, listeners):
     relaunched = False
     timed_out = False
     last_check = time.monotonic()
-    while launched and out.status is None:
+    last_freeze_check = time.monotonic()
+    frozen_checks = 0
+    while launched and out.status is None and out.status_on_end is None:
         if timeout and time.monotonic() - start > timeout:
             timed_out = True
             reason = f"the app ran for more than {timeout:g} s (SDL3_ANDROID_TIMEOUT)"
             note(f"{reason}: stopping it")
             break
+        if time.monotonic() - last_freeze_check > FREEZE_CHECK:
+            last_freeze_check = time.monotonic()
+            frozen_checks = frozen_checks + 1 if app_frozen(serial, package) else 0
+            if frozen_checks >= 2:
+                timed_out = True
+                reason = (
+                    "Android froze the app's process (cached: none of its activities is in front, as once "
+                    "BACK finishes the activity, and it stays in the background), so it can't go on"
+                )
+                note(f"{reason}: stopping it")
+                break
         for key, _ in selector.select(timeout=0.5):
             stream, what = key.data
             if what == "accept":
@@ -1780,9 +1867,17 @@ def run_app(serial, package, listeners):
             if time.monotonic() - start > CONNECT_TIMEOUT and not app_pid(serial, package):
                 reason = f"the app didn't connect to the runner in {CONNECT_TIMEOUT} s, and its process is gone"
                 break
+    if out.status_on_end is not None and reason is None:
+        # (its output until it ends; then whatever Android launches next is
+        # stopped below)
+        if wait_for_end(serial, pid, lambda: [s.read() for s in streams if s.connection and not s.closed]):
+            out.status = out.status_on_end
+        else:
+            reason = f"the app's process ({pid}) didn't end in {END_TIMEOUT} s after `sdl3-android-runner: exit N once the process ends`"
     # The status is known (or won't be): stop the app (which ends its
     # connections), then copy what's left of its output.
     adb_shell(serial, f"am force-stop {package}", check=False, timeout=60)
+    requests.restore()
     deadline = time.monotonic() + 5
     for stream in streams:
         stream.drain(deadline)
@@ -1825,6 +1920,23 @@ def run_app(serial, package, listeners):
     return 1
 
 
+def wait_for_end(serial, pid, meanwhile=None):
+    """Wait for the process PID (`pidof`'s words) to end, for up to
+    END_TIMEOUT seconds, calling `meanwhile` now and then: whether it did."""
+    pids = (pid or "").split()
+    if not pids:
+        return False
+    deadline = time.monotonic() + END_TIMEOUT
+    while time.monotonic() < deadline:
+        result = adb_shell(serial, " && ".join(f"test -d /proc/{shlex.quote(p)}" for p in pids), check=False, timeout=30)
+        if result.returncode != 0:
+            return True
+        if meanwhile:
+            meanwhile()
+        time.sleep(0.5)
+    return False
+
+
 def apk_package(apk):
     """The package name of an APK, as aapt2 reads it."""
     result = run_tool([os.path.join(build_tools(), "aapt2"), "dump", "packagename", apk], timeout=300)
@@ -1850,18 +1962,19 @@ def cmd_run_apk(args):
         result = adb(serial, "install", "-r", "-t", apk, check=False, timeout=600)
         if result.returncode != 0 or "Success" not in result.stdout + result.stderr:
             raise Failure(f"adb install {apk} failed ({result.returncode}): {(result.stdout + result.stderr).strip()}")
+        requests = AppRequests(serial, package)
         try:
-            return run_logcat_app(serial, package, timeout)
+            return run_logcat_app(serial, package, timeout, requests)
         finally:
             adb_shell(serial, f"am force-stop {package}", check=False, timeout=60)
+            requests.restore()
             adb(serial, "uninstall", package, check=False, timeout=120)
 
 
-def run_logcat_app(serial, package, timeout):
+def run_logcat_app(serial, package, timeout, requests):
     """Launch PACKAGE's activity, and copy its SDL/APP lines of the device's
     log, acting on its requests, until its exit line: its status."""
     adb(serial, "logcat", "-b", "all", "-c", check=False)
-    requests = AppRequests(serial, package)
     done = 0
     argv = [sdk_tool("platform-tools", "adb", name="adb"), "-s", serial, "logcat", "-v", "raw", "-s", "SDL/APP:V"]
     log = subprocess.Popen(argv, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE)
@@ -1890,6 +2003,13 @@ def run_logcat_app(serial, package, timeout):
                 match = SENTINEL.fullmatch(text)
                 if match:
                     return int(match.group(1)) & 0xFF
+                match = SENTINEL_ON_END.fullmatch(text)
+                if match:
+                    pid = app_pid(serial, package)
+                    if wait_for_end(serial, pid):
+                        return int(match.group(1)) & 0xFF
+                    note(f"{package}: its process ({pid}) didn't end in {END_TIMEOUT} s")
+                    return 1
                 print(text, flush=True)
                 request = REQUEST.fullmatch(text)
                 if request:
