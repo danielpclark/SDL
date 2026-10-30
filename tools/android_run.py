@@ -69,7 +69,14 @@ its ELF file holding the word `app` (a `#[used] #[link_section =
 ".sdl3_runner"]` static of words separated by spaces or NULs, as
 sdl3/tests/android_runner.rs has), which tools/android_link.py links as an
 app's libmain.so (a shared library whose `SDL_main` is the program's
-`main`, with sdl3's `JNI_OnLoad`). The program is put in an app package
+`main`, with sdl3's `JNI_OnLoad`). Two more words shape its package:
+`assets=DIR`, the files of the directory DIR (relative to CARGO_MANIFEST_DIR,
+else to the current directory) as the package's assets (`assets/...`,
+compressed, with the time Gradle's packager gives them,
+1981-01-01 01:01:02, as Gradle's are), and `permissions=NAME,...`, the
+permissions the manifest asks for (a NAME without a dot is
+`android.permission.NAME`; none is granted: the runner's `permission`
+request grants one). The program is put in an app package
 (APK, as `--apk` writes it), with no Gradle: the SDK's build-tools
 (SDL3_ANDROID_BUILD_TOOLS's version, by default 35.0.0, the one CI uses, or
 the newest installed) link a manifest written here (upstream's
@@ -110,7 +117,8 @@ exit status (the line isn't copied). The app is then stopped (`am
 force-stop`) and uninstalled. Without that line (a crash, an uncaught
 panic, which aborts in a native method, an app that returned from main and
 stays up until the timeout) the run fails, and the end of the device's log
-follows, then the reason once more. A process that ends before its launch
+follows, then the app process's own lines of it, then the reason once
+more. A process that ends before its launch
 is complete is launched again by Android, which would run the program a
 second time: the second connection is refused, and the run fails. So does
 one whose package ART didn't verify (a `VerifyError`, a rejected class, a
@@ -140,9 +148,30 @@ ARGUMENTS are shell words):
               `cmd locale set-app-locales PACKAGE --locales TAGS` (comma-
               separated: fr-FR; none for the system's), the app's own
               locales (API 33 and later)
-  logcat TAGS...
+  logcat TAGS... [--grep REGEX]
               the app's lines of the device's log (`logcat -d --pid=PID -s
-              TAGS`), as the answer: `P/TAG: MESSAGE` each
+              TAGS`), as the answer: `P/TAG: MESSAGE` each (those whose
+              message REGEX matches)
+  power ARGUMENTS
+              `adb emu power ARGUMENTS`: the emulator's battery (`ac
+              on|off`, `status charging|discharging|not-charging|full`,
+              `present true|false`, `capacity PERCENT`)
+  permission grant|revoke NAME
+              `pm grant|revoke PACKAGE NAME` (a NAME without a dot is
+              `android.permission.NAME`). Revoking a granted permission
+              ends the app's process, as Android does
+  permission-dialog allow|deny
+              the system's permission dialog answered: its button found in
+              `uiautomator dump`'s view tree, then tapped (`input tap`),
+              within 20 s; the answer is `dialog: tapped BUTTON` or `dialog:
+              none`
+  toast       whether a toast of the app's is shown (`dumpsys notification`'s
+              toast queue, or a toast window in `dumpsys window`), within 4
+              s: the answer is `toast: shown` or `toast: not seen`
+  top-activity app|other
+              the package of the activity on top (`dumpsys activity`), once
+              it is the app's or another's (within 8 s): the answer is
+              `top: the app` or `top: PACKAGE`
 The runner answers each request on the app's stdout socket, once it's
 done: its lines (`sdl3-android-runner: reply LINE`), then
 `sdl3-android-runner: done` (android_support's `request()` reads them).
@@ -153,9 +182,13 @@ android-project and its C, with Gradle) the same way, as far as it can:
 installed, launched, and stopped and uninstalled once it ends, its output
 being its process's lines of the device's log with the tag SDL/APP (its
 `SDL_Log()`s), the requests among them answered on stdout (`sdl3-android-
-runner: reply LINE`, as it has no socket to read them from), its exit
-status the `sdl3-android-runner: exit N` line's. PACKAGE is the package's
-(by default aapt2's reading of it).
+runner: reply LINE`, as it has no socket to read them from; once a
+request is done, the runner writes its number, counting from 1, then the
+answer's lines, to the file `cache/sdl3-android-runner-done` of the app's
+data directory, with `run-as`, so that a debuggable app can wait for it),
+its exit status the `sdl3-android-runner: exit N` line's. PACKAGE is the
+package's (by default aapt2's reading of it). The package is installed
+as the runner's own are: no permission granted.
 
 The device: SDL3_ANDROID_SERIAL's (an `adb devices` serial), else
 ANDROID_SERIAL's, else the only device adb lists (or the emulator this
@@ -219,8 +252,10 @@ Environment:
                                it)
   JAVA_HOME                    the JDK of keytool and apksigner (else PATH's)
 """
+import base64
 import fcntl
 import hashlib
+import html
 import os
 import re
 import selectors
@@ -996,6 +1031,15 @@ MIN_SDK = 21
 PREFERRED_BUILD_TOOLS = "35.0.0"
 PREFERRED_PLATFORM = 35
 
+# The time of the assets' entries in an app's package: Gradle's
+# packager's (1981-01-01 01:01:02), so that an asset's time is the same in
+# a package of upstream's android-project.
+ASSET_DATE_TIME = (1981, 1, 1, 1, 1, 2)
+
+# Where `--run-apk`'s app finds that its request is done (in its data
+# directory, written with run-as).
+RUN_APK_DONE = "cache/sdl3-android-runner-done"
+
 # The variables an app doesn't get: it has its own directories.
 NOT_FOR_APPS = ("HOME", "TMPDIR", "CARGO_TARGET_TMPDIR", "SDL3_TEST_SKIP_LOG")
 
@@ -1164,11 +1208,26 @@ def manifest_value(value):
     return xml_attribute(value.replace("\\", "\\\\"))
 
 
-def manifest(package, env):
+def permission_name(name):
+    """A permission's full name (`android.permission.NAME` for one without
+    a dot)."""
+    return name if "." in name else "android.permission." + name
+
+
+def word_values(words, key):
+    """The values of the words `KEY=VALUE`."""
+    return [w[len(key) + 1:] for w in words if w.startswith(key + "=")]
+
+
+def manifest(package, env, permissions=()):
     """The app's AndroidManifest.xml: upstream's android-project's (its
     features and permissions, its application's and activity's
     attributes), with this package's name, the INTERNET permission (for the
-    runner's sockets) and the variables as `SDL_ENV.NAME` meta-data."""
+    runner's sockets), the program's own permissions and the variables as
+    `SDL_ENV.NAME` meta-data."""
+    extra = "".join(
+        f'    <uses-permission android:name="{xml_attribute(permission_name(p))}" />\n' for p in permissions
+    )
     meta = "".join(
         f'        <meta-data android:name="SDL_ENV.{xml_attribute(name)}" android:value="{manifest_value(value)}" />\n'
         for name, value in sorted(env.items())
@@ -1187,7 +1246,7 @@ def manifest(package, env):
     <uses-feature android:name="android.hardware.type.pc" android:required="false" />
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.INTERNET" />
-    <application android:label="@string/app_name"
+{extra}    <application android:label="@string/app_name"
         android:allowBackup="true"
         android:theme="@style/AppTheme"
         android:enableOnBackInvokedCallback="true"
@@ -1243,9 +1302,11 @@ def write_apk(program, elf, out, env, temp):
     jar, api = platform_jar()
     package = package_name(program)
     start = time.monotonic()
+    permissions = [p for value in word_values(elf.words, "permissions") for p in value.split(",") if p]
+    assets = assets_files(word_values(elf.words, "assets"))
     manifest_path = os.path.join(temp, "AndroidManifest.xml")
     with open(manifest_path, "w", encoding="utf-8") as f:
-        f.write(manifest(package, env))
+        f.write(manifest(package, env, permissions))
     compiled = os.path.join(temp, "compiled")
     os.makedirs(compiled, exist_ok=True)
     for relative, text in resources(program_name(program)).items():
@@ -1265,6 +1326,11 @@ def write_apk(program, elf, out, env, temp):
         for item in source.infolist():
             zip_out.writestr(item, source.read(item.filename))
         zip_out.writestr(zipfile.ZipInfo("classes.dex"), elf.dex, compress_type=zipfile.ZIP_DEFLATED)
+        for name, path in assets:
+            info = zipfile.ZipInfo(f"assets/{name}", date_time=ASSET_DATE_TIME)
+            info.compress_type = zipfile.ZIP_DEFLATED
+            with open(path, "rb") as f:
+                zip_out.writestr(info, f.read())
         # (uncompressed, so that zipalign page-aligns it)
         zip_out.write(program, f"lib/{abi}/libmain.so", compress_type=zipfile.ZIP_STORED)
     aligned = os.path.join(temp, "aligned.apk")
@@ -1276,6 +1342,24 @@ def write_apk(program, elf, out, env, temp):
     if VERBOSE:
         note(f"wrote {out} ({package}, {os.path.getsize(out)} bytes) in {time.monotonic() - start:.1f} s")
     return package
+
+
+def assets_files(dirs):
+    """The files of the `assets=DIR` directories (relative to
+    CARGO_MANIFEST_DIR, else to the current directory), as (the name under
+    assets/, the file), sorted by name."""
+    base = os.environ.get("CARGO_MANIFEST_DIR") or os.getcwd()
+    files = {}
+    for d in dirs:
+        root = d if os.path.isabs(d) else os.path.join(base, d)
+        if not os.path.isdir(root):
+            raise Failure(f"no assets directory {root} (the program's word assets={d})")
+        for top, subdirs, names in os.walk(root):
+            subdirs.sort()
+            for n in names:
+                path = os.path.join(top, n)
+                files[os.path.relpath(path, root).replace(os.sep, "/")] = path
+    return sorted(files.items())
 
 
 def cmd_apk(args):
@@ -1424,6 +1508,14 @@ class AppRequests:
         self.package = package
 
     def handle(self, what, args=""):
+        """Do WHAT: the lines of its answer."""
+        start = time.monotonic()
+        lines = self.do(what, args)
+        if VERBOSE:
+            note(f"request {what} {args or ''}: {len(lines)} lines in {time.monotonic() - start:.1f} s")
+        return lines
+
+    def do(self, what, args=""):
         args = args or ""
         try:
             words = shlex.split(args)
@@ -1450,6 +1542,25 @@ class AppRequests:
             command = f"cmd locale set-app-locales {self.package} --locales " + shlex.quote(",".join(words))
         elif what == "logcat":
             return self.logcat(words)
+        elif what == "power":
+            if not words:
+                note(f"request {what}: no arguments (ignored)")
+                return []
+            result = adb(self.serial, "emu", "power", *words, check=False, timeout=60)
+            if result.returncode != 0 or "KO" in result.stdout:
+                note(f"request {what} {args}: failed ({result.returncode}): {(result.stderr or result.stdout).strip()}")
+            return []
+        elif what == "permission":
+            if len(words) != 2 or words[0] not in ("grant", "revoke"):
+                note(f"request {what} {args}: not `grant|revoke NAME` (ignored)")
+                return []
+            command = f"pm {words[0]} {self.package} {shlex.quote(permission_name(words[1]))}"
+        elif what == "permission-dialog":
+            return self.permission_dialog(words[0] if words else "allow")
+        elif what == "toast":
+            return self.toast()
+        elif what == "top-activity":
+            return self.top_activity(words[0] if words else "other")
         else:
             note(f"unknown request {what!r} (ignored)")
             return []
@@ -1460,7 +1571,12 @@ class AppRequests:
 
     def logcat(self, tags):
         """The app's lines of the device's log with those tags, as `P/TAG:
-        MESSAGE`."""
+        MESSAGE` (those whose message the `--grep` REGEX matches)."""
+        grep = None
+        if "--grep" in tags:
+            i = tags.index("--grep")
+            grep = re.compile(" ".join(tags[i + 1:]))
+            tags = tags[:i]
         pid = app_pid(self.serial, self.package)
         command = "logcat -d -v brief"
         if pid:
@@ -1472,9 +1588,85 @@ class AppRequests:
         lines = []
         for line in result.stdout.splitlines():
             match = LOGCAT_BRIEF.fullmatch(line.rstrip("\r"))
-            if match:
+            if match and (grep is None or grep.search(match.group(3))):
                 lines.append(f"{match.group(1)}/{match.group(2).rstrip()}: {match.group(3)}")
         return lines
+
+    # The permission dialog's buttons (the permission controller's view
+    # IDs, then their English texts), by the answer.
+    DIALOG_BUTTONS = {
+        "allow": (
+            ("permission_allow_button", "permission_allow_foreground_only_button", "permission_allow_one_time_button"),
+            ("Allow", "While using the app", "Only this time"),
+        ),
+        "deny": (
+            ("permission_deny_button", "permission_deny_and_dont_ask_again_button"),
+            ("Don\u2019t allow", "Don't allow", "Deny"),
+        ),
+    }
+
+    def permission_dialog(self, answer):
+        """Tap the permission dialog's ANSWER button, once it's there."""
+        if answer not in self.DIALOG_BUTTONS:
+            note(f"request permission-dialog {answer}: not allow or deny (ignored)")
+            return []
+        ids, texts = self.DIALOG_BUTTONS[answer]
+        dump = f"{DEVICE_ROOT}/ui.xml"
+        deadline = time.monotonic() + 20
+        while True:
+            result = adb_shell(
+                self.serial, f"mkdir -p {DEVICE_ROOT} && uiautomator dump {dump} >/dev/null 2>&1; cat {dump}; rm -f {dump}",
+                check=False, timeout=60,
+            )
+            nodes = []
+            for node in re.finditer(r"<node\b[^>]*>", result.stdout):
+                attrs = dict(re.findall(r'([\w-]+)="([^"]*)"', node.group(0)))
+                nodes.append({k: html.unescape(v) for k, v in attrs.items()})
+            # (the IDs in their order, then the texts)
+            choice = None
+            for wanted in ids:
+                choice = choice or next((n for n in nodes if n.get("resource-id", "").endswith(":id/" + wanted)), None)
+            for wanted in texts:
+                choice = choice or next((n for n in nodes if n.get("text") == wanted and n.get("clickable") == "true"), None)
+            bounds = re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", choice.get("bounds", "")) if choice else None
+            if bounds:
+                x1, y1, x2, y2 = (int(v) for v in bounds.groups())
+                adb_shell(self.serial, f"input tap {(x1 + x2) // 2} {(y1 + y2) // 2}", check=False, timeout=60)
+                name = choice.get("resource-id", "").rpartition("/")[2] or choice.get("text", "")
+                return [f"dialog: tapped {name}"]
+            if time.monotonic() > deadline:
+                note("request permission-dialog: no permission dialog in 20 s")
+                return ["dialog: none"]
+            time.sleep(1)
+
+    def toast(self):
+        """Whether a toast of the app's is shown."""
+        deadline = time.monotonic() + 4
+        while True:
+            result = adb_shell(self.serial, "dumpsys notification", check=False, timeout=60)
+            if any("ToastRecord" in line and self.package in line for line in result.stdout.splitlines()):
+                return ["toast: shown"]
+            result = adb_shell(self.serial, "dumpsys window windows", check=False, timeout=60)
+            if re.search(r"Window\{[0-9a-f]+ u\d+ Toast\}", result.stdout):
+                return ["toast: shown"]
+            if time.monotonic() > deadline:
+                return ["toast: not seen"]
+            time.sleep(0.2)
+
+    def top_activity(self, which):
+        """The package of the activity on top, once it's the app's (`app`)
+        or another's (`other`), or 8 s have gone."""
+        deadline = time.monotonic() + 8
+        while True:
+            result = adb_shell(self.serial, "dumpsys activity activities", check=False, timeout=60)
+            match = re.search(r"(?:topResumedActivity=|ResumedActivity: )ActivityRecord\{\S+ u\d+ ([^/\s]+)/", result.stdout)
+            top = match.group(1) if match else None
+            if (top == self.package) == (which == "app") and top is not None:
+                break
+            if time.monotonic() > deadline:
+                break
+            time.sleep(0.25)
+        return ["top: " + ("the app" if top == self.package else (top or "(none)"))]
 
 
 def app_pid(serial, package):
@@ -1547,6 +1739,7 @@ def run_app(serial, package, listeners):
     start = time.monotonic()
     result = adb_shell(serial, f"am start -W {LAUNCHER} -n {package}/{ACTIVITY}", check=False, timeout=300)
     launched = result.returncode == 0 and "Error" not in result.stdout + result.stderr
+    pid = app_pid(serial, package) if launched else None
     if VERBOSE:
         note(f"am start: {' | '.join(result.stdout.strip().splitlines())} ({time.monotonic() - start:.1f} s)")
     reason = None
@@ -1619,6 +1812,14 @@ def run_app(serial, package, listeners):
     note("the end of the device's log:")
     for line in log[-200:]:
         print(f"  | {line}", file=sys.stderr)
+    # (the app's own lines, which the others may have pushed out of the
+    # end, or the device's log has dropped)
+    pids = (pid or "").split()
+    own = [line for line in log if any(f"({p.rjust(5)}):" in line for p in pids)]
+    if own:
+        note(f"the app's own lines of the device's log (process {' '.join(pids)}):")
+        for line in own[-150:]:
+            print(f"  | {line}", file=sys.stderr)
     # (once more below the log, where a CI log's last lines show it)
     note(f"{package} failed: {reason}")
     return 1
@@ -1646,7 +1847,7 @@ def cmd_run_apk(args):
     timeout = number("SDL3_ANDROID_TIMEOUT", 1800)
     signal.signal(signal.SIGTERM, interrupted)
     with Lock("app"):
-        result = adb(serial, "install", "-r", "-t", "-g", apk, check=False, timeout=600)
+        result = adb(serial, "install", "-r", "-t", apk, check=False, timeout=600)
         if result.returncode != 0 or "Success" not in result.stdout + result.stderr:
             raise Failure(f"adb install {apk} failed ({result.returncode}): {(result.stdout + result.stderr).strip()}")
         try:
@@ -1661,6 +1862,7 @@ def run_logcat_app(serial, package, timeout):
     log, acting on its requests, until its exit line: its status."""
     adb(serial, "logcat", "-b", "all", "-c", check=False)
     requests = AppRequests(serial, package)
+    done = 0
     argv = [sdk_tool("platform-tools", "adb", name="adb"), "-s", serial, "logcat", "-v", "raw", "-s", "SDL/APP:V"]
     log = subprocess.Popen(argv, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE)
     try:
@@ -1691,11 +1893,25 @@ def run_logcat_app(serial, package, timeout):
                 print(text, flush=True)
                 request = REQUEST.fullmatch(text)
                 if request:
-                    for line in requests.handle(request.group(1), request.group(2)):
+                    answer = requests.handle(request.group(1), request.group(2))
+                    for line in answer:
                         print(f"{REPLY}{line}", flush=True)
+                    done += 1
+                    run_apk_done(serial, package, done, answer)
     finally:
         log.kill()
         log.wait()
+
+
+def run_apk_done(serial, package, number, answer):
+    """Tell `--run-apk`'s app that its request NUMBER is done: the number,
+    then the answer's lines, in its data directory's RUN_APK_DONE (written
+    as the app, with run-as, then renamed into place)."""
+    data = base64.b64encode("".join(f"{line}\n" for line in [str(number), *answer]).encode()).decode()
+    script = f"echo {data} | base64 -d > {RUN_APK_DONE}.tmp && mv {RUN_APK_DONE}.tmp {RUN_APK_DONE}"
+    result = adb_shell(serial, f"run-as {shlex.quote(package)} sh -c {shlex.quote(script)}", check=False, timeout=60)
+    if result.returncode != 0:
+        note(f"couldn't tell {package} that its request {number} is done: {(result.stderr or result.stdout).strip()}")
 
 
 def interrupted(signum, frame):
