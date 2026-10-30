@@ -20,10 +20,17 @@
 //! `tools/android_run.py` packages it), and `JNI_OnLoad()` registers the
 //! Rust functions.
 //!
+//! The app package's assets (`assets://`, and relative paths that aren't
+//! in the app's internal storage) are read through the NDK's
+//! `AAssetManager`, and enumerated through the package's own file tree
+//! ([`assets`]).
+//!
 //! An app's code is its `libmain.so` (with SDL in it), whose `SDL_main`
 //! upstream's `nativeRunMain()` calls on the "SDLThread" thread, with the
 //! arguments `app_process` and those of `getArguments()` (none).
 
+#[cfg(target_os = "android")]
+pub(crate) mod assets;
 #[cfg(any(target_os = "android", test))]
 pub(crate) mod classes;
 #[cfg(any(target_os = "android", test))]

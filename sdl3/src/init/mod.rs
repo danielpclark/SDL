@@ -230,7 +230,12 @@ pub fn app_metadata_property(name: AppMetadata) -> Option<String> {
 }
 
 /// Translation of `SDL_GetExeName()` (the platform filesystem layer's view of `argv[0]`).
+/// On Android, the filesystem backend's: the app's package name (an app's
+/// executable is `app_process`).
 fn exe_name() -> Option<String> {
+    #[cfg(target_os = "android")]
+    return crate::filesystem::get_exe_name().ok();
+    #[cfg(not(target_os = "android"))]
     std::env::current_exe()
         .ok()?
         .file_stem()?

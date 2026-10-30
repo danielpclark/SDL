@@ -27,8 +27,9 @@
 //! listener, the controller, HID, clipboard and audio managers, the motion
 //! listener, the file dialogs' results (`onActivityResult()`), and what
 //! the activity offers SDL's C side for the video driver (text input,
-//! cursors, orientation, message boxes, ...), permissions, URLs and
-//! toasts. They come with the backends that use them. With no surface,
+//! cursors, orientation, message boxes, ...). They come with the backends
+//! that use them. What it offers the file I/O is here: the content
+//! resolver's files (`openFileDescriptor()`). With no surface,
 //! the state machine starts the SDL thread as soon as the activity is
 //! resumed, as upstream's does without one.
 //!
@@ -2145,6 +2146,67 @@ fn manifest_environment_variables(env: Env<'_>) -> JniResult<'_, bool> {
     }
     /* environment variables set! */
     Ok(true)
+}
+
+/// `Uri.parse(uri)`.
+fn parse_uri<'a>(env: Env<'a>, uri: &str) -> JniResult<'a, Local<'a>> {
+    let uri_class = env.find_class(c"android/net/Uri")?;
+    let uri = env.new_string(uri)?;
+    Ok(env
+        .call_static_method(
+            uri_class.obj(),
+            c"parse",
+            c"(Ljava/lang/String;)Landroid/net/Uri;",
+            &[Arg::Object(uri.obj())],
+        )?
+        .object()
+        .expect("Uri.parse() gives a Uri"))
+}
+
+/// This method is called by SDL using JNI: a file descriptor of the
+/// content `uri` opened in `mode` (the content resolver's: `r`, `w`, `wt`,
+/// `wa`, `rw` or `rwt`), which the caller owns, or -1 (no activity, or no
+/// such content: `FileNotFoundException`, whose stack trace is printed);
+/// the other exceptions are thrown. Translation of `openFileDescriptor()`.
+pub(crate) fn open_file_descriptor<'a>(env: Env<'a>, uri: &str, mode: &str) -> JniResult<'a, jint> {
+    let Some(singleton) = singleton(env) else {
+        return Ok(-1);
+    };
+
+    let opened = (|| -> JniResult<'a, jint> {
+        let resolver = env
+            .call_method(
+                singleton.obj(),
+                c"getContentResolver",
+                c"()Landroid/content/ContentResolver;",
+                &[],
+            )?
+            .object()
+            .expect("a content resolver");
+        let uri = parse_uri(env, uri)?;
+        let mode = env.new_string(mode)?;
+        let pfd = env
+            .call_method(
+                resolver.obj(),
+                c"openFileDescriptor",
+                c"(Landroid/net/Uri;Ljava/lang/String;)Landroid/os/ParcelFileDescriptor;",
+                &[Arg::Object(uri.obj()), Arg::Object(mode.obj())],
+            )?
+            .object();
+        match pfd {
+            Some(pfd) => Ok(env.call_method(pfd.obj(), c"detachFd", c"()I", &[])?.int()),
+            None => Ok(-1),
+        }
+    })();
+    match opened {
+        Ok(fd) => Ok(fd),
+        Err(thrown) => {
+            // catch (FileNotFoundException e)
+            let e = thrown.catch_any(&[c"java/io/FileNotFoundException"])?;
+            env.call_method(e.obj(), c"printStackTrace", c"()V", &[])?;
+            Ok(-1)
+        }
+    }
 }
 
 /// Simple runnable to start the SDL application. Translation of
