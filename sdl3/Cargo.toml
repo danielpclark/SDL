@@ -320,3 +320,25 @@ harness = false
 [[test]]
 name = "android_backends"
 harness = false
+
+# The android video driver in an app (the display, the window, the
+# activity's surface and orientation), OpenGL ES and the OpenGL ES 2
+# renderer on its windows, Vulkan, the Vulkan renderer and the GPU API's
+# Vulkan backend on them, and the activity recreated (upstream's
+# System.exit(0)), against upstream's C (in docs/HARDWARE_TESTING.md,
+# "Android emulator").
+[[test]]
+name = "android_video"
+harness = false
+
+[[test]]
+name = "android_gles"
+harness = false
+
+[[test]]
+name = "android_vulkan"
+harness = false
+
+[[test]]
+name = "android_recreate"
+harness = false

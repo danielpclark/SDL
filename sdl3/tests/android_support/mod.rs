@@ -25,6 +25,7 @@
 
 #![allow(dead_code)] // (each program uses what it needs)
 
+pub mod events;
 pub mod jni;
 
 use std::io::Write;
@@ -111,6 +112,47 @@ pub fn finish(status: u8) -> ExitCode {
     let _ = std::io::stdout().flush();
     let _ = std::io::stderr().flush();
     ExitCode::from(status)
+}
+
+/// End the program with `status` once its process has ended by itself
+/// (the activity recreated after `main` returns ends it: upstream's
+/// `System.exit(0)`): the runner's line for that (`sdl3-android-runner:
+/// exit STATUS once the process ends`), flushed; `main` returns the status.
+pub fn finish_once_the_process_ends(status: u8) -> ExitCode {
+    if is_app() {
+        println!("sdl3-android-runner: exit {status} once the process ends");
+    }
+    let _ = std::io::stdout().flush();
+    let _ = std::io::stderr().flush();
+    ExitCode::from(status)
+}
+
+/// An event type's name as the C programs write it (`WINDOW_RESIZED`).
+pub fn event_name(ty: sdl3::events::EventType) -> String {
+    format!("{ty:?}")
+        .trim_start_matches("SDL_EVENT_")
+        .to_string()
+}
+
+/// Compare a trace with upstream's (both printed, with the first line
+/// that differs).
+pub fn check_trace(trace: &[String], expected: &str) {
+    let expected: Vec<&str> = expected.lines().collect();
+    println!("--- trace ({} lines)", trace.len());
+    for line in trace {
+        println!("  {line}");
+    }
+    let first_difference = (0..trace.len().max(expected.len()))
+        .find(|&i| trace.get(i).map(String::as_str) != expected.get(i).copied());
+    if let Some(i) = first_difference {
+        panic!(
+            "the trace differs from upstream's at line {}: {:?}, expected {:?}",
+            i + 1,
+            trace.get(i),
+            expected.get(i)
+        );
+    }
+    println!("--- the trace matches upstream's");
 }
 
 /// Ask the runner for something (`sdl3-android-runner: request WHAT`), and
