@@ -1573,8 +1573,16 @@ static RUNNER: [u8; 4] = *b"app\0";
 program's own object files) as an app's `libmain.so`: a shared library
 (`-shared` in place of `-pie`), whose `SDL_main` is the program's C `main`
 (`--defsym=SDL_main=main`), with sdl3's `JNI_OnLoad` kept and exported.
-The runner packages it, with no Gradle (`tools/android_run.py --apk
-PROGRAM OUT.apk` writes the package alone), with the SDK's build-tools
+An app test is `harness = false` in its Cargo.toml: libtest's own `main`
+would run no test and return at once, ending the app with nothing done.
+Two more words shape its package: `assets=DIR`, the files of DIR
+(relative to the package's directory, `CARGO_MANIFEST_DIR`) as its assets
+(`assets/...`, with Gradle's time for them, 1981-01-01 01:01:02), and
+`permissions=NAME,...`, the permissions its manifest asks for
+(`android.permission.NAME` for a NAME without a dot), none granted (the
+runner's `permission` request grants one). The runner packages it, with
+no Gradle (`tools/android_run.py --apk PROGRAM OUT.apk` writes the package
+alone), with the SDK's build-tools
 (35.0.0 by default, `SDL3_ANDROID_BUILD_TOOLS`) and a platform's
 `android.jar` (35, `SDL3_ANDROID_PLATFORM`), which `sdkmanager` installs
 (`'build-tools;35.0.0' 'platforms;android-35'`), and a JDK (`keytool`,
@@ -1630,8 +1638,9 @@ adb doesn't give an app's exit status, so the program prints
 `sdl3-android-runner: exit N` last (`android_support::finish()`), which is
 the runner's exit status; the runner then stops the app (`am force-stop`)
 and copies the rest of its output. Without that line the run fails, with
-the end of the device's log. A process that ends before its launch is
-complete is launched again by Android, which would run the program twice:
+the end of the device's log and the app process's own lines of it. A
+process that ends before its launch is complete is launched again by
+Android, which would run the program twice:
 the runner refuses the second connection and fails the run. libc's
 `exit()` in an app ends the process under the framework's threads (hwui's
 abort), so the programs return from `main` instead. The runner also fails
@@ -1646,9 +1655,16 @@ runner for what only the host can do (`sdl3-android-runner: request WHAT
 `foreground` (the activity launched again), `back` (the BACK key), `input
 ARGUMENTS`, `am ARGUMENTS`, `cmd ARGUMENTS`, `trim-memory LEVEL` (`am
 send-trim-memory`), `night yes|no|auto` (`cmd uimode night`), `locale
-[TAGS]` (`cmd locale set-app-locales`) and `logcat TAGS` (the app's lines
-of the device's log); the runner answers each on the app's stdout socket
-when it's done (`sdl3-android-runner: reply LINE` for the log's lines,
+[TAGS]` (`cmd locale set-app-locales`), `logcat TAGS [--grep REGEX]` (the
+app's lines of the device's log), `power ARGUMENTS` (`adb emu power`: the
+emulator's battery), `permission grant|revoke NAME` (`pm grant|revoke`;
+revoking a granted permission ends the app's process, as Android does),
+`permission-dialog allow|deny` (the system's permission dialog's button,
+found in `uiautomator dump`'s view tree, then tapped), `toast` (whether a
+toast of the app's is shown: `dumpsys notification`'s toast queue or
+`dumpsys window`) and `top-activity app|other` (the package on top, once it
+is the app's or another's); the runner answers each on the app's stdout
+socket when it's done (`sdl3-android-runner: reply LINE` for the log's lines,
 then `sdl3-android-runner: done`), which `request()` returns. An app's
 process the system thinks cached is frozen about ten seconds after it
 leaves the foreground, so a program waits in the background no longer
@@ -1673,7 +1689,19 @@ background with the hint on and off, the system's dark mode, the app's
 locale, `SDL_SendAndroidMessage()`, and the back button (`onBackPressed()`
 with the trap's hint, the BACK key with the trap's callback, and
 `SDL_SendAndroidBackButton()`, which finishes the activity while main runs:
-`SDL_EVENT_TERMINATING`), with the dummy video driver.
+`SDL_EVENT_TERMINATING`), with the dummy video driver; and
+`android_backends.rs`, the small backends against upstream's C, with
+assets of its own (`sdl3/tests/android_assets/`) and two permissions:
+the paths (base, pref, internal and external storage and its state,
+cache, user folders, the app's name), the app's locales as they change,
+the emulator's battery as it changes, the assets through
+`IoStream::from_file()` (seeks, reads, a write's error, the `AAsset`
+property, missing ones), the internal storage's files that shadow them,
+the file operations on both, a `content://` file of `MediaStore`'s, the
+title storage on the assets and the user storage on the pref path, a
+toast, URLs (with the activity that answers), and permissions
+(`pm grant` and `revoke`, a request granted at once, two answered through
+the system's dialog, one the manifest doesn't ask for).
 
 The expected traces of the app programs are upstream's C SDL's: the same
 program in C, as upstream's android-project's app (built with Gradle,
@@ -1682,8 +1710,11 @@ CMake and the NDK, outside the repository), run on the same emulator with
 made elsewhere, launches it the same way, and takes its process's lines
 of the device's log with the tag SDL/APP (its `SDL_Log()`s) as its output,
 the requests among them answered on its own stdout (a C program has no
-socket to read them from: `sdl3-android-runner: reply LINE`), and its exit
-status from the exit line.
+socket to read them from: `sdl3-android-runner: reply LINE`; and, once
+each is done, its number and the answer in the app's
+`cache/sdl3-android-runner-done`, written with `run-as`, which the C waits
+for), and its exit status from the exit line. It installs the package
+without granting its permissions, as the runner's own.
 
 What runs where, in spawned programs: everything pure (the satellites'
 decoders, the converters, the parsers), the file operations, threads,
@@ -1703,10 +1734,15 @@ translated yet, so:
   driver's windows, in apps, which aren't translated yet. The desktop
   OpenGL renderer isn't built (Android has OpenGL ES only), so its
   checks skip as `egl` too;
-* the filesystem paths (the base path, the pref path, the user folders)
-  are dummy until Android's filesystem backend: the tests that need them
-  are ignored on Android, naming that (`base_path_and_exe_name`,
-  `user_storage_and_driver_hints`), and the XDG paths' test isn't built;
+* the filesystem paths that need the app's Java VM (the pref path, which
+  is the app's internal storage, and the executable's name, the package's)
+  fail there, and the assets can't be opened (`Couldn't create asset
+  manager`; relative paths are the current directory's, as elsewhere,
+  where an app's are in its internal storage), so the tests that use them
+  check that on Android
+  (`base_path_and_exe_name`, `user_storage_and_driver_hints`), and
+  `android_backends.rs` checks them in an app; the XDG paths' test isn't
+  built;
 * JNI needs an app (see [Apps](#apps)); the android video, audio
   (AAudio, OpenSL ES), joystick, haptic, sensor and camera drivers are
   later work.
