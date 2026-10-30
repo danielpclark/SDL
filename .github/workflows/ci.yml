@@ -1008,9 +1008,11 @@ jobs:
       # checks that draw with OpenGL ES or present with Vulkan on the
       # offscreen driver's windows, which need EGL's device platform (egl,
       # with upstream's "EXT_device_enumeration not supported" in the
-      # reason) and VK_EXT_headless_surface (vulkan), which Android hasn't:
-      # on Android they draw on the android video driver's windows, which
-      # aren't translated yet. Any other skip fails the job.
+      # reason) and VK_EXT_headless_surface (vulkan), which Android hasn't
+      # (those draw on the android video driver's windows in the app tests,
+      # android_gles.rs and android_vulkan.rs: the driver needs an app's
+      # Java VM, so spawned tests can't have it). Any other skip fails the
+      # job.
       - name: Check the skips
         if: ${{ !cancelled() && !inputs.android_test_args }}
         shell: bash
