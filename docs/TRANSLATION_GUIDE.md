@@ -158,6 +158,38 @@ they are used (there is no build script to make aliases):
   built with `-Zbuild-std` (in CI, linted on the pinned toolchain with
   `RUSTC_BOOTSTRAP=1`); there's no x86-64 visionOS Simulator.
 
+### Touch, mouse and pen
+
+* `video/drivers/android/touch.rs`, `mouse.rs` and `pen.rs` are
+  SDL_androidtouch.c, SDL_androidmouse.c and SDL_androidpen.c: the touch
+  devices the activity lists (`initTouch()`: the touch screens and the
+  virtual devices, `nativeAddTouch()`), the mouse's cursors (the
+  surface's `PointerIcon`s: a system cursor's
+  `PointerIcon.getSystemIcon()`, a custom cursor's bitmap, a hidden
+  cursor an empty custom one; `Android_FreeCursor()` is the cursor
+  data's drop) and its relative mode, and the pens (one for each pointer
+  ID, found by the ID's value: the pen's handle is a number, as
+  upstream's pointer-sized one). Their natives (`onNativeTouch()`,
+  `onNativeMouse()`, `onNativePen()`, `onNativePinchStart()`, ...) are in
+  `core/android/sdl_android.rs`.
+* `SDLSurface.onTouch()` gives each pointer to the mouse, a pen or a
+  finger by its tool, and the event to the pinch's
+  `ScaleGestureDetector`, whose callbacks (`onScale()`, ...) are
+  `native`; `onCapturedPointerEvent()` and the surface's generic motion
+  listener are SDLControllerManager.java's
+  `SDLGenericMotionListener_API14` to `_API29`
+  (`core/android/java/controller_manager.rs`, the motion listeners
+  only): four classes of the DEX file, each extending the previous one,
+  `onGenericMotion()` native, their fields the DEX file's (API 26's
+  `mRelativeModeEnabled` shadows API 24's, as upstream's); their other
+  methods are Rust functions dispatching on the listener's class, as
+  Java's virtual calls. `SDLActivity.getMotionListener()` makes the one
+  of the device's API level.
+* The defaults of `SDL_HINT_TOUCH_MOUSE_EVENTS` (on) and
+  `SDL_HINT_MOUSE_TOUCH_EVENTS` (on, on Android and iOS: the mouse's
+  touch device, "mouse_input", is there from the start) are the shared
+  mouse code's.
+
 ### What is built
 
 What is built follows upstream's CMake build for the platform, as for
@@ -453,8 +485,8 @@ the app's start and lifecycle, the event pump's Android parts, the log,
 the small backends: the filesystem paths, the assets and
 `content://` files, the locale, URLs, the battery, toasts and permissions,
 and the video driver: its window, its surface, OpenGL ES through EGL and
-Vulkan (below); the other Android drivers (audio, input, ...) aren't
-translated yet.
+Vulkan, and its touch, pinch, mouse and pen input (below); the other
+Android drivers (the keyboard, audio, ...) aren't translated yet.
 
 A test that reads its package's files does so at run time, through
 `CARGO_MANIFEST_DIR` (falling back on `env!("CARGO_MANIFEST_DIR")`), which
@@ -518,9 +550,11 @@ device; the same for `CARGO_TARGET_TMPDIR` and `CARGO_BIN_EXE_NAME`.
   override (`getLibraries()`, `getArguments()`, `onUnhandledMessage()`)
   are fixed: `Note`s.
 * What a later driver owns is stubbed where upstream calls it: the
-  surface's touch, mouse and key events (`SDLSurface.onTouch()`,
-  `onKey()`, `onCapturedPointerEvent()` and the scale gestures: they
-  return what upstream's do for an event they ignore), the screen
+  surface's key events (`SDLSurface.onKey()`: it returns what upstream's
+  does for a key it ignores), the joysticks' motion events (the motion
+  listener's `SDLControllerManager.handleJoystickMotionEvent()`, whose
+  joystick handler is null until the controller manager is translated),
+  the screen
   keyboard (`isScreenKeyboardShown()` is false), the audio drivers'
   pause, and the controller, HID, clipboard and audio managers (comments
   where upstream calls them).
