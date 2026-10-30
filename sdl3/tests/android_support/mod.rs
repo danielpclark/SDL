@@ -30,6 +30,7 @@ pub mod jni;
 use std::io::Write;
 use std::os::fd::AsRawFd;
 use std::process::ExitCode;
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 /// Whether the program runs as an app of the runner's (it gave the
 /// program its sockets).
@@ -122,6 +123,17 @@ pub fn request(what: &str) -> Vec<String> {
     if !is_app() {
         return Vec::new();
     }
+    // (the answers of the requests not waited for, first)
+    while UNANSWERED.load(Ordering::SeqCst) > 0 {
+        UNANSWERED.fetch_sub(1, Ordering::SeqCst);
+        loop {
+            match read_stdout_line().as_str() {
+                "sdl3-android-runner: done" => break,
+                "" => panic!("the runner's socket closed during a request"),
+                _ => {}
+            }
+        }
+    }
     let mut lines = Vec::new();
     loop {
         let line = read_stdout_line();
@@ -133,6 +145,20 @@ pub fn request(what: &str) -> Vec<String> {
             None if line.is_empty() => panic!("the runner's socket closed during a request"),
             None => panic!("the runner's answer to {what:?}: {line:?}"),
         }
+    }
+}
+
+/// The requests sent without waiting ([`request_without_waiting()`]),
+/// whose answers the next [`request()`] reads first.
+static UNANSWERED: AtomicUsize = AtomicUsize::new(0);
+
+/// Ask the runner for something, as [`request()`], without waiting for it
+/// (as the C references' requests from an event watch).
+pub fn request_without_waiting(what: &str) {
+    println!("sdl3-android-runner: request {what}");
+    let _ = std::io::stdout().flush();
+    if is_app() {
+        UNANSWERED.fetch_add(1, Ordering::SeqCst);
     }
 }
 

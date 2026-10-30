@@ -17,17 +17,17 @@
 //! resume, which a thread of SDL's sends) and off (it doesn't), and the
 //! system's: memory trimmed (`am send-trim-memory`), trips to the
 //! background (the HOME key, then the activity launched again, asked for
-//! from the event watch, as the pump blocks) with the hint on and off, the
-//! system's dark mode (`cmd uimode night`), the app's locale (`cmd locale
-//! set-app-locales`), `SDL_SendAndroidMessage()`, and the back button:
-//! `onBackPressed()` with the trap's hint, the BACK key with the trap's
-//! callback (which the android video driver registers when the hint
-//! changes, and the program here), and `SDL_SendAndroidBackButton()`, the
-//! system's back, which finishes the activity while main runs
-//! (`SDL_EVENT_TERMINATING`). Video is the dummy driver's (which upstream's
-//! CMake build for Android has too, its ndk-build configuration not: the
-//! android driver isn't translated yet), so that the system's theme goes to
-//! SDL.
+//! from the event watch, as the pump blocks) with the hint on and off
+//! (whether the pump that saw the app go returned only once it was back:
+//! it does with the hint, it doesn't without, as the app resumes once its
+//! surface is ready and has the focus), the system's dark mode (`cmd
+//! uimode night`), the app's locale (`cmd locale set-app-locales`),
+//! `SDL_SendAndroidMessage()`, and the back button: `onBackPressed()` with
+//! the trap's hint, the BACK key with the trap's callback (which the
+//! android video driver registers when the hint changes), and
+//! `SDL_SendAndroidBackButton()`, the system's back, which finishes the
+//! activity while main runs (`SDL_EVENT_TERMINATING`). Video is the
+//! android driver's, without a window.
 //!
 //! The expected trace is upstream's C SDL's, from the same program in C
 //! (built with upstream's android-project, Gradle and CMake, run by the
@@ -65,7 +65,7 @@ mod app {
     use sdl3::{android, hints, video};
 
     use super::android_support::jni::{self, Jobject, Jvalue};
-    use super::android_support::{os_thread_name, request};
+    use super::android_support::{os_thread_name, request, request_without_waiting};
 
     /// Upstream's trace (the C program, on the emulator: API 35, Google
     /// APIs, x86-64).
@@ -80,8 +80,8 @@ jni env: yes
 activity: org.libsdl.app.SDLActivity
 init: ok
 main thread after init: yes
-video driver: dummy
-system theme: 0
+video driver: android
+system theme: 1
 events: (none)
 logcat: V/SDL/TEST: trace
 logcat: V/SDL/TEST: verbose
@@ -108,7 +108,7 @@ logcat: E/SDL: error handling message, command is 32768
 trim memory: LOW_MEMORY
 in-process pause, not blocking: WILL_ENTER_BACKGROUND, DID_ENTER_BACKGROUND, the pump returned after the resume: no
 then: WILL_ENTER_FOREGROUND, DID_ENTER_FOREGROUND
-background and back, not blocking: WILL_ENTER_BACKGROUND, DID_ENTER_BACKGROUND, WILL_ENTER_FOREGROUND, DID_ENTER_FOREGROUND
+background and back, not blocking: WILL_ENTER_BACKGROUND, DID_ENTER_BACKGROUND, WILL_ENTER_FOREGROUND, DID_ENTER_FOREGROUND; back in the same pump: no
 background and back, blocking: WILL_ENTER_BACKGROUND, DID_ENTER_BACKGROUND, WILL_ENTER_FOREGROUND, DID_ENTER_FOREGROUND; back in the same pump: yes
 night yes: SYSTEM_THEME_CHANGED, theme 2
 night no: SYSTEM_THEME_CHANGED, theme 1
@@ -183,11 +183,12 @@ main returns
             if ty == EventType::DID_ENTER_FOREGROUND {
                 FOREGROUND_PUMP.store(pumps, Ordering::SeqCst);
             }
-            // (from the watch, before the pump blocks while in the background)
+            // (from the watch, before the pump blocks while in the
+            // background; not waited for, as the C's)
             if ty == EventType::DID_ENTER_BACKGROUND
                 && FOREGROUND_ON_BACKGROUND.load(Ordering::SeqCst)
             {
-                request("foreground");
+                request_without_waiting("foreground");
             }
         }));
     }
@@ -281,7 +282,7 @@ main returns
     }
 
     fn init_video() {
-        hints::set(hints::VIDEO_DRIVER, "dummy").unwrap();
+        hints::set(hints::VIDEO_DRIVER, "android").unwrap();
         if let Err(e) = init::init(InitFlags::VIDEO) {
             t(format!("init: {e}"));
         }
@@ -295,13 +296,11 @@ main returns
         init::quit();
     }
 
-    /// A trip to the background (asked for with `what`) and back, and,
-    /// `blocking`, whether the pump that saw the activity go returned only
-    /// once it was back. (Not blocking, whether the resume comes within
-    /// the pump's 100 ms is a matter of timing: upstream resumes once the
-    /// activity's surface is ready and has the focus, which the surface
-    /// stub here doesn't wait for.)
-    fn trip(label: &str, what: &str, blocking: bool) {
+    /// A trip to the background (asked for with `what`) and back, and
+    /// whether the pump that saw the activity go returned only once it was
+    /// back (not blocking, the resume comes once the activity's surface is
+    /// ready and has the focus, long after the pump's 100 ms).
+    fn trip(label: &str, what: &str) {
         FOREGROUND_ON_BACKGROUND.store(true, Ordering::SeqCst);
         BACKGROUND_PUMP.store(-1, Ordering::SeqCst);
         FOREGROUND_PUMP.store(-1, Ordering::SeqCst);
@@ -311,14 +310,10 @@ main returns
         let background = BACKGROUND_PUMP.load(Ordering::SeqCst);
         let foreground = FOREGROUND_PUMP.load(Ordering::SeqCst);
         let events = list(Some(EventType::LOW_MEMORY));
-        if blocking {
-            t(format!(
-                "{label}: {events}; back in the same pump: {}",
-                yes(background >= 0 && background == foreground)
-            ));
-        } else {
-            t(format!("{label}: {events}"));
-        }
+        t(format!(
+            "{label}: {events}; back in the same pump: {}",
+            yes(background >= 0 && background == foreground)
+        ));
     }
 
     /// The events from `QUIT` on (a pause may come before the activity is
@@ -375,8 +370,8 @@ main returns
         *ACTIVITY_CLASS.lock().unwrap() = Some(Class(jni::new_global_ref(env, class)));
         jni::delete_local_ref(env, class);
 
-        // Video (the dummy driver), and the events
-        hints::set(hints::VIDEO_DRIVER, "dummy").unwrap();
+        // Video (the android driver), and the events
+        hints::set(hints::VIDEO_DRIVER, "android").unwrap();
         t(format!(
             "init: {}",
             init::init(InitFlags::VIDEO).map_or_else(|e| e.to_string(), |()| "ok".to_string())
@@ -481,12 +476,12 @@ main returns
         pause_and_resume_later("in-process pause, not blocking", vm);
         pump_until(Some(EventType::DID_ENTER_FOREGROUND), 10_000);
         t(format!("then: {}", list(None)));
-        trip("background and back, not blocking", "background", false);
+        trip("background and back, not blocking", "background");
 
         // Blocking again
         quit_video();
         init_video();
-        trip("background and back, blocking", "background", true);
+        trip("background and back, blocking", "background");
 
         // The system's dark mode
         request("night yes");
@@ -504,11 +499,11 @@ main returns
         pump_until(Some(EventType::LOCALE_CHANGED), 10_000);
         t(format!("locale reset: {}", list(None)));
 
-        // The back button: onBackPressed() with the trap's hint (called
-        // here: from API 33, with enableOnBackInvokedCallback, the BACK key
-        // doesn't call it), then the BACK key with the trap's callback
-        // (SDLActivity.setBackButtonTrapEnabled(true), which the android
-        // video driver calls when the hint changes, and the C program)
+        // The back button, with the trap's hint (which the android video
+        // driver passes on: SDLActivity.setBackButtonTrapEnabled(true)):
+        // onBackPressed() (called here: from API 33, with
+        // enableOnBackInvokedCallback, the BACK key doesn't call it), then
+        // the BACK key, which the trap's callback takes
         hints::set(hints::ANDROID_TRAP_BACK_BUTTON, "1").unwrap();
         let activity = android::activity().expect("the activity").as_ptr();
         jni::call_void(env, activity, "onBackPressed", "()V", &[]);
@@ -518,12 +513,10 @@ main returns
             "onBackPressed with the trap's hint: {}",
             list(None)
         ));
-        hints::reset(hints::ANDROID_TRAP_BACK_BUTTON);
-        sdl3::__android_set_back_button_trap_active(true);
         request("back");
         pump_until(None, 3000);
         t(format!("back with the trap: {}", list(None)));
-        sdl3::__android_set_back_button_trap_active(false);
+        hints::reset(hints::ANDROID_TRAP_BACK_BUTTON);
 
         // SDL_SendAndroidBackButton(): the system's back (the task moves to
         // the back, or the activity finishes), with the pause not blocking

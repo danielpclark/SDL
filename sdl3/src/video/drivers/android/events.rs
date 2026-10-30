@@ -15,15 +15,96 @@
 //! pump blocks until the app resumes (and the audio is paused); without
 //! it, each pump waits up to 100 ms for the next lifecycle event.
 //!
-//! What upstream does with the driver's window (its EGL context's backup
-//! when the app pauses, and restore when it resumes) and the audio
-//! drivers' devices (AAudio's and OpenSL ES's, paused) comes with them.
+//! When the app pauses, the driver's OpenGL window's EGL context is kept
+//! and released ([`android_egl_context_backup`]), so that the activity's
+//! surface can be freed; when it resumes, it's made current again with
+//! the new surface, or, lost, replaced (with
+//! `SDL_EVENT_RENDER_DEVICE_RESET`: [`android_egl_context_restore`]).
+//! What upstream does with the audio drivers' devices (AAudio's and
+//! OpenSL ES's, paused) comes with them.
 
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
 use crate::core::android::{self as core_android, LifecycleEvent};
-use crate::events::EventType;
+use crate::events::window::WindowFlags;
+use crate::events::{Event, EventType, RenderEvent, WindowID};
+use crate::video::gl;
+
+/// Whether `window` is an OpenGL window.
+fn is_opengl(window: WindowID) -> bool {
+    crate::video::core::with_window(window, |w| w.flags().contains(WindowFlags::OPENGL))
+        .unwrap_or(false)
+}
+
+/// Make the window's kept EGL context current again (with the activity's
+/// new surface), or, when it's no longer valid, a new one, telling the app
+/// (`SDL_EVENT_RENDER_DEVICE_RESET`); and its swap interval. Translation
+/// of `android_egl_context_restore()`.
+fn android_egl_context_restore(window: WindowID) {
+    if is_opengl(window) {
+        let egl_context = super::window::with_window_data(|_, data| data.egl_context).flatten();
+        let _ = gl::make_current_raw(Some(window), None);
+        if gl::make_current_raw(Some(window), egl_context).is_err() {
+            // The context is no longer valid, create a new one (owned by
+            // nothing, as upstream's)
+            let egl_context =
+                gl::gl_create_context(&crate::video::window::Window::from_raw(window))
+                    .ok()
+                    .map(|context| {
+                        let raw = context.raw();
+                        std::mem::forget(context);
+                        raw
+                    });
+            super::window::with_window_data(|_, data| data.egl_context = egl_context);
+            let _ = gl::make_current_raw(Some(window), egl_context);
+            let _ = crate::events::push(Event::Render(RenderEvent {
+                event_type: EventType::RENDER_DEVICE_RESET,
+                window_id: window,
+                ..Default::default()
+            }));
+        }
+        let swap_interval = super::window::with_window_data(|_, data| {
+            data.backup_done = false;
+            data.swap_interval
+        })
+        .unwrap_or(0);
+
+        let _ = gl::gl_set_swap_interval(swap_interval);
+    }
+}
+
+/// Keep the window's current EGL context (and its swap interval), and
+/// release it so the EGL surface can be freed. Translation of
+/// `android_egl_context_backup()`.
+fn android_egl_context_backup(window: WindowID) {
+    if is_opengl(window) {
+        // Keep a copy of the EGL Context so we can try to restore it when we resume
+        let egl_context = gl::gl_current_context().ok().flatten();
+        // Save/Restore the swap interval / vsync
+        let interval = gl::gl_get_swap_interval();
+        super::window::with_window_data(|_, data| {
+            data.egl_context = egl_context;
+            if let Ok(interval) = interval {
+                data.has_swap_interval = true;
+                data.swap_interval = interval;
+            }
+        });
+
+        // We need to do this so the EGLSurface can be freed
+        let _ = gl::make_current_raw(Some(window), None);
+        super::window::with_window_data(|_, data| data.backup_done = true);
+    }
+}
+
+/// `Android_Window && !Android_Window->external_graphics_context`: the
+/// driver's window, when SDL manages its graphics context.
+fn window_with_sdl_context() -> Option<WindowID> {
+    let window = super::window()?;
+    let external =
+        crate::video::core::with_window(window, |w| w.external_graphics_context).unwrap_or(true);
+    (!external).then_some(window)
+}
 
 /*
  * Android_ResumeSem and Android_PauseSem are signaled from Java_org_libsdl_app_SDLActivity_nativePause and Java_org_libsdl_app_SDLActivity_nativeResume
@@ -78,8 +159,11 @@ fn on_pause() {
      * do any life cycle handling in an event filter while the event
      * was being queued.
      */
-    // (android_egl_context_backup() of Android_Window, under the activity
-    // mutex: there's no window of the driver's yet, see super::window())
+    if let Some(window) = window_with_sdl_context() {
+        core_android::lock_activity_mutex();
+        android_egl_context_backup(window);
+        core_android::unlock_activity_mutex();
+    }
 
     if BLOCK_ON_PAUSE.load(Ordering::Acquire) {
         // We're blocking, also pause audio
@@ -98,8 +182,13 @@ fn on_resume() {
     resume_audio();
 
     // Restore the GL Context from here, as this operation is thread dependent
-    // (android_egl_context_restore() of Android_Window, under the activity
-    // mutex, unless a quit is queued: see on_pause())
+    if let Some(window) = window_with_sdl_context() {
+        if !crate::events::has_event(EventType::QUIT) {
+            core_android::lock_activity_mutex();
+            android_egl_context_restore(window);
+            core_android::unlock_activity_mutex();
+        }
+    }
 
     crate::video::on_application_did_enter_foreground();
 }
@@ -192,7 +281,6 @@ pub(crate) fn pump_events(timeout: Option<Duration>) {
 /// Wait until the app isn't paused, then lock the activity mutex; an
 /// error once the activity is destroyed. Translation of
 /// `Android_WaitActiveAndLockActivity()` (which the driver's windows use).
-#[allow(dead_code)] // (used by the driver's windows)
 pub(crate) fn wait_active_and_lock_activity() -> crate::error::Result<()> {
     /* Make sure we have pumped all events so that Android_Paused state is correct */
     while !DESTROYED.load(Ordering::Acquire) {

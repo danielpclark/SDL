@@ -21,7 +21,9 @@
 //!   upstream's names and signatures); an override calls the superclass's
 //!   method with `CallNonvirtual*Method()` where upstream calls `super`;
 //! * a constructor calls the superclass's with the same parameters
-//!   ([`Code::SuperConstructor`]);
+//!   ([`Code::SuperConstructor`]); the rest of upstream's constructor runs
+//!   in Rust after the object is made (`SDLSurface`'s:
+//!   `super::java::surface::create_sdl_surface()`);
 //! * `SDLActivity`'s static initializer loads the app's library
 //!   ([`Code::LoadLibraries`]). Note: upstream's `onCreate()` loads the
 //!   libraries of `getLibraries()` (`SDL3` and `main`) itself, before it
@@ -31,9 +33,10 @@
 //!   load.
 //!
 //! Each class's entry lists the members translated so far, in upstream's
-//! order; the classes and members still to come (`SDLSurface`,
-//! `SDLInputConnection`, `SDLDummyEdit`, the controller and HID managers'
-//! listeners and receivers, ...) are added with their translations. The
+//! order; the classes and members still to come (`SDLInputConnection`,
+//! `SDLDummyEdit`, the controller and HID managers' listeners and
+//! receivers, the touch, mouse and pen natives, ...) are added with their
+//! translations. The
 //! anonymous classes upstream creates (`new Runnable() {...}`, dialog
 //! listeners) can't be declared with upstream's names (`SDLActivity$1`),
 //! which are the compiler's: they are two classes of their own,
@@ -170,7 +173,7 @@ const fn constructor(access: u32, descriptor: &'static str) -> Method {
 }
 
 #[cfg(target_os = "android")]
-use super::java::{activity, anonymous};
+use super::java::{activity, anonymous, surface};
 
 /// `org.libsdl.app.SDLActivity`.
 pub(crate) const SDL_ACTIVITY: &str = "org/libsdl/app/SDLActivity";
@@ -178,6 +181,8 @@ pub(crate) const SDL_ACTIVITY: &str = "org/libsdl/app/SDLActivity";
 pub(crate) const SDL_COMMAND_HANDLER: &str = "org/libsdl/app/SDLActivity$SDLCommandHandler";
 /// `org.libsdl.app.SDLMain`.
 pub(crate) const SDL_MAIN: &str = "org/libsdl/app/SDLMain";
+/// `org.libsdl.app.SDLSurface`.
+pub(crate) const SDL_SURFACE: &str = "org/libsdl/app/SDLSurface";
 /// `org.libsdl.app.SDLNativeRunnable`, upstream's anonymous `Runnable`s.
 pub(crate) const SDL_NATIVE_RUNNABLE: &str = "org/libsdl/app/SDLNativeRunnable";
 /// `org.libsdl.app.SDLNativeListener`, the invocation handler of the
@@ -187,19 +192,24 @@ pub(crate) const SDL_NATIVE_LISTENER: &str = "org/libsdl/app/SDLNativeListener";
 /// The classes, each after the classes of the file it extends or
 /// implements.
 pub(crate) static CLASSES: &[Class] = &[
-    // SDLActivity.java. (Its OnSystemUiVisibilityChangeListener comes with
-    // the video driver's SDLSurface, as do its methods for the view.)
+    // SDLActivity.java.
     Class {
         name: SDL_ACTIVITY,
         access: PUBLIC,
         superclass: "android/app/Activity",
-        interfaces: &[],
+        interfaces: &["android/view/View$OnSystemUiVisibilityChangeListener"],
         fields: &[
             // Handler for the messages
             Field {
                 name: "commandHandler",
                 descriptor: "Landroid/os/Handler;",
                 access: 0,
+            },
+            // (private final: set from native code)
+            Field {
+                name: "rehideSystemUi",
+                descriptor: "Ljava/lang/Runnable;",
+                access: PRIVATE,
             },
         ],
         methods: &[
@@ -280,6 +290,13 @@ pub(crate) static CLASSES: &[Class] = &[
             ),
             native!(
                 PUBLIC | STATIC,
+                "nativeSetScreenResolution",
+                "(IIIIFF)V",
+                super::native_set_screen_resolution[_, _, _, _, _, _]
+            ),
+            native!(PUBLIC | STATIC, "onNativeResize", "()V", super::on_native_resize[]),
+            native!(
+                PUBLIC | STATIC,
                 "onNativeKeyDown",
                 "(I)V",
                 super::on_native_key_down[_]
@@ -289,6 +306,36 @@ pub(crate) static CLASSES: &[Class] = &[
                 "onNativeKeyUp",
                 "(I)V",
                 super::on_native_key_up[_]
+            ),
+            native!(
+                PUBLIC | STATIC,
+                "onNativeSurfaceCreated",
+                "()V",
+                super::on_native_surface_created[]
+            ),
+            native!(
+                PUBLIC | STATIC,
+                "onNativeSurfaceChanged",
+                "()V",
+                super::on_native_surface_changed[]
+            ),
+            native!(
+                PUBLIC | STATIC,
+                "onNativeSurfaceDestroyed",
+                "()V",
+                super::on_native_surface_destroyed[]
+            ),
+            native!(
+                PUBLIC | STATIC,
+                "onNativeScreenKeyboardShown",
+                "()V",
+                super::on_native_screen_keyboard_shown[]
+            ),
+            native!(
+                PUBLIC | STATIC,
+                "onNativeScreenKeyboardHidden",
+                "()V",
+                super::on_native_screen_keyboard_hidden[]
             ),
             native!(
                 PUBLIC | STATIC,
@@ -307,6 +354,24 @@ pub(crate) static CLASSES: &[Class] = &[
                 "nativeSetenv",
                 "(Ljava/lang/String;Ljava/lang/String;)V",
                 super::native_setenv[_, _]
+            ),
+            native!(
+                PUBLIC | STATIC,
+                "nativeSetNaturalOrientation",
+                "(I)V",
+                super::native_set_natural_orientation[_]
+            ),
+            native!(
+                PUBLIC | STATIC,
+                "onNativeRotationChanged",
+                "(I)V",
+                super::on_native_rotation_changed[_]
+            ),
+            native!(
+                PUBLIC | STATIC,
+                "onNativeInsetsChanged",
+                "(IIII)V",
+                super::on_native_insets_changed[_, _, _, _]
             ),
             native!(
                 PUBLIC | STATIC,
@@ -340,6 +405,12 @@ pub(crate) static CLASSES: &[Class] = &[
                 "(I[Ljava/lang/String;[I)V",
                 activity::on_request_permissions_result[_, _, _]
             ),
+            native!(
+                PUBLIC,
+                "onSystemUiVisibilityChange",
+                "(I)V",
+                activity::on_system_ui_visibility_change[_]
+            ),
         ],
     },
     // SDLActivity.java's `protected static class SDLCommandHandler extends
@@ -371,6 +442,155 @@ pub(crate) static CLASSES: &[Class] = &[
         methods: &[
             constructor(0, "()V"),
             native!(PUBLIC, "run", "()V", activity::sdl_main_run[]),
+        ],
+    },
+    // SDLSurface.java: the activity's view, what SDL draws on. (Its key,
+    // touch, captured pointer and pinch methods are stubs until the
+    // keyboard, touch and mouse: super::java::surface.)
+    Class {
+        name: SDL_SURFACE,
+        access: PUBLIC,
+        superclass: "android/view/SurfaceView",
+        interfaces: &[
+            "android/view/SurfaceHolder$Callback",
+            "android/view/View$OnApplyWindowInsetsListener",
+            "android/view/View$OnKeyListener",
+            "android/view/View$OnTouchListener",
+            "android/hardware/SensorEventListener",
+            "android/view/ScaleGestureDetector$OnScaleGestureListener",
+        ],
+        fields: &[
+            // Sensors
+            Field {
+                name: "mSensorManager",
+                descriptor: "Landroid/hardware/SensorManager;",
+                access: PROTECTED,
+            },
+            Field {
+                name: "mDisplay",
+                descriptor: "Landroid/view/Display;",
+                access: PROTECTED,
+            },
+            // Keep track of the surface size to normalize touch events
+            Field {
+                name: "mWidth",
+                descriptor: "F",
+                access: PROTECTED,
+            },
+            Field {
+                name: "mHeight",
+                descriptor: "F",
+                access: PROTECTED,
+            },
+            // Is SurfaceView ready for rendering
+            Field {
+                name: "mIsSurfaceReady",
+                descriptor: "Z",
+                access: PROTECTED,
+            },
+            // Is on-screen keyboard visible
+            Field {
+                name: "mKeyboardVisible",
+                descriptor: "Z",
+                access: PROTECTED,
+            },
+            // Pinch events (private final: set from native code)
+            Field {
+                name: "scaleGestureDetector",
+                descriptor: "Landroid/view/ScaleGestureDetector;",
+                access: PRIVATE,
+            },
+        ],
+        methods: &[
+            // Startup
+            constructor(PROTECTED, "(Landroid/content/Context;)V"),
+            // Called when we have a valid drawing surface
+            native!(
+                PUBLIC,
+                "surfaceCreated",
+                "(Landroid/view/SurfaceHolder;)V",
+                surface::surface_created[_]
+            ),
+            // Called when we lose the surface
+            native!(
+                PUBLIC,
+                "surfaceDestroyed",
+                "(Landroid/view/SurfaceHolder;)V",
+                surface::surface_destroyed[_]
+            ),
+            // Called when the surface is resized
+            native!(
+                PUBLIC,
+                "surfaceChanged",
+                "(Landroid/view/SurfaceHolder;III)V",
+                surface::surface_changed[_, _, _, _]
+            ),
+            // Window inset
+            native!(
+                PUBLIC,
+                "onApplyWindowInsets",
+                "(Landroid/view/View;Landroid/view/WindowInsets;)Landroid/view/WindowInsets;",
+                surface::on_apply_window_insets[_, _]
+            ),
+            // Key events
+            native!(
+                PUBLIC,
+                "onKey",
+                "(Landroid/view/View;ILandroid/view/KeyEvent;)Z",
+                surface::on_key[_, _, _]
+            ),
+            // Touch events
+            native!(
+                PUBLIC,
+                "onTouch",
+                "(Landroid/view/View;Landroid/view/MotionEvent;)Z",
+                surface::on_touch[_, _]
+            ),
+            // Sensor events
+            native!(
+                PUBLIC,
+                "onAccuracyChanged",
+                "(Landroid/hardware/Sensor;I)V",
+                surface::on_accuracy_changed[_, _]
+            ),
+            native!(
+                PUBLIC,
+                "onSensorChanged",
+                "(Landroid/hardware/SensorEvent;)V",
+                surface::on_sensor_changed[_]
+            ),
+            // Prevent android internal NullPointerException (https://github.com/libsdl-org/SDL/issues/13306)
+            native!(
+                PUBLIC,
+                "onResolvePointerIcon",
+                "(Landroid/view/MotionEvent;I)Landroid/view/PointerIcon;",
+                surface::on_resolve_pointer_icon[_, _]
+            ),
+            // Captured pointer events for API 26.
+            native!(
+                PUBLIC,
+                "onCapturedPointerEvent",
+                "(Landroid/view/MotionEvent;)Z",
+                surface::on_captured_pointer_event[_]
+            ),
+            native!(
+                PUBLIC,
+                "onScale",
+                "(Landroid/view/ScaleGestureDetector;)Z",
+                surface::on_scale[_]
+            ),
+            native!(
+                PUBLIC,
+                "onScaleBegin",
+                "(Landroid/view/ScaleGestureDetector;)Z",
+                surface::on_scale_begin[_]
+            ),
+            native!(
+                PUBLIC,
+                "onScaleEnd",
+                "(Landroid/view/ScaleGestureDetector;)V",
+                surface::on_scale_end[_]
+            ),
         ],
     },
     // Upstream's anonymous `Runnable`s (`new Runnable() {...}`): a Rust
