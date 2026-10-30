@@ -776,6 +776,234 @@ pub(crate) extern "system" fn on_native_key_up(_env: *mut JNIEnv, _cls: jclass, 
 }
 
 // ---------------------------------------------------------------------------
+// Touch, pinch, mouse and pen: the natives, for the video driver
+
+/// A touch device. Translation of `nativeAddTouch()`.
+pub(crate) fn add_touch(touch_id: jint, name: &str) {
+    crate::events::touch::add_touch(
+        crate::video::drivers::android::touch::convert_java_touch_id(touch_id),
+        crate::events::touch::TouchDeviceType::Direct,
+        name,
+    );
+}
+
+pub(crate) extern "system" fn native_add_touch(
+    env: *mut JNIEnv,
+    _cls: jclass,
+    touch_id: jint,
+    name: jstring,
+) {
+    // SAFETY: a native method's environment and arguments.
+    let (env, name) = unsafe { (Env::from_raw(env), Obj::from_raw(name)) };
+    let Ok(utfname) = env.get_string(name) else {
+        // (pending, for the caller)
+        return;
+    };
+
+    add_touch(touch_id, &utfname);
+}
+
+/// Touch. Translation of `onNativeTouch()`.
+pub(crate) fn on_touch(
+    touch_device_id_in: jint,
+    pointer_finger_id_in: jint,
+    action: jint,
+    x: jfloat,
+    y: jfloat,
+    p: jfloat,
+) {
+    lock_activity_mutex();
+
+    crate::video::drivers::android::touch::on_touch(
+        crate::video::drivers::android::window(),
+        touch_device_id_in,
+        pointer_finger_id_in,
+        action,
+        x,
+        y,
+        p,
+    );
+
+    unlock_activity_mutex();
+}
+
+#[allow(clippy::too_many_arguments)] // (the Java method's)
+pub(crate) extern "system" fn on_native_touch(
+    _env: *mut JNIEnv,
+    _cls: jclass,
+    touch_device_id_in: jint,
+    pointer_finger_id_in: jint,
+    action: jint,
+    x: jfloat,
+    y: jfloat,
+    p: jfloat,
+) {
+    on_touch(touch_device_id_in, pointer_finger_id_in, action, x, y, p);
+}
+
+/// Pinch. Translation of `onNativePinchStart()`.
+pub(crate) fn on_pinch_start(span_x: jfloat, span_y: jfloat, focus_x: jfloat, focus_y: jfloat) {
+    lock_activity_mutex();
+
+    if let Some(window) = crate::video::drivers::android::window() {
+        crate::events::touch::send_pinch(
+            crate::events::EventType::PINCH_BEGIN,
+            Duration::ZERO,
+            window,
+            0.0,
+            span_x,
+            span_y,
+            focus_x,
+            focus_y,
+        );
+    }
+
+    unlock_activity_mutex();
+}
+
+pub(crate) extern "system" fn on_native_pinch_start(
+    _env: *mut JNIEnv,
+    _cls: jclass,
+    span_x: jfloat,
+    span_y: jfloat,
+    focus_x: jfloat,
+    focus_y: jfloat,
+) {
+    on_pinch_start(span_x, span_y, focus_x, focus_y);
+}
+
+/// Translation of `onNativePinchUpdate()`.
+pub(crate) fn on_pinch_update(
+    scale: jfloat,
+    span_x: jfloat,
+    span_y: jfloat,
+    focus_x: jfloat,
+    focus_y: jfloat,
+) {
+    lock_activity_mutex();
+
+    if let Some(window) = crate::video::drivers::android::window() {
+        crate::events::touch::send_pinch(
+            crate::events::EventType::PINCH_UPDATE,
+            Duration::ZERO,
+            window,
+            scale,
+            span_x,
+            span_y,
+            focus_x,
+            focus_y,
+        );
+    }
+
+    unlock_activity_mutex();
+}
+
+pub(crate) extern "system" fn on_native_pinch_update(
+    _env: *mut JNIEnv,
+    _cls: jclass,
+    scale: jfloat,
+    span_x: jfloat,
+    span_y: jfloat,
+    focus_x: jfloat,
+    focus_y: jfloat,
+) {
+    on_pinch_update(scale, span_x, span_y, focus_x, focus_y);
+}
+
+/// Translation of `onNativePinchEnd()`.
+pub(crate) fn on_pinch_end() {
+    lock_activity_mutex();
+
+    if let Some(window) = crate::video::drivers::android::window() {
+        crate::events::touch::send_pinch(
+            crate::events::EventType::PINCH_END,
+            Duration::ZERO,
+            window,
+            0.0,
+            -1.0,
+            -1.0,
+            -1.0,
+            -1.0,
+        );
+    }
+
+    unlock_activity_mutex();
+}
+
+pub(crate) extern "system" fn on_native_pinch_end(_env: *mut JNIEnv, _cls: jclass) {
+    on_pinch_end();
+}
+
+/// Mouse. Translation of `onNativeMouse()`.
+pub(crate) fn on_mouse(button: jint, action: jint, x: jfloat, y: jfloat, relative: bool) {
+    lock_activity_mutex();
+
+    crate::video::drivers::android::mouse::on_mouse(
+        crate::video::drivers::android::window(),
+        button,
+        action,
+        x,
+        y,
+        relative,
+    );
+
+    unlock_activity_mutex();
+}
+
+pub(crate) extern "system" fn on_native_mouse(
+    _env: *mut JNIEnv,
+    _cls: jclass,
+    button: jint,
+    action: jint,
+    x: jfloat,
+    y: jfloat,
+    relative: jboolean,
+) {
+    on_mouse(button, action, x, y, relative != 0);
+}
+
+/// Pen. Translation of `onNativePen()`.
+pub(crate) fn on_pen(
+    pen_id_in: jint,
+    device_type: jint,
+    button: jint,
+    action: jint,
+    x: jfloat,
+    y: jfloat,
+    p: jfloat,
+) {
+    lock_activity_mutex();
+
+    crate::video::drivers::android::pen::on_pen(
+        crate::video::drivers::android::window(),
+        pen_id_in,
+        device_type,
+        button,
+        action,
+        x,
+        y,
+        p,
+    );
+
+    unlock_activity_mutex();
+}
+
+#[allow(clippy::too_many_arguments)] // (the Java method's)
+pub(crate) extern "system" fn on_native_pen(
+    _env: *mut JNIEnv,
+    _cls: jclass,
+    pen_id_in: jint,
+    device_type: jint,
+    button: jint,
+    action: jint,
+    x: jfloat,
+    y: jfloat,
+    p: jfloat,
+) {
+    on_pen(pen_id_in, device_type, button, action, x, y, p);
+}
+
+// ---------------------------------------------------------------------------
 // The activity's surface: its natives, for the video driver
 
 /// `displayNaturalOrientation` (an `SDL_DisplayOrientation`).
@@ -1390,6 +1618,54 @@ pub(crate) fn set_orientation(w: i32, h: i32, resizable: bool, hint: Option<&str
     with_env(|env| {
         super::java::activity::set_orientation(env, w, h, resizable, hint.unwrap_or(""))
     });
+}
+
+// Touch support
+
+/// The touch devices (`SDLActivity.initTouch()`). Translation of
+/// `Android_JNI_InitTouch()`.
+pub(crate) fn init_touch() {
+    with_env(super::java::activity::init_touch);
+}
+
+// Cursor support
+
+/// A custom cursor of an ARGB8888 surface's pixels (`w` by `h`, packed
+/// rows), its ID (0 if the activity couldn't make it). Translation of
+/// `Android_JNI_CreateCustomCursor()`.
+pub(crate) fn create_custom_cursor(pixels: &[i32], w: i32, h: i32, hot_x: i32, hot_y: i32) -> i32 {
+    with_env(|env| super::java::activity::create_custom_cursor(env, pixels, w, h, hot_x, hot_y))
+        .unwrap_or(0)
+}
+
+/// Translation of `Android_JNI_DestroyCustomCursor()`.
+pub(crate) fn destroy_custom_cursor(cursor_id: i32) {
+    with_env(|env| {
+        super::java::activity::destroy_custom_cursor(env, cursor_id);
+        Ok(())
+    });
+}
+
+/// Translation of `Android_JNI_SetCustomCursor()`.
+pub(crate) fn set_custom_cursor(cursor_id: i32) -> bool {
+    with_env(|env| super::java::activity::set_custom_cursor(env, cursor_id)).unwrap_or(false)
+}
+
+/// Translation of `Android_JNI_SetSystemCursor()`.
+pub(crate) fn set_system_cursor(cursor_id: i32) -> bool {
+    with_env(|env| super::java::activity::set_system_cursor(env, cursor_id)).unwrap_or(false)
+}
+
+// Relative mouse support
+
+/// Translation of `Android_JNI_SupportsRelativeMouse()`.
+pub(crate) fn supports_relative_mouse() -> bool {
+    with_env(super::java::activity::supports_relative_mouse).unwrap_or(false)
+}
+
+/// Translation of `Android_JNI_SetRelativeMouseEnabled()`.
+pub(crate) fn set_relative_mouse_enabled(enabled: bool) -> bool {
+    with_env(|env| super::java::activity::set_relative_mouse_enabled(env, enabled)).unwrap_or(false)
 }
 
 /// Translation of `Android_JNI_MinimizeWindow()`.

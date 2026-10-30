@@ -26,16 +26,25 @@
 //! the fields are the DEX file's (`super::super::classes`). Note:
 //! `scaleGestureDetector` isn't `final` there (it's set from native code).
 //!
+//! Its touch events (`onTouch()`) are the mouse's, a pen's or a finger's,
+//! by each pointer's tool (`onNativeMouse()`, `onNativePen()`,
+//! `onNativeTouch()`), and feed the pinch's `ScaleGestureDetector`
+//! (`onScale()`, `onScaleBegin()`, `onScaleEnd()`: `onNativePinch*()`);
+//! the other motion events go to the generic motion listener
+//! (`super::controller_manager`), the captured pointer's too
+//! (`onCapturedPointerEvent()`).
+//!
 //! Not translated yet, where upstream does them: the key events
-//! (`onKey()`, `SDLActivity.handleKeyEvent()`: with the keyboard), the
-//! touch, mouse and pen events (`onTouch()`, `onCapturedPointerEvent()`,
-//! the generic motion listener: with the touch and mouse), and the pinch
-//! gestures (`onScale()`, `onScaleBegin()`, `onScaleEnd()`, which the
-//! touch events feed): stubs, noted.
+//! (`onKey()`, `SDLActivity.handleKeyEvent()`: with the keyboard): a stub,
+//! noted.
 
 use super::super::env::{Arg, Env, JniResult, Local, Obj};
 use super::super::jni::*;
 use super::super::ndk::LogPriority;
+use super::controller_manager::{
+    self, ACTION_POINTER_DOWN, ACTION_POINTER_UP, TOOL_TYPE_ERASER, TOOL_TYPE_MOUSE,
+    TOOL_TYPE_STYLUS,
+};
 use super::{activity, sensor_manager};
 
 /// `Log.v("SDL", message)`.
@@ -122,7 +131,6 @@ fn set_boolean_field<'a>(
 }
 
 /// A `float` field of the surface (`mWidth`, `mHeight`).
-#[allow(dead_code)] // (the touch events and pinches use it)
 fn float_field<'a>(env: Env<'a>, this: Obj<'_>, name: &std::ffi::CStr) -> JniResult<'a, f32> {
     Ok(env.get_field(this, name, c"F")?.float())
 }
@@ -214,8 +222,13 @@ pub(crate) fn create_sdl_surface<'a>(env: Env<'a>, context: Obj<'_>) -> JniResul
         Arg::Object(sensor_manager.as_ref().map_or(Obj::NULL, Local::obj)),
     )?;
 
-    // (setOnGenericMotionListener(SDLActivity.getMotionListener()): the
-    // motion listener comes with the mouse's translation)
+    let motion_listener = activity::get_motion_listener(env)?;
+    env.call_method(
+        this_obj,
+        c"setOnGenericMotionListener",
+        c"(Landroid/view/View$OnGenericMotionListener;)V",
+        &[Arg::Object(motion_listener.obj())],
+    )?;
 
     // Some arbitrary defaults to avoid a potential division by zero
     env.set_field(this_obj, c"mWidth", c"F", Arg::Float(1.0))?;
@@ -569,7 +582,6 @@ pub(crate) extern "system" fn on_key(
 }
 
 /// Translation of `getNormalizedX()`.
-#[allow(dead_code)] // (the touch events and pinches use it)
 fn get_normalized_x<'a>(env: Env<'a>, this: Obj<'_>, x: f32) -> JniResult<'a, f32> {
     let m_width = float_field(env, this, c"mWidth")?;
     Ok(if m_width <= 1.0 {
@@ -580,7 +592,6 @@ fn get_normalized_x<'a>(env: Env<'a>, this: Obj<'_>, x: f32) -> JniResult<'a, f3
 }
 
 /// Translation of `getNormalizedY()`.
-#[allow(dead_code)] // (the touch events and pinches use it)
 fn get_normalized_y<'a>(env: Env<'a>, this: Obj<'_>, y: f32) -> JniResult<'a, f32> {
     let m_height = float_field(env, this, c"mHeight")?;
     Ok(if m_height <= 1.0 {
@@ -590,18 +601,116 @@ fn get_normalized_y<'a>(env: Env<'a>, this: Obj<'_>, y: f32) -> JniResult<'a, f3
     })
 }
 
-/// Touch events. Translation of `onTouch()`, a stub: upstream's gives each
-/// pointer to `onNativeMouse()`, `onNativePen()` or `onNativeTouch()` by
-/// its tool, and the event to the pinch's `ScaleGestureDetector`, which
-/// come with the touch, mouse and pen's translation; until then the event
-/// is consumed (true, as upstream's), and nothing done with it.
+/// Touch events: each pointer of the event (the one that went down or up,
+/// for a non-primary one) to the mouse, a pen or a finger, by its tool,
+/// then the event to the pinch's detector. Translation of `onTouch()`.
 pub(crate) extern "system" fn on_touch(
-    _env: *mut JNIEnv,
-    _this: jobject,
+    env: *mut JNIEnv,
+    this: jobject,
     _v: jobject,
-    _event: jobject,
+    event: jobject,
 ) -> jboolean {
-    JNI_TRUE
+    // SAFETY: a native method's environment and arguments.
+    let (env, this, event) = unsafe {
+        (
+            Env::from_raw(env),
+            Obj::from_raw(this),
+            Obj::from_raw(event),
+        )
+    };
+    native_boolean(env, |env| {
+        /* Ref: http://developer.android.com/training/gestures/multi.html */
+        let touch_dev_id = env.call_method(event, c"getDeviceId", c"()I", &[])?.int();
+        let pointer_count = env
+            .call_method(event, c"getPointerCount", c"()I", &[])?
+            .int();
+        let action = env
+            .call_method(event, c"getActionMasked", c"()I", &[])?
+            .int();
+        let mut i = 0;
+
+        if action == ACTION_POINTER_UP || action == ACTION_POINTER_DOWN {
+            i = env
+                .call_method(event, c"getActionIndex", c"()I", &[])?
+                .int();
+        }
+
+        loop {
+            let tool_type = controller_manager::get_tool_type(env, event, i)?;
+
+            if tool_type == TOOL_TYPE_MOUSE {
+                let button_state = controller_manager::get_button_state(env, event)?;
+
+                // We need to check if we're in relative mouse mode and get the axis offset rather than the x/y values
+                // if we are. We'll leverage our existing mouse motion listener
+                let motion_listener = activity::get_motion_listener(env)?;
+                let x = controller_manager::get_event_x(env, motion_listener.obj(), event, i)?;
+                let y = controller_manager::get_event_y(env, motion_listener.obj(), event, i)?;
+                // Note (upstream): from API 26 the listener's getEventX()
+                // and getEventY() are the event's position (the captured
+                // pointer's events, which are relative, come through
+                // onCapturedPointerEvent()), so a mouse's touch event in
+                // the relative mode (one that isn't captured: an injected
+                // one) is sent as a motion by its position.
+                let relative = controller_manager::in_relative_mode(env, motion_listener.obj())?;
+
+                super::super::on_mouse(button_state, action, x, y, relative);
+            } else if tool_type == TOOL_TYPE_STYLUS || tool_type == TOOL_TYPE_ERASER {
+                let pointer_id = controller_manager::get_pointer_id(env, event, i)?;
+                let x = controller_manager::get_x(env, event, i)?;
+                let y = controller_manager::get_y(env, event, i)?;
+                let p = controller_manager::get_pressure(env, event, i)?;
+
+                // BUTTON_STYLUS_PRIMARY is 2^5, so shift by 4, and apply SDL_PEN_INPUT_DOWN/SDL_PEN_INPUT_ERASER_TIP
+                let button_state = controller_manager::pen_buttons(env, event, tool_type)?;
+
+                let motion_listener = activity::get_motion_listener(env)?;
+                let device = controller_manager::get_device(env, event)?;
+                let device_type = controller_manager::get_pen_device_type(
+                    env,
+                    motion_listener.obj(),
+                    device.as_ref().map_or(Obj::NULL, Local::obj),
+                )?;
+                super::super::on_pen(pointer_id, device_type, button_state, action, x, y, p);
+            } else {
+                // MotionEvent.TOOL_TYPE_FINGER or MotionEvent.TOOL_TYPE_UNKNOWN
+                let pointer_id = controller_manager::get_pointer_id(env, event, i)?;
+                let x = get_normalized_x(env, this, controller_manager::get_x(env, event, i)?)?;
+                let y = get_normalized_y(env, this, controller_manager::get_y(env, event, i)?)?;
+                let p = controller_manager::get_pressure(env, event, i)?;
+
+                super::super::on_touch(touch_dev_id, pointer_id, action, x, y, p);
+            }
+
+            // Non-primary up/down
+            if action == ACTION_POINTER_UP || action == ACTION_POINTER_DOWN {
+                break;
+            }
+            i += 1;
+            if i >= pointer_count {
+                break;
+            }
+        }
+
+        let detector = env
+            .get_field(
+                this,
+                c"scaleGestureDetector",
+                c"Landroid/view/ScaleGestureDetector;",
+            )?
+            .object();
+        let Some(detector) = detector else {
+            return null_pointer(env, c"SDLSurface.scaleGestureDetector is null");
+        };
+        env.call_method(
+            detector.obj(),
+            c"onTouchEvent",
+            c"(Landroid/view/MotionEvent;)Z",
+            &[Arg::Object(event)],
+        )?;
+
+        Ok(true)
+    })
 }
 
 // Sensor events
@@ -741,40 +850,90 @@ pub(crate) extern "system" fn on_resolve_pointer_icon(
     })
 }
 
-/// Captured pointer events for API 26. Translation of
-/// `onCapturedPointerEvent()`, a stub: upstream's gives the event to the
-/// motion listener (`SDLActivity.getMotionListener().onGenericMotion()`),
-/// which comes with the mouse's translation; until then it isn't handled
-/// (false).
+/// Captured pointer events for API 26: the motion listener's. Translation
+/// of `onCapturedPointerEvent()`.
 pub(crate) extern "system" fn on_captured_pointer_event(
-    _env: *mut JNIEnv,
-    _this: jobject,
-    _event: jobject,
+    env: *mut JNIEnv,
+    this: jobject,
+    event: jobject,
 ) -> jboolean {
-    JNI_FALSE
+    // SAFETY: a native method's environment and arguments.
+    let (env, this, event) = unsafe {
+        (
+            Env::from_raw(env),
+            Obj::from_raw(this),
+            Obj::from_raw(event),
+        )
+    };
+    native_boolean(env, |env| {
+        let motion_listener = activity::get_motion_listener(env)?;
+        controller_manager::generic_motion(env, motion_listener.obj(), this, event)
+    })
 }
 
-/// Translation of `onScale()`, a stub: upstream's gives the pinch to
-/// `onNativePinchUpdate()`, with the touch's translation (the detector
-/// gets no events until then: see [`on_touch`]).
+/// The detector's span and focus, normalized: `(span_x, span_y, focus_x,
+/// focus_y)`.
+fn pinch<'a>(
+    env: Env<'a>,
+    this: Obj<'_>,
+    detector: Obj<'_>,
+) -> JniResult<'a, (f32, f32, f32, f32)> {
+    let get = |name: &std::ffi::CStr| -> JniResult<'a, f32> {
+        Ok(env.call_method(detector, name, c"()F", &[])?.float())
+    };
+    let span_x = get_normalized_x(env, this, get(c"getCurrentSpanX")?)?;
+    let span_y = get_normalized_y(env, this, get(c"getCurrentSpanY")?)?;
+    let focus_x = get_normalized_x(env, this, get(c"getFocusX")?)?;
+    let focus_y = get_normalized_y(env, this, get(c"getFocusY")?)?;
+    Ok((span_x, span_y, focus_x, focus_y))
+}
+
+/// Translation of `onScale()`.
 pub(crate) extern "system" fn on_scale(
-    _env: *mut JNIEnv,
-    _this: jobject,
-    _detector: jobject,
+    env: *mut JNIEnv,
+    this: jobject,
+    detector: jobject,
 ) -> jboolean {
-    JNI_TRUE
+    // SAFETY: a native method's environment and arguments.
+    let (env, this, detector) = unsafe {
+        (
+            Env::from_raw(env),
+            Obj::from_raw(this),
+            Obj::from_raw(detector),
+        )
+    };
+    native_boolean(env, |env| {
+        let scale = env
+            .call_method(detector, c"getScaleFactor", c"()F", &[])?
+            .float();
+        let (span_x, span_y, focus_x, focus_y) = pinch(env, this, detector)?;
+        super::super::on_pinch_update(scale, span_x, span_y, focus_x, focus_y);
+        Ok(true)
+    })
 }
 
-/// Translation of `onScaleBegin()`, a stub (`onNativePinchStart()`: see
-/// [`on_scale`]).
+/// Translation of `onScaleBegin()`.
 pub(crate) extern "system" fn on_scale_begin(
-    _env: *mut JNIEnv,
-    _this: jobject,
-    _detector: jobject,
+    env: *mut JNIEnv,
+    this: jobject,
+    detector: jobject,
 ) -> jboolean {
-    JNI_TRUE
+    // SAFETY: a native method's environment and arguments.
+    let (env, this, detector) = unsafe {
+        (
+            Env::from_raw(env),
+            Obj::from_raw(this),
+            Obj::from_raw(detector),
+        )
+    };
+    native_boolean(env, |env| {
+        let (span_x, span_y, focus_x, focus_y) = pinch(env, this, detector)?;
+        super::super::on_pinch_start(span_x, span_y, focus_x, focus_y);
+        Ok(true)
+    })
 }
 
-/// Translation of `onScaleEnd()`, a stub (`onNativePinchEnd()`: see
-/// [`on_scale`]).
-pub(crate) extern "system" fn on_scale_end(_env: *mut JNIEnv, _this: jobject, _detector: jobject) {}
+/// Translation of `onScaleEnd()`.
+pub(crate) extern "system" fn on_scale_end(_env: *mut JNIEnv, _this: jobject, _detector: jobject) {
+    super::super::on_pinch_end();
+}
