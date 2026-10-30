@@ -508,15 +508,56 @@ pub fn log(category: Category, priority: Priority, message: &str) {
 }
 
 /// The default output: prefix + message to stderr, or through `NSLog()` on
-/// Apple platforms. Translation of the stdio and Apple paths of
-/// `SDL_LogOutput()` (the Windows debugger and Android logcat paths are
-/// platform backends).
+/// Apple platforms; on Android, to Android's log first (logcat), with the
+/// tag `SDL/CATEGORY` (`SDL/APP`, ...; `SDL/RESERVED` and `SDL/CUSTOM`
+/// for the others) and the priority mapped to Android's (trace and
+/// verbose to verbose, critical to fatal). Translation of the stdio, Apple
+/// and Android paths of `SDL_LogOutput()` (the Windows debugger path is a
+/// platform backend).
 pub fn default_output(record: &Record<'_>) {
+    #[cfg(target_os = "android")]
+    {
+        let tag = format!("SDL/{}", category_prefix(record.category));
+        crate::core::android::ndk::log_write(
+            ANDROID_PRIORITY[record.priority as usize],
+            &tag,
+            record.message,
+        );
+    }
     let prefix = prefix_for(&fstate(), record.priority);
     #[cfg(target_vendor = "apple")]
     ns_log(&prefix, record.message);
     #[cfg(not(target_vendor = "apple"))]
     eprintln!("{prefix}{}", record.message);
+}
+
+/// Android's log priority of each of SDL's. Translation of
+/// `SDL_android_priority`.
+#[cfg(target_os = "android")]
+static ANDROID_PRIORITY: [crate::core::android::ndk::LogPriority; Priority::COUNT] = {
+    use crate::core::android::ndk::LogPriority;
+    [
+        LogPriority::Unknown,
+        LogPriority::Verbose,
+        LogPriority::Verbose,
+        LogPriority::Debug,
+        LogPriority::Info,
+        LogPriority::Warn,
+        LogPriority::Error,
+        LogPriority::Fatal,
+    ]
+};
+
+/// A category's name in Android's log tags. Translation of
+/// `GetCategoryPrefix()`. (Note (upstream): a negative custom category
+/// indexes upstream's names out of bounds; it's `CUSTOM` here.)
+#[cfg(target_os = "android")]
+fn category_prefix(category: Category) -> &'static str {
+    match category {
+        Category::Reserved(_) => "RESERVED",
+        Category::Custom(_) => "CUSTOM",
+        known => CATEGORY_NAMES[known.to_raw() as usize],
+    }
 }
 
 /// Translation of `SDL_NSLog()` (in upstream's `SDL_cocoavideo.m`).
