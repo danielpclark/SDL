@@ -1128,7 +1128,13 @@ fn disk_driver_writes_and_reads_files() {
     );
     drop(stream);
 
-    // Recording: the file's data, then silence once it runs out.
+    // Recording: the file's data, then silence once it runs out. The
+    // device opens paused (as upstream's SDL_OpenAudioDeviceStream()), and
+    // its thread reads the file after one wait (DISKAUDIO_WaitDevice()),
+    // dropping what it reads while paused: a longer wait than playback's
+    // lets the resume below come first (at 0.05 a slow machine's resume
+    // sometimes came after the file's whole data was read and dropped).
+    crate::hints::set(crate::hints::AUDIO_DISK_TIMESCALE, "10").unwrap();
     let rec = open_audio_device_stream(
         AUDIO_DEVICE_DEFAULT_RECORDING,
         None,
