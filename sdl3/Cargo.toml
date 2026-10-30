@@ -288,3 +288,19 @@ harness = false
 [[test]]
 name = "uikit_visionos_input"
 harness = false
+
+# The Android emulator runner's app mode (tools/android_run.py): a program
+# that runs as an app (upstream's SDLActivity, with the program as its
+# libmain.so) and gives its exit status as the Android app programs will,
+# its spawned twin, and the JNI layer's checks, which need an app's Java VM.
+[[test]]
+name = "android_runner"
+harness = false
+
+[[test]]
+name = "android_spawned"
+harness = false
+
+[[test]]
+name = "android_jni"
+harness = false
