@@ -17,9 +17,18 @@ the toolchain. The program's segments are aligned to 16 KB pages
 (`-z max-page-size=16384`), which Android 15 devices may have.
 
 Programs run on Android as executables (spawned by tools/android_run.py
-through `adb shell`), which is how they're linked here. The programs that
-will run as apps get linked as shared libraries (the app's libmain.so) in
-`link_options()`, once there is an app mode.
+through `adb shell`), which is how they're linked here, but for the programs
+that run as apps: those whose own object files have a section `.sdl3_runner`
+with the word `app` in it (a `#[used] #[link_section = ".sdl3_runner"]`
+static of words separated by spaces or NULs, as sdl3/tests/android_runner.rs
+has), which tools/android_run.py packages as an app's libmain.so (Android
+loads an app's code as a library, which upstream's SDLActivity loads with
+`System.loadLibrary("main")`, then calls its `SDL_main`). They are linked as
+shared libraries (`-shared` in place of rustc's `-pie`, named libmain.so),
+with `SDL_main` the program's C `main` (`--defsym=SDL_main=main`, so that
+upstream's `nativeRunMain()` calls Rust's `main` through it, which gets its
+arguments as a C `main` does) and `JNI_OnLoad` (sdl3's, which registers the
+native methods of the app's Java classes) kept and exported, with `SDL_main`.
 
 The NDK: SDL3_ANDROID_NDK's directory, else ANDROID_NDK_HOME's, else
 ANDROID_NDK_ROOT's, else the SDK's NDK r29 (29.0.14206865, the version CI
@@ -68,6 +77,21 @@ CLANG_TRIPLES = {
 # 16 KB pages (NDK r28 and later do this by default; r27 doesn't).
 PAGE_SIZE_OPTION = "-Wl,-z,max-page-size=16384"
 
+# An app's program: libmain.so, whose SDL_main is its C main, with sdl3's
+# JNI_OnLoad (clang leaves -pie out with -shared, so it may stay in a
+# response file).
+APP_OPTIONS = [
+    "-shared",
+    "-Wl,-soname,libmain.so",
+    "-Wl,--defsym=SDL_main=main",
+    "-Wl,-u,JNI_OnLoad",
+    "-Wl,--export-dynamic-symbol=JNI_OnLoad",
+    "-Wl,--export-dynamic-symbol=SDL_main",
+]
+
+# The ELF section of a program's words for the runner.
+RUNNER_SECTION = b".sdl3_runner"
+
 
 class Failure(Exception):
     """An error this script reports (and exits 1 for)."""
@@ -111,6 +135,52 @@ def elf_machine(path):
         return None
     order = "<" if header[5] == 1 else ">"
     return struct.unpack_from(order + "H", header, 18)[0]
+
+
+def runner_words(path):
+    """The words of the object file `path`'s `.sdl3_runner` section (none
+    without one)."""
+    try:
+        with open(path, "rb") as f:
+            data = f.read()
+    except OSError:
+        return []
+    if len(data) < 52 or data[:4] != b"\x7fELF":
+        return []
+    bits64 = data[4] == 2
+    order = "<" if data[5] == 1 else ">"
+    try:
+        if bits64:
+            shoff, = struct.unpack_from(order + "Q", data, 40)
+            shentsize, shnum, shstrndx = struct.unpack_from(order + "HHH", data, 58)
+        else:
+            shoff, = struct.unpack_from(order + "I", data, 32)
+            shentsize, shnum, shstrndx = struct.unpack_from(order + "HHH", data, 46)
+        sections = []
+        for i in range(shnum):
+            base = shoff + i * shentsize
+            if bits64:
+                name, _, _, _, offset, size = struct.unpack_from(order + "IIQQQQ", data, base)
+            else:
+                name, _, _, _, offset, size = struct.unpack_from(order + "IIIIII", data, base)
+            sections.append((name, offset, size))
+        if not sections or shstrndx >= len(sections):
+            return []
+        strtab = sections[shstrndx][1]
+        words = []
+        for name, offset, size in sections:
+            end = data.index(b"\0", strtab + name)
+            if data[strtab + name:end] == RUNNER_SECTION:
+                words += data[offset:offset + size].decode(errors="replace").replace("\0", " ").split()
+        return words
+    except (struct.error, ValueError):
+        return []
+
+
+def is_app(arguments):
+    """Whether the program asks to run as an app (the word `app` in its own
+    object files' `.sdl3_runner` sections)."""
+    return any("app" in runner_words(a) for a in arguments if a.endswith(".o"))
 
 
 def clang_triple(arguments):
@@ -211,13 +281,23 @@ def find_clang(triple):
 
 
 def link_options(arguments):
-    """The options after rustc's: the page size. (The programs that ask to
-    run as apps, with the word `app` in a section `.sdl3_runner` of their
-    own object files, will be linked here with `-shared` in place of
-    rustc's `-pie`, `-Wl,--defsym=SDL_main=main` and `JNI_OnLoad` and
-    `SDL_main` exported, so that the program is an app's libmain.so;
-    there is no app mode yet.)"""
-    return [PAGE_SIZE_OPTION]
+    """The options after rustc's: the page size, and for a program that
+    asks to run as an app (see is_app()) those that make it the app's
+    libmain.so (APP_OPTIONS)."""
+    options = [PAGE_SIZE_OPTION]
+    if is_app(arguments):
+        options += APP_OPTIONS
+    return options
+
+
+def command_line(arguments, seen):
+    """rustc's arguments (`seen`: with its response files' read), with
+    `-pie` left out of an app's (the ones on the command line: clang
+    ignores one with -shared), and link_options()'s after them."""
+    options = link_options(seen)
+    if "-shared" in options:
+        arguments = [a for a in arguments if a not in ("-pie", "-Wl,-pie")]
+    return [*arguments, *options]
 
 
 def main():
@@ -230,7 +310,7 @@ def main():
             seen.append(argument)
     try:
         clang = find_clang(clang_triple(seen))
-        argv = [clang, *arguments, *link_options(seen)]
+        argv = [clang, *command_line(arguments, seen)]
     except Failure as e:
         note(str(e))
         return 1

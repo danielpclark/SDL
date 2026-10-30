@@ -10,6 +10,9 @@ hosts.
 
 Usage:
   android_run.py PROGRAM [ARGUMENTS...]   run PROGRAM on the device
+  android_run.py --apk PROGRAM OUT.apk    write the app package (APK) of
+                                          PROGRAM, an app's program or
+                                          libmain.so
   android_run.py --boot                   make the emulator's virtual
                                           device when it doesn't exist
                                           yet, start the emulator and
@@ -19,7 +22,7 @@ Usage:
                                           adb's server when no device
                                           is left
 
-A program is spawned: pushed to the device (`adb push`, to a directory of
+A program is spawned (unless it asks to run as an app, below): pushed to the device (`adb push`, to a directory of
 its own under /data/local/tmp/sdl3/run/) and run there as a process of
 the shell user (`adb shell`, in the shell protocol, which keeps the
 program's stdout and stderr apart and gives its exit status, 128 + N for
@@ -57,6 +60,68 @@ program when it runs it are translated:
   directory, which is appended to the host's file when it ends.
 
 Other paths (a program's arguments, other variables) stay as they are.
+
+A program runs as an app when it asks for it: a section `.sdl3_runner` in
+its ELF file holding the word `app` (a `#[used] #[link_section =
+".sdl3_runner"]` static of words separated by spaces or NULs, as
+sdl3/tests/android_runner.rs has), which tools/android_link.py links as an
+app's libmain.so (a shared library whose `SDL_main` is the program's
+`main`, with sdl3's `JNI_OnLoad`). The program is put in an app package
+(APK, as `--apk` writes it), with no Gradle: the SDK's build-tools
+(SDL3_ANDROID_BUILD_TOOLS's version, by default 35.0.0, the one CI uses, or
+the newest installed) link a manifest written here (upstream's
+android-project's: its features and permissions, its theme, its activity
+`org.libsdl.app.SDLActivity` and that activity's attributes, debuggable, and
+the INTERNET permission, which the runner's sockets below need) against the
+platform's android.jar (SDL3_ANDROID_PLATFORM's API level, by default 35,
+or the newest installed) with `aapt2`, then the DEX file of the app's
+classes (`classes.dex`, which sdl3 keeps in the program's section
+`.sdl3_android_dex`) and the program (`lib/ABI/libmain.so`, uncompressed)
+are added, the package aligned (`zipalign -P 16`, for 16 KB pages) and
+signed (`apksigner`, with the debug key of SDL3_ANDROID_KEYSTORE, by
+default ~/.android/debug.keystore, which is made with the JDK's `keytool`
+when it doesn't exist: alias androiddebugkey, password android). Its
+package name is org.libsdl.sdl3_rust.NAME (NAME the program's, without
+Cargo's hash), or SDL3_ANDROID_PACKAGE.
+
+It is installed (`adb install`) and launched (`am start -W`), with the
+variables a spawned program gets but HOME, TMPDIR and CARGO_TARGET_TMPDIR
+(an app has its own directories), as the manifest's meta-data
+`SDL_ENV.NAME`, which upstream's SDLActivity sets as environment variables
+(`getManifestEnvironmentVariables()`) when SDL first reads one. (aapt2
+types a value that reads as a number, a boolean, a color or a resource
+reference, so a variable whose value wouldn't come through as it is, as
+`01`, `+1` or `#fff`, is left out, with a note.) An app's stdout and stderr
+go nowhere, so the runner listens on two TCP ports, which the device
+reaches through `adb reverse`, and passes them in SDL3_ANDROID_RUNNER_STDIO
+(`OUT,ERR`): the program connects to them first thing and makes them its
+fds 1 and 2 (sdl3/tests/android_support/). Its arguments are
+SDL3_ANDROID_RUNNER_ARGS (`N:` then the N arguments, percent-encoded,
+separated by commas): upstream gives an app's `SDL_main` the arguments
+`app_process` and those of SDLActivity's `getArguments()`, none. adb
+doesn't give an app's exit status, so the program ends by printing
+`sdl3-android-runner: exit N` on a line of its own: N is this script's
+exit status (the line isn't copied). The app is then stopped (`am
+force-stop`) and uninstalled. Without that line (a crash, an uncaught
+panic, which aborts in a native method, an app that returned from main and
+stays up until the timeout) the run fails, and the end of the device's log
+follows, then the reason once more. A process that ends before its launch
+is complete is launched again by Android, which would run the program a
+second time: the second connection is refused, and the run fails. So does
+one whose package ART didn't verify (a `VerifyError`, a rejected class, a
+failed dexopt in the device's log). With SDL3_ANDROID_VERBOSE=1 the
+dexopt's result is noted.
+
+A running app can ask for what only the host can do, with a line
+`sdl3-android-runner: request WHAT [ARGUMENTS]` (copied, then acted on):
+  background  the HOME key (`input keyevent KEYCODE_HOME`), which sends the
+              app to the background
+  foreground  the app's activity launched again (`am start`), which brings
+              it back, the same process
+  input ARGUMENTS
+              `adb shell input ARGUMENTS` (shell words: `tap X Y`,
+              `swipe X1 Y1 X2 Y2`, `keyevent CODE`, `text TEXT`, ...)
+The app waits for what follows itself.
 
 The device: SDL3_ANDROID_SERIAL's (an `adb devices` serial), else
 ANDROID_SERIAL's, else the only device adb lists (or the emulator this
@@ -105,15 +170,28 @@ Environment:
                                0: no limit), after which it is killed
   SDL3_ANDROID_VERBOSE         1: the adb commands, with their times, on
                                stderr
+  SDL3_ANDROID_BUILD_TOOLS     the SDK's build-tools version an APK is
+                               made with (default 35.0.0, else the newest)
+  SDL3_ANDROID_PLATFORM        the API level of the android.jar an APK's
+                               manifest is linked against (default 35,
+                               else the newest)
+  SDL3_ANDROID_KEYSTORE        the debug keystore APKs are signed with
+                               (default ~/.android/debug.keystore)
+  SDL3_ANDROID_PACKAGE         an app's package name (default
+                               org.libsdl.sdl3_rust.NAME)
   ANDROID_HOME, ANDROID_SDK_ROOT
                                the SDK (adb and the emulator from it, else
-                               from PATH)
+                               from PATH; the build-tools and platforms from
+                               it)
+  JAVA_HOME                    the JDK of keytool and apksigner (else PATH's)
 """
 import fcntl
 import hashlib
 import os
 import re
+import selectors
 import shlex
+import shutil
 import signal
 import socket
 import struct
@@ -121,6 +199,8 @@ import subprocess
 import sys
 import tempfile
 import time
+import urllib.parse
+import zipfile
 
 PROGRAM = os.path.basename(__file__)
 
@@ -255,9 +335,10 @@ def adb_shell(serial, command, check=True, timeout=120):
 
 
 class Elf:
-    """What this script reads of an ELF file: its machine (the ABI) and the
+    """What this script reads of an ELF file: its machine (the ABI), the
     words of its `.sdl3_runner` section (the way a program asks how it is
-    run, as on the Apple platforms)."""
+    run, as on the Apple platforms) and the DEX file of its
+    `.sdl3_android_dex` section (sdl3's, the app's classes)."""
 
     def __init__(self, path):
         try:
@@ -271,6 +352,7 @@ class Elf:
         order = "<" if data[5] == 1 else ">"
         self.machine = struct.unpack_from(order + "H", data, 18)[0]
         self.words = []
+        self.dex = None
         try:
             if bits64:
                 shoff, = struct.unpack_from(order + "Q", data, 40)
@@ -293,6 +375,8 @@ class Elf:
                     if data[strtab + name:end] == b".sdl3_runner":
                         contents = data[offset:offset + size]
                         self.words += contents.decode(errors="replace").replace("\0", " ").split()
+                    elif data[strtab + name:end] == b".sdl3_android_dex":
+                        self.dex = data[offset:offset + size]
         except (struct.error, ValueError):
             raise Failure(f"{path}: a malformed ELF file") from None
 
@@ -854,6 +938,597 @@ class Run:
                     f.write(result.stdout)
 
 
+# ---------------------------------------------------------------------------
+# Apps
+
+SENTINEL = re.compile(r"sdl3-android-runner: exit (-?\d+)")
+REQUEST = re.compile(r"sdl3-android-runner: request (\S+)(?: (.*))?")
+
+# The app's activity: upstream's, which sdl3's DEX file declares.
+ACTIVITY = "org.libsdl.app.SDLActivity"
+PACKAGE_PREFIX = "org.libsdl.sdl3_rust."
+
+# Upstream's minSdkVersion (android-project's), and the build-tools and
+# platform CI makes the packages with.
+MIN_SDK = 21
+PREFERRED_BUILD_TOOLS = "35.0.0"
+PREFERRED_PLATFORM = 35
+
+# The variables an app doesn't get: it has its own directories.
+NOT_FOR_APPS = ("HOME", "TMPDIR", "CARGO_TARGET_TMPDIR", "SDL3_TEST_SKIP_LOG")
+
+# How long a launched app may take to connect to the runner's sockets
+# while its process isn't there (it never started, or died at once).
+CONNECT_TIMEOUT = 30
+
+# The device's log lines that say ART didn't verify the app's classes.
+VERIFY_FAILURE = re.compile(
+    r"VerifyError|Rejecting class|[Vv]erification (of .*)?failed|[Vv]erification error|failed verification"
+    r"|Dexopt result.*status=FAILED"
+)
+
+
+def version_key(name):
+    return tuple(int(p) if p.isdigit() else -1 for p in re.split(r"[.\-]", name))
+
+
+def build_tools():
+    """The SDK's build-tools directory APKs are made with."""
+    sdk = sdk_dir()
+    if not sdk:
+        raise Failure("no Android SDK (for the build-tools): set ANDROID_HOME")
+    base = os.path.join(sdk, "build-tools")
+    want = os.environ.get("SDL3_ANDROID_BUILD_TOOLS")
+    if want:
+        path = os.path.join(base, want)
+        if not os.path.isfile(os.path.join(path, "aapt2")):
+            raise Failure(f"no build-tools {want} in {base} (SDL3_ANDROID_BUILD_TOOLS): sdkmanager --install 'build-tools;{want}'")
+        return path
+    preferred = os.path.join(base, PREFERRED_BUILD_TOOLS)
+    if os.path.isfile(os.path.join(preferred, "aapt2")):
+        return preferred
+    try:
+        found = [n for n in os.listdir(base) if os.path.isfile(os.path.join(base, n, "aapt2"))]
+    except OSError:
+        found = []
+    if not found:
+        raise Failure(f"no build-tools in {base}: sdkmanager --install 'build-tools;{PREFERRED_BUILD_TOOLS}'")
+    return os.path.join(base, max(found, key=version_key))
+
+
+def platform_jar():
+    """The platform's android.jar the manifest is linked against, and its
+    API level."""
+    sdk = sdk_dir()
+    if not sdk:
+        raise Failure("no Android SDK (for a platform's android.jar): set ANDROID_HOME")
+    base = os.path.join(sdk, "platforms")
+    found = {}
+    try:
+        for name in os.listdir(base):
+            match = re.fullmatch(r"android-(\d+)", name)
+            if match and os.path.isfile(os.path.join(base, name, "android.jar")):
+                found[int(match.group(1))] = os.path.join(base, name, "android.jar")
+    except OSError:
+        pass
+    want = os.environ.get("SDL3_ANDROID_PLATFORM")
+    if want:
+        if not want.isdigit() or int(want) not in found:
+            raise Failure(f"no platform android-{want} in {base} (SDL3_ANDROID_PLATFORM): sdkmanager --install 'platforms;android-{want}'")
+        return found[int(want)], int(want)
+    if PREFERRED_PLATFORM in found:
+        return found[PREFERRED_PLATFORM], PREFERRED_PLATFORM
+    if not found:
+        raise Failure(f"no platform in {base}: sdkmanager --install 'platforms;android-{PREFERRED_PLATFORM}'")
+    api = max(found)
+    return found[api], api
+
+
+def jdk_tool(name):
+    """A JDK tool (keytool): JAVA_HOME's, else PATH's."""
+    home = os.environ.get("JAVA_HOME")
+    if home and os.path.isfile(os.path.join(home, "bin", name)):
+        return os.path.join(home, "bin", name)
+    path = shutil.which(name)
+    if not path:
+        raise Failure(f"no {name}: install a JDK, and set JAVA_HOME")
+    return path
+
+
+def debug_keystore():
+    """The debug keystore APKs are signed with (made when it doesn't exist,
+    as the SDK's tools make it)."""
+    path = os.environ.get("SDL3_ANDROID_KEYSTORE") or os.path.expanduser("~/.android/debug.keystore")
+    with Lock("keystore"):
+        if not os.path.isfile(path):
+            os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
+            run_tool([
+                jdk_tool("keytool"), "-genkeypair", "-keystore", path, "-storepass", "android",
+                "-keypass", "android", "-alias", "androiddebugkey", "-keyalg", "RSA", "-keysize", "2048",
+                "-validity", "10000", "-dname", "CN=Android Debug,O=Android,C=US",
+            ], timeout=120)
+            note(f"made the debug keystore {path}")
+    return path
+
+
+def program_name(program):
+    """The program's name, without Cargo's hash (`android_runner-0123456789abcdef`)."""
+    name = os.path.basename(program)
+    name = re.sub(r"\.so$", "", name)
+    return re.sub(r"-[0-9a-f]{16}$", "", name)
+
+
+def package_name(program):
+    want = os.environ.get("SDL3_ANDROID_PACKAGE")
+    if want:
+        return want
+    name = re.sub(r"[^A-Za-z0-9_]", "_", program_name(program))
+    if not name or name[0].isdigit():
+        name = "_" + name
+    return PACKAGE_PREFIX + name
+
+
+INTEGER = re.compile(r"[-+]?(?:\d+|0[xX][0-9a-fA-F]+)")
+FLOATING = re.compile(
+    r"[-+]?(?:(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?"
+    r"|0[xX](?:[0-9a-fA-F]+\.?[0-9a-fA-F]*|\.[0-9a-fA-F]+)(?:[pP][-+]?\d+)?"
+    r"|(?i:inf|infinity|nan))"
+)
+
+
+def manifest_value_problem(value):
+    """Why `value` wouldn't come through a manifest's `android:value` as the
+    same string (aapt2 types a value that reads as a reference, a color, a
+    boolean, an integer or a floating-point number, whose `toString()` is
+    what the app gets), or None."""
+    if any(ord(c) < 0x20 and c not in "\t\n\r" for c in value):
+        return "it has a control character, which XML can't have"
+    if value != value.strip():
+        return "it has whitespace at an end"
+    if value[:1] in ("@", "?"):
+        return "it reads as a resource reference"
+    if re.fullmatch(r"#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})", value):
+        return "it reads as a color"
+    if value.lower() in ("true", "false"):
+        return None if value in ("true", "false") else f"it reads as the boolean {value.lower()}"
+    if INTEGER.fullmatch(value):
+        digits = value.lstrip("+-")
+        number = int(digits, 16) if digits[:2].lower() == "0x" else int(digits)
+        number = -number if value.startswith("-") else number
+        if not -2**31 <= number < 2**31:
+            return "it reads as a floating-point number"
+        return None if str(number) == value else f"it reads as the integer {number}"
+    if FLOATING.fullmatch(value):
+        return "it reads as a floating-point number"
+    return None
+
+
+def encode_arguments(args):
+    """SDL3_ANDROID_RUNNER_ARGS: `N:` then the arguments, percent-encoded,
+    separated by commas."""
+    return f"{len(args)}:" + ",".join(urllib.parse.quote(a, safe="") for a in args)
+
+
+def xml_attribute(value):
+    return (
+        value.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")
+        .replace("\n", "&#10;").replace("\r", "&#13;").replace("\t", "&#9;")
+    )
+
+
+def manifest(package, env):
+    """The app's AndroidManifest.xml: upstream's android-project's (its
+    features and permissions, its application's and activity's
+    attributes), with this package's name, the INTERNET permission (for the
+    runner's sockets) and the variables as `SDL_ENV.NAME` meta-data."""
+    meta = "".join(
+        f'        <meta-data android:name="SDL_ENV.{xml_attribute(name)}" android:value="{xml_attribute(value)}" />\n'
+        for name, value in sorted(env.items())
+    )
+    return f'''<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="{package}"
+    android:versionCode="1"
+    android:versionName="1.0"
+    android:installLocation="auto">
+    <uses-feature android:glEsVersion="0x00020000" />
+    <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
+    <uses-feature android:name="android.hardware.bluetooth" android:required="false" />
+    <uses-feature android:name="android.hardware.gamepad" android:required="false" />
+    <uses-feature android:name="android.hardware.usb.host" android:required="false" />
+    <uses-feature android:name="android.hardware.type.pc" android:required="false" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <application android:label="@string/app_name"
+        android:allowBackup="true"
+        android:theme="@style/AppTheme"
+        android:enableOnBackInvokedCallback="true"
+        android:hardwareAccelerated="true">
+{meta}        <activity android:name="{ACTIVITY}"
+            android:label="@string/app_name"
+            android:alwaysRetainTaskState="true"
+            android:launchMode="singleTop"
+            android:configChanges="layoutDirection|locale|grammaticalGender|fontScale|fontWeightAdjustment|orientation|uiMode|screenLayout|screenSize|smallestScreenSize|keyboard|keyboardHidden|navigation"
+            android:preferMinimalPostProcessing="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>
+'''
+
+
+def resources(name):
+    """The app's resources: upstream's app name string (the program's name
+    here) and its theme."""
+    return {
+        "values/strings.xml": f'''<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">{xml_attribute(name)}</string>
+</resources>
+''',
+        "values/styles.xml": '''<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="AppTheme" parent="android:Theme.NoTitleBar">
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+    </style>
+</resources>
+''',
+    }
+
+
+def write_apk(program, elf, out, env, temp):
+    """Write PROGRAM's APK to OUT, with the variables `env` (see above): its
+    package name."""
+    abi, _ = elf.abi()
+    if elf.dex is None:
+        raise Failure(f"{program} has no DEX file of the app's classes (a section .sdl3_android_dex): does it link sdl3?")
+    tools = build_tools()
+    jar, api = platform_jar()
+    package = package_name(program)
+    start = time.monotonic()
+    manifest_path = os.path.join(temp, "AndroidManifest.xml")
+    with open(manifest_path, "w", encoding="utf-8") as f:
+        f.write(manifest(package, env))
+    compiled = os.path.join(temp, "compiled")
+    os.makedirs(compiled, exist_ok=True)
+    for relative, text in resources(program_name(program)).items():
+        path = os.path.join(temp, "res", relative)
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(text)
+        run_tool([os.path.join(tools, "aapt2"), "compile", "-o", compiled, path], timeout=300)
+    flats = sorted(os.path.join(compiled, n) for n in os.listdir(compiled))
+    base = os.path.join(temp, "base.apk")
+    run_tool([
+        os.path.join(tools, "aapt2"), "link", "-o", base, "--manifest", manifest_path, "-I", jar,
+        "--min-sdk-version", str(MIN_SDK), "--target-sdk-version", str(api), "--debug-mode", *flats,
+    ], timeout=300)
+    unsigned = os.path.join(temp, "unsigned.apk")
+    with zipfile.ZipFile(base) as source, zipfile.ZipFile(unsigned, "w") as zip_out:
+        for item in source.infolist():
+            zip_out.writestr(item, source.read(item.filename))
+        zip_out.writestr(zipfile.ZipInfo("classes.dex"), elf.dex, compress_type=zipfile.ZIP_DEFLATED)
+        # (uncompressed, so that zipalign page-aligns it)
+        zip_out.write(program, f"lib/{abi}/libmain.so", compress_type=zipfile.ZIP_STORED)
+    aligned = os.path.join(temp, "aligned.apk")
+    run_tool([os.path.join(tools, "zipalign"), "-P", "16", "-f", "4", unsigned, aligned], timeout=300)
+    run_tool([
+        os.path.join(tools, "apksigner"), "sign", "--ks", debug_keystore(), "--ks-pass", "pass:android",
+        "--key-pass", "pass:android", "--ks-key-alias", "androiddebugkey", "--out", out, aligned,
+    ], timeout=300)
+    if VERBOSE:
+        note(f"wrote {out} ({package}, {os.path.getsize(out)} bytes) in {time.monotonic() - start:.1f} s")
+    return package
+
+
+def cmd_apk(args):
+    if len(args) != 2:
+        raise Failure("usage: --apk PROGRAM OUT.apk")
+    program, out = args
+    if not os.path.isfile(program):
+        raise Failure(f"no program {program}")
+    elf = Elf(program)
+    if elf.abi()[1] is None:
+        raise Failure(f"{program} is built for {elf.abi()[0]}, which isn't one of Android's ABIs")
+    with tempfile.TemporaryDirectory(prefix="sdl3-android-apk-") as temp:
+        package = write_apk(os.path.abspath(program), elf, os.path.abspath(out), {}, temp)
+    print(f"{out}: {package}")
+    return 0
+
+
+def app_environment(run, args, ports):
+    """The app's variables: a spawned program's (with the test data copied),
+    but those of its directories, plus the runner's sockets and the
+    arguments; those that wouldn't come through the manifest as they are
+    left out, with a note."""
+    env, _ = run.environment()
+    for name in NOT_FOR_APPS:
+        env.pop(name, None)
+    env["SDL3_ANDROID_RUNNER_STDIO"] = ",".join(str(p) for p in ports)
+    env["SDL3_ANDROID_RUNNER_ARGS"] = encode_arguments(args)
+    for name, value in sorted(env.items()):
+        problem = manifest_value_problem(value)
+        if problem:
+            note(f"{name}={value!r} isn't passed on to the app: {problem}, which the manifest would change")
+            del env[name]
+    return env
+
+
+class Stream:
+    """One of the app's output streams, a connection to the runner's socket:
+    copied to `out` by lines, the `sdl3-android-runner: exit N` line kept
+    out (and noted) when `sentinel`, and the `sdl3-android-runner: request
+    WHAT [ARGUMENTS]` lines passed to `on_request` (after they're copied)."""
+
+    def __init__(self, name, listener, out, sentinel, on_request=None):
+        self.name = name
+        self.listener = listener
+        self.out = out
+        self.sentinel = sentinel
+        self.on_request = on_request
+        self.connection = None
+        self.connections = 0
+        self.closed = False
+        self.pending = b""
+        self.status = None
+        self.tail = []
+
+    def accept(self):
+        connection, _ = self.listener.accept()
+        self.connections += 1
+        if self.connection is not None or self.closed:
+            # (a second process: the first one's launch didn't complete)
+            connection.close()
+            return False
+        connection.setblocking(False)
+        self.connection = connection
+        return True
+
+    def read(self):
+        """Read what's there: False once the stream has ended."""
+        try:
+            data = self.connection.recv(65536)
+        except BlockingIOError:
+            return True
+        except OSError:
+            data = b""
+        if not data:
+            self.close()
+            return False
+        self.lines(data)
+        return True
+
+    def lines(self, data, final=False):
+        self.pending += data
+        *lines, self.pending = self.pending.split(b"\n")
+        if final and self.pending:
+            lines.append(self.pending)
+            self.pending = b""
+        for raw in lines:
+            text = raw.decode(errors="replace").rstrip("\r")
+            match = SENTINEL.fullmatch(text) if self.sentinel else None
+            if match:
+                self.status = int(match.group(1)) & 0xFF
+                continue
+            self.tail.append(text)
+            del self.tail[:-40]
+            self.out.write(text + "\n")
+            request = REQUEST.fullmatch(text) if self.on_request else None
+            if request:
+                self.out.flush()
+                self.on_request(request.group(1), request.group(2))
+        self.out.flush()
+
+    def drain(self, deadline):
+        """Read the rest (the app has been stopped)."""
+        if self.connection is None:
+            return
+        self.connection.setblocking(True)
+        while not self.closed:
+            self.connection.settimeout(max(0.1, deadline - time.monotonic()))
+            try:
+                data = self.connection.recv(65536)
+            except OSError:
+                data = b""
+            if not data:
+                self.close()
+            else:
+                self.lines(data)
+
+    def close(self):
+        if not self.closed:
+            self.lines(b"", final=True)
+        self.closed = True
+        if self.connection is not None:
+            self.connection.close()
+
+
+class AppRequests:
+    """What a running app asks for (`sdl3-android-runner: request WHAT`)."""
+
+    def __init__(self, serial, package):
+        self.serial = serial
+        self.package = package
+
+    def handle(self, what, args=""):
+        args = args or ""
+        if what == "background":
+            result = adb_shell(self.serial, "input keyevent KEYCODE_HOME", check=False)
+        elif what == "foreground":
+            result = adb_shell(self.serial, f"am start -n {self.package}/{ACTIVITY}", check=False)
+        elif what == "input":
+            try:
+                words = shlex.split(args)
+            except ValueError as e:
+                note(f"request input: {e} (ignored)")
+                return
+            if not words:
+                note("request input: no arguments (ignored)")
+                return
+            result = adb_shell(self.serial, "input " + shlex.join(words), check=False)
+        else:
+            note(f"unknown request {what!r} (ignored)")
+            return
+        if result.returncode != 0:
+            note(f"request {what} {args}: failed ({result.returncode}): {(result.stderr or result.stdout).strip()}")
+
+
+def app_pid(serial, package):
+    result = adb_shell(serial, f"pidof {package}", check=False, timeout=30)
+    return result.stdout.strip() or None
+
+
+def install(serial, apk, package):
+    result = adb(serial, "install", "-r", "-t", apk, check=False, timeout=600)
+    output = (result.stdout + result.stderr).strip()
+    if result.returncode != 0 and "INSTALL_FAILED_UPDATE_INCOMPATIBLE" in output:
+        # (signed with another key: an older install of the package)
+        adb(serial, "uninstall", package, check=False, timeout=120)
+        result = adb(serial, "install", "-r", "-t", apk, check=False, timeout=600)
+        output = (result.stdout + result.stderr).strip()
+    if result.returncode != 0 or "Success" not in output:
+        raise Failure(f"adb install {os.path.basename(apk)} failed ({result.returncode}): {output}")
+
+
+def launch(serial, program, elf, args):
+    with tempfile.TemporaryDirectory(prefix="sdl3-android-apk-") as temp:
+        run = Run(serial, program, args)
+        listeners = []
+        try:
+            for _ in range(2):
+                listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                listener.bind(("127.0.0.1", 0))
+                listener.listen(4)
+                listener.setblocking(False)
+                listeners.append(listener)
+            ports = [listener.getsockname()[1] for listener in listeners]
+            env = app_environment(run, args, ports)
+            apk = os.path.join(temp, "app.apk")
+            package = write_apk(program, elf, apk, env, temp)
+            # (one app at a time: each takes the screen)
+            with Lock("app"):
+                for port in ports:
+                    adb(serial, "reverse", f"tcp:{port}", f"tcp:{port}")
+                try:
+                    adb(serial, "logcat", "-b", "all", "-c", check=False)
+                    install(serial, apk, package)
+                    try:
+                        return run_app(serial, package, listeners)
+                    finally:
+                        adb(serial, "uninstall", package, check=False, timeout=120)
+                finally:
+                    for port in ports:
+                        adb(serial, "reverse", "--remove", f"tcp:{port}", check=False)
+        finally:
+            for listener in listeners:
+                listener.close()
+            run.clean_up()
+
+
+def device_log(serial):
+    """The device's log since the app's install (the crash buffer too)."""
+    result = adb(serial, "logcat", "-d", "-b", "main,system,crash", "-v", "brief", check=False, timeout=120)
+    return result.stdout.splitlines()
+
+
+def run_app(serial, package, listeners):
+    timeout = number("SDL3_ANDROID_TIMEOUT", 1800)
+    requests = AppRequests(serial, package)
+    out = Stream("stdout", listeners[0], sys.stdout, True, requests.handle)
+    err = Stream("stderr", listeners[1], sys.stderr, False)
+    streams = [out, err]
+    selector = selectors.DefaultSelector()
+    for stream in streams:
+        selector.register(stream.listener, selectors.EVENT_READ, (stream, "accept"))
+    start = time.monotonic()
+    result = adb_shell(serial, f"am start -W -n {package}/{ACTIVITY}", check=False, timeout=300)
+    launched = result.returncode == 0 and "Error" not in result.stdout + result.stderr
+    if VERBOSE:
+        note(f"am start: {' | '.join(result.stdout.strip().splitlines())} ({time.monotonic() - start:.1f} s)")
+    reason = None
+    if not launched:
+        reason = f"am start failed ({result.returncode}): {(result.stderr or result.stdout).strip()}"
+    relaunched = False
+    timed_out = False
+    last_check = time.monotonic()
+    while launched and out.status is None:
+        if timeout and time.monotonic() - start > timeout:
+            timed_out = True
+            reason = f"the app ran for more than {timeout:g} s (SDL3_ANDROID_TIMEOUT)"
+            note(f"{reason}: stopping it")
+            break
+        for key, _ in selector.select(timeout=0.5):
+            stream, what = key.data
+            if what == "accept":
+                if stream.accept():
+                    selector.register(stream.connection, selectors.EVENT_READ, (stream, "read"))
+                else:
+                    relaunched = True
+            elif not stream.read():
+                selector.unregister(key.fileobj)
+        if relaunched:
+            reason = (
+                "the app's process ended before its launch was complete, and Android launched it again "
+                "(the program would run a second time)"
+            )
+            break
+        if all(s.closed for s in streams):
+            reason = (
+                "the app ended without printing `sdl3-android-runner: exit N` (it crashed, panicked in a "
+                "native method, which aborts, or exited some other way)"
+            )
+            break
+        if out.connection is None and time.monotonic() - last_check > 2:
+            last_check = time.monotonic()
+            if time.monotonic() - start > CONNECT_TIMEOUT and not app_pid(serial, package):
+                reason = f"the app didn't connect to the runner in {CONNECT_TIMEOUT} s, and its process is gone"
+                break
+    # The status is known (or won't be): stop the app (which ends its
+    # connections), then copy what's left of its output.
+    adb_shell(serial, f"am force-stop {package}", check=False, timeout=60)
+    deadline = time.monotonic() + 5
+    for stream in streams:
+        stream.drain(deadline)
+    selector.close()
+    log = device_log(serial)
+    failures = [line for line in log if VERIFY_FAILURE.search(line) and ("org.libsdl" in line or "org/libsdl" in line or package in line)]
+    if VERBOSE:
+        for line in log:
+            if "Dexopt result" in line and package in line:
+                note(f"ART: {line.strip()}")
+    if failures:
+        note("ART didn't verify the app's classes:")
+        for line in failures[-20:]:
+            print(f"  | {line}", file=sys.stderr)
+        note(f"{package} failed: ART's verification of its DEX file")
+        return 1
+    if out.status is not None and not relaunched and not timed_out:
+        return out.status
+    if reason is None:
+        reason = "the app stopped"
+    note(reason)
+    for what, stream in (("output", out), ("error output", err)):
+        if stream.tail:
+            note(f"the end of its {what}:")
+            for text in stream.tail[-20:]:
+                print(f"  | {text}", file=sys.stderr)
+    note("the end of the device's log:")
+    for line in log[-200:]:
+        print(f"  | {line}", file=sys.stderr)
+    # (once more below the log, where a CI log's last lines show it)
+    note(f"{package} failed: {reason}")
+    return 1
+
+
 def interrupted(signum, frame):
     raise KeyboardInterrupt
 
@@ -866,8 +1541,6 @@ def cmd_run(program, args):
     abi, target = elf.abi()
     if target is None:
         raise Failure(f"{program} is built for {abi}, which isn't one of Android's ABIs")
-    if "app" in elf.words:
-        raise Failure(f"{program} asks to run as an app, which this script can't do yet")
     serial = find_device()
     abis = wait_for_boot(serial)
     if abi not in abis:
@@ -878,6 +1551,8 @@ def cmd_run(program, args):
         )
     signal.signal(signal.SIGTERM, interrupted)
     try:
+        if "app" in elf.words:
+            return launch(serial, program, elf, args)
         return Run(serial, program, args).run()
     except KeyboardInterrupt:
         return 130
@@ -892,6 +1567,8 @@ def main():
             return cmd_boot(sys.argv[2:])
         if sys.argv[1] == "--kill":
             return cmd_kill(sys.argv[2:])
+        if sys.argv[1] == "--apk":
+            return cmd_apk(sys.argv[2:])
         return cmd_run(sys.argv[1], sys.argv[2:])
     except Failure as e:
         note(str(e))

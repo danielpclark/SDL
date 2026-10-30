@@ -7,8 +7,10 @@
 // Parts are used only by the backends that need them.
 #![allow(dead_code)]
 
-/// Where upstream builds with `SDL_USE_LIBDBUS` (and the other
-/// `core/linux/` pieces).
+/// The Android platform layer: JNI, upstream's Java translated, and the
+/// DEX file of its classes (whose writer and tables the host tests check).
+#[cfg(any(target_os = "android", test))]
+pub(crate) mod android;
 /// The Objective-C runtime and the system frameworks the Apple backends
 /// share.
 #[cfg(target_vendor = "apple")]
@@ -17,6 +19,8 @@ pub(crate) mod apple;
 /// functions, `SDL_ExitProcess()`).
 #[cfg(target_os = "emscripten")]
 pub(crate) mod emscripten;
+/// Where upstream builds with `SDL_USE_LIBDBUS` (and the other
+/// `core/linux/` pieces).
 #[cfg(all(
     unix,
     not(target_vendor = "apple"),

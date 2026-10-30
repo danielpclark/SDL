@@ -10,6 +10,10 @@
 //! change both the snapshot and the real process environment. Changes made
 //! behind SDL's back (e.g. with `std::env::set_var`) are not seen until the
 //! snapshot is refreshed by [`init::quit`](crate::init::quit).
+//!
+//! On Android an app's manifest can set variables (`<meta-data
+//! android:name="SDL_ENV.NAME" android:value="VALUE"/>`): they are set in the
+//! process environment the first time SDL reads it, as upstream does.
 
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex, MutexGuard};
@@ -45,6 +49,9 @@ impl Environment {
     pub fn new(populated: bool) -> Environment {
         let mut strings = HashMap::new();
         if populated {
+            // Make sure variables from the application manifest are available
+            #[cfg(target_os = "android")]
+            crate::core::android::get_manifest_environment_variables();
             for (name, value) in std::env::vars_os() {
                 let mut variable = name.to_string_lossy().into_owned();
                 if variable.is_empty() {
@@ -134,6 +141,11 @@ pub fn getenv(name: &str) -> Option<String> {
 /// The value of an environment variable, read directly from the process
 /// environment. Translation of `SDL_getenv_unsafe()`.
 pub fn getenv_unsafe(name: &str) -> Option<String> {
+    // Make sure variables from the application manifest are available
+    #[cfg(target_os = "android")]
+    crate::core::android::get_manifest_environment_variables();
+
+    // Input validation
     if name.is_empty() {
         return None;
     }
