@@ -14,13 +14,18 @@
 //! `std::process::exit()` in an app: libc's `exit()` ends the process
 //! under the framework's threads, which abort. [`request`] asks the runner
 //! for something done from outside the app (`background`, `foreground`,
-//! `input ARGUMENTS`).
+//! `back`, `input ARGUMENTS`, `trim-memory LEVEL`, `night MODE`, `locale
+//! TAGS`, `logcat TAGS`, ...: see tools/android_run.py), and gives its
+//! answer. [`jni`] has the few JNI calls the programs make themselves, as
+//! an app's C would (through `sdl3::android::jni_env()`).
 //!
 //! A panic in a native method (the framework's callbacks) aborts the
 //! process, so the programs run their checks in [`checked`] and end with
 //! the status it gives.
 
 #![allow(dead_code)] // (each program uses what it needs)
+
+pub mod jni;
 
 use std::io::Write;
 use std::os::fd::AsRawFd;
@@ -107,10 +112,46 @@ pub fn finish(status: u8) -> ExitCode {
     ExitCode::from(status)
 }
 
-/// Ask the runner for something (`sdl3-android-runner: request WHAT`).
-pub fn request(what: &str) {
+/// Ask the runner for something (`sdl3-android-runner: request WHAT`), and
+/// wait until it's done: the lines of its answer (`sdl3-android-runner:
+/// reply LINE`, until `sdl3-android-runner: done`, on the stdout socket).
+/// Not in an app: nothing done, no answer.
+pub fn request(what: &str) -> Vec<String> {
     println!("sdl3-android-runner: request {what}");
     let _ = std::io::stdout().flush();
+    if !is_app() {
+        return Vec::new();
+    }
+    let mut lines = Vec::new();
+    loop {
+        let line = read_stdout_line();
+        if line == "sdl3-android-runner: done" {
+            return lines;
+        }
+        match line.strip_prefix("sdl3-android-runner: reply ") {
+            Some(reply) => lines.push(reply.to_string()),
+            None if line.is_empty() => panic!("the runner's socket closed during a request"),
+            None => panic!("the runner's answer to {what:?}: {line:?}"),
+        }
+    }
+}
+
+/// A line the runner sent on the stdout socket (fd 1), without its end.
+fn read_stdout_line() -> String {
+    let mut line = Vec::new();
+    loop {
+        let mut byte = 0u8;
+        // SAFETY: one byte into a byte (fd 1 is the runner's socket).
+        let n = unsafe { libc::read(1, (&mut byte as *mut u8).cast(), 1) };
+        if n < 0 && std::io::Error::last_os_error().kind() == std::io::ErrorKind::Interrupted {
+            continue;
+        }
+        if n <= 0 || byte == b'\n' {
+            break;
+        }
+        line.push(byte);
+    }
+    String::from_utf8_lossy(&line).into_owned()
 }
 
 /// Run `checks`, catching a panic (printed by the panic hook): the exit

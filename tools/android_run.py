@@ -13,6 +13,9 @@ Usage:
   android_run.py --apk PROGRAM OUT.apk    write the app package (APK) of
                                           PROGRAM, an app's program or
                                           libmain.so
+  android_run.py --run-apk APK [PACKAGE]  run an app package made
+                                          elsewhere, its SDL_Log() lines
+                                          its output (see below)
   android_run.py --boot                   make the emulator's virtual
                                           device when it doesn't exist
                                           yet, start the emulator and
@@ -84,7 +87,8 @@ when it doesn't exist: alias androiddebugkey, password android). Its
 package name is org.libsdl.sdl3_rust.NAME (NAME the program's, without
 Cargo's hash), or SDL3_ANDROID_PACKAGE.
 
-It is installed (`adb install`) and launched (`am start -W`), with the
+It is installed (`adb install`) and launched (`am start -W`, as a
+launcher's icon launches it: the MAIN action, the LAUNCHER category), with the
 variables a spawned program gets but HOME, TMPDIR and CARGO_TARGET_TMPDIR
 (an app has its own directories), as the manifest's meta-data
 `SDL_ENV.NAME`, which upstream's SDLActivity sets as environment variables
@@ -115,15 +119,43 @@ install's dexopt result is noted, when it has one (a debuggable app's has
 none: `adb shell cmd package compile -m verify -f PACKAGE` verifies it).
 
 A running app can ask for what only the host can do, with a line
-`sdl3-android-runner: request WHAT [ARGUMENTS]` (copied, then acted on):
+`sdl3-android-runner: request WHAT [ARGUMENTS]` (copied, then acted on;
+ARGUMENTS are shell words):
   background  the HOME key (`input keyevent KEYCODE_HOME`), which sends the
               app to the background
   foreground  the app's activity launched again (`am start`), which brings
               it back, the same process
+  back        the BACK key (`input keyevent KEYCODE_BACK`)
   input ARGUMENTS
-              `adb shell input ARGUMENTS` (shell words: `tap X Y`,
-              `swipe X1 Y1 X2 Y2`, `keyevent CODE`, `text TEXT`, ...)
+              `adb shell input ARGUMENTS` (`tap X Y`, `swipe X1 Y1 X2 Y2`,
+              `keyevent CODE`, `text TEXT`, ...)
+  am ARGUMENTS, cmd ARGUMENTS
+              `adb shell am ARGUMENTS`, `adb shell cmd ARGUMENTS`
+  trim-memory LEVEL
+              `am send-trim-memory PACKAGE LEVEL` (RUNNING_LOW by default;
+              the app's onTrimMemory())
+  night yes|no|auto
+              `cmd uimode night MODE`, the system's dark mode
+  locale [TAGS...]
+              `cmd locale set-app-locales PACKAGE --locales TAGS` (comma-
+              separated: fr-FR; none for the system's), the app's own
+              locales (API 33 and later)
+  logcat TAGS...
+              the app's lines of the device's log (`logcat -d --pid=PID -s
+              TAGS`), as the answer: `P/TAG: MESSAGE` each
+The runner answers each request on the app's stdout socket, once it's
+done: its lines (`sdl3-android-runner: reply LINE`), then
+`sdl3-android-runner: done` (android_support's `request()` reads them).
 The app waits for what follows itself.
+
+`--run-apk APK [PACKAGE]` runs an app package made elsewhere (upstream's
+android-project and its C, with Gradle) the same way, as far as it can:
+installed, launched, and stopped and uninstalled once it ends, its output
+being its process's lines of the device's log with the tag SDL/APP (its
+`SDL_Log()`s), the requests among them answered on stdout (`sdl3-android-
+runner: reply LINE`, as it has no socket to read them from), its exit
+status the `sdl3-android-runner: exit N` line's. PACKAGE is the package's
+(by default aapt2's reading of it).
 
 The device: SDL3_ANDROID_SERIAL's (an `adb devices` serial), else
 ANDROID_SERIAL's, else the only device adb lists (or the emulator this
@@ -945,9 +977,17 @@ class Run:
 
 SENTINEL = re.compile(r"sdl3-android-runner: exit (-?\d+)")
 REQUEST = re.compile(r"sdl3-android-runner: request (\S+)(?: (.*))?")
+# A request's answer: its lines, then its end.
+REPLY = "sdl3-android-runner: reply "
+DONE = "sdl3-android-runner: done"
+# A line of `logcat -v brief`: `P/TAG(PID): MESSAGE` (the tag padded).
+LOGCAT_BRIEF = re.compile(r"([VDIWEFA])/(.*?)\(\s*\d+\): (.*)")
 
-# The app's activity: upstream's, which sdl3's DEX file declares.
+# The app's activity: upstream's, which sdl3's DEX file declares; launched
+# as a launcher's icon launches it (as when a person starts the app;
+# launched again, the singleTop activity comes back to the front).
 ACTIVITY = "org.libsdl.app.SDLActivity"
+LAUNCHER = "-a android.intent.action.MAIN -c android.intent.category.LAUNCHER"
 PACKAGE_PREFIX = "org.libsdl.sdl3_rust."
 
 # Upstream's minSdkVersion (android-project's), and the build-tools and
@@ -1278,6 +1318,8 @@ class Stream:
     WHAT [ARGUMENTS]` lines passed to `on_request` (after they're copied)."""
 
     def __init__(self, name, listener, out, sentinel, on_request=None):
+        """`on_request(WHAT, ARGUMENTS)` gives the lines of its answer,
+        which go back to the app on the same connection."""
         self.name = name
         self.listener = listener
         self.out = out
@@ -1333,8 +1375,21 @@ class Stream:
             request = REQUEST.fullmatch(text) if self.on_request else None
             if request:
                 self.out.flush()
-                self.on_request(request.group(1), request.group(2))
+                self.reply(self.on_request(request.group(1), request.group(2)))
         self.out.flush()
+
+    def reply(self, lines):
+        """Answer a request: its lines, then the end of the answer."""
+        if self.connection is None:
+            return
+        data = "".join(f"{REPLY}{line}\n" for line in lines) + DONE + "\n"
+        self.connection.setblocking(True)
+        try:
+            self.connection.sendall(data.encode())
+        except OSError:
+            pass
+        finally:
+            self.connection.setblocking(False)
 
     def drain(self, deadline):
         """Read the rest (the app has been stopped)."""
@@ -1361,7 +1416,8 @@ class Stream:
 
 
 class AppRequests:
-    """What a running app asks for (`sdl3-android-runner: request WHAT`)."""
+    """What a running app asks for (`sdl3-android-runner: request WHAT
+    [ARGUMENTS]`): done, then the lines of the answer (a log's)."""
 
     def __init__(self, serial, package):
         self.serial = serial
@@ -1369,25 +1425,56 @@ class AppRequests:
 
     def handle(self, what, args=""):
         args = args or ""
+        try:
+            words = shlex.split(args)
+        except ValueError as e:
+            note(f"request {what}: {e} (ignored)")
+            return []
         if what == "background":
-            result = adb_shell(self.serial, "input keyevent KEYCODE_HOME", check=False)
+            command = "input keyevent KEYCODE_HOME"
         elif what == "foreground":
-            result = adb_shell(self.serial, f"am start -n {self.package}/{ACTIVITY}", check=False)
-        elif what == "input":
-            try:
-                words = shlex.split(args)
-            except ValueError as e:
-                note(f"request input: {e} (ignored)")
-                return
+            command = f"am start {LAUNCHER} -n {self.package}/{ACTIVITY}"
+        elif what == "back":
+            command = "input keyevent KEYCODE_BACK"
+        elif what in ("input", "am", "cmd"):
             if not words:
-                note("request input: no arguments (ignored)")
-                return
-            result = adb_shell(self.serial, "input " + shlex.join(words), check=False)
+                note(f"request {what}: no arguments (ignored)")
+                return []
+            command = what + " " + shlex.join(words)
+        elif what == "trim-memory":
+            level = words[0] if words else "RUNNING_LOW"
+            command = f"am send-trim-memory {self.package} {shlex.quote(level)}"
+        elif what == "night":
+            command = "cmd uimode night " + shlex.quote(words[0] if words else "auto")
+        elif what == "locale":
+            command = f"cmd locale set-app-locales {self.package} --locales " + shlex.quote(",".join(words))
+        elif what == "logcat":
+            return self.logcat(words)
         else:
             note(f"unknown request {what!r} (ignored)")
-            return
+            return []
+        result = adb_shell(self.serial, command, check=False)
         if result.returncode != 0:
             note(f"request {what} {args}: failed ({result.returncode}): {(result.stderr or result.stdout).strip()}")
+        return []
+
+    def logcat(self, tags):
+        """The app's lines of the device's log with those tags, as `P/TAG:
+        MESSAGE`."""
+        pid = app_pid(self.serial, self.package)
+        command = "logcat -d -v brief"
+        if pid:
+            command += f" --pid={shlex.quote(pid.split()[0])}"
+        command += " -s " + (shlex.join(tags) if tags else "'*'")
+        result = adb_shell(self.serial, command, check=False)
+        if result.returncode != 0:
+            note(f"request logcat: failed ({result.returncode}): {(result.stderr or result.stdout).strip()}")
+        lines = []
+        for line in result.stdout.splitlines():
+            match = LOGCAT_BRIEF.fullmatch(line.rstrip("\r"))
+            if match:
+                lines.append(f"{match.group(1)}/{match.group(2).rstrip()}: {match.group(3)}")
+        return lines
 
 
 def app_pid(serial, package):
@@ -1458,7 +1545,7 @@ def run_app(serial, package, listeners):
     for stream in streams:
         selector.register(stream.listener, selectors.EVENT_READ, (stream, "accept"))
     start = time.monotonic()
-    result = adb_shell(serial, f"am start -W -n {package}/{ACTIVITY}", check=False, timeout=300)
+    result = adb_shell(serial, f"am start -W {LAUNCHER} -n {package}/{ACTIVITY}", check=False, timeout=300)
     launched = result.returncode == 0 and "Error" not in result.stdout + result.stderr
     if VERBOSE:
         note(f"am start: {' | '.join(result.stdout.strip().splitlines())} ({time.monotonic() - start:.1f} s)")
@@ -1537,6 +1624,80 @@ def run_app(serial, package, listeners):
     return 1
 
 
+def apk_package(apk):
+    """The package name of an APK, as aapt2 reads it."""
+    result = run_tool([os.path.join(build_tools(), "aapt2"), "dump", "packagename", apk], timeout=300)
+    package = result.stdout.strip()
+    if not package:
+        raise Failure(f"aapt2 gave no package name for {apk}")
+    return package
+
+
+def cmd_run_apk(args):
+    """`--run-apk APK [PACKAGE]` (see the description)."""
+    if len(args) not in (1, 2):
+        raise Failure("usage: --run-apk APK [PACKAGE]")
+    apk = args[0]
+    if not os.path.isfile(apk):
+        raise Failure(f"no app package {apk}")
+    package = args[1] if len(args) == 2 else apk_package(apk)
+    serial = find_device()
+    wait_for_boot(serial)
+    timeout = number("SDL3_ANDROID_TIMEOUT", 1800)
+    signal.signal(signal.SIGTERM, interrupted)
+    with Lock("app"):
+        result = adb(serial, "install", "-r", "-t", "-g", apk, check=False, timeout=600)
+        if result.returncode != 0 or "Success" not in result.stdout + result.stderr:
+            raise Failure(f"adb install {apk} failed ({result.returncode}): {(result.stdout + result.stderr).strip()}")
+        try:
+            return run_logcat_app(serial, package, timeout)
+        finally:
+            adb_shell(serial, f"am force-stop {package}", check=False, timeout=60)
+            adb(serial, "uninstall", package, check=False, timeout=120)
+
+
+def run_logcat_app(serial, package, timeout):
+    """Launch PACKAGE's activity, and copy its SDL/APP lines of the device's
+    log, acting on its requests, until its exit line: its status."""
+    adb(serial, "logcat", "-b", "all", "-c", check=False)
+    requests = AppRequests(serial, package)
+    argv = [sdk_tool("platform-tools", "adb", name="adb"), "-s", serial, "logcat", "-v", "raw", "-s", "SDL/APP:V"]
+    log = subprocess.Popen(argv, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE)
+    try:
+        start = time.monotonic()
+        result = adb_shell(serial, f"am start -W {LAUNCHER} -n {package}/{ACTIVITY}", check=False, timeout=300)
+        if result.returncode != 0 or "Error" in result.stdout + result.stderr:
+            raise Failure(f"am start failed ({result.returncode}): {(result.stderr or result.stdout).strip()}")
+        selector = selectors.DefaultSelector()
+        selector.register(log.stdout, selectors.EVENT_READ)
+        pending = b""
+        while True:
+            if timeout and time.monotonic() - start > timeout:
+                note(f"{package} ran for more than {timeout:g} s (SDL3_ANDROID_TIMEOUT)")
+                return 1
+            if not selector.select(timeout=0.5):
+                continue
+            data = os.read(log.stdout.fileno(), 65536)
+            if not data:
+                note(f"{package}: the device's log ended without `sdl3-android-runner: exit N`")
+                return 1
+            pending += data
+            *lines, pending = pending.split(b"\n")
+            for raw in lines:
+                text = raw.decode(errors="replace").rstrip("\r")
+                match = SENTINEL.fullmatch(text)
+                if match:
+                    return int(match.group(1)) & 0xFF
+                print(text, flush=True)
+                request = REQUEST.fullmatch(text)
+                if request:
+                    for line in requests.handle(request.group(1), request.group(2)):
+                        print(f"{REPLY}{line}", flush=True)
+    finally:
+        log.kill()
+        log.wait()
+
+
 def interrupted(signum, frame):
     raise KeyboardInterrupt
 
@@ -1577,6 +1738,11 @@ def main():
             return cmd_kill(sys.argv[2:])
         if sys.argv[1] == "--apk":
             return cmd_apk(sys.argv[2:])
+        if sys.argv[1] == "--run-apk":
+            try:
+                return cmd_run_apk(sys.argv[2:])
+            except KeyboardInterrupt:
+                return 130
         return cmd_run(sys.argv[1], sys.argv[2:])
     except Failure as e:
         note(str(e))
