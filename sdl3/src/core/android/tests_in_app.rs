@@ -13,6 +13,7 @@ use super::classes::{CLASSES, SDL_ACTIVITY, SDL_MAIN};
 use super::env::{self, Arg, Env, Global, LocalReferenceHolder, Obj};
 use super::jni::*;
 use std::ffi::CString;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 type Check = Result<(), String>;
 
@@ -64,6 +65,7 @@ pub(crate) fn run() -> Vec<(&'static str, Check)> {
             });
             if env.exception_check() {
                 env.exception_describe();
+                env.exception_clear();
                 return (
                     *name,
                     Err(format!("left an exception pending ({result:?})")),
@@ -168,12 +170,20 @@ fn strings(env: Env<'_>) -> Check {
         let back = ok("GetStringRegion()", env.get_string(java.obj()))?;
         ensure!(back == s, "{s:?} came back as {back:?}");
     }
-    // Modified UTF-8, as upstream's GetStringUTFChars() gives it: a
-    // character past U+FFFF as its surrogates, three bytes each
+    // Modified UTF-8, as upstream's GetStringUTFChars() gives it: U+0000
+    // as two bytes; and on ART a character past U+FFFF as its UTF-8 (not
+    // as its surrogates, which JNI's specification says)
+    let java = ok("NewString()", env.new_string("a\0b"))?;
+    let mutf8 = ok("GetStringUTFChars()", env.get_string_utf_chars(java.obj()))?;
+    ensure!(
+        mutf8.as_bytes() == [b'a', 0xc0, 0x80, b'b'],
+        "Modified UTF-8 of a, U+0000, b: {:x?}",
+        mutf8.as_bytes()
+    );
     let java = ok("NewString()", env.new_string("\u{1F600}"))?;
     let mutf8 = ok("GetStringUTFChars()", env.get_string_utf_chars(java.obj()))?;
     ensure!(
-        mutf8.as_bytes() == [0xed, 0xa0, 0xbd, 0xed, 0xb8, 0x80],
+        mutf8.as_bytes() == "\u{1F600}".as_bytes(),
         "Modified UTF-8 of U+1F600: {:x?}",
         mutf8.as_bytes()
     );
@@ -506,8 +516,19 @@ fn native_threads(_env: Env<'_>) -> Check {
     .map_err(|_| "the thread panicked".to_string())?
 }
 
+/// Whether [`in_memory_run`] ran.
+static IN_MEMORY_RAN: AtomicBool = AtomicBool::new(false);
+
+/// The in-memory `SDLMain.run()`'s Rust function, for [`in_memory_dex`].
+extern "system" fn in_memory_run(_env: *mut JNIEnv, _this: jobject) {
+    IN_MEMORY_RAN.store(true, Ordering::Release);
+}
+
 /// This library's DEX file through an `InMemoryDexClassLoader`: its own
-/// classes (not the app's), whose natives register and answer.
+/// classes (not the app's), whose natives register and answer: its
+/// `SDLMain`, run by a Java thread. (Its `SDLActivity` can't be
+/// initialized: its static initializer loads `libmain`, which the app's
+/// class loader has.)
 fn in_memory_dex(env: Env<'_>) -> Check {
     if super::sdk_int(env) < 26 {
         println!("android_jni: InMemoryDexClassLoader is API 26 and later");
@@ -517,48 +538,65 @@ fn in_memory_dex(env: Env<'_>) -> Check {
         "new InMemoryDexClassLoader()",
         super::in_memory_class_loader(env),
     )?;
-    let name = ok("NewString()", env.new_string("org.libsdl.app.SDLActivity"))?;
-    let class = ok(
-        "loadClass()",
-        env.call_method(
-            loader.obj(),
-            c"loadClass",
-            c"(Ljava/lang/String;)Ljava/lang/Class;",
-            &[Arg::Object(name.obj())],
-        ),
-    )?
-    .object()
-    .ok_or("loadClass() returned null")?;
-    let app = env::app_class(SDL_ACTIVITY).unwrap();
-    ensure!(
-        !env.is_same_object(class.obj(), app.obj()),
-        "the app's class, not the DEX file's"
-    );
-    let method = CString::new("nativeGetVersion").unwrap();
-    let signature = CString::new("()Ljava/lang/String;").unwrap();
+    let load = |name: &str| -> Result<env::Local<'_>, String> {
+        let name = ok("NewString()", env.new_string(name))?;
+        ok(
+            "loadClass()",
+            env.call_method(
+                loader.obj(),
+                c"loadClass",
+                c"(Ljava/lang/String;)Ljava/lang/Class;",
+                &[Arg::Object(name.obj())],
+            ),
+        )?
+        .object()
+        .ok_or_else(|| "loadClass() returned null".to_string())
+    };
+    for (name, app) in [
+        ("org.libsdl.app.SDLActivity", SDL_ACTIVITY),
+        ("org.libsdl.app.SDLMain", SDL_MAIN),
+    ] {
+        let class = load(name)?;
+        let app = env::app_class(app).unwrap();
+        ensure!(
+            !env.is_same_object(class.obj(), app.obj()),
+            "the app's {name}, not the DEX file's"
+        );
+    }
+    let main = load("org.libsdl.app.SDLMain")?;
     let table = [JNINativeMethod {
-        name: method.as_ptr(),
-        signature: signature.as_ptr(),
-        fnPtr: super::native_get_version as *mut std::ffi::c_void,
+        name: c"run".as_ptr(),
+        signature: c"()V".as_ptr(),
+        fnPtr: in_memory_run as *mut std::ffi::c_void,
     }];
     let status = ok(
         "RegisterNatives()",
-        env.register_natives(class.obj(), &table),
+        env.register_natives(main.obj(), &table),
     )?;
     ensure!(status == JNI_OK, "RegisterNatives() = {status}");
-    let version = ok(
-        "nativeGetVersion()",
-        env.call_static_method(
-            class.obj(),
-            c"nativeGetVersion",
-            c"()Ljava/lang/String;",
-            &[],
+    let runnable = ok("new SDLMain()", env.new_object(main.obj(), c"()V", &[]))?;
+    let thread_class = ok("FindClass()", env.find_class(c"java/lang/Thread"))?;
+    let thread = ok(
+        "new Thread()",
+        env.new_object(
+            thread_class.obj(),
+            c"(Ljava/lang/Runnable;)V",
+            &[Arg::Object(runnable.obj())],
         ),
-    )?
-    .object()
-    .ok_or("null")?;
-    let version = ok("GetStringRegion()", env.get_string(version.obj()))?;
-    ensure!(version == "3.5.0", "{version:?}");
+    )?;
+    IN_MEMORY_RAN.store(false, Ordering::Release);
+    ok(
+        "start()",
+        env.call_method(thread.obj(), c"start", c"()V", &[]),
+    )?;
+    ok(
+        "join()",
+        env.call_method(thread.obj(), c"join", c"()V", &[]),
+    )?;
+    ensure!(
+        IN_MEMORY_RAN.load(Ordering::Acquire),
+        "the in-memory SDLMain.run() didn't run"
+    );
     Ok(())
 }
 

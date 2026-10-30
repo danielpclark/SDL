@@ -98,3 +98,23 @@ parts of `src/libm` from Sun's fdlibm, `SDL_qsort.c`, the HIDAPI code, parts of
 those are translated, their original notices come along with them in the same
 way; the per-file header will name the original license. All of them are
 compatible with the zlib terms used here.
+
+## System headers declared by hand
+
+The platform layers declare the system interfaces they call by hand, as
+Rust, instead of binding generated headers: Windows' through `windows-sys`,
+the C library's through `libc`, and the rest (X11, Wayland, Vulkan, the
+Objective-C runtime, the kernel's input interfaces, ...) in the modules
+that use them. What such a declaration carries over is the interface's
+layout and names (a structure's fields, a function's parameters, a
+table's slot order, a constant's value), the facts a program needs to
+call it, not the header's expression (its comments, its macros, its
+arrangement). Android's are of this kind: the JNI function tables
+(`sdl3/src/core/android/jni.rs`, whose slot order is checked against the
+NDK's `jni.h`) and the NDK's C interfaces (`ndk.rs`, `<android/log.h>`
+so far) are declared from the NDK's headers, which are under the Apache
+License 2.0 (`jni.h` is libnativehelper's, in AOSP). No NDK code is
+translated or linked in: an app links the NDK's system libraries
+(`liblog`, `libandroid`, ...) as upstream's does, through the NDK's
+stubs, and its DEX file is written by `sdl3/src/core/android/dex.rs` from
+declarations of upstream's own Java classes.

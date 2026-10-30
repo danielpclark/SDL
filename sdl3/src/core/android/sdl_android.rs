@@ -157,7 +157,9 @@ pub(crate) fn in_memory_class_loader(env: Env<'_>) -> env::JniResult<'_, env::Lo
 /// `SDLActivity` (a library loaded by an app's own activity, which
 /// upstream doesn't support: its `FindClass()` fails), they are loaded
 /// from this library's DEX file through an `InMemoryDexClassLoader` (API
-/// 26 and later), and registered there.
+/// 26 and later), and registered there. (That `SDLActivity` can't be
+/// initialized, as its static initializer loads `libmain` through its
+/// class loader, which the app's has loaded: its other classes serve.)
 ///
 /// # Safety
 ///

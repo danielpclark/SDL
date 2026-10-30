@@ -1556,6 +1556,96 @@ the translation executes them). It runs no 32-bit programs
 `armv7-linux-androideabi` need a device or an image with a 32-bit ABI
 (an API 30 one, say). arm64 system images don't run on an x86-64 host.
 
+### Apps
+
+A program that asks for it runs as an app: a `.sdl3_runner` section in
+its ELF file with the word `app` (as on the Apple platforms):
+
+```rust
+#[cfg(target_os = "android")]
+#[used]
+#[link_section = ".sdl3_runner"]
+static RUNNER: [u8; 4] = *b"app\0";
+```
+
+`tools/android_link.py` links such a program (it reads the word in the
+program's own object files) as an app's `libmain.so`: a shared library
+(`-shared` in place of `-pie`), whose `SDL_main` is the program's C `main`
+(`--defsym=SDL_main=main`), with sdl3's `JNI_OnLoad` kept and exported.
+The runner packages it, with no Gradle (`tools/android_run.py --apk
+PROGRAM OUT.apk` writes the package alone), with the SDK's build-tools
+(35.0.0 by default, `SDL3_ANDROID_BUILD_TOOLS`) and a platform's
+`android.jar` (35, `SDL3_ANDROID_PLATFORM`), which `sdkmanager` installs
+(`'build-tools;35.0.0' 'platforms;android-35'`), and a JDK (`keytool`,
+and `java` for `apksigner`):
+
+* the manifest (written by the runner): upstream's android-project's, its
+  features, permissions, theme and its activity
+  `org.libsdl.app.SDLActivity` with that activity's attributes, debuggable
+  (so ART checks every JNI call, CheckJNI), with the INTERNET permission
+  for the runner's sockets, linked by `aapt2`;
+* `classes.dex`: the DEX file of upstream's classes, as sdl3 declares them
+  (`sdl3/src/core/android/classes.rs`) and writes them
+  (`sdl3/src/core/android/dex.rs`), from the program's
+  `.sdl3_android_dex` section, where sdl3 keeps it;
+* `lib/ABI/libmain.so`: the program, uncompressed and 16 KB-aligned
+  (`zipalign -P 16`);
+* signed by `apksigner` with the debug key, `~/.android/debug.keystore`
+  (`SDL3_ANDROID_KEYSTORE`), made with `keytool` when there's none.
+
+The package is `org.libsdl.sdl3_rust.NAME` (`SDL3_ANDROID_PACKAGE`). The
+runner installs it, launches it (`am start -W`), and uninstalls it when it
+ends. Android starts upstream's `SDLActivity`, whose class loads
+`libmain.so` (`System.loadLibrary("main")`, where upstream's `onCreate()`
+loads `SDL3` and `main`), which registers its native methods
+(`JNI_OnLoad()`); the activity's `onStart()` (`onResume()` before API 24)
+starts the "SDLThread" thread, which calls `SDL_main` through upstream's
+`nativeRunMain()`, with the arguments `app_process` and those of
+`getArguments()`, none, and finishes the activity when it returns.
+
+What the program gets:
+
+* the variables a spawned program gets, but `HOME`, `TMPDIR` and
+  `CARGO_TARGET_TMPDIR` (an app has directories of its own), as the
+  manifest's `SDL_ENV.NAME` meta-data, which upstream's `SDLActivity` sets
+  as variables when SDL first reads the environment
+  (`sdl3::stdlib::getenv()` and SDL's environment do). aapt2 types the
+  values that read as numbers, booleans, colors or resource references,
+  which would reach the app changed (`01` as `1`), so those are left out
+  with a note;
+* its stdout and stderr, which go nowhere in an app: the runner listens on
+  two TCP ports, which the device reaches through `adb reverse`, and the
+  program connects to them first thing (the
+  `SDL3_ANDROID_RUNNER_STDIO` variable, `OUT,ERR`;
+  `sdl3/tests/android_support/`'s `start()`);
+* the runner's arguments in `SDL3_ANDROID_RUNNER_ARGS` (`N:`, then the
+  arguments percent-encoded, separated by commas; `android_support::args()`).
+
+adb doesn't give an app's exit status, so the program prints
+`sdl3-android-runner: exit N` last (`android_support::finish()`), which is
+the runner's exit status; the runner then stops the app (`am force-stop`)
+and copies the rest of its output. Without that line the run fails, with
+the end of the device's log. A process that ends before its launch is
+complete is launched again by Android, which would run the program twice:
+the runner refuses the second connection and fails the run. libc's
+`exit()` in an app ends the process under the framework's threads (hwui's
+abort), so the programs return from `main` instead. The runner also fails
+a run when the device's log shows that ART didn't verify the app's classes
+(a `VerifyError`, a rejected class, a failed dexopt);
+`SDL3_ANDROID_VERBOSE=1` notes the dexopt's result. An app can ask the
+runner for `background`, `foreground` and `input ARGUMENTS`
+(`sdl3-android-runner: request WHAT`, `android_support::request()`).
+
+The app programs so far: `sdl3/tests/android_runner.rs` (the runner's
+app mode: the process, the SDL thread, `main`'s arguments, the
+variables, the arguments, both streams, the exit status;
+`android_spawned.rs` is its spawned twin) and `android_jni.rs`, which runs
+the JNI layer's checks, which need an app's Java VM (the thread
+environments, references and frames, exceptions, strings, fields and
+arrays, nonvirtual calls, class lookup on native threads, the registered
+natives, the DEX file through an `InMemoryDexClassLoader`, the manifest's
+variables).
+
 What runs where, in spawned programs: everything pure (the satellites'
 decoders, the converters, the parsers), the file operations, threads,
 time and timers, `sdl3-net` on the loopback interface (IPv4 and IPv6),
@@ -1578,10 +1668,9 @@ translated yet, so:
   are dummy until Android's filesystem backend: the tests that need them
   are ignored on Android, naming that (`base_path_and_exe_name`,
   `user_storage_and_driver_hints`), and the XDG paths' test isn't built;
-* apps (an `.sdl3_runner` section with the word `app`, as on the Apple
-  platforms: the runner refuses them for now), JNI, the android video,
-  audio (AAudio, OpenSL ES), joystick, haptic, sensor and camera drivers
-  are later work.
+* JNI needs an app (see [Apps](#apps)); the android video, audio
+  (AAudio, OpenSL ES), joystick, haptic, sensor and camera drivers are
+  later work.
 
 Under the ARM translation one more thing differs: a translated program
 whose threads start programs at the same time can hang there, as

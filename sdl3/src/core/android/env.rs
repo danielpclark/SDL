@@ -30,8 +30,10 @@
 //! * strings converted through UTF-16 (`NewString()`, `GetStringRegion()`),
 //!   exactly. Note: upstream converts with `GetStringUTFChars()` and
 //!   `NewStringUTF()`, Modified UTF-8, which differs from UTF-8 for U+0000
-//!   and the characters beyond U+FFFF (as their surrogates, three bytes
-//!   each); the translations take or give UTF-8 where upstream does that;
+//!   (two bytes, C0 80), and in JNI's specification for the characters
+//!   beyond U+FFFF too (as their surrogates, three bytes each; ART gives
+//!   and takes their UTF-8); the translations take or give UTF-8 where
+//!   upstream does that;
 //! * class lookup: `FindClass()` finds the framework's classes on any
 //!   thread, but on a thread attached here (not one of the VM's) it uses
 //!   the system class loader, which doesn't know the app's classes, so
@@ -448,10 +450,11 @@ impl<'a> Thrown<'a> {
         self.env.exception_clear();
     }
 
-    /// `ExceptionDescribe()`: its stack trace in the log, and cleared.
+    /// `ExceptionDescribe()`: its stack trace in the log, then
+    /// `ExceptionClear()` (see [`Env::exception_describe`]).
     pub(crate) fn describe(self) {
-        // SAFETY: an exception is pending.
-        unsafe { (self.env.table().ExceptionDescribe)(self.env.raw()) };
+        self.env.exception_describe();
+        self.env.exception_clear();
     }
 }
 
@@ -886,7 +889,9 @@ impl<'a> Env<'a> {
         unsafe { (self.table().ExceptionClear)(self.raw()) };
     }
 
-    /// `ExceptionDescribe()` (logs and clears the pending exception).
+    /// `ExceptionDescribe()`: the pending exception's stack trace in the
+    /// log. (The JNI specification says it clears the exception; ART's
+    /// leaves it pending.)
     pub(crate) fn exception_describe(self) {
         // SAFETY: allowed with an exception pending.
         unsafe { (self.table().ExceptionDescribe)(self.raw()) };
