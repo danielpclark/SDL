@@ -59,6 +59,7 @@ Every skip names one *capability* (the list is `CAPABILITIES` in
 | `browser` | Emscripten | a browser the program runs in: headless Chrome or Chromium, through `tools/emscripten_run.py` (see [below](#emscripten-browser)) |
 | `webgl` | Emscripten | WebGL contexts in that browser (without a GPU, SwiftShader, which the runner's flags allow): `emscripten_browser.rs`'s probe and `emscripten_gl.rs` |
 | `webaudio` | Emscripten | a Web Audio `AudioContext` there that runs without a user gesture (the runner's autoplay flag): `emscripten_browser.rs`'s probe and `emscripten_audio.rs` |
+| `android-sdk` | any host | the Android SDK's build-tools (`dexdump`, in `ANDROID_HOME`: `SDL3_ANDROID_BUILD_TOOLS`'s version, else the newest) and an NDK's `jni.h` (as `tools/android_link.py` finds the NDK): the host checks of the DEX file of the Android apps' classes and of the JNI tables (`core::android`'s `dexdump_accepts_it` and `slots_are_jni_h_s`) |
 
 Two environment variables control skips:
 
@@ -1684,9 +1685,12 @@ translated.
 
 The ubuntu test jobs install the packages above, start the private
 PipeWire server with `tools/ci/start-pipewire.sh` and set
-`SDL3_TEST_REQUIRE=x11,xvfb,glx,egl,vulkan,wayland,dbus,pulseaudio,pipewire,alsa,udev,hidapi,tzdata,locales`,
+`SDL3_TEST_REQUIRE=x11,xvfb,glx,egl,vulkan,wayland,dbus,pulseaudio,pipewire,alsa,udev,hidapi,tzdata,locales,android-sdk`,
 so on Linux only the uinput test (the runner can't use `/dev/uinput`) and
-the hardware checks may skip.
+the hardware checks may skip. (`android-sdk`: the runner image's Android
+SDK, whose build-tools' `dexdump`, 35.0.0 in `SDL3_ANDROID_BUILD_TOOLS`,
+checks the DEX file sdl3 writes for its Android apps, and whose NDK's
+`jni.h` the JNI declarations are checked against, on the host.)
 
 The Windows and macOS jobs install pinned GPU drivers (versions and
 checksums in `.github/workflows/ci.yml`, cached between runs). On Windows
@@ -1742,7 +1746,15 @@ image's `ANDROID_NDK_ROOT` is r27). Nothing of the emulator is cached:
 the image and a booted device's snapshot would take 4 GB of the
 repository's 10 GB of cache to save about 40 s, and the emulator boots
 cold while the programs build (`tools/android_run.py --boot`). The job
-runs `cargo test --workspace --target x86_64-linux-android`, then the
+runs `cargo test --workspace --target x86_64-linux-android` (the app
+programs as apps, packaged with the runner image's build-tools 35.0.0 and
+android-35 platform), then the app mode once more, with arguments and a
+variable holding the same string (quotes, a backslash, `<&>`, characters
+beyond ASCII and beyond U+FFFF), which `android_runner` and
+`android_spawned` compare, then both programs with an exit status of 3,
+which the runner must give, then `android_runner`'s package itself,
+which `dexdump` (whose DEX file verifier is ART's), `apksigner` and
+`zipalign` check; then the
 arm64 build of the libraries with code of their own for arm64 (sdl3's
 CPU features, blitters and assertions, sdl3-image's libyuv paths and
 sdl3-shadercross's: `-p sdl3 -p sdl3-image -p sdl3-shadercross --lib`)

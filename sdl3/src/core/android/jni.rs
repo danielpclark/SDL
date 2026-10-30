@@ -618,7 +618,7 @@ pub(crate) const fn native_shorty_of<F: NativeFunction>(_f: &F) -> &'static [u8]
 }
 
 /// Whether `shorty` (a [`NativeFunction::SHORTY`]) is the shorty of
-/// `descriptor`: the compile-time check of [`super::classes`]'s `native!`.
+/// `descriptor`: the compile-time check of `super::classes`'s `native!`.
 pub(crate) const fn native_shorty(descriptor: &str, shorty: &[u8]) -> bool {
     let mut buf = [0u8; 32];
     let n = descriptor_shorty(descriptor, &mut buf);

@@ -934,13 +934,15 @@ jobs:
       # must give; then the app package itself: dexdump (which verifies
       # the DEX file as ART does), apksigner and zipalign check it.
       - name: The app mode's arguments, variables and exit status, and the app package
-        if: ${{ !cancelled() && !inputs.android_test_args }}
+        if: ${{ !cancelled() }}
         shell: bash
         env:
           SDL3_ANDROID_RUNNER_CHECK: "two words, \"quoted\", 'single', a\\backslash, <&>, \u00e9\u20ac\U0001F600"
           SDL3_ANDROID_VERBOSE: 1
         run: |
           set -o pipefail
+          # (its output again at the end of the log when the job fails)
+          exec > >(tee "$RUNNER_TEMP/app-mode.log") 2>&1
           for t in android_runner android_spawned; do
             cargo test --target x86_64-linux-android -p sdl3 --test $t -- "$SDL3_ANDROID_RUNNER_CHECK" second ''
           done
@@ -1030,6 +1032,9 @@ jobs:
           "$ADB" -s "$SDL3_ANDROID_SERIAL" logcat -d | tail -300 || true
           # (the emulator's own log, where tools/android_run.py keeps it)
           tail -100 "${TMPDIR:-/tmp}/sdl3-android-run-$(id -u)/$SDL3_ANDROID_SERIAL/emulator.log" || true
+          # (last: the app mode's step, whose output the logs above push out of a
+          # log's last lines)
+          if [ -f "$RUNNER_TEMP/app-mode.log" ]; then echo "== the app mode's step"; tail -200 "$RUNNER_TEMP/app-mode.log"; fi
       - name: Stop the emulator
         if: always()
         run: tools/android_run.py --kill
