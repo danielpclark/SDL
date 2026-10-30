@@ -304,3 +304,11 @@ harness = false
 [[test]]
 name = "android_jni"
 harness = false
+
+# An Android app's main and lifecycle: SDL_RunApp() from SDLActivity's
+# SDLThread, the application events, the event pump and its block on pause,
+# the log, against upstream's C (in docs/HARDWARE_TESTING.md, "Android
+# emulator").
+[[test]]
+name = "android_main"
+harness = false

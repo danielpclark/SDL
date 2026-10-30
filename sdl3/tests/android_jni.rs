@@ -7,8 +7,9 @@
 //! environment of each thread, local and global references, local frames,
 //! exceptions, strings, fields, arrays, nonvirtual calls, class lookup on
 //! native threads, the registered natives, the DEX file through an
-//! `InMemoryDexClassLoader`, and the manifest's environment. Elsewhere it
-//! does nothing.
+//! `InMemoryDexClassLoader`, the manifest's environment, the shims of
+//! upstream's anonymous classes, the activity's command handler and the
+//! lifecycle event queue. Elsewhere it does nothing.
 
 #[cfg(not(target_os = "android"))]
 fn main() {}
