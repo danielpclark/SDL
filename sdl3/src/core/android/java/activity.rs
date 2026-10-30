@@ -32,13 +32,22 @@
 //! `SDL_HINT_ORIENTATIONS`), `minimizeWindow()`, `getNativeSurface()`. The
 //! state machine resumes once the surface is ready and has the focus.
 //!
+//! The input it offers the video driver: the motion listener of the
+//! device's API level (`getMotionListener()`, the surface's generic motion
+//! listener: `super::controller_manager`), the touch devices
+//! (`initTouch()`), the cursors (`createCustomCursor()`,
+//! `destroyCustomCursor()`, `setCustomCursor()`, `setSystemCursor()`: the
+//! surface's `PointerIcon`) and the relative mouse mode
+//! (`supportsRelativeMouse()`, `setRelativeMouseEnabled()`, the pointer
+//! captured again when the activity gets the focus back).
+//!
 //! Not translated yet, and so skipped where upstream does them:
 //! `SDLDummyEdit` (`mTextEdit`, so `isScreenKeyboardShown()` is false),
-//! the controller, HID, clipboard and audio managers, the motion
-//! listener, the file dialogs' results (`onActivityResult()`), and what
-//! the activity offers SDL's C side for text input, cursors and message
-//! boxes. They come with the backends that use them. What it offers the
-//! small backends is here: permissions (`requestPermission()`,
+//! the controller, HID, clipboard and audio managers, the file dialogs'
+//! results (`onActivityResult()`), and what the activity offers SDL's C
+//! side for text input and message boxes. They come with the backends
+//! that use them. What it offers the small backends is here: permissions
+//! (`requestPermission()`,
 //! `onRequestPermissionsResult()`), URLs (`openURL()`), toasts
 //! (`showToast()`), the content resolver's files (`openFileDescriptor()`)
 //! and the locales (`getPreferredLocales()`).
@@ -51,7 +60,8 @@
 use super::super::env::{self, Arg, Env, Global, JniResult, Local, Obj};
 use super::super::jni::*;
 use super::super::ndk::LogPriority;
-use super::{anonymous, sdl, surface};
+use super::{anonymous, controller_manager, sdl, surface};
+use std::collections::BTreeMap;
 use std::ffi::CStr;
 use std::sync::Mutex;
 
@@ -108,6 +118,13 @@ struct Statics {
 
     /// `mFullscreenModeActive`.
     fullscreen_mode_active: bool,
+
+    /// `mCursors`: the custom cursors' `PointerIcon`s, by their IDs.
+    cursors: BTreeMap<jint, Global>,
+    /// `mLastCursorID`.
+    last_cursor_id: jint,
+    /// `mMotionListener`.
+    motion_listener: Option<Global>,
 }
 
 static STATICS: Mutex<Statics> = Mutex::new(Statics {
@@ -128,10 +145,31 @@ static STATICS: Mutex<Statics> = Mutex::new(Statics {
     back_button_callback: None,
     back_key_trap_enabled: false,
     fullscreen_mode_active: false,
+    cursors: BTreeMap::new(),
+    last_cursor_id: 0,
+    motion_listener: None,
 });
 
 fn statics() -> std::sync::MutexGuard<'static, Statics> {
     STATICS.lock().unwrap_or_else(|e| e.into_inner())
+}
+
+/// The motion listener of the device's API level, made once. Translation
+/// of `getMotionListener()`.
+pub(crate) fn get_motion_listener<'a>(env: Env<'a>) -> JniResult<'a, Local<'a>> {
+    if let Some(listener) = statics()
+        .motion_listener
+        .as_ref()
+        .and_then(|l| env.new_local_ref(l.obj()))
+    {
+        return Ok(listener);
+    }
+    let listener = controller_manager::new_listener(
+        env,
+        controller_manager::api_for(super::super::sdk_int(env)),
+    )?;
+    statics().motion_listener = Global::new(env, listener.obj());
+    Ok(listener)
 }
 
 /// `mHasMultiWindow`: `Build.VERSION.SDK_INT >= 24 /* Android 7.0 (N) */`.
@@ -489,8 +527,9 @@ pub(crate) fn initialize() {
     s.surface = None;
     // (mTextEdit: with the keyboard)
     s.layout = None;
-    // (mClipboardHandler, mCursors and mLastCursorID: with the clipboard
-    // and the mouse)
+    // (mClipboardHandler: with the clipboard)
+    s.cursors = BTreeMap::new();
+    s.last_cursor_id = 0;
     s.sdl_thread = None;
     s.is_resumed_called = false;
     s.has_focus = true;
@@ -1087,8 +1126,8 @@ pub(crate) extern "system" fn on_window_focus_changed(
         statics().has_focus = has_focus;
         if has_focus {
             statics().next_native_state = NativeState::Resumed;
-            // (getMotionListener().reclaimRelativeMouseModeIfNeeded(): the
-            // motion listener comes with the mouse)
+            let motion_listener = get_motion_listener(env)?;
+            controller_manager::reclaim_relative_mouse_mode_if_needed(env, motion_listener.obj())?;
 
             handle_native_state(env)?;
             super::super::focus_changed(true);
@@ -2154,6 +2193,37 @@ pub(crate) fn should_minimize_on_focus_loss(_env: Env<'_>) -> bool {
     false
 }
 
+/// This method is called by SDL using JNI. DeX mode in Samsung
+/// Experience 9.0 and earlier doesn't support relative mice properly
+/// under Android 7 APIs, and simply returns no data under Android 8 APIs.
+/// Translation of `supportsRelativeMouse()`.
+pub(crate) fn supports_relative_mouse<'a>(env: Env<'a>) -> JniResult<'a, bool> {
+    // DeX mode in Samsung Experience 9.0 and earlier doesn't support relative mice properly under
+    // Android 7 APIs, and simply returns no data under Android 8 APIs.
+    //
+    // This is fixed in Samsung Experience 9.5, which corresponds to Android 8.1.0, and
+    // thus SDK version 27.  If we are in DeX mode and not API 27 or higher, as a result,
+    // we should stick to relative mode.
+    //
+    if super::super::sdk_int(env) < 27 /* Android 8.1 (O_MR1) */ && is_dex_mode(env)? {
+        return Ok(false);
+    }
+
+    let motion_listener = get_motion_listener(env)?;
+    controller_manager::supports_relative_mouse(env, motion_listener.obj())
+}
+
+/// This method is called by SDL using JNI. Translation of
+/// `setRelativeMouseEnabled()`.
+pub(crate) fn set_relative_mouse_enabled<'a>(env: Env<'a>, enabled: bool) -> JniResult<'a, bool> {
+    if enabled && !supports_relative_mouse(env)? {
+        return Ok(false);
+    }
+
+    let motion_listener = get_motion_listener(env)?;
+    controller_manager::set_relative_mouse_enabled(env, motion_listener.obj(), enabled)
+}
+
 /// This method is called by SDL using JNI: whether the screen keyboard is
 /// shown. Translation of `isScreenKeyboardShown()`, whose `mTextEdit`
 /// comes with the keyboard: null until then, so false.
@@ -2165,7 +2235,6 @@ pub(crate) fn is_screen_keyboard_shown(_env: Env<'_>) -> bool {
 
 /// This method is called by SDLControllerManager's API 26 Generic Motion
 /// Handler. Translation of `getContentView()`.
-#[allow(dead_code)] // (the motion listener asks)
 pub(crate) fn get_content_view<'a>(env: Env<'a>) -> Option<Local<'a>> {
     let s = statics();
     s.layout.as_ref().and_then(|l| env.new_local_ref(l.obj()))
@@ -2626,6 +2695,298 @@ fn manifest_environment_variables(env: Env<'_>) -> JniResult<'_, bool> {
         }
     }
     /* environment variables set! */
+    Ok(true)
+}
+
+// Input
+
+/// `InputDevice.SOURCE_TOUCHSCREEN`.
+const SOURCE_TOUCHSCREEN: jint = 0x1002;
+
+/// This method is called by SDL using JNI: the touch screens, and the
+/// virtual devices (they can send touch screen events), to
+/// `nativeAddTouch()`. Translation of `initTouch()`.
+pub(crate) fn init_touch<'a>(env: Env<'a>) -> JniResult<'a, ()> {
+    let input_device = env.find_class(c"android/view/InputDevice")?;
+    let ids = env
+        .call_static_method(input_device.obj(), c"getDeviceIds", c"()[I", &[])?
+        .object();
+    let Some(ids) = ids else {
+        return null_pointer(env, c"InputDevice.getDeviceIds() is null");
+    };
+
+    for index in 0..env.get_array_length(ids.obj()) {
+        let id = env.get_int_array_element(ids.obj(), index)?;
+        let device = env
+            .call_static_method(
+                input_device.obj(),
+                c"getDevice",
+                c"(I)Landroid/view/InputDevice;",
+                &[Arg::Int(id)],
+            )?
+            .object();
+        let Some(device) = device else {
+            continue;
+        };
+        /* Allow SOURCE_TOUCHSCREEN and also Virtual InputDevices because they can send TOUCHSCREEN events */
+        let sources = env
+            .call_method(device.obj(), c"getSources", c"()I", &[])?
+            .int();
+        if (sources & SOURCE_TOUCHSCREEN) == SOURCE_TOUCHSCREEN
+            || env
+                .call_method(device.obj(), c"isVirtual", c"()Z", &[])?
+                .boolean()
+        {
+            let device_id = env.call_method(device.obj(), c"getId", c"()I", &[])?.int();
+            let name = env
+                .call_method(device.obj(), c"getName", c"()Ljava/lang/String;", &[])?
+                .object();
+            let name = match name {
+                Some(name) => env.get_string(name.obj())?,
+                None => return null_pointer(env, c"InputDevice.getName() is null"),
+            };
+            super::super::add_touch(device_id, &name);
+        }
+    }
+    Ok(())
+}
+
+/// `Bitmap.Config.ARGB_8888`.
+fn bitmap_config_argb_8888<'a>(env: Env<'a>) -> JniResult<'a, Local<'a>> {
+    let config = env.find_class(c"android/graphics/Bitmap$Config")?;
+    env.get_static_field(
+        config.obj(),
+        c"ARGB_8888",
+        c"Landroid/graphics/Bitmap$Config;",
+    )?
+    .object()
+    .map_or_else(|| null_pointer(env, c"Bitmap.Config.ARGB_8888 is null"), Ok)
+}
+
+/// This method is called by SDL using JNI: a cursor of the ARGB pixels
+/// (`PointerIcon.create()`, API 24), its ID (0 when it can't be made).
+/// Translation of `createCustomCursor()`.
+pub(crate) fn create_custom_cursor<'a>(
+    env: Env<'a>,
+    colors: &[jint],
+    width: jint,
+    height: jint,
+    hot_spot_x: jint,
+    hot_spot_y: jint,
+) -> JniResult<'a, jint> {
+    let colors = env.new_int_array(colors)?;
+    let bitmap_class = env.find_class(c"android/graphics/Bitmap")?;
+    let config = bitmap_config_argb_8888(env)?;
+    let bitmap = env
+        .call_static_method(
+            bitmap_class.obj(),
+            c"createBitmap",
+            c"([IIILandroid/graphics/Bitmap$Config;)Landroid/graphics/Bitmap;",
+            &[
+                Arg::Object(colors.obj()),
+                Arg::Int(width),
+                Arg::Int(height),
+                Arg::Object(config.obj()),
+            ],
+        )?
+        .object();
+    let id = {
+        let mut s = statics();
+        s.last_cursor_id += 1;
+        s.last_cursor_id
+    };
+
+    if super::super::sdk_int(env) >= 24
+    /* Android 7.0 (N) */
+    {
+        let pointer_icon = env.find_class(c"android/view/PointerIcon")?;
+        let icon = env.call_static_method(
+            pointer_icon.obj(),
+            c"create",
+            c"(Landroid/graphics/Bitmap;FF)Landroid/view/PointerIcon;",
+            &[
+                Arg::Object(bitmap.as_ref().map_or(Obj::NULL, Local::obj)),
+                Arg::Float(hot_spot_x as f32),
+                Arg::Float(hot_spot_y as f32),
+            ],
+        );
+        match icon {
+            Ok(icon) => {
+                let icon = icon.object();
+                let icon = icon.as_ref().and_then(|icon| Global::new(env, icon.obj()));
+                // (Hashtable.put() of a null value throws)
+                let Some(icon) = icon else {
+                    return Ok(0);
+                };
+                statics().cursors.insert(id, icon);
+            }
+            Err(thrown) => {
+                // catch (Exception e)
+                drop(thrown.catch_exception()?);
+                return Ok(0);
+            }
+        }
+    } else {
+        return Ok(0);
+    }
+    Ok(id)
+}
+
+/// This method is called by SDL using JNI. Translation of
+/// `destroyCustomCursor()`.
+pub(crate) fn destroy_custom_cursor(env: Env<'_>, cursor_id: jint) {
+    if super::super::sdk_int(env) >= 24
+    /* Android 7.0 (N) */
+    {
+        statics().cursors.remove(&cursor_id);
+    }
+}
+
+/// `mSurface.setPointerIcon(icon)`, false if it throws (a null surface).
+fn set_pointer_icon<'a>(env: Env<'a>, icon: Obj<'_>) -> JniResult<'a, bool> {
+    let surface = {
+        let s = statics();
+        s.surface.as_ref().and_then(|s| env.new_local_ref(s.obj()))
+    };
+    let Some(surface) = surface else {
+        // (a NullPointerException, caught)
+        return Ok(false);
+    };
+    match env.call_method(
+        surface.obj(),
+        c"setPointerIcon",
+        c"(Landroid/view/PointerIcon;)V",
+        &[Arg::Object(icon)],
+    ) {
+        Ok(_) => Ok(true),
+        Err(thrown) => {
+            // catch (Exception e)
+            drop(thrown.catch_exception()?);
+            Ok(false)
+        }
+    }
+}
+
+/// This method is called by SDL using JNI: the surface's pointer icon the
+/// custom cursor's (none for an ID without one). Translation of
+/// `setCustomCursor()`.
+pub(crate) fn set_custom_cursor<'a>(env: Env<'a>, cursor_id: jint) -> JniResult<'a, bool> {
+    if super::super::sdk_int(env) >= 24
+    /* Android 7.0 (N) */
+    {
+        let icon = {
+            let s = statics();
+            s.cursors
+                .get(&cursor_id)
+                .and_then(|icon| env.new_local_ref(icon.obj()))
+        };
+        set_pointer_icon(env, icon.as_ref().map_or(Obj::NULL, Local::obj))
+    } else {
+        Ok(false)
+    }
+}
+
+/// `SDL_SystemCursor`'s values, upstream's `SDL_SYSTEM_CURSOR_*`.
+const SDL_SYSTEM_CURSOR_DEFAULT: jint = 0;
+const SDL_SYSTEM_CURSOR_TEXT: jint = 1;
+const SDL_SYSTEM_CURSOR_WAIT: jint = 2;
+const SDL_SYSTEM_CURSOR_CROSSHAIR: jint = 3;
+const SDL_SYSTEM_CURSOR_PROGRESS: jint = 4;
+const SDL_SYSTEM_CURSOR_NWSE_RESIZE: jint = 5;
+const SDL_SYSTEM_CURSOR_NESW_RESIZE: jint = 6;
+const SDL_SYSTEM_CURSOR_EW_RESIZE: jint = 7;
+const SDL_SYSTEM_CURSOR_NS_RESIZE: jint = 8;
+const SDL_SYSTEM_CURSOR_MOVE: jint = 9;
+const SDL_SYSTEM_CURSOR_NOT_ALLOWED: jint = 10;
+const SDL_SYSTEM_CURSOR_POINTER: jint = 11;
+const SDL_SYSTEM_CURSOR_NW_RESIZE: jint = 12;
+const SDL_SYSTEM_CURSOR_N_RESIZE: jint = 13;
+const SDL_SYSTEM_CURSOR_NE_RESIZE: jint = 14;
+const SDL_SYSTEM_CURSOR_E_RESIZE: jint = 15;
+const SDL_SYSTEM_CURSOR_SE_RESIZE: jint = 16;
+const SDL_SYSTEM_CURSOR_S_RESIZE: jint = 17;
+const SDL_SYSTEM_CURSOR_SW_RESIZE: jint = 18;
+const SDL_SYSTEM_CURSOR_W_RESIZE: jint = 19;
+const SDL_SYSTEM_CURSOR_CONTEXT_MENU: jint = 20;
+const SDL_SYSTEM_CURSOR_HELP: jint = 21;
+const SDL_SYSTEM_CURSOR_CELL: jint = 22;
+const SDL_SYSTEM_CURSOR_VERTICAL_TEXT: jint = 23;
+const SDL_SYSTEM_CURSOR_ALIAS: jint = 24;
+const SDL_SYSTEM_CURSOR_COPY: jint = 25;
+const SDL_SYSTEM_CURSOR_NO_DROP: jint = 26;
+const SDL_SYSTEM_CURSOR_GRAB: jint = 27;
+const SDL_SYSTEM_CURSOR_GRABBING: jint = 28;
+const SDL_SYSTEM_CURSOR_COL_RESIZE: jint = 29;
+const SDL_SYSTEM_CURSOR_ROW_RESIZE: jint = 30;
+const SDL_SYSTEM_CURSOR_ALL_SCROLL: jint = 31;
+const SDL_SYSTEM_CURSOR_ZOOM_IN: jint = 32;
+const SDL_SYSTEM_CURSOR_ZOOM_OUT: jint = 33;
+
+/// This method is called by SDL using JNI: the surface's pointer icon the
+/// system's icon for the cursor. Translation of `setSystemCursor()`.
+pub(crate) fn set_system_cursor<'a>(env: Env<'a>, cursor_id: jint) -> JniResult<'a, bool> {
+    let cursor_type = match cursor_id {
+        SDL_SYSTEM_CURSOR_DEFAULT => 1000,       //PointerIcon.TYPE_ARROW;
+        SDL_SYSTEM_CURSOR_TEXT => 1008,          //PointerIcon.TYPE_TEXT;
+        SDL_SYSTEM_CURSOR_WAIT => 1004,          //PointerIcon.TYPE_WAIT;
+        SDL_SYSTEM_CURSOR_CROSSHAIR => 1007,     //PointerIcon.TYPE_CROSSHAIR;
+        SDL_SYSTEM_CURSOR_PROGRESS => 1004,      //PointerIcon.TYPE_WAIT;
+        SDL_SYSTEM_CURSOR_NWSE_RESIZE => 1017,   //PointerIcon.TYPE_TOP_LEFT_DIAGONAL_DOUBLE_ARROW;
+        SDL_SYSTEM_CURSOR_NESW_RESIZE => 1016,   //PointerIcon.TYPE_TOP_RIGHT_DIAGONAL_DOUBLE_ARROW;
+        SDL_SYSTEM_CURSOR_EW_RESIZE => 1014,     //PointerIcon.TYPE_HORIZONTAL_DOUBLE_ARROW;
+        SDL_SYSTEM_CURSOR_NS_RESIZE => 1015,     //PointerIcon.TYPE_VERTICAL_DOUBLE_ARROW;
+        SDL_SYSTEM_CURSOR_MOVE => 1020,          //PointerIcon.TYPE_GRAB;
+        SDL_SYSTEM_CURSOR_NOT_ALLOWED => 1012,   //PointerIcon.TYPE_NO_DROP;
+        SDL_SYSTEM_CURSOR_POINTER => 1002,       //PointerIcon.TYPE_HAND;
+        SDL_SYSTEM_CURSOR_NW_RESIZE => 1017,     //PointerIcon.TYPE_TOP_LEFT_DIAGONAL_DOUBLE_ARROW;
+        SDL_SYSTEM_CURSOR_N_RESIZE => 1015,      //PointerIcon.TYPE_VERTICAL_DOUBLE_ARROW;
+        SDL_SYSTEM_CURSOR_NE_RESIZE => 1016,     //PointerIcon.TYPE_TOP_RIGHT_DIAGONAL_DOUBLE_ARROW;
+        SDL_SYSTEM_CURSOR_E_RESIZE => 1014,      //PointerIcon.TYPE_HORIZONTAL_DOUBLE_ARROW;
+        SDL_SYSTEM_CURSOR_SE_RESIZE => 1017,     //PointerIcon.TYPE_TOP_LEFT_DIAGONAL_DOUBLE_ARROW;
+        SDL_SYSTEM_CURSOR_S_RESIZE => 1015,      //PointerIcon.TYPE_VERTICAL_DOUBLE_ARROW;
+        SDL_SYSTEM_CURSOR_SW_RESIZE => 1016,     //PointerIcon.TYPE_TOP_RIGHT_DIAGONAL_DOUBLE_ARROW;
+        SDL_SYSTEM_CURSOR_W_RESIZE => 1014,      //PointerIcon.TYPE_HORIZONTAL_DOUBLE_ARROW;
+        SDL_SYSTEM_CURSOR_CONTEXT_MENU => 1001,  //PointerIcon.TYPE_CONTEXT_MENU;
+        SDL_SYSTEM_CURSOR_HELP => 1003,          //PointerIcon.TYPE_HELP;
+        SDL_SYSTEM_CURSOR_CELL => 1006,          //PointerIcon.TYPE_CELL;
+        SDL_SYSTEM_CURSOR_VERTICAL_TEXT => 1009, //PointerIcon.TYPE_VERTICAL_TEXT;
+        SDL_SYSTEM_CURSOR_ALIAS => 1010,         //PointerIcon.TYPE_ALIAS;
+        SDL_SYSTEM_CURSOR_COPY => 1011,          //PointerIcon.TYPE_COPY;
+        SDL_SYSTEM_CURSOR_NO_DROP => 1012,       //PointerIcon.TYPE_NO_DROP;
+        SDL_SYSTEM_CURSOR_GRAB => 1020,          //PointerIcon.TYPE_GRAB;
+        SDL_SYSTEM_CURSOR_GRABBING => 1021,      //PointerIcon.TYPE_GRABBING;
+        SDL_SYSTEM_CURSOR_COL_RESIZE => 1014,    //PointerIcon.TYPE_HORIZONTAL_DOUBLE_ARROW;
+        SDL_SYSTEM_CURSOR_ROW_RESIZE => 1015,    //PointerIcon.TYPE_VERTICAL_DOUBLE_ARROW;
+        SDL_SYSTEM_CURSOR_ALL_SCROLL => 1013,    //PointerIcon.TYPE_ALL_SCROLL;
+        SDL_SYSTEM_CURSOR_ZOOM_IN => 1018,       //PointerIcon.TYPE_ZOOM_IN;
+        SDL_SYSTEM_CURSOR_ZOOM_OUT => 1019,      //PointerIcon.TYPE_ZOOM_OUT;
+        _ => 0,                                  //PointerIcon.TYPE_NULL;
+    };
+    if super::super::sdk_int(env) >= 24
+    /* Android 7.0 (N) */
+    {
+        let Some(context) = get_context(env) else {
+            // (getSystemIcon() of a null context throws: caught)
+            return Ok(false);
+        };
+        let pointer_icon = env.find_class(c"android/view/PointerIcon")?;
+        let icon = match env.call_static_method(
+            pointer_icon.obj(),
+            c"getSystemIcon",
+            c"(Landroid/content/Context;I)Landroid/view/PointerIcon;",
+            &[Arg::Object(context.obj()), Arg::Int(cursor_type)],
+        ) {
+            Ok(icon) => icon.object(),
+            Err(thrown) => {
+                // catch (Exception e)
+                drop(thrown.catch_exception()?);
+                return Ok(false);
+            }
+        };
+        if !set_pointer_icon(env, icon.as_ref().map_or(Obj::NULL, Local::obj))? {
+            return Ok(false);
+        }
+    }
     Ok(true)
 }
 

@@ -35,8 +35,7 @@
 //! Each class's entry lists the members translated so far, in upstream's
 //! order; the classes and members still to come (`SDLInputConnection`,
 //! `SDLDummyEdit`, the controller and HID managers' listeners and
-//! receivers, the touch, mouse and pen natives, ...) are added with their
-//! translations. The
+//! receivers, ...) are added with their translations. The
 //! anonymous classes upstream creates (`new Runnable() {...}`, dialog
 //! listeners) can't be declared with upstream's names (`SDLActivity$1`),
 //! which are the compiler's: they are two classes of their own,
@@ -173,7 +172,7 @@ const fn constructor(access: u32, descriptor: &'static str) -> Method {
 }
 
 #[cfg(target_os = "android")]
-use super::java::{activity, anonymous, surface};
+use super::java::{activity, anonymous, controller_manager, surface};
 
 /// `org.libsdl.app.SDLActivity`.
 pub(crate) const SDL_ACTIVITY: &str = "org/libsdl/app/SDLActivity";
@@ -188,6 +187,23 @@ pub(crate) const SDL_NATIVE_RUNNABLE: &str = "org/libsdl/app/SDLNativeRunnable";
 /// `org.libsdl.app.SDLNativeListener`, the invocation handler of the
 /// proxies that are upstream's other anonymous classes.
 pub(crate) const SDL_NATIVE_LISTENER: &str = "org/libsdl/app/SDLNativeListener";
+
+/// The names of SDLControllerManager.java's generic motion listeners.
+mod controller_manager_names {
+    /// `org.libsdl.app.SDLGenericMotionListener_API14`.
+    pub(crate) const API14: &str = "org/libsdl/app/SDLGenericMotionListener_API14";
+    /// `org.libsdl.app.SDLGenericMotionListener_API24`.
+    pub(crate) const API24: &str = "org/libsdl/app/SDLGenericMotionListener_API24";
+    /// `org.libsdl.app.SDLGenericMotionListener_API26`.
+    pub(crate) const API26: &str = "org/libsdl/app/SDLGenericMotionListener_API26";
+    /// `org.libsdl.app.SDLGenericMotionListener_API29`.
+    pub(crate) const API29: &str = "org/libsdl/app/SDLGenericMotionListener_API29";
+}
+#[cfg(target_os = "android")]
+pub(crate) use controller_manager_names::{
+    API14 as SDL_GENERIC_MOTION_LISTENER_API14, API24 as SDL_GENERIC_MOTION_LISTENER_API24,
+    API26 as SDL_GENERIC_MOTION_LISTENER_API26, API29 as SDL_GENERIC_MOTION_LISTENER_API29,
+};
 
 /// The classes, each after the classes of the file it extends or
 /// implements.
@@ -309,6 +325,24 @@ pub(crate) static CLASSES: &[Class] = &[
             ),
             native!(
                 PUBLIC | STATIC,
+                "onNativeMouse",
+                "(IIFFZ)V",
+                super::on_native_mouse[_, _, _, _, _]
+            ),
+            native!(
+                PUBLIC | STATIC,
+                "onNativeTouch",
+                "(IIIFFF)V",
+                super::on_native_touch[_, _, _, _, _, _]
+            ),
+            native!(
+                PUBLIC | STATIC,
+                "onNativePen",
+                "(IIIIFFF)V",
+                super::on_native_pen[_, _, _, _, _, _, _]
+            ),
+            native!(
+                PUBLIC | STATIC,
                 "onNativeSurfaceCreated",
                 "()V",
                 super::on_native_surface_created[]
@@ -375,6 +409,12 @@ pub(crate) static CLASSES: &[Class] = &[
             ),
             native!(
                 PUBLIC | STATIC,
+                "nativeAddTouch",
+                "(ILjava/lang/String;)V",
+                super::native_add_touch[_, _]
+            ),
+            native!(
+                PUBLIC | STATIC,
                 "nativePermissionResult",
                 "(IZ)V",
                 super::native_permission_result[_, _]
@@ -398,6 +438,19 @@ pub(crate) static CLASSES: &[Class] = &[
                 "()I",
                 super::native_check_sdl_thread_counter[]
             ),
+            native!(
+                PUBLIC | STATIC,
+                "onNativePinchStart",
+                "(FFFF)V",
+                super::on_native_pinch_start[_, _, _, _]
+            ),
+            native!(
+                PUBLIC | STATIC,
+                "onNativePinchUpdate",
+                "(FFFFF)V",
+                super::on_native_pinch_update[_, _, _, _, _]
+            ),
+            native!(PUBLIC | STATIC, "onNativePinchEnd", "()V", super::on_native_pinch_end[]),
             // Permissions
             native!(
                 PUBLIC,
@@ -444,9 +497,8 @@ pub(crate) static CLASSES: &[Class] = &[
             native!(PUBLIC, "run", "()V", activity::sdl_main_run[]),
         ],
     },
-    // SDLSurface.java: the activity's view, what SDL draws on. (Its key,
-    // touch, captured pointer and pinch methods are stubs until the
-    // keyboard, touch and mouse: super::java::surface.)
+    // SDLSurface.java: the activity's view, what SDL draws on. (Its key
+    // method is a stub until the keyboard: super::java::surface.)
     Class {
         name: SDL_SURFACE,
         access: PUBLIC,
@@ -592,6 +644,58 @@ pub(crate) static CLASSES: &[Class] = &[
                 surface::on_scale_end[_]
             ),
         ],
+    },
+    // SDLControllerManager.java's generic motion listeners
+    // (super::java::controller_manager), each extending the previous API
+    // level's: the surface's generic motion listener.
+    Class {
+        name: controller_manager_names::API14,
+        access: 0,
+        superclass: "java/lang/Object",
+        interfaces: &["android/view/View$OnGenericMotionListener"],
+        fields: &[],
+        methods: &[
+            constructor(0, "()V"),
+            // Generic Motion (mouse hover, joystick...) events go here
+            native!(
+                PUBLIC,
+                "onGenericMotion",
+                "(Landroid/view/View;Landroid/view/MotionEvent;)Z",
+                controller_manager::on_generic_motion[_, _]
+            ),
+        ],
+    },
+    Class {
+        name: controller_manager_names::API24,
+        access: 0,
+        superclass: controller_manager_names::API14,
+        interfaces: &[],
+        fields: &[Field {
+            name: "mRelativeModeEnabled",
+            descriptor: "Z",
+            access: PRIVATE,
+        }],
+        methods: &[constructor(0, "()V")],
+    },
+    Class {
+        name: controller_manager_names::API26,
+        access: 0,
+        superclass: controller_manager_names::API24,
+        interfaces: &[],
+        fields: &[Field {
+            name: "mRelativeModeEnabled",
+            descriptor: "Z",
+            access: PRIVATE,
+        }],
+        methods: &[constructor(0, "()V")],
+    },
+    Class {
+        name: controller_manager_names::API29,
+        access: 0,
+        superclass: controller_manager_names::API26,
+        interfaces: &[],
+        fields: &[],
+        methods: &[constructor(0, "()V")],
     },
     // Upstream's anonymous `Runnable`s (`new Runnable() {...}`): a Rust
     // closure in `ptr`, run once (super::java::anonymous).
