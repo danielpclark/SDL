@@ -472,11 +472,31 @@ fn check_default_args(args: Vec<String>) -> Vec<String> {
     args
 }
 
-/// Translation of `SDL_CallMainFunction()`.
+/// Translation of `SDL_CallMainFunction()`, with the program's
+/// arguments.
 pub(crate) fn call_main_function(main_function: impl FnOnce(&[String]) -> i32) -> i32 {
-    let args = check_default_args(std::env::args().collect());
+    call_main_function_with_args(std::env::args().collect(), main_function)
+}
+
+/// Translation of `SDL_CallMainFunction()`.
+fn call_main_function_with_args(
+    args: Vec<String>,
+    main_function: impl FnOnce(&[String]) -> i32,
+) -> i32 {
+    let args = check_default_args(args);
     init::set_main_ready();
     main_function(&args)
+}
+
+/// `SDL_RunApp(argc, argv, mainFunction, NULL)` with the arguments
+/// given, as Android's `nativeRunMain()` calls it (an app's library has
+/// no arguments of its own). Translation of `SDL_RunApp()`.
+#[cfg(target_os = "android")]
+pub(crate) fn run_app_with_args(
+    args: Vec<String>,
+    main_function: impl FnOnce(&[String]) -> i32,
+) -> i32 {
+    call_main_function_with_args(args, main_function)
 }
 
 /// Initialize SDL's main thread state and call the application's main
