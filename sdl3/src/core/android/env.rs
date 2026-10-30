@@ -1482,6 +1482,21 @@ impl<'a> Env<'a> {
         Ok(array)
     }
 
+    /// `NewIntArray()` and `SetIntArrayRegion()`: a Java `int[]` of the
+    /// values.
+    pub(crate) fn new_int_array(self, values: &[jint]) -> JniResult<'a, Local<'a>> {
+        let length = values.len() as jsize;
+        // SAFETY: a length.
+        let raw = unsafe { (self.table().NewIntArray)(self.raw(), length) };
+        self.check()?;
+        // SAFETY: a new local reference.
+        let array = unsafe { Local::from_raw(self, raw) }.expect("NewIntArray() threw none");
+        // SAFETY: `length` values.
+        unsafe { (self.table().SetIntArrayRegion)(self.raw(), raw, 0, length, values.as_ptr()) };
+        self.check()?;
+        Ok(array)
+    }
+
     // Direct buffers
 
     /// `NewDirectByteBuffer()` over `len` bytes at `address`.

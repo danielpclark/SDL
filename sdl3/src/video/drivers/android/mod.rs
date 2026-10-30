@@ -13,15 +13,19 @@
 //! EGL on that window ([`gl`]), Vulkan surfaces on it ([`vulkan`]), the
 //! activity's lifecycle ([`events`], which SDL's event pump uses whatever
 //! the driver, with the EGL context's backup while the app is paused), and
-//! the system's theme ([`set_dark_mode`]).
+//! the system's theme ([`set_dark_mode`]), and the input of the surface:
+//! the touch screens and their fingers ([`touch`]), the mouse, its cursors
+//! and its relative mode ([`mouse`]) and the pens ([`pen`]).
 //!
 //! What later drivers' parts own is left where upstream calls them: the
-//! touch, mouse and pen (`Android_InitTouch()`, `Android_InitMouse()`),
-//! the keyboard and the screen keyboard ([`on_key_down`]), the clipboard
-//! and message boxes, with comments.
+//! keyboard and the screen keyboard ([`on_key_down`]), the clipboard and
+//! message boxes, with comments.
 
 pub(crate) mod events;
 pub(crate) mod gl;
+pub(crate) mod mouse;
+pub(crate) mod pen;
+pub(crate) mod touch;
 pub(crate) mod vulkan;
 pub(crate) mod window;
 
@@ -29,6 +33,7 @@ use std::sync::atomic::{AtomicU8, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard};
 
 use crate::error::Result;
+use crate::events::mouse::{Cursor, MouseFeature, SystemCursor};
 use crate::events::{DisplayID, EventType, WindowID};
 use crate::hints;
 use crate::properties::Properties;
@@ -165,8 +170,9 @@ impl VideoDriver for AndroidVideo {
         )
         .ok();
 
-        // (Android_InitTouch() and Android_InitMouse(): the touch and mouse
-        // come with their translations)
+        touch::init_touch();
+
+        mouse::init_mouse();
 
         // We're done!
         Ok(())
@@ -180,7 +186,8 @@ impl VideoDriver for AndroidVideo {
                 .unwrap_or_else(|e| e.into_inner())
                 .take(),
         );
-        // (Android_QuitMouse() and Android_QuitTouch(): see video_init())
+        mouse::quit_mouse();
+        touch::quit_touch();
     }
 
     fn create_window(&self, window: WindowID, create_props: &Properties) -> Option<Result<()>> {
@@ -317,6 +324,33 @@ impl VideoDriver for AndroidVideo {
     ) -> Option<()> {
         vulkan::vulkan_destroy_surface(&self.vulkan, instance, surface, allocator);
         Some(())
+    }
+
+    // * * * The mouse (`Android_InitMouse()`'s)
+
+    fn create_cursor(
+        &self,
+        surface: &crate::video::Surface<'_>,
+        hot_x: i32,
+        hot_y: i32,
+    ) -> Option<Result<Cursor>> {
+        Some(mouse::create_cursor(surface, hot_x, hot_y))
+    }
+
+    fn create_system_cursor(&self, id: SystemCursor) -> Option<Result<Cursor>> {
+        Some(Ok(mouse::create_system_cursor(id)))
+    }
+
+    fn show_cursor(&self, cursor: Option<&Cursor>) -> Option<Result<()>> {
+        Some(mouse::show_cursor(cursor))
+    }
+
+    fn set_relative_mouse_mode(&self, enabled: bool) -> Option<Result<()>> {
+        Some(mouse::set_relative_mouse_mode(enabled))
+    }
+
+    fn implements_mouse_feature(&self, feature: MouseFeature) -> bool {
+        matches!(feature, MouseFeature::SetRelativeMouseMode)
     }
 
     // * * * Screensaver
