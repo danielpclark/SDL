@@ -834,10 +834,10 @@ impl VulkanRenderer {
 
         // Each window must have its own surface.
         // FIXME: VAllocationCallbacks
-        // (SDL_Vulkan_CreateSurface() checks the video device and its
-        // Vulkan_CreateSurface.)
+        // (the video device's Vulkan_CreateSurface, which leaves the
+        // window's flags alone)
         window_data.surface =
-            crate::video::vulkan::vulkan_create_surface(&window, self.instance as usize, 0)?;
+            crate::video::vulkan::driver_create_surface(&window, self.instance as usize, 0)?;
 
         match self.create_swapchain(&mut window_data) {
             Ok(result) => {
@@ -1001,7 +1001,7 @@ impl VulkanRenderer {
             // SAFETY: the window's old surface.
             unsafe { (self.inst.destroy_surface_khr)(self.instance, window_data.surface, null()) };
             // FIXME: VAllocationCallbacks
-            match crate::video::vulkan::vulkan_create_surface(&window, self.instance as usize, 0) {
+            match crate::video::vulkan::driver_create_surface(&window, self.instance as usize, 0) {
                 Ok(surface) => window_data.surface = surface,
                 Err(_) => return Err(self.set_string_error("Failed to recreate Vulkan surface!")),
             }

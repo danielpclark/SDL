@@ -734,11 +734,10 @@ fn gpu_renderer_basics_on(backend: Backend) {
         return;
     };
     assert_eq!(r.name(), "gpu");
-    // (the GPU API's Vulkan backend made the window a Vulkan one)
-    assert_eq!(
-        window.flags().unwrap().contains(WindowFlags::VULKAN),
-        backend == Backend::Vulkan
-    );
+    // (the GPU API's Vulkan backend makes its surface with the video
+    // device's Vulkan_CreateSurface, which leaves the window as it was:
+    // not a Vulkan one)
+    assert!(!window.flags().unwrap().contains(WindowFlags::VULKAN));
     assert!(!window.flags().unwrap().contains(WindowFlags::OPENGL));
     assert_eq!(r.output_size().unwrap(), (W, H));
     let props = r.properties();

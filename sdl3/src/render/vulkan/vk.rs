@@ -68,8 +68,9 @@ vulkan_functions! {
         queue_wait_idle = c"vkQueueWaitIdle": fn(VkQueue) -> VkResult;
     }
 
-    /// The `VULKAN_DEVICE_FUNCTION`s. (The optional sampler YCbCr
-    /// conversion functions are only used by the Android parts.)
+    /// The `VULKAN_DEVICE_FUNCTION`s, and the optional ones (the sampler
+    /// YCbCr conversion's, and Android's hardware buffers' (looked up
+    /// everywhere, Android's only there): the Android parts use them).
     struct DeviceFunctions {
         acquire_next_image_khr = c"vkAcquireNextImageKHR":
             fn(VkDevice, VkSwapchainKHR, u64, VkSemaphore, VkFence, *mut u32) -> VkResult;
@@ -237,5 +238,22 @@ vulkan_functions! {
             fn(VkDevice, u32, *const VkWriteDescriptorSet, u32, *const c_void);
         wait_for_fences = c"vkWaitForFences":
             fn(VkDevice, u32, *const VkFence, VkBool32, u64) -> VkResult;
+        [optional] {
+            #[cfg_attr(not(target_os = "android"), allow(dead_code))]
+            create_sampler_ycbcr_conversion_khr = c"vkCreateSamplerYcbcrConversionKHR":
+                fn(
+                    VkDevice,
+                    *const VkSamplerYcbcrConversionCreateInfo,
+                    Alloc,
+                    *mut VkSamplerYcbcrConversion,
+                ) -> VkResult;
+            destroy_sampler_ycbcr_conversion_khr = c"vkDestroySamplerYcbcrConversionKHR":
+                fn(VkDevice, VkSamplerYcbcrConversion, Alloc);
+            #[cfg_attr(not(target_os = "android"), allow(dead_code))]
+            get_android_hardware_buffer_properties_android =
+                c"vkGetAndroidHardwareBufferPropertiesANDROID":
+                fn(VkDevice, *const c_void, *mut VkAndroidHardwareBufferPropertiesANDROID)
+                    -> VkResult;
+        }
     }
 }

@@ -8,11 +8,10 @@
 //! video driver's (`SDL_Vulkan_LoadLibrary()`), and every Vulkan function
 //! is looked up at run time through its `vkGetInstanceProcAddr`.
 //!
-//! What isn't translated:
-//!
-//! * the Android parts: textures of Android hardware buffers
-//!   (`SDL_PIXELFORMAT_EXTERNAL_OES`) and the sampler YCbCr conversion
-//!   pipelines they need. There is no Android platform layer.
+//! On Android, textures can be made on hardware buffers
+//! (`SDL_PIXELFORMAT_EXTERNAL_OES`, with the sampler YCbCr conversion
+//! pipelines their external formats need), and the surface and swapchain
+//! are made again when the window comes back from the background.
 //!
 //! The renderer can be made on the application's instance, surface,
 //! physical device, device and queue families
@@ -423,6 +422,53 @@ struct PaletteData {
 /// The front end's handle of a palette: its key in the renderer.
 struct PaletteRef(u32);
 
+/// The hardware buffer of an `SDL_PIXELFORMAT_EXTERNAL_OES` texture, and
+/// what Vulkan says of it. Translation of `VULKAN_ExternalBufferInfo` (with
+/// nothing in it but on Android, as upstream's).
+struct ExternalBufferInfo {
+    /// The `AHardwareBuffer`.
+    #[cfg(target_os = "android")]
+    buffer: *mut c_void,
+    #[cfg(target_os = "android")]
+    properties: VkAndroidHardwareBufferPropertiesANDROID,
+    #[cfg(target_os = "android")]
+    format_properties: VkAndroidHardwareBufferFormatPropertiesANDROID,
+    #[cfg(target_os = "android")]
+    external_format: VkExternalFormatANDROID,
+}
+
+/// YUV conversion data: the YCbCr conversion's create info, without its
+/// chain (the cache's key). Translation of `VULKAN_YUVPipelineCreateInfo`.
+#[cfg_attr(not(target_os = "android"), allow(dead_code))]
+#[derive(Clone, Copy, PartialEq)]
+struct YuvPipelineCreateInfo {
+    external_format: u64,
+    filter: i32,
+    format: VkFormat,
+    ycbcr_model: i32,
+    ycbcr_range: i32,
+    components: [i32; 4],
+    x_chroma_offset: i32,
+    y_chroma_offset: i32,
+    chroma_filter: i32,
+}
+
+/// Translation of `VULKAN_YUVPipeline` (the cache is the renderer's
+/// `yuv_pipeline_cache`, whose index a texture keeps).
+#[cfg_attr(not(target_os = "android"), allow(dead_code))]
+struct YuvPipeline {
+    /// The information used to create this entry
+    create_info: YuvPipelineCreateInfo,
+    /// Object passed to VkImageView and VkSampler for doing Ycbcr -> RGB conversion
+    sampler_ycbcr_conversion: VkSamplerYcbcrConversion,
+    /// Sampler created with samplerYcbcrConversion, passed to PSO as immutable sampler
+    sampler_ycbcr: VkSampler,
+    /// Descriptor set layout with samplerYcbcr baked as immutable sampler
+    descriptor_set_layout_ycbcr: VkDescriptorSetLayout,
+    /// Pipeline layout with immutable sampler descriptor set layout
+    pipeline_layout_ycbcr: VkPipelineLayout,
+}
+
 /// Per-texture data. Translation of `VULKAN_TextureData`.
 #[derive(Default)]
 struct VulkanTexture {
@@ -436,6 +482,10 @@ struct VulkanTexture {
     width: i32,
     height: i32,
     ycbcr_matrix: Option<[f32; 16]>,
+
+    /// YCbCr conversion support: the texture's entry of the renderer's
+    /// `yuv_pipeline_cache`
+    yuv_pipeline: Option<usize>,
 
     pitch: i32,
     locked_rect: Rect,
@@ -615,6 +665,8 @@ pub(crate) struct VulkanRenderer {
     pipeline_states: Vec<PipelineState>,
     /// The index of the current pipeline state in `pipeline_states`.
     current_pipeline_state: Option<usize>,
+    /// The YCbCr conversions of the external formats (`yuvPipelineCache`).
+    yuv_pipeline_cache: Vec<YuvPipeline>,
 
     supports_ext_swapchain_colorspace: bool,
     supports_khr_get_physical_device_properties2: bool,
@@ -623,6 +675,8 @@ pub(crate) struct VulkanRenderer {
     /// [`VK_FORMAT_MAP`]).
     supports_ext_4444_formats: bool,
     supports_khr_external_memory_capabilities: bool,
+    #[cfg_attr(not(target_os = "android"), allow(dead_code))]
+    supports_android_external_memory_android_hardware_buffer: bool,
     swapchain_desired_image_count: u32,
     surface_format: VkSurfaceFormatKHR,
     swapchain_size: VkExtent2D,
@@ -901,15 +955,38 @@ fn get_blend_op(operation: Option<BlendOperation>) -> VkBlendOp {
     }
 }
 
-/// Translation of `VULKAN_IsDisplayRotated90Degrees()`.
-fn is_display_rotated_90_degrees(rotation: VkSurfaceTransformFlagBitsKHR) -> bool {
-    matches!(
-        rotation,
-        VK_SURFACE_TRANSFORM_ROTATE_90_BIT_KHR | VK_SURFACE_TRANSFORM_ROTATE_270_BIT_KHR
-    )
+/// Translation of `PQShaderScalesInput()`.
+/// The rectangle of a pre-rotated swapchain image (`physical_w` by
+/// `physical_h`) that `rotation` puts `rect` of the output on: the inverse
+/// of the rotation the projection applies (`VULKAN_UpdateViewport()`'s):
+/// rotated 90 degrees, the output's (x, y) is the image's
+/// (`physical_w` - 1 - y, x); 270, (y, `physical_h` - 1 - x); 180,
+/// (`physical_w` - 1 - x, `physical_h` - 1 - y). (It replaces upstream's
+/// swap of x and y where `VULKAN_IsDisplayRotated90Degrees()`: see
+/// `update_viewport()`.)
+fn rotated_rect(
+    rotation: VkSurfaceTransformFlagBitsKHR,
+    rect: Rect,
+    physical_w: i32,
+    physical_h: i32,
+) -> Rect {
+    match rotation {
+        VK_SURFACE_TRANSFORM_ROTATE_90_BIT_KHR => {
+            Rect::new(physical_w - rect.y - rect.h, rect.x, rect.h, rect.w)
+        }
+        VK_SURFACE_TRANSFORM_ROTATE_270_BIT_KHR => {
+            Rect::new(rect.y, physical_h - rect.x - rect.w, rect.h, rect.w)
+        }
+        VK_SURFACE_TRANSFORM_ROTATE_180_BIT_KHR => Rect::new(
+            physical_w - rect.x - rect.w,
+            physical_h - rect.y - rect.h,
+            rect.w,
+            rect.h,
+        ),
+        _ => rect,
+    }
 }
 
-/// Translation of `PQShaderScalesInput()`.
 fn pq_shader_scales_input(shader_constants: &PixelShaderConstants) -> bool {
     if shader_constants.tonemap_method != 0.0 {
         // Tone mapping always scales
@@ -996,7 +1073,9 @@ impl VulkanRenderer {
             self.destroy_texture_data(id);
         }
 
-        // (VULKAN_CleanupYUVPipeline(): the YUV pipelines are Android's)
+        for pipeline in std::mem::take(&mut self.yuv_pipeline_cache) {
+            self.cleanup_yuv_pipeline(pipeline);
+        }
 
         self.wait_dest_stage_masks = Vec::new();
         self.wait_render_semaphores = Vec::new();
@@ -1236,7 +1315,7 @@ impl VulkanRenderer {
         let image_view_swizzle = self.identity_swizzle;
         let mut palettedata = PaletteData {
             image: self
-                .allocate_image((VK_NULL_HANDLE, None), 256, 1, format, usage)
+                .allocate_image((VK_NULL_HANDLE, None), 256, 1, format, usage, None)
                 .map_err(|(rc, _)| error_code("VULKAN_AllocateImage()", rc))?,
             image_view: VK_NULL_HANDLE,
             colors: Vec::new(),
@@ -1247,6 +1326,7 @@ impl VulkanRenderer {
             format,
             usage,
             image_view_swizzle,
+            VK_NULL_HANDLE,
         ) {
             Ok(view) => palettedata.image_view = view,
             Err((rc, _)) => {
@@ -1438,10 +1518,10 @@ impl VulkanRenderer {
         }
     }
 
-    /// Translation of `VULKAN_AllocateImage()` (without an external buffer:
-    /// those are Android's), with the image and layout of the creation
-    /// properties in `existing` (the image, 0 for none, and
-    /// `SDL_PROP_TEXTURE_CREATE_VULKAN_LAYOUT_NUMBER`).
+    /// Translation of `VULKAN_AllocateImage()`, with the image and layout of
+    /// the creation properties in `existing` (the image, 0 for none, and
+    /// `SDL_PROP_TEXTURE_CREATE_VULKAN_LAYOUT_NUMBER`). (Its
+    /// `samplerYcbcrConversion` isn't used upstream: left out.)
     fn allocate_image(
         &mut self,
         existing: (VkImage, Option<VkImageLayout>),
@@ -1449,6 +1529,7 @@ impl VulkanRenderer {
         height: u32,
         format: VkFormat,
         image_usage: VkImageUsageFlags,
+        external: Option<&ExternalBufferInfo>,
     ) -> VkResultOr<Image> {
         let mut image_out = Image {
             format,
@@ -1458,7 +1539,7 @@ impl VulkanRenderer {
 
         if image_out.image == VK_NULL_HANDLE {
             image_out.allocated_image = true;
-            self.allocate_new_image(&mut image_out, width, height, format, image_usage)?;
+            self.allocate_new_image(&mut image_out, width, height, format, image_usage, external)?;
         } else {
             image_out.image_layout = existing
                 .1
@@ -1467,22 +1548,34 @@ impl VulkanRenderer {
 
         if image_out.image_layout != VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL {
             self.ensure_command_buffer();
-            image_out.image_layout = self.record_pipeline_image_barrier(
-                VK_ACCESS_NONE,
-                VK_ACCESS_SHADER_READ_BIT,
-                VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-                VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                image_out.image,
-                image_out.image_layout,
-            );
+            if external.is_some() {
+                image_out.image_layout = self.record_external_image_barrier(
+                    VK_ACCESS_NONE,
+                    VK_ACCESS_SHADER_READ_BIT,
+                    VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+                    VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+                    VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                    image_out.image,
+                    image_out.image_layout,
+                );
+            } else {
+                image_out.image_layout = self.record_pipeline_image_barrier(
+                    VK_ACCESS_NONE,
+                    VK_ACCESS_SHADER_READ_BIT,
+                    VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+                    VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+                    VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                    image_out.image,
+                    image_out.image_layout,
+                );
+            }
         }
 
         Ok(image_out)
     }
 
     /// The image the renderer makes in `VULKAN_AllocateImage()`, with its
-    /// memory.
+    /// memory (an external buffer's, on Android).
     fn allocate_new_image(
         &mut self,
         image_out: &mut Image,
@@ -1490,6 +1583,7 @@ impl VulkanRenderer {
         height: u32,
         format: VkFormat,
         image_usage: VkImageUsageFlags,
+        external: Option<&ExternalBufferInfo>,
     ) -> VkResultOr<()> {
         let dev = self.dev();
 
@@ -1522,7 +1616,21 @@ impl VulkanRenderer {
             image_create_info.flags |= VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT;
         }
 
-        // SAFETY: a valid create info.
+        #[cfg(target_os = "android")]
+        let external_memory_image_create_info;
+        #[cfg(target_os = "android")]
+        if let Some(external) = external {
+            external_memory_image_create_info = VkExternalMemoryImageCreateInfo {
+                s_type: VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO,
+                p_next: (&raw const external.external_format).cast(),
+                handle_types: VK_EXTERNAL_MEMORY_HANDLE_TYPE_ANDROID_HARDWARE_BUFFER_BIT_ANDROID,
+            };
+            image_create_info.p_next = (&raw const external_memory_image_create_info).cast();
+        }
+        #[cfg(not(target_os = "android"))]
+        let _ = external;
+
+        // SAFETY: a valid create info, its chain outliving the call.
         let result = unsafe {
             (dev.create_image)(
                 self.device,
@@ -1537,15 +1645,28 @@ impl VulkanRenderer {
         }
 
         let mut memory_requirements = VkMemoryRequirements::default();
-        // SAFETY: the image just made.
-        unsafe {
-            (dev.get_image_memory_requirements)(
-                self.device,
-                image_out.image,
-                &mut memory_requirements,
-            )
+        #[cfg(target_os = "android")]
+        let from_external = match external {
+            Some(external) => {
+                memory_requirements.memory_type_bits = external.properties.memory_type_bits;
+                memory_requirements.size = external.properties.allocation_size;
+                true
+            }
+            None => false,
         };
-        // (upstream checks the stale result of vkCreateImage() here)
+        #[cfg(not(target_os = "android"))]
+        let from_external = false;
+        if !from_external {
+            // SAFETY: the image just made.
+            unsafe {
+                (dev.get_image_memory_requirements)(
+                    self.device,
+                    image_out.image,
+                    &mut memory_requirements,
+                )
+            };
+            // (upstream checks the stale result of vkCreateImage() here)
+        }
 
         let memory_type_index = match self.find_memory_type_index(
             memory_requirements.memory_type_bits,
@@ -1559,13 +1680,33 @@ impl VulkanRenderer {
             }
         };
 
-        let memory_allocate_info = VkMemoryAllocateInfo {
+        #[cfg_attr(not(target_os = "android"), allow(unused_mut))]
+        let mut memory_allocate_info = VkMemoryAllocateInfo {
             s_type: VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
             allocation_size: memory_requirements.size,
             memory_type_index,
             ..Default::default()
         };
-        // SAFETY: a valid allocate info.
+        #[cfg(target_os = "android")]
+        let import_hardware_buffer_info;
+        #[cfg(target_os = "android")]
+        let dedicated_allocate_info;
+        #[cfg(target_os = "android")]
+        if let Some(external) = external {
+            import_hardware_buffer_info = VkImportAndroidHardwareBufferInfoANDROID {
+                s_type: VK_STRUCTURE_TYPE_IMPORT_ANDROID_HARDWARE_BUFFER_INFO_ANDROID,
+                p_next: null(),
+                buffer: external.buffer,
+            };
+            dedicated_allocate_info = VkMemoryDedicatedAllocateInfo {
+                s_type: VK_STRUCTURE_TYPE_MEMORY_DEDICATED_ALLOCATE_INFO,
+                p_next: (&raw const import_hardware_buffer_info).cast(),
+                image: image_out.image,
+                buffer: VK_NULL_HANDLE,
+            };
+            memory_allocate_info.p_next = (&raw const dedicated_allocate_info).cast();
+        }
+        // SAFETY: a valid allocate info, its chain outliving the call.
         let result = unsafe {
             (dev.allocate_memory)(
                 self.device,
@@ -1589,9 +1730,8 @@ impl VulkanRenderer {
         Ok(())
     }
 
-    /// Translation of `VULKAN_AllocateImageView()` (without a YCbCr
-    /// conversion: those are Android's). `plane` is `None` for the color
-    /// aspect.
+    /// Translation of `VULKAN_AllocateImageView()`. `plane` is `None` for
+    /// the color aspect.
     fn allocate_image_view(
         &self,
         image: VkImage,
@@ -1599,17 +1739,28 @@ impl VulkanRenderer {
         format: VkFormat,
         image_usage: VkImageUsageFlags,
         swizzle: VkComponentMapping,
+        sampler_ycbcr_conversion: VkSamplerYcbcrConversion,
     ) -> VkResultOr<VkImageView> {
         let aspect_mask = match plane {
             None => VK_IMAGE_ASPECT_COLOR_BIT,
             Some(plane) => VK_IMAGE_ASPECT_PLANE_0_BIT << plane,
         };
 
-        let image_view_usage_create_info = VkImageViewUsageCreateInfo {
+        let mut image_view_usage_create_info = VkImageViewUsageCreateInfo {
             s_type: VK_STRUCTURE_TYPE_IMAGE_VIEW_USAGE_CREATE_INFO,
             usage: image_usage,
             ..Default::default()
         };
+
+        // If it's a YCbCr image, we need to pass the conversion info to the VkImageView
+        let sampler_ycbcr_conversion_info = VkSamplerYcbcrConversionInfo {
+            s_type: VK_STRUCTURE_TYPE_SAMPLER_YCBCR_CONVERSION_INFO,
+            p_next: null(),
+            conversion: sampler_ycbcr_conversion,
+        };
+        if sampler_ycbcr_conversion != VK_NULL_HANDLE {
+            image_view_usage_create_info.p_next = (&raw const sampler_ycbcr_conversion_info).cast();
+        }
         let image_view_create_info = VkImageViewCreateInfo {
             s_type: VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
             p_next: &image_view_usage_create_info as *const _ as *const c_void,
@@ -1705,9 +1856,59 @@ impl VulkanRenderer {
         dest_layout
     }
 
-    /// The barrier of `VULKAN_RecordExternalImageBarrier()` is only for
-    /// external (Android) images.
-    ///
+    /// Translation of `VULKAN_RecordExternalImageBarrier()`: the barrier
+    /// of an external image (an Android hardware buffer's), from the
+    /// foreign queue family to the graphics one; the image's new layout.
+    #[allow(clippy::too_many_arguments)]
+    fn record_external_image_barrier(
+        &mut self,
+        source_access_mask: VkAccessFlags,
+        dest_access_mask: VkAccessFlags,
+        src_stage_flags: VkPipelineStageFlags,
+        dst_stage_flags: VkPipelineStageFlags,
+        dest_layout: VkImageLayout,
+        image: VkImage,
+        image_layout: VkImageLayout,
+    ) -> VkImageLayout {
+        // Stop any outstanding renderpass if open
+        self.end_render_pass();
+
+        let barrier = VkImageMemoryBarrier {
+            s_type: VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+            src_access_mask: source_access_mask,
+            dst_access_mask: dest_access_mask,
+            old_layout: image_layout,
+            new_layout: dest_layout,
+            src_queue_family_index: VK_QUEUE_FAMILY_FOREIGN_EXT,
+            dst_queue_family_index: self.graphics_queue_family_index,
+            image,
+            subresource_range: VkImageSubresourceRange {
+                aspect_mask: VK_IMAGE_ASPECT_COLOR_BIT,
+                base_mip_level: 0,
+                level_count: 1,
+                base_array_layer: 0,
+                layer_count: 1,
+            },
+            ..Default::default()
+        };
+        // SAFETY: the command buffer is recording, outside a render pass.
+        unsafe {
+            (self.dev().cmd_pipeline_barrier)(
+                self.current_command_buffer,
+                src_stage_flags,
+                dst_stage_flags,
+                0,
+                0,
+                null(),
+                0,
+                null(),
+                1,
+                &barrier,
+            )
+        };
+        dest_layout
+    }
+
     /// Translation of `VULKAN_AcquireNextSwapchainImage()`.
     fn acquire_next_swapchain_image(&mut self) -> VkResult {
         self.current_image_available_semaphore = VK_NULL_HANDLE;
@@ -2593,7 +2794,7 @@ impl VulkanRenderer {
          * If there are extension blocks that are not dependent upon each other, you'll need
          * to dynamically build the list of extension names instead of using this array.
          */
-        const DEVICE_EXTENSION_NAMES: [&CStr; 6] = [
+        const DEVICE_EXTENSION_NAMES: [&CStr; 10] = [
             VK_KHR_SWAPCHAIN_EXTENSION_NAME,
             // VK_KHR_sampler_ycbcr_conversion + dependent extensions
             c"VK_KHR_sampler_ycbcr_conversion",
@@ -2601,12 +2802,21 @@ impl VulkanRenderer {
             c"VK_KHR_maintenance2",
             c"VK_KHR_bind_memory2",
             c"VK_KHR_get_memory_requirements2",
+            // VK_ANDROID_external_memory_android_hardware_buffer + dependent extensions
+            // (Android's only: ANDROID_EXTENSION_COUNT)
+            c"VK_ANDROID_external_memory_android_hardware_buffer",
+            c"VK_KHR_external_memory",
+            c"VK_KHR_dedicated_allocation",
+            c"VK_EXT_queue_family_foreign",
         ];
         const YCBCR_EXTENSION_OFFSET: usize = 1;
         const YCBCR_EXTENSION_COUNT: usize = 5;
-        // (the Android extensions come after these upstream)
-        const _: () =
-            assert!(DEVICE_EXTENSION_NAMES.len() == YCBCR_EXTENSION_OFFSET + YCBCR_EXTENSION_COUNT);
+        const ANDROID_EXTENSION_OFFSET: usize = YCBCR_EXTENSION_OFFSET + YCBCR_EXTENSION_COUNT;
+        #[cfg(target_os = "android")]
+        const ANDROID_EXTENSION_COUNT: usize = 4;
+        #[cfg(not(target_os = "android"))]
+        const ANDROID_EXTENSION_COUNT: usize = 0;
+        const _: () = assert!(DEVICE_EXTENSION_NAMES.len() == ANDROID_EXTENSION_OFFSET + 4);
 
         let create_debug = hints::get_bool(hints::RENDER_VULKAN_DEBUG, false);
         let validation_layer_name = [SDL_VULKAN_VALIDATION_LAYER_NAME.as_ptr()];
@@ -2775,6 +2985,18 @@ impl VulkanRenderer {
             self.supports_khr_sampler_ycbcr_conversion = true;
         }
 
+        #[cfg(target_os = "android")]
+        if self.supports_khr_sampler_ycbcr_conversion
+            && self.supports_khr_external_memory_capabilities
+            && self
+                .device_extensions_found(
+                    &DEVICE_EXTENSION_NAMES[ANDROID_EXTENSION_OFFSET..][..ANDROID_EXTENSION_COUNT],
+                )
+                .unwrap_or(false)
+        {
+            self.supports_android_external_memory_android_hardware_buffer = true;
+        }
+
         // (VK_EXT_4444_formats, see VK_FORMAT_MAP)
         self.supports_ext_4444_formats = self.create_props.device.is_none()
             && self.supports_khr_get_physical_device_properties2
@@ -2791,10 +3013,15 @@ impl VulkanRenderer {
             let mut device_queue_create_info = [VkDeviceQueueCreateInfo::default(); 2];
             let mut device_sampler_ycbcr_conversion_features =
                 VkPhysicalDeviceSamplerYcbcrConversionFeatures::default();
-            let mut device_extension_names: Vec<*const c_char> =
-                DEVICE_EXTENSION_NAMES.iter().map(|n| n.as_ptr()).collect();
+            let mut device_extension_names: Vec<*const c_char> = DEVICE_EXTENSION_NAMES
+                [..ANDROID_EXTENSION_OFFSET + ANDROID_EXTENSION_COUNT]
+                .iter()
+                .map(|n| n.as_ptr())
+                .collect();
             if !self.supports_khr_sampler_ycbcr_conversion {
                 device_extension_names.truncate(YCBCR_EXTENSION_OFFSET);
+            } else if !self.supports_android_external_memory_android_hardware_buffer {
+                device_extension_names.truncate(ANDROID_EXTENSION_OFFSET);
             }
             if self.supports_ext_4444_formats {
                 device_extension_names.push(VK_EXT_4444_FORMATS_EXTENSION_NAME.as_ptr());
@@ -2863,6 +3090,11 @@ impl VulkanRenderer {
             return Err(e);
         }
         let dev = self.dev();
+
+        #[cfg(target_os = "android")]
+        if dev.get_android_hardware_buffer_properties_android.is_none() {
+            self.supports_android_external_memory_android_hardware_buffer = false;
+        }
 
         // Get graphics/present queues
         // SAFETY: the queues the device was created with.
@@ -3695,6 +3927,49 @@ impl VulkanRenderer {
         recovered
     }
 
+    /// The surface and swapchain made again for the window's new native
+    /// window (it comes back from the background): false if the renderer
+    /// can't. Translation of `VULKAN_HandleWindowRestored()`.
+    #[cfg(target_os = "android")]
+    fn handle_window_restored(&mut self) -> bool {
+        if self.device.is_null() {
+            return false;
+        }
+
+        if self.surface_external {
+            // We can't recreate external surfaces, fall back to device lost handling
+            return false;
+        }
+
+        self.issue_batch();
+        self.wait_for_gpu();
+
+        let dev = self.dev();
+        let inst = self.inst();
+        // SAFETY: the renderer's swapchain and surface, idle.
+        unsafe {
+            if self.swapchain != VK_NULL_HANDLE {
+                (dev.destroy_swapchain_khr)(self.device, self.swapchain, null());
+                self.swapchain = VK_NULL_HANDLE;
+            }
+            if self.surface != VK_NULL_HANDLE {
+                (inst.destroy_surface_khr)(self.instance, self.surface, null());
+                self.surface = VK_NULL_HANDLE;
+            }
+        }
+        match crate::video::vulkan::vulkan_create_surface(&self.window, self.instance as usize, 0) {
+            Ok(surface) => self.surface = surface,
+            Err(_) => return false,
+        }
+
+        // The formats we cached were queried against the old surface
+        if self.get_surface_formats().is_err() {
+            return false;
+        }
+
+        self.create_window_size_dependent_resources().is_ok()
+    }
+
     /// This method is called when the window's size changes. Translation of
     /// `VULKAN_UpdateForWindowSizeChange()`.
     fn update_for_window_size_change(&mut self) -> VkResultOr<()> {
@@ -4110,25 +4385,25 @@ impl VulkanRenderer {
         self.vertex_shader_constants_data.projection_and_view =
             Float4X4::multiply(&view, &projection);
 
-        let swap_dimensions = is_display_rotated_90_degrees(rotation);
-        let vk_viewport = if swap_dimensions {
-            VkViewport {
-                x: viewport.y as f32,
-                y: viewport.x as f32,
-                width: viewport.h as f32,
-                height: viewport.w as f32,
-                min_depth: 0.0,
-                max_depth: 1.0,
-            }
-        } else {
-            VkViewport {
-                x: viewport.x as f32,
-                y: viewport.y as f32,
-                width: viewport.w as f32,
-                height: viewport.h as f32,
-                min_depth: 0.0,
-                max_depth: 1.0,
-            }
+        // FIXME (upstream): upstream swaps the viewport's x and y (and its
+        // width and height) when the display is rotated 90 or 270 degrees,
+        // and keeps them at 180, which puts a viewport off the output's
+        // origin elsewhere than the projection draws it (mirrored in x at
+        // 90 degrees, in y at 270, in both at 180); here the viewport is
+        // the rotated rectangle of the image (as rotated_rect()).
+        let physical = rotated_rect(
+            rotation,
+            viewport,
+            self.swapchain_size.width as i32,
+            self.swapchain_size.height as i32,
+        );
+        let vk_viewport = VkViewport {
+            x: physical.x as f32,
+            y: physical.y as f32,
+            width: physical.w as f32,
+            height: physical.h as f32,
+            min_depth: 0.0,
+            max_depth: 1.0,
         };
         // SAFETY: the command buffer is recording.
         unsafe { (self.dev().cmd_set_viewport)(self.current_command_buffer, 0, 1, &vk_viewport) };
@@ -4141,7 +4416,6 @@ impl VulkanRenderer {
     fn update_clip_rect(&mut self) {
         let viewport = self.current_viewport;
         let rotation = self.get_rotation_for_current_render_target();
-        let swap_dimensions = is_display_rotated_90_degrees(rotation);
 
         let mut scissor = if self.current_cliprect_enabled {
             VkRect2D {
@@ -4166,12 +4440,23 @@ impl VulkanRenderer {
                 },
             }
         };
-        if swap_dimensions {
-            let scissor_temp = scissor;
-            scissor.offset.x = scissor_temp.offset.y;
-            scissor.offset.y = scissor_temp.offset.x;
-            scissor.extent.width = scissor_temp.extent.height;
-            scissor.extent.height = scissor_temp.extent.width;
+        // FIXME (upstream): as the viewport's (in update_viewport())
+        if rotation != VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR {
+            let physical = rotated_rect(
+                rotation,
+                Rect::new(
+                    scissor.offset.x,
+                    scissor.offset.y,
+                    scissor.extent.width as i32,
+                    scissor.extent.height as i32,
+                ),
+                self.swapchain_size.width as i32,
+                self.swapchain_size.height as i32,
+            );
+            scissor.offset.x = physical.x;
+            scissor.offset.y = physical.y;
+            scissor.extent.width = physical.w as u32;
+            scissor.extent.height = physical.h as u32;
         }
         // SAFETY: the command buffer is recording.
         unsafe { (self.dev().cmd_set_scissor)(self.current_command_buffer, 0, 1, &scissor) };
@@ -4438,6 +4723,148 @@ impl VulkanRenderer {
         }
 
         Ok((descriptor_set_layout_out, pipeline_layout_out))
+    }
+
+    /// The YUV pipeline of these conversion parameters (made the first
+    /// time): its index in the cache. Translation of
+    /// `VULKAN_GetYUVPipeline()`.
+    #[cfg(target_os = "android")]
+    fn get_yuv_pipeline(
+        &mut self,
+        create_info: &YuvPipelineCreateInfo,
+        external_format: &VkExternalFormatANDROID,
+    ) -> Result<usize> {
+        if let Some(i) = self
+            .yuv_pipeline_cache
+            .iter()
+            .position(|p| p.create_info == *create_info)
+        {
+            return Ok(i);
+        }
+
+        let dev = self.dev();
+        let mut pipeline = YuvPipeline {
+            create_info: *create_info,
+            sampler_ycbcr_conversion: VK_NULL_HANDLE,
+            sampler_ycbcr: VK_NULL_HANDLE,
+            descriptor_set_layout_ycbcr: VK_NULL_HANDLE,
+            pipeline_layout_ycbcr: VK_NULL_HANDLE,
+        };
+
+        let [r, g, b, a] = create_info.components;
+        let sampler_ycbcr_conversion_create_info = VkSamplerYcbcrConversionCreateInfo {
+            s_type: VK_STRUCTURE_TYPE_SAMPLER_YCBCR_CONVERSION_CREATE_INFO,
+            p_next: (external_format as *const VkExternalFormatANDROID).cast(),
+            format: create_info.format,
+            ycbcr_model: create_info.ycbcr_model,
+            ycbcr_range: create_info.ycbcr_range,
+            components: VkComponentMapping { r, g, b, a },
+            x_chroma_offset: create_info.x_chroma_offset,
+            y_chroma_offset: create_info.y_chroma_offset,
+            chroma_filter: create_info.chroma_filter,
+            force_explicit_reconstruction: VK_FALSE,
+        };
+        // (the device is made with the conversion's extension when the
+        // hardware buffers' is there)
+        let Some(create_conversion) = dev.create_sampler_ycbcr_conversion_khr else {
+            return Err(Error::new("vkCreateSamplerYcbcrConversionKHR is NULL"));
+        };
+        // SAFETY: a valid create info, its chain outliving the call.
+        let result = unsafe {
+            create_conversion(
+                self.device,
+                &sampler_ycbcr_conversion_create_info,
+                null(),
+                &mut pipeline.sampler_ycbcr_conversion,
+            )
+        };
+        if result != VK_SUCCESS {
+            let e = error_code("vkCreateSamplerYcbcrConversionKHR()", result);
+            self.cleanup_yuv_pipeline(pipeline);
+            return Err(e);
+        }
+
+        // Also create VkSampler object which we will need to pass to the PSO as an immutable sampler
+        let sampler_ycbcr_conversion_info = VkSamplerYcbcrConversionInfo {
+            s_type: VK_STRUCTURE_TYPE_SAMPLER_YCBCR_CONVERSION_INFO,
+            p_next: null(),
+            conversion: pipeline.sampler_ycbcr_conversion,
+        };
+        let sampler_create_info = VkSamplerCreateInfo {
+            s_type: VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
+            p_next: (&raw const sampler_ycbcr_conversion_info).cast(),
+            mag_filter: create_info.filter,
+            min_filter: create_info.filter,
+            mipmap_mode: VK_SAMPLER_MIPMAP_MODE_NEAREST,
+            address_mode_u: VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
+            address_mode_v: VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
+            address_mode_w: VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
+            mip_lod_bias: 0.0,
+            anisotropy_enable: VK_FALSE,
+            max_anisotropy: 1.0,
+            min_lod: 0.0,
+            max_lod: 1000.0,
+            ..Default::default()
+        };
+        // SAFETY: as above.
+        let result = unsafe {
+            (dev.create_sampler)(
+                self.device,
+                &sampler_create_info,
+                null(),
+                &mut pipeline.sampler_ycbcr,
+            )
+        };
+        if result != VK_SUCCESS {
+            let e = error_code("vkCreateSampler()", result);
+            self.cleanup_yuv_pipeline(pipeline);
+            return Err(e);
+        }
+
+        // Allocate special descriptor set layout with samplerYcbcr baked as an immutable sampler
+        match self.create_descriptor_set_and_pipeline_layout(pipeline.sampler_ycbcr) {
+            Ok((descriptor_set_layout, pipeline_layout)) => {
+                pipeline.descriptor_set_layout_ycbcr = descriptor_set_layout;
+                pipeline.pipeline_layout_ycbcr = pipeline_layout;
+            }
+            Err(e) => {
+                self.cleanup_yuv_pipeline(pipeline);
+                return Err(e);
+            }
+        }
+
+        // Link it into our cache!
+        self.yuv_pipeline_cache.push(pipeline);
+        Ok(self.yuv_pipeline_cache.len() - 1)
+    }
+
+    /// Translation of `VULKAN_CleanupYUVPipeline()`.
+    fn cleanup_yuv_pipeline(&self, pipeline: YuvPipeline) {
+        let Some(dev) = self.dev.as_ref() else {
+            // (made with the device's functions, which are still there)
+            return;
+        };
+        // SAFETY: the pipeline's objects are this device's, and idle.
+        unsafe {
+            if pipeline.sampler_ycbcr_conversion != VK_NULL_HANDLE {
+                if let Some(destroy) = dev.destroy_sampler_ycbcr_conversion_khr {
+                    destroy(self.device, pipeline.sampler_ycbcr_conversion, null());
+                }
+            }
+            if pipeline.sampler_ycbcr != VK_NULL_HANDLE {
+                (dev.destroy_sampler)(self.device, pipeline.sampler_ycbcr, null());
+            }
+            if pipeline.pipeline_layout_ycbcr != VK_NULL_HANDLE {
+                (dev.destroy_pipeline_layout)(self.device, pipeline.pipeline_layout_ycbcr, null());
+            }
+            if pipeline.descriptor_set_layout_ycbcr != VK_NULL_HANDLE {
+                (dev.destroy_descriptor_set_layout)(
+                    self.device,
+                    pipeline.descriptor_set_layout_ycbcr,
+                    null(),
+                );
+            }
+        }
     }
 
     /// Translation of `VULKAN_AllocateDescriptorSet()`.
@@ -4951,6 +5378,7 @@ impl VulkanRenderer {
         let texture_data = &self.textures[&id];
         image_views.extend_from_slice(&texture_data.image_views[..texture_data.num_image_views]);
         let palette = texture_data.palette;
+        let yuv_pipeline = texture_data.yuv_pipeline;
 
         samplers.push(self.get_sampler(
             source.format,
@@ -4989,9 +5417,13 @@ impl VulkanRenderer {
             samplers.push(samplers[0]);
         }
 
-        // (a YUV pipeline's layouts are Android's)
-        let descriptor_set_layout = self.descriptor_set_layout;
-        let pipeline_layout = self.pipeline_layout;
+        let (descriptor_set_layout, pipeline_layout) = match yuv_pipeline {
+            Some(i) => (
+                self.yuv_pipeline_cache[i].descriptor_set_layout_ycbcr,
+                self.yuv_pipeline_cache[i].pipeline_layout_ycbcr,
+            ),
+            None => (self.descriptor_set_layout, self.pipeline_layout),
+        };
         self.set_draw_state(
             cmd,
             pipeline_layout,
@@ -5195,9 +5627,10 @@ impl VulkanRenderer {
                 formats.push(format);
             }
         }
+        if renderer_data.supports_android_external_memory_android_hardware_buffer {
+            formats.push(PixelFormat::EXTERNAL_OES);
+        }
         renderer_data.texture_formats = formats;
-
-        // (SDL_PIXELFORMAT_EXTERNAL_OES is Android's)
 
         Ok(renderer_data)
     }
@@ -5265,11 +5698,13 @@ impl VulkanRenderer {
             current_descriptor_set_index: 0,
             pipeline_states: Vec::new(),
             current_pipeline_state: None,
+            yuv_pipeline_cache: Vec::new(),
             supports_ext_swapchain_colorspace: false,
             supports_khr_get_physical_device_properties2: false,
             supports_khr_sampler_ycbcr_conversion: false,
             supports_ext_4444_formats: false,
             supports_khr_external_memory_capabilities: false,
+            supports_android_external_memory_android_hardware_buffer: false,
             swapchain_desired_image_count: 0,
             surface_format: VkSurfaceFormatKHR::default(),
             swapchain_size: VkExtent2D::default(),
@@ -5464,9 +5899,26 @@ impl VulkanRenderer {
             }
         };
 
+        // FIXME (upstream): the swapchain's images are pre-rotated when the
+        // display is (an Android surface's, say), and upstream reads the
+        // image's rectangle as the output's, which is elsewhere then; here
+        // the rectangle read is the rotated one (rotated_rect()), and its
+        // pixels are rotated back below.
+        let rotation = if target.is_some() {
+            VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR
+        } else {
+            self.swap_chain_pre_transform
+        };
+        let read_rect = rotated_rect(
+            rotation,
+            *rect,
+            self.swapchain_size.width as i32,
+            self.swapchain_size.height as i32,
+        );
+
         let pixel_size = get_bytes_per_pixel(vk_format, 0);
-        let length = rect.w as VkDeviceSize * pixel_size;
-        let readback_buffer_size = length * rect.h as VkDeviceSize;
+        let length = read_rect.w as VkDeviceSize * pixel_size;
+        let readback_buffer_size = length * read_rect.h as VkDeviceSize;
         let mut readback_buffer = self
             .allocate_buffer(
                 readback_buffer_size,
@@ -5505,13 +5957,13 @@ impl VulkanRenderer {
                 aspect_mask: VK_IMAGE_ASPECT_COLOR_BIT,
             },
             image_offset: VkOffset3D {
-                x: rect.x,
-                y: rect.y,
+                x: read_rect.x,
+                y: read_rect.y,
                 z: 0,
             },
             image_extent: VkExtent3D {
-                width: rect.w as u32,
-                height: rect.h as u32,
+                width: read_rect.w as u32,
+                height: read_rect.h as u32,
                 depth: 1,
             },
         };
@@ -5559,18 +6011,92 @@ impl VulkanRenderer {
             }
         }
 
-        let output = crate::video::surface::duplicate_pixels(
-            rect.w,
-            rect.h,
-            vk_format_to_sdl_pixel_format(vk_format),
-            self.current_colorspace,
-            Some(readback_buffer.mapped()),
-            length as i32,
-        );
+        let output = if rotation == VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR {
+            crate::video::surface::duplicate_pixels(
+                rect.w,
+                rect.h,
+                vk_format_to_sdl_pixel_format(vk_format),
+                self.current_colorspace,
+                Some(readback_buffer.mapped()),
+                length as i32,
+            )
+        } else {
+            // (the output's pixel (x, y) of the rectangle read, of
+            // read_rect.w pixels a row)
+            let bpp = pixel_size as usize;
+            let (w, h) = (rect.w.max(0) as usize, rect.h.max(0) as usize);
+            let src_w = read_rect.w.max(0) as usize;
+            let src = readback_buffer.mapped();
+            let mut pixels = vec![0u8; w * h * bpp];
+            for y in 0..h {
+                for x in 0..w {
+                    let (sx, sy) = match rotation {
+                        VK_SURFACE_TRANSFORM_ROTATE_90_BIT_KHR => (h - 1 - y, x),
+                        VK_SURFACE_TRANSFORM_ROTATE_270_BIT_KHR => (y, w - 1 - x),
+                        _ => (w - 1 - x, h - 1 - y),
+                    };
+                    let from = (sy * src_w + sx) * bpp;
+                    let to = (y * w + x) * bpp;
+                    pixels[to..to + bpp].copy_from_slice(&src[from..from + bpp]);
+                }
+            }
+            crate::video::surface::duplicate_pixels(
+                rect.w,
+                rect.h,
+                vk_format_to_sdl_pixel_format(vk_format),
+                self.current_colorspace,
+                Some(&pixels),
+                (w * bpp) as i32,
+            )
+        };
 
         self.destroy_buffer(&mut readback_buffer);
 
         output
+    }
+}
+
+/// The size of an `AHardwareBuffer`, into `width` and `height` (left as
+/// they are if it can't be had). Translation of `ANDROID_GetBufferSize()`:
+/// `AHardwareBuffer_describe()` is API 26's, looked up in `libandroid.so`.
+#[cfg(target_os = "android")]
+fn android_get_buffer_size(buffer: *mut c_void, width: &mut u32, height: &mut u32) {
+    /// `AHardwareBuffer_Desc`.
+    #[repr(C)]
+    #[derive(Default)]
+    struct AHardwareBufferDesc {
+        width: u32,
+        height: u32,
+        layers: u32,
+        format: u32,
+        usage: u64,
+        stride: u32,
+        rfu0: u32,
+        rfu1: u64,
+    }
+    type Describe = unsafe extern "C" fn(*const c_void, *mut AHardwareBufferDesc);
+    static DESCRIBE: std::sync::OnceLock<Option<Describe>> = std::sync::OnceLock::new();
+    let describe = DESCRIBE.get_or_init(|| {
+        // SAFETY: dlopen() and dlsym() of NUL-terminated names; the
+        // function has the NDK's prototype.
+        unsafe {
+            let lib = libc::dlopen(c"libandroid.so".as_ptr(), libc::RTLD_NOW | libc::RTLD_LOCAL);
+            if lib.is_null() {
+                return None;
+            }
+            let f = libc::dlsym(lib, c"AHardwareBuffer_describe".as_ptr());
+            // Leaving the library loaded so we can use the function again without another dlopen()
+            (!f.is_null()).then(|| std::mem::transmute::<*mut c_void, Describe>(f))
+        }
+    });
+    if let Some(describe) = describe {
+        let mut desc = AHardwareBufferDesc::default();
+        // SAFETY: the application's hardware buffer.
+        unsafe { describe(buffer, &mut desc) };
+        if desc.width > 0 && desc.height > 0 {
+            *width = desc.width;
+            *height = desc.height;
+        }
     }
 }
 
@@ -5636,7 +6162,8 @@ impl RenderBackend for VulkanRenderer {
         use PixelFormat as F;
         let num_images = get_format_image_count(texture.format);
         let num_image_views = get_format_image_view_count(texture.format);
-        let texture_format = get_vk_image_format(texture.format, self.output_colorspace);
+        #[cfg_attr(not(target_os = "android"), allow(unused_mut))]
+        let mut texture_format = get_vk_image_format(texture.format, self.output_colorspace);
         let mut width = texture.w as u32;
         let mut height = texture.h as u32;
         let mut chroma_width = width;
@@ -5648,12 +6175,152 @@ impl RenderBackend for VulkanRenderer {
         }
 
         let mut texture_data = VulkanTexture::default();
+        // (boxed: the chains point into it)
+        #[cfg_attr(not(target_os = "android"), allow(unused_mut))]
+        let mut external: Option<Box<ExternalBufferInfo>> = None;
 
         if texture.format == F::EXTERNAL_OES {
-            // (Android hardware buffers)
-            return Err(Error::new(
-                "SDL_PIXELFORMAT_EXTERNAL_OES texture requires a hardware buffer",
-            ));
+            #[cfg(target_os = "android")]
+            {
+                let buffer = create_props.vulkan_android_hardware_buffer as usize as *mut c_void;
+                if buffer.is_null() {
+                    return Err(Error::new(
+                        "SDL_PIXELFORMAT_EXTERNAL_OES texture requires a hardware buffer",
+                    ));
+                }
+
+                // Get the real buffer width and height
+                android_get_buffer_size(buffer, &mut width, &mut height);
+
+                let mut info = Box::new(ExternalBufferInfo {
+                    buffer,
+                    properties: VkAndroidHardwareBufferPropertiesANDROID::default(),
+                    format_properties: VkAndroidHardwareBufferFormatPropertiesANDROID::default(),
+                    external_format: VkExternalFormatANDROID::default(),
+                });
+                info.format_properties.s_type =
+                    VK_STRUCTURE_TYPE_ANDROID_HARDWARE_BUFFER_FORMAT_PROPERTIES_ANDROID;
+                info.properties.s_type =
+                    VK_STRUCTURE_TYPE_ANDROID_HARDWARE_BUFFER_PROPERTIES_ANDROID;
+                info.properties.p_next = (&raw mut info.format_properties).cast();
+                // (the format is only listed when the device has the function)
+                let get_properties = self
+                    .dev()
+                    .get_android_hardware_buffer_properties_android
+                    .ok_or_else(|| {
+                        Error::new("vkGetAndroidHardwareBufferPropertiesANDROID is NULL")
+                    })?;
+                // SAFETY: the application's hardware buffer (the property's
+                // contract), and the chain just made.
+                let result = unsafe { get_properties(self.device, buffer, &mut info.properties) };
+                if result != VK_SUCCESS {
+                    return Err(error_code(
+                        "vkGetAndroidHardwareBufferPropertiesANDROID()",
+                        result,
+                    ));
+                }
+
+                info.external_format.s_type = VK_STRUCTURE_TYPE_EXTERNAL_FORMAT_ANDROID;
+                info.external_format.external_format = info.format_properties.external_format;
+
+                texture_format = info.format_properties.format;
+
+                let format_properties = info.format_properties;
+                if texture_format == VK_FORMAT_UNDEFINED
+                    || format_properties.suggested_ycbcr_model
+                        != VK_SAMPLER_YCBCR_MODEL_CONVERSION_RGB_IDENTITY
+                {
+                    let features = format_properties.format_features;
+                    let mut chroma_filter = VK_FILTER_LINEAR;
+                    let mut luma_filter = VK_FILTER_LINEAR;
+                    if features & VK_FORMAT_FEATURE_SAMPLED_IMAGE_YCBCR_CONVERSION_LINEAR_FILTER_BIT
+                        == 0
+                    {
+                        chroma_filter = VK_FILTER_NEAREST;
+                    }
+                    if features & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT == 0 {
+                        luma_filter = VK_FILTER_NEAREST;
+                    }
+                    if features
+                        & VK_FORMAT_FEATURE_SAMPLED_IMAGE_YCBCR_CONVERSION_SEPARATE_RECONSTRUCTION_FILTER_BIT
+                        == 0
+                    {
+                        luma_filter = chroma_filter;
+                    }
+
+                    let components = format_properties.sampler_ycbcr_conversion_components;
+                    let mut create_info = YuvPipelineCreateInfo {
+                        external_format: format_properties.external_format,
+                        filter: luma_filter,
+                        format: format_properties.format,
+                        ycbcr_model: format_properties.suggested_ycbcr_model,
+                        ycbcr_range: format_properties.suggested_ycbcr_range,
+                        components: [components.r, components.g, components.b, components.a],
+                        x_chroma_offset: format_properties.suggested_x_chroma_offset,
+                        y_chroma_offset: format_properties.suggested_y_chroma_offset,
+                        chroma_filter,
+                    };
+
+                    if texture.colorspace != Colorspace::UNKNOWN {
+                        use crate::video::pixels::{
+                            ChromaLocation, ColorRange, MatrixCoefficients,
+                        };
+                        match texture.colorspace.matrix() {
+                            MatrixCoefficients::Bt470bg | MatrixCoefficients::Bt601 => {
+                                create_info.ycbcr_model =
+                                    VK_SAMPLER_YCBCR_MODEL_CONVERSION_YCBCR_601;
+                            }
+                            MatrixCoefficients::Bt709 => {
+                                create_info.ycbcr_model =
+                                    VK_SAMPLER_YCBCR_MODEL_CONVERSION_YCBCR_709;
+                            }
+                            MatrixCoefficients::Bt2020Ncl => {
+                                create_info.ycbcr_model =
+                                    VK_SAMPLER_YCBCR_MODEL_CONVERSION_YCBCR_2020;
+                            }
+                            _ => {}
+                        }
+
+                        match texture.colorspace.range() {
+                            ColorRange::Limited => {
+                                create_info.ycbcr_range = VK_SAMPLER_YCBCR_RANGE_ITU_NARROW;
+                            }
+                            ColorRange::Full => {
+                                create_info.ycbcr_range = VK_SAMPLER_YCBCR_RANGE_ITU_FULL;
+                            }
+                            _ => {}
+                        }
+
+                        match texture.colorspace.chroma() {
+                            ChromaLocation::Left => {
+                                create_info.x_chroma_offset = VK_CHROMA_LOCATION_COSITED_EVEN;
+                                create_info.y_chroma_offset = VK_CHROMA_LOCATION_MIDPOINT;
+                            }
+                            ChromaLocation::TopLeft => {
+                                create_info.x_chroma_offset = VK_CHROMA_LOCATION_COSITED_EVEN;
+                                create_info.y_chroma_offset = VK_CHROMA_LOCATION_COSITED_EVEN;
+                            }
+                            ChromaLocation::Center => {
+                                create_info.x_chroma_offset = VK_CHROMA_LOCATION_MIDPOINT;
+                                create_info.y_chroma_offset = VK_CHROMA_LOCATION_MIDPOINT;
+                            }
+                            _ => {}
+                        }
+                    }
+
+                    texture_data.yuv_pipeline =
+                        Some(self.get_yuv_pipeline(&create_info, &info.external_format)?);
+                }
+                external = Some(info);
+            }
+            #[cfg(not(target_os = "android"))]
+            {
+                // (upstream goes on with an undefined format, which the
+                // front end never asks for: the format is Android's)
+                return Err(Error::new(
+                    "SDL_PIXELFORMAT_EXTERNAL_OES texture requires a hardware buffer",
+                ));
+            }
         } else if texture.format.is_fourcc() {
             if matches!(
                 texture.format,
@@ -5710,12 +6377,23 @@ impl RenderBackend for VulkanRenderer {
             Err(e)
         };
 
+        let sampler_ycbcr_conversion =
+            self.textures[&id].yuv_pipeline.map_or(VK_NULL_HANDLE, |i| {
+                self.yuv_pipeline_cache[i].sampler_ycbcr_conversion
+            });
         for i in 0..num_images {
             let image_width = if i == 0 { width } else { chroma_width };
             let image_height = if i == 0 { height } else { chroma_height };
             // (imageCreateProperties[i])
             let existing = (create_props.vulkan_texture[i], create_props.vulkan_layout);
-            match self.allocate_image(existing, image_width, image_height, texture_format, usage) {
+            match self.allocate_image(
+                existing,
+                image_width,
+                image_height,
+                texture_format,
+                usage,
+                external.as_deref(),
+            ) {
                 Ok(image) => {
                     let t = self.textures.get_mut(&id).expect("the new texture");
                     t.images[i] = image;
@@ -5741,6 +6419,7 @@ impl RenderBackend for VulkanRenderer {
                 image_view_format,
                 usage,
                 image_view_swizzle,
+                sampler_ycbcr_conversion,
             ) {
                 Ok(view) => {
                     let t = self.textures.get_mut(&id).expect("the new texture");
@@ -6578,10 +7257,20 @@ impl RenderBackend for VulkanRenderer {
         Some(Ok(()))
     }
 
-    /// Translation of `VULKAN_WindowEvent()` (the Android parts aside).
+    /// Translation of `VULKAN_WindowEvent()`.
     fn window_event(&mut self, event_type: EventType) {
         if event_type == EventType::WINDOW_PIXEL_SIZE_CHANGED {
             self.recreate_swapchain = true;
+        }
+
+        // Prevent black screen when app returns from background
+        #[cfg(target_os = "android")]
+        if event_type == EventType::WINDOW_RESTORED {
+            // Try to just recreate the surface and swap chain
+            if !self.handle_window_restored() {
+                // We're fully lost, notify the application
+                self.handle_device_lost();
+            }
         }
     }
 
