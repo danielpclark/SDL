@@ -1089,6 +1089,8 @@ mod tests {
         Native
     }
 
+    // (on a host, where the Android SDK is)
+    #[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
     /// dexdump (the SDK's build-tools': SDL3_ANDROID_BUILD_TOOLS's version,
     /// else the newest) verifies the file (ART's DEX file verifier) and
     /// lists it, with its code.
@@ -1153,6 +1155,8 @@ mod tests {
         );
     }
 
+    // (on a host, where the Android SDK is)
+    #[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
     /// The build-tools' dexdump.
     fn dexdump() -> Option<std::path::PathBuf> {
         use std::path::PathBuf;

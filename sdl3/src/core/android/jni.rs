@@ -666,6 +666,8 @@ mod tests {
         assert_eq!(INVOKE_INTERFACE_SLOTS[6], "GetEnv");
     }
 
+    // (on a host, where the Android SDK is)
+    #[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
     /// The slots against the NDK's jni.h, when there's an NDK (see
     /// `ndk_jni_h`): the members of `struct JNINativeInterface` and `struct
     /// JNIInvokeInterface`, in order.
@@ -689,6 +691,8 @@ mod tests {
         println!("the JNI tables are {}'s", path.display());
     }
 
+    // (on a host, where the Android SDK is)
+    #[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
     /// The member names of the C struct `name` (each member a function
     /// pointer `(*Name)(...)`, or a `void* reservedN`), in order.
     fn struct_members(text: &str, name: &str) -> Vec<String> {
@@ -732,6 +736,8 @@ mod tests {
         names
     }
 
+    // (on a host, where the Android SDK is)
+    #[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
     /// jni.h of the NDK the Android link uses (tools/android_link.py's
     /// choice): SDL3_ANDROID_NDK's, ANDROID_NDK_HOME's, ANDROID_NDK_ROOT's,
     /// else the newest in the SDK's ndk/.

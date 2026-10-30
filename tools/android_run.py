@@ -111,7 +111,8 @@ is complete is launched again by Android, which would run the program a
 second time: the second connection is refused, and the run fails. So does
 one whose package ART didn't verify (a `VerifyError`, a rejected class, a
 failed dexopt in the device's log). With SDL3_ANDROID_VERBOSE=1 the
-dexopt's result is noted.
+install's dexopt result is noted, when it has one (a debuggable app's has
+none: `adb shell cmd package compile -m verify -f PACKAGE` verifies it).
 
 A running app can ask for what only the host can do, with a line
 `sdl3-android-runner: request WHAT [ARGUMENTS]` (copied, then acted on):

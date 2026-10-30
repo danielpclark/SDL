@@ -1634,7 +1634,10 @@ the runner refuses the second connection and fails the run. libc's
 abort), so the programs return from `main` instead. The runner also fails
 a run when the device's log shows that ART didn't verify the app's classes
 (a `VerifyError`, a rejected class, a failed dexopt);
-`SDL3_ANDROID_VERBOSE=1` notes the dexopt's result. An app can ask the
+`SDL3_ANDROID_VERBOSE=1` notes the install's dexopt result, when it has
+one (a debuggable app's install has none: CI's android job verifies the
+package with `adb shell cmd package compile -m verify -f PACKAGE`, which
+runs dex2oat's `verify` filter, as ART does). An app can ask the
 runner for `background`, `foreground` and `input ARGUMENTS`
 (`sdl3-android-runner: request WHAT`, `android_support::request()`).
 
@@ -1755,7 +1758,9 @@ beyond ASCII and beyond U+FFFF), which `android_runner` and
 `android_spawned` compare, then both programs with an exit status of 3,
 which the runner must give, then `android_runner`'s package itself,
 which `dexdump` (whose DEX file verifier is ART's), `apksigner` and
-`zipalign` check; then the
+`zipalign` check, and ART's verifier on the device (`cmd package
+compile -m verify -f`, failing on any verification message in the
+device's log); then the
 arm64 build of the libraries with code of their own for arm64 (sdl3's
 CPU features, blitters and assertions, sdl3-image's libyuv paths and
 sdl3-shadercross's: `-p sdl3 -p sdl3-image -p sdl3-shadercross --lib`)
