@@ -447,9 +447,11 @@ functions only the Swift code calls aren't translated.
 ## Android
 
 Android builds and lints, and the tests run on the Android emulator as
-spawned processes (`tools/android_run.py`: "Android emulator" in
-docs/HARDWARE_TESTING.md); its platform layer (`core/android`, the Java,
-the Android drivers) isn't translated.
+spawned processes and as apps (`tools/android_run.py`: "Android emulator"
+in docs/HARDWARE_TESTING.md). Its platform layer is begun: the JNI layer,
+the app's start and lifecycle, the event pump's Android parts and the log
+(below); the Android drivers (video, audio, input, ...) aren't
+translated yet.
 
 A test that reads its package's files does so at run time, through
 `CARGO_MANIFEST_DIR` (falling back on `env!("CARGO_MANIFEST_DIR")`), which
@@ -482,6 +484,61 @@ device; the same for `CARGO_TARGET_TMPDIR` and `CARGO_BIN_EXE_NAME`.
   is `SCHED_NORMAL`, the `RTMGRP_*` groups), it is defined where it is
   used, with its header's value.
 
+### The Java, the app and its lifecycle
+
+* Upstream's Java (android-project's `org.libsdl.app`) is translated to
+  Rust too: `core/android/java/`, a module per file (`SDLActivity.java` is
+  `java::activity`, `SDL.java` `java::sdl`), its calls to the framework
+  JNI calls (`core::android::env`), its calls to upstream's natives and
+  between its classes Rust calls, its statics a module's state. The
+  framework still needs upstream's classes in the app's DEX file (the
+  activity the manifest names, its handler, its listeners): they are
+  declared in `core/android/classes.rs`, with upstream's names,
+  superclasses and interfaces, and every method the framework calls (an
+  override: `onCreate()`, `dispatchKeyEvent()`, `handleMessage()`, ...)
+  and every one of upstream's natives is `native`, implemented by the
+  Rust function the table names, which `JNI_OnLoad()` registers;
+  `super.f()` is `CallNonvirtual*Method()`. To add one, add its entry,
+  then write `classes_dex.rs` again (`SDL3_ANDROID_WRITE_DEX=1 cargo test
+  -p sdl3 --lib core::android::dex`); the table's types are checked
+  against the Rust function's at compile time.
+* Upstream's anonymous classes (`new Runnable() {...}`, dialog listeners,
+  the `OnBackInvokedCallback`) can't keep their compiler's names
+  (`SDLActivity$1`): they are two classes of the DEX file carrying a Rust
+  closure, `SDLNativeRunnable` (a `Runnable`, run once) and
+  `SDLNativeListener` (the invocation handler of a
+  `java.lang.reflect.Proxy` of the interface): `java::anonymous`.
+* An instance field upstream's constructor initializes
+  (`SDLActivity.commandHandler`) is set at the start of `onCreate()`
+  instead (the constructors have no code of their own here). An app's
+  Java can't extend `SDLActivity`, so the methods upstream's subclasses
+  override (`getLibraries()`, `getArguments()`, `onUnhandledMessage()`)
+  are fixed: `Note`s.
+* What a later driver owns is stubbed where upstream calls it: the
+  activity's surface (`java::surface`, null until `SDLSurface`), the
+  video driver's window (`video::drivers::android::window()`, none), the
+  keyboard, the audio drivers' pause, and the controller, HID, clipboard
+  and audio managers (comments where upstream calls them).
+* The app's `main` runs on the activity's "SDLThread" thread
+  (`nativeRunMain()`, through the generic `SDL_RunApp()`; the main
+  callbacks are the generic ones too), which isn't SDL's main thread until
+  SDL is initialized there (`nativeSetupJNI()` makes the activity's thread
+  the main one, as upstream's does). The activity passes its lifecycle to
+  SDL's thread through the lifecycle event queue
+  (`core::android::send_lifecycle_event()`), which SDL's event pump and
+  `events::wait*()` read on Android, whatever the video driver
+  (`video/drivers/android/events.rs`, SDL_androidevents.c), with
+  `SDL_HINT_ANDROID_BLOCK_ON_PAUSE`'s blocking pause. SDL's threads attach
+  themselves to the Java VM when they start (`Android_JNI_SetupThread()`).
+* SDL_system.h's Android functions are the `sdl3::android` module
+  (`jni_env()`, `activity()`, `sdk_version()`, `is_chromebook()`,
+  `is_dex_mode()`, `send_back_button()`, `send_message()`); a program
+  that isn't an app has no Java VM, where they give `None` or false
+  (upstream dereferences a null environment).
+* The log's default output writes to Android's log too
+  (`__android_log_write()` of liblog, the tag `SDL/CATEGORY`), then to
+  stderr, as upstream's does.
+
 ### What is built
 
 As upstream's CMake build for Android, except where Android's own backend
@@ -490,7 +547,7 @@ it) stands in:
 
 | | Upstream | Here |
 |---|---|---|
-| video | android, offscreen, dummy | offscreen and dummy (the android driver: later) |
+| video | android, offscreen, dummy | offscreen and dummy (of the android driver, its events and the system theme, whatever the driver: the rest later) |
 | OpenGL ES, EGL | GLES 1 and 2 through EGL (`libEGL.so`, `libGLESv2.so`, `libGLESv1_CM.so`), no desktop OpenGL | the same (the offscreen driver's EGL) |
 | Vulkan | `libvulkan.so` | the same (the offscreen driver's: `FIXME (upstream)`, which tries `libvulkan.so.1`) |
 | renderers | OpenGL ES 2, OpenGL ES, Vulkan, GPU, software | OpenGL ES 2, Vulkan, GPU, software (the OpenGL ES 1 renderer isn't translated anywhere) |
