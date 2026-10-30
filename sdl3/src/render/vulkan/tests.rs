@@ -278,12 +278,39 @@ fn matrices() {
     assert_eq!(r.m[1][0], -1.0);
     let rr = Float4X4::multiply(&r, &r);
     assert!((rr.m[0][0] + 1.0).abs() < 1e-6);
-    assert!(is_display_rotated_90_degrees(
-        VK_SURFACE_TRANSFORM_ROTATE_270_BIT_KHR
-    ));
-    assert!(!is_display_rotated_90_degrees(
-        VK_SURFACE_TRANSFORM_ROTATE_180_BIT_KHR
-    ));
+}
+
+/// The rectangles of a pre-rotated swapchain image: a 2400x1080 output on
+/// a 1080x2400 image (90 and 270 degrees) or a 2400x1080 one (180).
+#[test]
+fn rotated_rects() {
+    let r = Rect::new(10, 20, 30, 40);
+    assert_eq!(
+        rotated_rect(VK_SURFACE_TRANSFORM_ROTATE_90_BIT_KHR, r, 1080, 2400),
+        Rect::new(1020, 10, 40, 30)
+    );
+    assert_eq!(
+        rotated_rect(VK_SURFACE_TRANSFORM_ROTATE_270_BIT_KHR, r, 1080, 2400),
+        Rect::new(20, 2360, 40, 30)
+    );
+    assert_eq!(
+        rotated_rect(VK_SURFACE_TRANSFORM_ROTATE_180_BIT_KHR, r, 2400, 1080),
+        Rect::new(2360, 1020, 30, 40)
+    );
+    assert_eq!(
+        rotated_rect(VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR, r, 2400, 1080),
+        r
+    );
+    // The whole output is the whole image
+    assert_eq!(
+        rotated_rect(
+            VK_SURFACE_TRANSFORM_ROTATE_90_BIT_KHR,
+            Rect::new(0, 0, 2400, 1080),
+            1080,
+            2400
+        ),
+        Rect::new(0, 0, 1080, 2400)
+    );
 }
 
 // ---------------------------------------------------------------------------

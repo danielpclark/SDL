@@ -681,6 +681,10 @@ pub(crate) struct TextureCreateProps {
     pub(crate) vulkan_layout: Option<i32>,
     /// `SDL_PROP_TEXTURE_CREATE_VULKAN_USAGE_NUMBER`
     pub(crate) vulkan_usage: u32,
+    /// `SDL_PROP_TEXTURE_CREATE_VULKAN_ANDROID_HARDWARE_BUFFER_POINTER` (0:
+    /// none)
+    #[cfg_attr(not(target_os = "android"), allow(dead_code))]
+    pub(crate) vulkan_android_hardware_buffer: u64,
     /// `SDL_PROP_TEXTURE_CREATE_D3D11_TEXTURE_POINTER`, `_U_POINTER` and
     /// `_V_POINTER` (0: none)
     #[cfg_attr(not(windows), allow(dead_code))]

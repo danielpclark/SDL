@@ -126,6 +126,38 @@ pub(crate) const VK_STRUCTURE_TYPE_PRESENT_INFO_KHR: VkStructureType = 100000100
 pub(crate) const VK_STRUCTURE_TYPE_IMAGE_VIEW_USAGE_CREATE_INFO: VkStructureType = 1000117002;
 pub(crate) const VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SAMPLER_YCBCR_CONVERSION_FEATURES:
     VkStructureType = 1000156004;
+pub(crate) const VK_STRUCTURE_TYPE_SAMPLER_YCBCR_CONVERSION_CREATE_INFO: VkStructureType =
+    1000156000;
+pub(crate) const VK_STRUCTURE_TYPE_SAMPLER_YCBCR_CONVERSION_INFO: VkStructureType = 1000156001;
+pub(crate) const VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO: VkStructureType = 1000072001;
+pub(crate) const VK_STRUCTURE_TYPE_MEMORY_DEDICATED_ALLOCATE_INFO: VkStructureType = 1000127001;
+pub(crate) const VK_STRUCTURE_TYPE_ANDROID_HARDWARE_BUFFER_PROPERTIES_ANDROID: VkStructureType =
+    1000129001;
+pub(crate) const VK_STRUCTURE_TYPE_ANDROID_HARDWARE_BUFFER_FORMAT_PROPERTIES_ANDROID:
+    VkStructureType = 1000129002;
+pub(crate) const VK_STRUCTURE_TYPE_IMPORT_ANDROID_HARDWARE_BUFFER_INFO_ANDROID: VkStructureType =
+    1000129003;
+pub(crate) const VK_STRUCTURE_TYPE_EXTERNAL_FORMAT_ANDROID: VkStructureType = 1000129005;
+
+// The sampler YCbCr conversion (VK_KHR_sampler_ycbcr_conversion) and
+// Android's hardware buffers (VK_ANDROID_external_memory_android_hardware_buffer)
+pub(crate) type VkSamplerYcbcrConversion = u64;
+pub(crate) const VK_SAMPLER_YCBCR_MODEL_CONVERSION_RGB_IDENTITY: i32 = 0;
+pub(crate) const VK_SAMPLER_YCBCR_MODEL_CONVERSION_YCBCR_709: i32 = 2;
+pub(crate) const VK_SAMPLER_YCBCR_MODEL_CONVERSION_YCBCR_601: i32 = 3;
+pub(crate) const VK_SAMPLER_YCBCR_MODEL_CONVERSION_YCBCR_2020: i32 = 4;
+pub(crate) const VK_SAMPLER_YCBCR_RANGE_ITU_FULL: i32 = 0;
+pub(crate) const VK_SAMPLER_YCBCR_RANGE_ITU_NARROW: i32 = 1;
+pub(crate) const VK_CHROMA_LOCATION_COSITED_EVEN: i32 = 0;
+pub(crate) const VK_CHROMA_LOCATION_MIDPOINT: i32 = 1;
+pub(crate) const VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT: VkFlags = 0x00001000;
+pub(crate) const VK_FORMAT_FEATURE_SAMPLED_IMAGE_YCBCR_CONVERSION_LINEAR_FILTER_BIT: VkFlags =
+    0x00040000;
+pub(crate) const VK_FORMAT_FEATURE_SAMPLED_IMAGE_YCBCR_CONVERSION_SEPARATE_RECONSTRUCTION_FILTER_BIT: VkFlags = 0x00080000;
+pub(crate) const VK_EXTERNAL_MEMORY_HANDLE_TYPE_ANDROID_HARDWARE_BUFFER_BIT_ANDROID: VkFlags =
+    0x00000400;
+/// `VK_QUEUE_FAMILY_FOREIGN_EXT`
+pub(crate) const VK_QUEUE_FAMILY_FOREIGN_EXT: u32 = !2;
 
 // VkFormat
 pub(crate) type VkFormat = i32;
@@ -1081,6 +1113,72 @@ vk_structs! {
         clipped: VkBool32,
         old_swapchain: VkSwapchainKHR,
     }
+
+    /// `VkSamplerYcbcrConversionCreateInfo`
+    struct VkSamplerYcbcrConversionCreateInfo {
+        s_type: VkStructureType,
+        p_next: *const c_void,
+        format: VkFormat,
+        ycbcr_model: i32,
+        ycbcr_range: i32,
+        components: VkComponentMapping,
+        x_chroma_offset: i32,
+        y_chroma_offset: i32,
+        chroma_filter: i32,
+        force_explicit_reconstruction: VkBool32,
+    }
+    /// `VkSamplerYcbcrConversionInfo`
+    struct VkSamplerYcbcrConversionInfo {
+        s_type: VkStructureType,
+        p_next: *const c_void,
+        conversion: VkSamplerYcbcrConversion,
+    }
+    /// `VkExternalMemoryImageCreateInfo`
+    struct VkExternalMemoryImageCreateInfo {
+        s_type: VkStructureType,
+        p_next: *const c_void,
+        handle_types: VkFlags,
+    }
+    /// `VkMemoryDedicatedAllocateInfo`
+    struct VkMemoryDedicatedAllocateInfo {
+        s_type: VkStructureType,
+        p_next: *const c_void,
+        image: VkImage,
+        buffer: VkBuffer,
+    }
+    /// `VkAndroidHardwareBufferPropertiesANDROID`
+    struct VkAndroidHardwareBufferPropertiesANDROID {
+        s_type: VkStructureType,
+        p_next: *mut c_void,
+        allocation_size: VkDeviceSize,
+        memory_type_bits: u32,
+    }
+    /// `VkAndroidHardwareBufferFormatPropertiesANDROID`
+    struct VkAndroidHardwareBufferFormatPropertiesANDROID {
+        s_type: VkStructureType,
+        p_next: *mut c_void,
+        format: VkFormat,
+        external_format: u64,
+        format_features: VkFlags,
+        sampler_ycbcr_conversion_components: VkComponentMapping,
+        suggested_ycbcr_model: i32,
+        suggested_ycbcr_range: i32,
+        suggested_x_chroma_offset: i32,
+        suggested_y_chroma_offset: i32,
+    }
+    /// `VkExternalFormatANDROID`
+    struct VkExternalFormatANDROID {
+        s_type: VkStructureType,
+        p_next: *mut c_void,
+        external_format: u64,
+    }
+    /// `VkImportAndroidHardwareBufferInfoANDROID` (the buffer: an
+    /// `AHardwareBuffer *`)
+    struct VkImportAndroidHardwareBufferInfoANDROID {
+        s_type: VkStructureType,
+        p_next: *const c_void,
+        buffer: *mut c_void,
+    }
 }
 
 impl std::fmt::Debug for VkPhysicalDeviceProperties {
@@ -1151,6 +1249,14 @@ const _: () = {
     assert!(size_of::<VkCommandBufferBeginInfo>() == 32);
     assert!(size_of::<VkSurfaceCapabilitiesKHR>() == 52);
     assert!(size_of::<VkSwapchainCreateInfoKHR>() == 104);
+    assert!(size_of::<VkSamplerYcbcrConversionCreateInfo>() == 64);
+    assert!(size_of::<VkSamplerYcbcrConversionInfo>() == 24);
+    assert!(size_of::<VkExternalMemoryImageCreateInfo>() == 24);
+    assert!(size_of::<VkMemoryDedicatedAllocateInfo>() == 32);
+    assert!(size_of::<VkAndroidHardwareBufferPropertiesANDROID>() == 32);
+    assert!(size_of::<VkAndroidHardwareBufferFormatPropertiesANDROID>() == 72);
+    assert!(size_of::<VkExternalFormatANDROID>() == 24);
+    assert!(size_of::<VkImportAndroidHardwareBufferInfoANDROID>() == 24);
     assert!(std::mem::offset_of!(VkPhysicalDeviceProperties, limits) == 296);
     assert!(
         std::mem::offset_of!(VkPhysicalDeviceLimits, min_uniform_buffer_offset_alignment) == 320

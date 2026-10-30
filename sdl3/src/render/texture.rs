@@ -125,6 +125,11 @@ pub struct TextureCreateInfo {
     /// and the views of the given ones
     /// (`SDL_PROP_TEXTURE_CREATE_VULKAN_USAGE_NUMBER`)
     pub vulkan_usage: u32,
+    /// The `AHardwareBuffer` of an `PixelFormat::EXTERNAL_OES` texture (the
+    /// Vulkan renderer, on Android;
+    /// `SDL_PROP_TEXTURE_CREATE_VULKAN_ANDROID_HARDWARE_BUFFER_POINTER`),
+    /// which the application keeps while the texture exists
+    pub vulkan_android_hardware_buffer: Option<super::NativeObject>,
     /// A `CVPixelBufferRef` whose `IOSurface` planes the Metal renderer's
     /// textures are made on (on macOS;
     /// `SDL_PROP_TEXTURE_CREATE_METAL_PIXELBUFFER_POINTER`)
@@ -548,6 +553,9 @@ impl Renderer {
                     ]
                     .map(|o| o.map_or(0, super::NativeObject::raw)),
                     vulkan_usage: info.vulkan_usage,
+                    vulkan_android_hardware_buffer: info
+                        .vulkan_android_hardware_buffer
+                        .map_or(0, super::NativeObject::raw),
                     metal_pixelbuffer: info.metal_pixelbuffer.map_or(0, super::NativeObject::raw),
                     metal_texture: [
                         info.metal_texture,

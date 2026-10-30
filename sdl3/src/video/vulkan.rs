@@ -117,6 +117,26 @@ pub fn vulkan_create_surface(window: &Window, instance: usize, allocator: usize)
         .unwrap_or_else(|| Err(Error::unsupported()))
 }
 
+/// The video driver's surface for a window, as the GPU API makes it: the
+/// device's `Vulkan_CreateSurface()` itself, without
+/// `SDL_Vulkan_CreateSurface()`'s conversion of the window to a Vulkan one
+/// (the window's flags stay as they are).
+#[cfg_attr(target_os = "emscripten", allow(dead_code))] // (no GPU Vulkan backend there)
+pub(crate) fn driver_create_surface(
+    window: &Window,
+    instance: usize,
+    allocator: usize,
+) -> Result<u64> {
+    let driver = driver().map_err(|_| Error::new("No video device found"))?;
+    let unimplemented = || Error::new("Video device does not implement Vulkan_CreateSurface");
+    if !driver.implements_vulkan_surfaces() {
+        return Err(unimplemented());
+    }
+    driver
+        .vulkan_create_surface(window.id(), instance, allocator)
+        .unwrap_or_else(|| Err(unimplemented()))
+}
+
 /// Destroy a surface from [`vulkan_create_surface`]. Translation of
 /// `SDL_Vulkan_DestroySurface()`.
 pub fn vulkan_destroy_surface(instance: usize, surface: u64, allocator: usize) {
