@@ -3,8 +3,8 @@
 // Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
 // This is an altered (translated) version of the original software; see LICENSE.txt.
 
-//! EGL: the OpenGL (ES) support the X11, Wayland and offscreen drivers
-//! share for EGL contexts.
+//! EGL: the OpenGL (ES) support the X11, Wayland, Android and offscreen
+//! drivers share for EGL contexts.
 //!
 //! libEGL and the GL library (libGL / libGLESv2 / libGLESv1_CM, or
 //! `libEGL.dll` with ANGLE's `libGLESv2.dll` on Windows) are loaded at run
@@ -55,7 +55,7 @@ pub(crate) const EGL_TRUE: EGLBoolean = 1;
 pub(crate) const EGL_NO_DISPLAY: EGLDisplay = std::ptr::null_mut();
 pub(crate) const EGL_NO_CONTEXT: EGLContext = std::ptr::null_mut();
 pub(crate) const EGL_NO_SURFACE: EGLSurface = std::ptr::null_mut();
-#[allow(dead_code)] // (for the Windows EGL support, not translated yet)
+#[cfg_attr(not(target_os = "android"), allow(dead_code))] // (Android's, and the Windows EGL support, not translated yet)
 pub(crate) const EGL_DEFAULT_DISPLAY: NativeDisplayType = std::ptr::null_mut();
 
 const EGL_SUCCESS: EGLint = 0x3000;
@@ -98,12 +98,9 @@ const EGL_EXTENSIONS: EGLint = 0x3055;
 const EGL_HEIGHT: EGLint = 0x3056;
 #[cfg_attr(any(windows, target_vendor = "apple"), allow(dead_code))] // (offscreen and Wayland only)
 const EGL_WIDTH: EGLint = 0x3057;
-#[cfg_attr(target_os = "android", allow(dead_code))] // (window surfaces: the Android driver isn't translated yet)
 const EGL_GL_COLORSPACE_SRGB_KHR: EGLint = 0x3089;
-#[cfg_attr(target_os = "android", allow(dead_code))] // (window surfaces)
 const EGL_GL_COLORSPACE_LINEAR_KHR: EGLint = 0x308A;
 const EGL_CONTEXT_CLIENT_VERSION: EGLint = 0x3098;
-#[cfg_attr(target_os = "android", allow(dead_code))] // (window surfaces)
 const EGL_GL_COLORSPACE_KHR: EGLint = 0x309D;
 const EGL_OPENGL_ES_API: EGLenum = 0x30A0;
 const EGL_OPENGL_API: EGLenum = 0x30A2;
@@ -118,7 +115,6 @@ const EGL_COLOR_COMPONENT_TYPE_EXT: EGLint = 0x3339;
 const EGL_COLOR_COMPONENT_TYPE_FLOAT_EXT: EGLint = 0x333B;
 #[cfg_attr(any(windows, target_vendor = "apple"), allow(dead_code))] // (offscreen and Wayland only)
 const EGL_PLATFORM_DEVICE_EXT: EGLenum = 0x313F;
-#[cfg_attr(target_os = "android", allow(dead_code))] // (window surfaces)
 const EGL_PRESENT_OPAQUE_EXT: EGLint = 0x31DF;
 
 /// `SDL_EGL_MAX_DEVICES`.
@@ -760,7 +756,6 @@ fn egl_get_version() {
 
 /// Copy a callback's attribute list up to its `EGL_NONE` key (or its end)
 /// and terminate it.
-#[cfg_attr(target_os = "android", allow(dead_code))] // (the Android driver isn't translated yet)
 fn terminated_pairs<T: Copy + PartialEq>(list: &[T], none: T) -> Vec<T> {
     let mut out = Vec::with_capacity(list.len() + 1);
     let mut pairs = list.chunks(2);
@@ -776,7 +771,6 @@ fn terminated_pairs<T: Copy + PartialEq>(list: &[T], none: T) -> Vec<T> {
 
 /// Load EGL and initialize a display for `native_display`. Translation of
 /// `SDL_EGL_LoadLibrary()`.
-#[cfg_attr(target_os = "android", allow(dead_code))] // (the Android driver isn't translated yet)
 pub(crate) fn load_library(
     egl_path: Option<&str>,
     native_display: NativeDisplayType,
@@ -1635,7 +1629,6 @@ pub(crate) fn destroy_context(context: RawGlContext) {
 
 /// The sRGB and opacity attributes of `SDL_EGL_CreateSurface()`, and the
 /// index of the `EGL_PRESENT_OPAQUE_EXT` pair (if any).
-#[cfg_attr(target_os = "android", allow(dead_code))] // (the Android driver isn't translated yet)
 fn surface_attribs(
     has_gl_colorspace: bool,
     srgbhint: Option<&str>,
@@ -1689,14 +1682,41 @@ fn surface_attribs(
 
 /// Create a window surface for the native window `nw` (of `window`, if
 /// any), choosing the config first. Translation of `SDL_EGL_CreateSurface()`.
-#[cfg_attr(target_os = "android", allow(dead_code))] // (the Android driver isn't translated yet)
 pub(crate) fn create_surface(window: Option<WindowID>, nw: NativeWindowType) -> Result<EGLSurface> {
     choose_config()?;
     let Some(e) = egl() else {
         return Err(Error::new("EGL not initialized"));
     };
 
-    // (the Android and QNX parts are theirs)
+    #[cfg(target_os = "android")]
+    let format_wanted = {
+        /* On Android, EGL_NATIVE_VISUAL_ID is an attribute of the EGLConfig that is
+         * guaranteed to be accepted by ANativeWindow_setBuffersGeometry(). */
+        let mut format_wanted: EGLint = 0;
+        // SAFETY: the display and config are EGL's; an out-parameter.
+        unsafe {
+            (e.f.eglGetConfigAttrib)(
+                e.egl_display,
+                e.egl_config,
+                EGL_NATIVE_VISUAL_ID,
+                &mut format_wanted,
+            )
+        };
+
+        // Format based on selected egl config.
+        // SAFETY: the driver's ANativeWindow.
+        unsafe {
+            crate::core::android::ndk::ANativeWindow_setBuffersGeometry(
+                nw.cast(),
+                0,
+                0,
+                format_wanted,
+            )
+        };
+        format_wanted
+    };
+
+    // (the QNX part is QNX's)
 
     let transparent = window.is_some_and(|w| {
         super::core::with_window(w, |w| w.flags().contains(WindowFlags::TRANSPARENT))
@@ -1759,18 +1779,27 @@ pub(crate) fn create_surface(window: Option<WindowID>, nw: NativeWindowType) -> 
         }
     }
 
-    if surface == EGL_NO_SURFACE {
+    let result = if surface == EGL_NO_SURFACE {
         // Note (upstream): C reports the error with a second
         // eglGetError(), after the one above took it, so it usually says
         // EGL_SUCCESS. The code of the (last) failure is kept here.
-        return Err(egl_set_error_ex(
+        Err(egl_set_error_ex(
             "unable to create an EGL window surface",
             "eglCreateWindowSurface",
             error_code,
-        ));
+        ))
+    } else {
+        Ok(surface)
+    };
+
+    #[cfg(target_os = "android")]
+    {
+        // SAFETY: the driver's ANativeWindow.
+        let format_got = unsafe { crate::core::android::ndk::ANativeWindow_getFormat(nw.cast()) };
+        super::drivers::android::set_format(format_wanted, format_got);
     }
 
-    Ok(surface)
+    result
 }
 
 /// A pbuffer surface of `width`x`height`. Translation of

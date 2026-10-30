@@ -99,6 +99,8 @@ static BOOTSTRAP: &[&VideoBootStrap] = &[
     &drivers::windows::WINDOWS_BOOTSTRAP,
     #[cfg(all(target_vendor = "apple", not(target_os = "macos")))]
     &drivers::uikit::UIKIT_BOOTSTRAP,
+    #[cfg(target_os = "android")]
+    &drivers::android::ANDROID_BOOTSTRAP,
     #[cfg(target_os = "emscripten")]
     &drivers::emscripten::EMSCRIPTEN_BOOTSTRAP,
     &drivers::offscreen::OFFSCREEN_BOOTSTRAP,
@@ -133,6 +135,8 @@ static BOOTSTRAP: &[&VideoBootStrap] = &[
     &drivers::windows::WINDOWS_BOOTSTRAP,
     #[cfg(all(target_vendor = "apple", not(target_os = "macos")))]
     &drivers::uikit::UIKIT_BOOTSTRAP,
+    #[cfg(target_os = "android")]
+    &drivers::android::ANDROID_BOOTSTRAP,
     // (unavailable in the tests, under node)
     #[cfg(target_os = "emscripten")]
     &drivers::emscripten::EMSCRIPTEN_BOOTSTRAP,
@@ -1330,6 +1334,11 @@ fn should_minimize_on_focus_loss(window: WindowID) -> bool {
         } else if super::drivers::cocoa::window::is_window_in_fullscreen_space(window) {
             return false;
         }
+    }
+
+    #[cfg(target_os = "android")]
+    if !crate::core::android::should_minimize_on_focus_loss() {
+        return false;
     }
 
     // Real fullscreen windows should minimize on focus loss so the desktop video mode is restored

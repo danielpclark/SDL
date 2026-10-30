@@ -571,12 +571,24 @@ impl Renderer {
     /// Translation of `SDL_CreateRendererWithProperties()` with
     /// `SDL_PROP_RENDERER_CREATE_SURFACE_POINTER`.
     pub fn software_with(surface: Surface<'static>, info: &RendererCreateInfo) -> Result<Renderer> {
-        let present_vsync = present_vsync_with_hint(info);
+        // (on Android, every renderer is made once the app is active, with
+        // the activity mutex held)
+        #[cfg(target_os = "android")]
+        crate::video::drivers::android::events::wait_active_and_lock_activity()?;
 
-        // SW_CreateRendererForSurface()
-        let (w, h, format) = (surface.width(), surface.height(), surface.format());
-        let backend = SwRenderer::for_surface(surface)?;
-        Renderer::finish_create(Box::new(backend), format, (w, h), info, present_vsync, None)
+        let result = (|| {
+            let present_vsync = present_vsync_with_hint(info);
+
+            // SW_CreateRendererForSurface()
+            let (w, h, format) = (surface.width(), surface.height(), surface.format());
+            let backend = SwRenderer::for_surface(surface)?;
+            Renderer::finish_create(Box::new(backend), format, (w, h), info, present_vsync, None)
+        })();
+
+        #[cfg(target_os = "android")]
+        crate::core::android::unlock_activity_mutex();
+
+        result
     }
 
     /// The common part of `SDL_CreateRendererWithProperties()` once the

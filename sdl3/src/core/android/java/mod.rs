@@ -17,4 +17,5 @@
 pub(crate) mod activity;
 pub(crate) mod anonymous;
 pub(crate) mod sdl;
+pub(crate) mod sensor_manager;
 pub(crate) mod surface;

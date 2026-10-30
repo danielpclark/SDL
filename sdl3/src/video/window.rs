@@ -214,6 +214,12 @@ pub const PROP_WINDOW_UIKIT_WINDOW_POINTER: &str = "SDL.window.uikit.window";
 /// The tag the window's Metal views get (iOS, tvOS, visionOS). Translation
 /// of `SDL_PROP_WINDOW_UIKIT_METAL_VIEW_TAG_NUMBER`.
 pub const PROP_WINDOW_UIKIT_METAL_VIEW_TAG_NUMBER: &str = "SDL.window.uikit.metal_view_tag";
+/// The `ANativeWindow` of the window (Android), as a number. Translation
+/// of `SDL_PROP_WINDOW_ANDROID_WINDOW_POINTER`.
+pub const PROP_WINDOW_ANDROID_WINDOW_POINTER: &str = "SDL.window.android.window";
+/// The `EGLSurface` of the window (Android), as a number. Translation of
+/// `SDL_PROP_WINDOW_ANDROID_SURFACE_POINTER`.
+pub const PROP_WINDOW_ANDROID_SURFACE_POINTER: &str = "SDL.window.android.surface";
 /// The window's current settings on visionOS, in JSON (none for a window
 /// with the standard UIKit behavior). Translation of
 /// `SDL_PROP_WINDOW_VISIONOS_SETTINGS_STRING`.

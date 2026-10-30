@@ -775,6 +775,307 @@ pub(crate) extern "system" fn on_native_key_up(_env: *mut JNIEnv, _cls: jclass, 
     on_key_up(keycode);
 }
 
+// ---------------------------------------------------------------------------
+// The activity's surface: its natives, for the video driver
+
+/// `displayNaturalOrientation` (an `SDL_DisplayOrientation`).
+static DISPLAY_NATURAL_ORIENTATION: AtomicI32 = AtomicI32::new(0);
+/// `displayCurrentOrientation`.
+static DISPLAY_CURRENT_ORIENTATION: AtomicI32 = AtomicI32::new(0);
+
+/// Set screen resolution. Translation of `nativeSetScreenResolution()`.
+pub(crate) fn set_screen_resolution(
+    surface_width: jint,
+    surface_height: jint,
+    device_width: jint,
+    device_height: jint,
+    density: jfloat,
+    rate: jfloat,
+) {
+    lock_activity_mutex();
+
+    crate::video::drivers::android::set_screen_resolution(
+        surface_width,
+        surface_height,
+        device_width,
+        device_height,
+        density,
+        rate,
+    );
+
+    unlock_activity_mutex();
+}
+
+#[allow(clippy::too_many_arguments)] // (the Java method's)
+pub(crate) extern "system" fn native_set_screen_resolution(
+    _env: *mut JNIEnv,
+    _cls: jclass,
+    surface_width: jint,
+    surface_height: jint,
+    device_width: jint,
+    device_height: jint,
+    density: jfloat,
+    rate: jfloat,
+) {
+    set_screen_resolution(
+        surface_width,
+        surface_height,
+        device_width,
+        device_height,
+        density,
+        rate,
+    );
+}
+
+/// Resize. Translation of `onNativeResize()`.
+pub(crate) fn on_resize() {
+    lock_activity_mutex();
+
+    if let Some(window) = crate::video::drivers::android::window() {
+        crate::video::drivers::android::send_resize(Some(window));
+    }
+
+    unlock_activity_mutex();
+}
+
+pub(crate) extern "system" fn on_native_resize(_env: *mut JNIEnv, _cls: jclass) {
+    on_resize();
+}
+
+/// Translation of `nativeSetNaturalOrientation()`.
+pub(crate) fn set_natural_orientation(orientation: jint) {
+    DISPLAY_NATURAL_ORIENTATION.store(orientation, Ordering::Release);
+}
+
+pub(crate) extern "system" fn native_set_natural_orientation(
+    _env: *mut JNIEnv,
+    _cls: jclass,
+    orientation: jint,
+) {
+    set_natural_orientation(orientation);
+}
+
+/// The display's rotation (0, 90, 180 or 270 degrees from its natural
+/// orientation) as its orientation, to the video driver. Translation of
+/// `onNativeRotationChanged()`.
+pub(crate) fn on_rotation_changed(rotation: jint) {
+    use crate::video::DisplayOrientation;
+
+    lock_activity_mutex();
+
+    let mut rotation = rotation;
+    if DISPLAY_NATURAL_ORIENTATION.load(Ordering::Acquire) == DisplayOrientation::Landscape as i32 {
+        rotation += 90;
+    }
+
+    let orientation = match rotation % 360 {
+        0 => DisplayOrientation::Portrait,
+        90 => DisplayOrientation::Landscape,
+        180 => DisplayOrientation::PortraitFlipped,
+        270 => DisplayOrientation::LandscapeFlipped,
+        _ => DisplayOrientation::Unknown,
+    };
+    DISPLAY_CURRENT_ORIENTATION.store(orientation as i32, Ordering::Release);
+
+    crate::video::drivers::android::set_orientation(orientation);
+
+    unlock_activity_mutex();
+}
+
+pub(crate) extern "system" fn on_native_rotation_changed(
+    _env: *mut JNIEnv,
+    _cls: jclass,
+    rotation: jint,
+) {
+    on_rotation_changed(rotation);
+}
+
+/// Translation of `onNativeInsetsChanged()`.
+pub(crate) fn on_insets_changed(left: jint, right: jint, top: jint, bottom: jint) {
+    lock_activity_mutex();
+
+    crate::video::drivers::android::set_window_safe_area_insets(left, right, top, bottom);
+
+    unlock_activity_mutex();
+}
+
+pub(crate) extern "system" fn on_native_insets_changed(
+    _env: *mut JNIEnv,
+    _cls: jclass,
+    left: jint,
+    right: jint,
+    top: jint,
+    bottom: jint,
+) {
+    on_insets_changed(left, right, top, bottom);
+}
+
+/// Called from `surfaceCreated()`: the window's native window, the
+/// surface's. Translation of `onNativeSurfaceCreated()`.
+pub(crate) fn on_surface_created() {
+    use crate::video::drivers::android::window as android_window;
+
+    lock_activity_mutex();
+
+    if let Some(window) = android_window::android_window() {
+        let native_window = get_native_window();
+        android_window::with_window_data(|_, data| data.native_window = native_window);
+        android_window::set_pointer_property(
+            window,
+            crate::video::window::PROP_WINDOW_ANDROID_WINDOW_POINTER,
+            native_window.cast(),
+        );
+        if native_window.is_null() {
+            // (SDL_SetError("Could not fetch native window from UI
+            // thread"): the activity thread's error, which nothing reads;
+            // errors are values here)
+        }
+    }
+
+    unlock_activity_mutex();
+}
+
+pub(crate) extern "system" fn on_native_surface_created(_env: *mut JNIEnv, _cls: jclass) {
+    on_surface_created();
+}
+
+/// Called from `surfaceChanged()`: if the surface has been previously
+/// destroyed by `onNativeSurfaceDestroyed()`, the OpenGL window's EGL
+/// surface made again. Translation of `onNativeSurfaceChanged()`.
+pub(crate) fn on_surface_changed() {
+    use crate::video::drivers::android::window as android_window;
+    use crate::video::egl::EGL_NO_SURFACE;
+
+    lock_activity_mutex();
+
+    if let Some(window) = android_window::android_window() {
+        let opengl = crate::video::core::with_window(window, |w| {
+            w.flags()
+                .contains(crate::events::window::WindowFlags::OPENGL)
+        })
+        .unwrap_or(false);
+        if opengl {
+            let (egl_surface, native_window) =
+                android_window::with_window_data(|_, data| (data.egl_surface, data.native_window))
+                    .unwrap_or((EGL_NO_SURFACE, ptr::null_mut()));
+
+            // If the surface has been previously destroyed by onNativeSurfaceDestroyed, recreate it here
+            if egl_surface == EGL_NO_SURFACE {
+                let egl_surface =
+                    crate::video::egl::create_surface(Some(window), native_window.cast())
+                        .unwrap_or(EGL_NO_SURFACE);
+                android_window::with_window_data(|_, data| data.egl_surface = egl_surface);
+                android_window::set_pointer_property(
+                    window,
+                    crate::video::window::PROP_WINDOW_ANDROID_SURFACE_POINTER,
+                    egl_surface,
+                );
+            }
+
+            // GL Context handling is done in the event loop because this function is run from the Java thread
+        }
+
+        // (Android_RestoreScreenKeyboard(): the screen keyboard comes with
+        // the keyboard's translation)
+    }
+
+    unlock_activity_mutex();
+}
+
+pub(crate) extern "system" fn on_native_surface_changed(_env: *mut JNIEnv, _cls: jclass) {
+    on_surface_changed();
+}
+
+/// Called from `surfaceDestroyed()`: once SDL's thread has released the
+/// OpenGL window's context (the pause's backup: waited for up to 50 times
+/// 10 ms), its EGL surface and native window freed. Translation of
+/// `onNativeSurfaceDestroyed()`.
+pub(crate) fn on_surface_destroyed() {
+    use crate::video::drivers::android::window as android_window;
+    use crate::video::egl::EGL_NO_SURFACE;
+
+    let mut nb_attempt = 50;
+
+    loop {
+        lock_activity_mutex();
+
+        let Some(window) = android_window::android_window() else {
+            unlock_activity_mutex();
+            return;
+        };
+
+        // Wait for Main thread being paused and context un-activated to release 'egl_surface'
+        let opengl = crate::video::core::with_window(window, |w| {
+            w.flags()
+                .contains(crate::events::window::WindowFlags::OPENGL)
+        })
+        .unwrap_or(false);
+        let backup_done =
+            android_window::with_window_data(|_, data| data.backup_done).unwrap_or(true);
+        if opengl && !backup_done {
+            nb_attempt -= 1;
+            if nb_attempt == 0 {
+                // (SDL_SetError("Try to release egl_surface with context
+                // probably still active"): the activity thread's error,
+                // which nothing reads; errors are values here)
+            } else {
+                unlock_activity_mutex();
+                crate::timer::delay(Duration::from_millis(10));
+                continue;
+            }
+        }
+
+        let (egl_surface, native_window) = android_window::with_window_data(|_, data| {
+            let surfaces = (data.egl_surface, data.native_window);
+            data.egl_surface = EGL_NO_SURFACE;
+            data.native_window = ptr::null_mut();
+            surfaces
+        })
+        .unwrap_or((EGL_NO_SURFACE, ptr::null_mut()));
+
+        if egl_surface != EGL_NO_SURFACE {
+            crate::video::egl::destroy_surface(egl_surface);
+        }
+
+        if !native_window.is_null() {
+            android_window::set_pointer_property(
+                window,
+                crate::video::window::PROP_WINDOW_ANDROID_WINDOW_POINTER,
+                ptr::null_mut(),
+            );
+            // SAFETY: the window's reference.
+            unsafe { super::ndk::ANativeWindow_release(native_window) };
+        }
+
+        // GL Context handling is done in the event loop because this function is run from the Java thread
+
+        unlock_activity_mutex();
+        return;
+    }
+}
+
+pub(crate) extern "system" fn on_native_surface_destroyed(_env: *mut JNIEnv, _cls: jclass) {
+    on_surface_destroyed();
+}
+
+/// Translation of `onNativeScreenKeyboardShown()`.
+pub(crate) fn on_screen_keyboard_shown() {
+    crate::video::textinput::send_screen_keyboard_shown();
+}
+
+pub(crate) extern "system" fn on_native_screen_keyboard_shown(_env: *mut JNIEnv, _cls: jclass) {
+    on_screen_keyboard_shown();
+}
+
+/// Translation of `onNativeScreenKeyboardHidden()`.
+pub(crate) fn on_screen_keyboard_hidden() {
+    crate::video::textinput::send_screen_keyboard_hidden();
+}
+
+pub(crate) extern "system" fn on_native_screen_keyboard_hidden(_env: *mut JNIEnv, _cls: jclass) {
+    on_screen_keyboard_hidden();
+}
+
 /// A hint's value. Translation of `nativeGetHint()`.
 pub(crate) fn get_hint(name: &str) -> Option<String> {
     crate::hints::get(name)
@@ -1067,6 +1368,71 @@ pub(crate) fn get_android_device_form_factor() -> crate::init::FormFactor {
     }
 
     form_factor
+}
+
+// Interface from the SDL library into the Android Java activity (the
+// video driver's)
+
+/// Translation of `Android_JNI_SetActivityTitle()`.
+pub(crate) fn set_activity_title(title: &str) {
+    with_env(|env| super::java::activity::set_activity_title(env, title));
+}
+
+/// Translation of `Android_JNI_SetWindowStyle()`.
+pub(crate) fn set_window_style(fullscreen: bool) {
+    with_env(|env| super::java::activity::set_window_style(env, fullscreen));
+}
+
+/// The orientations the activity may take, from the window's size, whether
+/// it's resizable and `hint` (`SDL_HINT_ORIENTATIONS`). Translation of
+/// `Android_JNI_SetOrientation()`.
+pub(crate) fn set_orientation(w: i32, h: i32, resizable: bool, hint: Option<&str>) {
+    with_env(|env| {
+        super::java::activity::set_orientation(env, w, h, resizable, hint.unwrap_or(""))
+    });
+}
+
+/// Translation of `Android_JNI_MinimizeWindow()`.
+pub(crate) fn minimize_window() {
+    with_env(super::java::activity::minimize_window);
+}
+
+/// Translation of `Android_JNI_ShouldMinimizeOnFocusLoss()`.
+pub(crate) fn should_minimize_on_focus_loss() -> bool {
+    with_env(|env| Ok(super::java::activity::should_minimize_on_focus_loss(env))).unwrap_or(false)
+}
+
+/// Translation of `Android_JNI_SuspendScreenSaver()`.
+pub(crate) fn suspend_screen_saver(suspend: bool) -> bool {
+    send_message(COMMAND_SET_KEEP_SCREEN_ON, if suspend { 1 } else { 0 })
+}
+
+/// `COMMAND_SET_KEEP_SCREEN_ON` (it has to match the activity's).
+const COMMAND_SET_KEEP_SCREEN_ON: i32 = 5;
+
+/// The activity's surface's `ANativeWindow`, with a reference the caller
+/// releases (null without a surface). Translation of
+/// `Android_JNI_GetNativeWindow()`.
+pub(crate) fn get_native_window() -> *mut super::ndk::ANativeWindow {
+    with_env(|env| {
+        let mut anw = ptr::null_mut();
+        if let Some(s) = super::java::activity::get_native_surface(env)? {
+            // SAFETY: an environment and a Surface.
+            anw = unsafe { super::ndk::ANativeWindow_fromSurface(env.raw(), s.obj().raw()) };
+        }
+        Ok(anw)
+    })
+    .unwrap_or(ptr::null_mut())
+}
+
+/// Translation of `Android_JNI_GetDisplayNaturalOrientation()`.
+pub(crate) fn display_natural_orientation() -> crate::video::DisplayOrientation {
+    crate::video::DisplayOrientation::from_i32(DISPLAY_NATURAL_ORIENTATION.load(Ordering::Acquire))
+}
+
+/// Translation of `Android_JNI_GetDisplayCurrentOrientation()`.
+pub(crate) fn display_current_orientation() -> crate::video::DisplayOrientation {
+    crate::video::DisplayOrientation::from_i32(DISPLAY_CURRENT_ORIENTATION.load(Ordering::Acquire))
 }
 
 /// Translation of `Android_JNI_SendMessage()`.

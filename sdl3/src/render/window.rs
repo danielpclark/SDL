@@ -292,6 +292,20 @@ impl Renderer {
             return Err(Error::new("Renderer already associated with window"));
         }
 
+        #[cfg(target_os = "android")]
+        crate::video::drivers::android::events::wait_active_and_lock_activity()?;
+
+        let result = Renderer::for_window_locked(window, info);
+
+        #[cfg(target_os = "android")]
+        crate::core::android::unlock_activity_mutex();
+
+        result
+    }
+
+    /// The rest of [`Renderer::for_window_with`], with the activity mutex
+    /// held on Android (after the app is active).
+    fn for_window_locked(window: &Window, info: &RendererCreateInfo) -> Result<Renderer> {
         let present_vsync = super::present_vsync_with_hint(info);
 
         let mut driver_name = info.name.clone();

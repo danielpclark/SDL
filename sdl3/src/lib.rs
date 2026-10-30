@@ -141,17 +141,6 @@ pub fn __android_jni_checks() -> Vec<(&'static str, std::result::Result<(), Stri
     core::android::tests_in_app::run()
 }
 
-/// Turn the back button's trap on or off, as the android video driver does
-/// when `SDL_HINT_ANDROID_TRAP_BACK_BUTTON` changes
-/// (`Android_JNI_SetBackButtonTrapActive()`, which upstream's C reference
-/// programs reach through `SDLActivity.setBackButtonTrapEnabled()`): for
-/// sdl3/tests/android_main.rs, before that driver. Not an API.
-#[cfg(target_os = "android")]
-#[doc(hidden)]
-pub fn __android_set_back_button_trap_active(enabled: bool) {
-    core::android::set_back_button_trap_active(enabled);
-}
-
 /// Shared by every test that touches process-global state (hints, log output,
 /// subsystem init, the event queue), so those tests don't race each other.
 #[cfg(test)]

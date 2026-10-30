@@ -5,7 +5,8 @@
 //! What upstream includes from the NDK's headers (layout facts of the
 //! NDK's Apache-2.0 headers: see docs/LICENSING.md), linked as upstream
 //! links them (`-llog`, `-landroid`, ...): `<android/log.h>`'s log, and
-//! `<android/asset_manager.h>`'s assets (the app package's files).
+//! `<android/asset_manager.h>`'s assets (the app package's files), and
+//! `<android/native_window.h>`'s windows (the activity's surface's).
 
 use std::ffi::{c_char, c_int, c_void, CString};
 
@@ -75,4 +76,35 @@ unsafe extern "C" {
     pub(crate) fn AAsset_close(asset: *mut AAsset);
     /// `AAsset_getLength64()` (API 13).
     pub(crate) fn AAsset_getLength64(asset: *mut AAsset) -> i64;
+}
+
+/// `ANativeWindow` (`<android/native_window.h>`): opaque.
+#[repr(C)]
+pub(crate) struct ANativeWindow {
+    _private: [u8; 0],
+}
+
+#[link(name = "android")]
+unsafe extern "C" {
+    /// `ANativeWindow_fromSurface()` (`<android/native_window_jni.h>`):
+    /// the surface's window, with a reference the caller releases.
+    pub(crate) fn ANativeWindow_fromSurface(
+        env: *mut super::jni::JNIEnv,
+        surface: super::jni::jobject,
+    ) -> *mut ANativeWindow;
+    /// `ANativeWindow_release()`.
+    pub(crate) fn ANativeWindow_release(window: *mut ANativeWindow);
+    /// `ANativeWindow_getWidth()`.
+    pub(crate) fn ANativeWindow_getWidth(window: *mut ANativeWindow) -> i32;
+    /// `ANativeWindow_getHeight()`.
+    pub(crate) fn ANativeWindow_getHeight(window: *mut ANativeWindow) -> i32;
+    /// `ANativeWindow_getFormat()`.
+    pub(crate) fn ANativeWindow_getFormat(window: *mut ANativeWindow) -> i32;
+    /// `ANativeWindow_setBuffersGeometry()`.
+    pub(crate) fn ANativeWindow_setBuffersGeometry(
+        window: *mut ANativeWindow,
+        width: i32,
+        height: i32,
+        format: i32,
+    ) -> i32;
 }

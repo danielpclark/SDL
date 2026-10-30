@@ -4,13 +4,11 @@
 
 //! Video backends: Wayland and X11 (on Unix other than Apple platforms,
 //! Android and Emscripten), Cocoa (on macOS), UIKit (on iOS, tvOS and
-//! visionOS, in an app), Windows (on Windows), the canvas driver (on
-//! Emscripten, in a page), and the dummy and offscreen drivers, both only
-//! available when requested with
-//! [`hints::VIDEO_DRIVER`](crate::hints::VIDEO_DRIVER). Android's driver
-//! is translated so far as the event pump needs it (the activity's
-//! lifecycle, the system's theme), whatever the driver: there, only the
-//! dummy and offscreen drivers are built.
+//! visionOS, in an app), Android's (in an app; its event pump's part, the
+//! activity's lifecycle, whatever the driver), Windows (on Windows), the
+//! canvas driver (on Emscripten, in a page), and the dummy and offscreen
+//! drivers, both only available when requested with
+//! [`hints::VIDEO_DRIVER`](crate::hints::VIDEO_DRIVER).
 
 #[cfg(target_os = "android")]
 pub(crate) mod android;

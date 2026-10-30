@@ -21,19 +21,27 @@
 //! `isChromebook()`, `isDeXMode()`, `getDeviceFormFactor()`), and the
 //! manifest's environment variables (`getManifestEnvironmentVariables()`).
 //!
-//! Not translated yet, and so skipped where upstream does them: the
-//! activity's layout and surface (`SDLSurface`, whose state machine calls
-//! are [`super::surface`]'s, `SDLDummyEdit`), the system UI's visibility
-//! listener, the controller, HID, clipboard and audio managers, the motion
+//! Its layout: the surface (`SDLSurface`, [`super::surface`], made when
+//! video is compiled, `createSDLSurface()`) in a `RelativeLayout`, the
+//! activity's content view, with the display's natural orientation and
+//! rotation passed down; and what the activity offers the video driver:
+//! the window style (fullscreen and immersive, `setWindowStyle()`, with
+//! the system UI's visibility listener, `onSystemUiVisibilityChange()`,
+//! which hides the bars again), the title (`setActivityTitle()`), the
+//! orientation (`setOrientation()`, from the window's size and
+//! `SDL_HINT_ORIENTATIONS`), `minimizeWindow()`, `getNativeSurface()`. The
+//! state machine resumes once the surface is ready and has the focus.
+//!
+//! Not translated yet, and so skipped where upstream does them:
+//! `SDLDummyEdit` (`mTextEdit`, so `isScreenKeyboardShown()` is false),
+//! the controller, HID, clipboard and audio managers, the motion
 //! listener, the file dialogs' results (`onActivityResult()`), and what
-//! the activity offers SDL's C side for the video driver (text input,
-//! cursors, orientation, message boxes, ...). They come with the backends
-//! that use them. What it offers the small backends is here: permissions
-//! (`requestPermission()`, `onRequestPermissionsResult()`), URLs
-//! (`openURL()`), toasts (`showToast()`), the content resolver's files
-//! (`openFileDescriptor()`) and the locales (`getPreferredLocales()`). With no surface,
-//! the state machine starts the SDL thread as soon as the activity is
-//! resumed, as upstream's does without one.
+//! the activity offers SDL's C side for text input, cursors and message
+//! boxes. They come with the backends that use them. What it offers the
+//! small backends is here: permissions (`requestPermission()`,
+//! `onRequestPermissionsResult()`), URLs (`openURL()`), toasts
+//! (`showToast()`), the content resolver's files (`openFileDescriptor()`)
+//! and the locales (`getPreferredLocales()`).
 //!
 //! Note: the activity's methods that upstream's subclasses may override
 //! (`getLibraries()`, `getArguments()`, `onUnhandledMessage()`, ...)
@@ -80,8 +88,12 @@ struct Statics {
 
     // Main components
     singleton: Option<Global>,
-    /// `mSurface`: none until `SDLSurface` is translated.
+    /// `mSurface`.
     surface: Option<Global>,
+    /// `mLayout`.
+    layout: Option<Global>,
+    /// `mCurrentRotation`.
+    current_rotation: jint,
 
     // This is what SDL runs in. It invokes SDL_main(), eventually
     sdl_thread: Option<Global>,
@@ -95,7 +107,6 @@ struct Statics {
     back_key_trap_enabled: bool,
 
     /// `mFullscreenModeActive`.
-    #[allow(dead_code)] // (the system UI's visibility listener reads it)
     fullscreen_mode_active: bool,
 }
 
@@ -108,6 +119,8 @@ static STATICS: Mutex<Statics> = Mutex::new(Statics {
     broken_libraries: true,
     singleton: None,
     surface: None,
+    layout: None,
+    current_rotation: 0,
     sdl_thread: None,
     sdl_main_finished: false,
     activity_created: false,
@@ -237,6 +250,111 @@ fn new_integer<'a>(env: Env<'a>, value: jint) -> JniResult<'a, Local<'a>> {
         )?
         .object()
         .expect("Integer.valueOf() boxes"))
+}
+
+/// `SDL_ORIENTATION_*`, as SDL's `SDL_DisplayOrientation`.
+const SDL_ORIENTATION_UNKNOWN: jint = 0;
+const SDL_ORIENTATION_LANDSCAPE: jint = 1;
+const SDL_ORIENTATION_PORTRAIT: jint = 3;
+
+/// `Configuration.ORIENTATION_PORTRAIT` and `_LANDSCAPE`.
+const ORIENTATION_PORTRAIT: jint = 1;
+const ORIENTATION_LANDSCAPE: jint = 2;
+
+/// `Surface.ROTATION_0`, `_90`, `_180`, `_270`.
+const ROTATION_0: jint = 0;
+const ROTATION_90: jint = 1;
+const ROTATION_180: jint = 2;
+const ROTATION_270: jint = 3;
+
+/// `activity.getWindowManager().getDefaultDisplay()`.
+fn default_display<'a>(env: Env<'a>, activity: Obj<'_>) -> JniResult<'a, Local<'a>> {
+    let window_manager = env
+        .call_method(
+            activity,
+            c"getWindowManager",
+            c"()Landroid/view/WindowManager;",
+            &[],
+        )?
+        .object()
+        .expect("a window manager");
+    Ok(env
+        .call_method(
+            window_manager.obj(),
+            c"getDefaultDisplay",
+            c"()Landroid/view/Display;",
+            &[],
+        )?
+        .object()
+        .expect("a display"))
+}
+
+/// The display's natural orientation (`SDL_ORIENTATION_LANDSCAPE` or
+/// `_PORTRAIT`; unknown without an activity), from its rotation and the
+/// configuration's orientation. Translation of `getNaturalOrientation()`.
+pub(crate) fn get_natural_orientation<'a>(env: Env<'a>) -> JniResult<'a, jint> {
+    let mut result = SDL_ORIENTATION_UNKNOWN;
+
+    if let Some(activity) = get_context(env) {
+        let config = configuration(env, activity.obj())?;
+        let display = default_display(env, activity.obj())?;
+        let rotation = env
+            .call_method(display.obj(), c"getRotation", c"()I", &[])?
+            .int();
+        let orientation = env.get_field(config.obj(), c"orientation", c"I")?.int();
+        if ((rotation == ROTATION_0 || rotation == ROTATION_180)
+            && orientation == ORIENTATION_LANDSCAPE)
+            || ((rotation == ROTATION_90 || rotation == ROTATION_270)
+                && orientation == ORIENTATION_PORTRAIT)
+        {
+            result = SDL_ORIENTATION_LANDSCAPE;
+        } else {
+            result = SDL_ORIENTATION_PORTRAIT;
+        }
+    }
+    Ok(result)
+}
+
+/// The display's rotation, in degrees (0 without an activity).
+/// Translation of `getCurrentRotation()`.
+pub(crate) fn get_current_rotation<'a>(env: Env<'a>) -> JniResult<'a, jint> {
+    let mut result = 0;
+
+    if let Some(activity) = get_context(env) {
+        let display = default_display(env, activity.obj())?;
+        match env
+            .call_method(display.obj(), c"getRotation", c"()I", &[])?
+            .int()
+        {
+            ROTATION_0 => result = 0,
+            ROTATION_90 => result = 90,
+            ROTATION_180 => result = 180,
+            ROTATION_270 => result = 270,
+            _ => {}
+        }
+    }
+    Ok(result)
+}
+
+/// `mCurrentRotation`.
+pub(crate) fn current_rotation() -> jint {
+    statics().current_rotation
+}
+
+/// `mCurrentRotation = rotation`.
+pub(crate) fn set_current_rotation(rotation: jint) {
+    statics().current_rotation = rotation;
+}
+
+/// `mNextNativeState = RESUMED` (`resumed`) or `PAUSED`, then
+/// `handleNativeState()`: the surface's, when it's ready or destroyed.
+pub(crate) fn set_next_native_state<'a>(env: Env<'a>, resumed: bool) -> JniResult<'a, ()> {
+    statics().next_native_state = if resumed {
+        NativeState::Resumed
+    } else {
+        NativeState::Paused
+    };
+    handle_native_state(env)
 }
 
 /// `context.getResources().getConfiguration()`.
@@ -369,8 +487,10 @@ pub(crate) fn initialize() {
     let mut s = statics();
     s.singleton = None;
     s.surface = None;
-    // (mTextEdit, mLayout, mClipboardHandler, mCursors and mLastCursorID
-    // come with the video driver)
+    // (mTextEdit: with the keyboard)
+    s.layout = None;
+    // (mClipboardHandler, mCursors and mLastCursorID: with the clipboard
+    // and the mouse)
     s.sdl_thread = None;
     s.is_resumed_called = false;
     s.has_focus = true;
@@ -407,9 +527,10 @@ fn message_of<'a>(env: Env<'a>, e: Obj<'_>) -> JniResult<'a, (Option<Local<'a>>,
 }
 
 // Setup
-/// Translation of `onCreate()`. Note: the activity's `commandHandler`,
-/// which upstream's instance initializer makes, is made here first (on
-/// the same thread: the constructor has no code of its own here).
+/// Translation of `onCreate()`. Note: the activity's `commandHandler` and
+/// `rehideSystemUi`, which upstream's instance initializers make, are made
+/// here first (on the same thread: the constructor has no code of its own
+/// here).
 pub(crate) extern "system" fn on_create(
     env: *mut JNIEnv,
     this: jobject,
@@ -433,6 +554,13 @@ pub(crate) extern "system" fn on_create(
             c"commandHandler",
             c"Landroid/os/Handler;",
             Arg::Object(command_handler.obj()),
+        )?;
+        let rehide_system_ui = new_rehide_system_ui(env)?;
+        env.set_field(
+            this,
+            c"rehideSystemUi",
+            c"Ljava/lang/Runnable;",
+            Arg::Object(rehide_system_ui.obj()),
         )?;
 
         log(
@@ -596,11 +724,30 @@ pub(crate) extern "system" fn on_create(
         // nativeIsHIDAPIEnabled(): those managers come with their drivers)
 
         // Set up the surface
-        // (SDL.isSubsystemInitialized(SDL.SDL_INIT_VIDEO): the surface,
-        // createSDLSurface(), in its layout, a RelativeLayout, and the
-        // orientation passed down, nativeSetNaturalOrientation() and
-        // onNativeRotationChanged(): with SDLSurface, so mSurface stays
-        // null)
+        if sdl::is_subsystem_initialized(sdl::SDL_INIT_VIDEO) {
+            let surface = surface::create_sdl_surface(env, this)?;
+            statics().surface = Global::new(env, surface.obj());
+
+            let layout_class = env.find_class(c"android/widget/RelativeLayout")?;
+            let layout = env.new_object(
+                layout_class.obj(),
+                c"(Landroid/content/Context;)V",
+                &[Arg::Object(this)],
+            )?;
+            statics().layout = Global::new(env, layout.obj());
+            env.call_method(
+                layout.obj(),
+                c"addView",
+                c"(Landroid/view/View;)V",
+                &[Arg::Object(surface.obj())],
+            )?;
+
+            // Get our current screen orientation and pass it down.
+            super::super::set_natural_orientation(get_natural_orientation(env)?);
+            let rotation = get_current_rotation(env)?;
+            statics().current_rotation = rotation;
+            super::super::on_rotation_changed(rotation);
+        }
 
         let locale = sdl::get_context(env)
             .map(|context| current_locale(env, context.obj()))
@@ -620,10 +767,34 @@ pub(crate) extern "system" fn on_create(
         let configuration = configuration(env, context.obj())?;
         pass_dark_mode(env, configuration.obj())?;
 
-        // (mLayout != null: setContentView(mLayout) and
-        // setWindowStyle(false), with the layout; and the decor view's
-        // setOnSystemUiVisibilityChangeListener(this), with the system
-        // UI's visibility: both with the surface)
+        let layout = {
+            let s = statics();
+            s.layout.as_ref().and_then(|l| env.new_local_ref(l.obj()))
+        };
+        if let Some(layout) = layout {
+            env.call_method(
+                this,
+                c"setContentView",
+                c"(Landroid/view/View;)V",
+                &[Arg::Object(layout.obj())],
+            )?;
+            set_window_style(env, false)?;
+        }
+
+        let window = env
+            .call_method(this, c"getWindow", c"()Landroid/view/Window;", &[])?
+            .object()
+            .expect("the activity's window");
+        let decor_view = env
+            .call_method(window.obj(), c"getDecorView", c"()Landroid/view/View;", &[])?
+            .object()
+            .expect("a decor view");
+        env.call_method(
+            decor_view.obj(),
+            c"setOnSystemUiVisibilityChangeListener",
+            c"(Landroid/view/View$OnSystemUiVisibilityChangeListener;)V",
+            &[Arg::Object(this)],
+        )?;
 
         // Get filename from "Open with" of another application
         if sdl::is_subsystem_initialized(sdl::SDL_INIT_VIDEO) {
@@ -1786,7 +1957,6 @@ fn send_command<'a>(
 
 /// This method is called by SDL using JNI: the title (from the SDLMain
 /// thread, on the main one). Translation of `setActivityTitle()`.
-#[allow(dead_code)] // (the video driver calls it)
 pub(crate) fn set_activity_title<'a>(env: Env<'a>, title: &str) -> JniResult<'a, bool> {
     // Called from SDLMain() thread and can't directly affect the view
     let singleton = singleton_or_throw(env)?;
@@ -1796,7 +1966,6 @@ pub(crate) fn set_activity_title<'a>(env: Env<'a>, title: &str) -> JniResult<'a,
 
 /// This method is called by SDL using JNI: fullscreen or not (from the
 /// SDLMain thread, on the main one). Translation of `setWindowStyle()`.
-#[allow(dead_code)] // (the video driver calls it)
 pub(crate) fn set_window_style<'a>(env: Env<'a>, fullscreen: bool) -> JniResult<'a, ()> {
     // Called from SDLMain() thread and can't directly affect the view
     let singleton = singleton_or_throw(env)?;
@@ -1808,6 +1977,316 @@ pub(crate) fn set_window_style<'a>(env: Env<'a>, fullscreen: bool) -> JniResult<
         style.obj(),
     )?;
     Ok(())
+}
+
+/// `ActivityInfo.SCREEN_ORIENTATION_*`.
+const SCREEN_ORIENTATION_LANDSCAPE: jint = 0;
+const SCREEN_ORIENTATION_PORTRAIT: jint = 1;
+const SCREEN_ORIENTATION_SENSOR_LANDSCAPE: jint = 6;
+const SCREEN_ORIENTATION_SENSOR_PORTRAIT: jint = 7;
+const SCREEN_ORIENTATION_REVERSE_LANDSCAPE: jint = 8;
+const SCREEN_ORIENTATION_REVERSE_PORTRAIT: jint = 9;
+const SCREEN_ORIENTATION_USER_LANDSCAPE: jint = 11;
+const SCREEN_ORIENTATION_USER_PORTRAIT: jint = 12;
+const SCREEN_ORIENTATION_FULL_USER: jint = 13;
+
+/// This method is called by SDL using JNI. This is a static method for JNI
+/// convenience, it calls a non-static method (so that it can be
+/// overridden, upstream). Translation of `setOrientation()`.
+pub(crate) fn set_orientation<'a>(
+    env: Env<'a>,
+    w: jint,
+    h: jint,
+    resizable: bool,
+    hint: &str,
+) -> JniResult<'a, ()> {
+    if singleton(env).is_some() {
+        set_orientation_bis(env, w, h, resizable, hint)?;
+    }
+    Ok(())
+}
+
+/// The requested orientation, from the window's size, whether it's
+/// resizable, and the orientations `hint` (`SDL_HINT_ORIENTATIONS`)
+/// allows. Translation of `setOrientationBis()` (which an app's subclass
+/// could override upstream: see the module's description).
+fn set_orientation_bis<'a>(
+    env: Env<'a>,
+    w: jint,
+    h: jint,
+    resizable: bool,
+    hint: &str,
+) -> JniResult<'a, ()> {
+    let mut orientation_landscape = -1;
+    let mut orientation_portrait = -1;
+
+    if w <= 1 || h <= 1 {
+        // Invalid width/height, ignore this request
+        return Ok(());
+    }
+
+    /* If set, hint "explicitly controls which UI orientations are allowed". */
+    if hint.contains("LandscapeRight") && hint.contains("LandscapeLeft") {
+        orientation_landscape = SCREEN_ORIENTATION_USER_LANDSCAPE;
+    } else if hint.contains("LandscapeLeft") {
+        orientation_landscape = SCREEN_ORIENTATION_LANDSCAPE;
+    } else if hint.contains("LandscapeRight") {
+        orientation_landscape = SCREEN_ORIENTATION_REVERSE_LANDSCAPE;
+    }
+
+    /* exact match to 'Portrait' to distinguish with PortraitUpsideDown */
+    let contains_portrait = hint.contains("Portrait ") || hint.ends_with("Portrait");
+
+    if contains_portrait && hint.contains("PortraitUpsideDown") {
+        orientation_portrait = SCREEN_ORIENTATION_USER_PORTRAIT;
+    } else if contains_portrait {
+        orientation_portrait = SCREEN_ORIENTATION_PORTRAIT;
+    } else if hint.contains("PortraitUpsideDown") {
+        orientation_portrait = SCREEN_ORIENTATION_REVERSE_PORTRAIT;
+    }
+
+    let is_landscape_allowed = orientation_landscape != -1;
+    let is_portrait_allowed = orientation_portrait != -1;
+    let req; /* Requested orientation */
+
+    /* No valid hint, nothing is explicitly allowed */
+    if !is_portrait_allowed && !is_landscape_allowed {
+        if resizable {
+            /* All orientations are allowed, respecting user orientation lock setting */
+            req = SCREEN_ORIENTATION_FULL_USER;
+        } else {
+            /* Fixed window and nothing specified. Get orientation from w/h of created window */
+            req = if w > h {
+                SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+            } else {
+                SCREEN_ORIENTATION_SENSOR_PORTRAIT
+            };
+        }
+    } else {
+        /* At least one orientation is allowed */
+        if resizable {
+            if is_portrait_allowed && is_landscape_allowed {
+                /* hint allows both landscape and portrait, promote to full user */
+                req = SCREEN_ORIENTATION_FULL_USER;
+            } else {
+                /* Use the only one allowed "orientation" */
+                req = if is_landscape_allowed {
+                    orientation_landscape
+                } else {
+                    orientation_portrait
+                };
+            }
+        } else {
+            /* Fixed window and both orientations are allowed. Choose one. */
+            if is_portrait_allowed && is_landscape_allowed {
+                req = if w > h {
+                    orientation_landscape
+                } else {
+                    orientation_portrait
+                };
+            } else {
+                /* Use the only one allowed "orientation" */
+                req = if is_landscape_allowed {
+                    orientation_landscape
+                } else {
+                    orientation_portrait
+                };
+            }
+        }
+    }
+
+    log(
+        LogPriority::Verbose,
+        &format!(
+            "setOrientation() requestedOrientation={req} width={w} height={h} resizable={resizable} hint={hint}"
+        ),
+    );
+    let singleton = singleton_or_throw(env)?;
+    env.call_method(
+        singleton.obj(),
+        c"setRequestedOrientation",
+        c"(I)V",
+        &[Arg::Int(req)],
+    )?;
+    Ok(())
+}
+
+/// This method is called by SDL using JNI: the home screen started.
+/// Translation of `minimizeWindow()`.
+pub(crate) fn minimize_window<'a>(env: Env<'a>) -> JniResult<'a, ()> {
+    let Some(singleton) = singleton(env) else {
+        return Ok(());
+    };
+
+    const FLAG_ACTIVITY_NEW_TASK: jint = 0x10000000; // Intent.FLAG_ACTIVITY_NEW_TASK
+    let intent_class = env.find_class(c"android/content/Intent")?;
+    let action = env.new_string("android.intent.action.MAIN")?; // Intent.ACTION_MAIN
+    let start_main = env.new_object(
+        intent_class.obj(),
+        c"(Ljava/lang/String;)V",
+        &[Arg::Object(action.obj())],
+    )?;
+    let category = env.new_string("android.intent.category.HOME")?; // Intent.CATEGORY_HOME
+    env.call_method(
+        start_main.obj(),
+        c"addCategory",
+        c"(Ljava/lang/String;)Landroid/content/Intent;",
+        &[Arg::Object(category.obj())],
+    )?;
+    env.call_method(
+        start_main.obj(),
+        c"setFlags",
+        c"(I)Landroid/content/Intent;",
+        &[Arg::Int(FLAG_ACTIVITY_NEW_TASK)],
+    )?;
+    env.call_method(
+        singleton.obj(),
+        c"startActivity",
+        c"(Landroid/content/Intent;)V",
+        &[Arg::Object(start_main.obj())],
+    )?;
+    Ok(())
+}
+
+/// This method is called by SDL using JNI. Translation of
+/// `shouldMinimizeOnFocusLoss()`.
+pub(crate) fn should_minimize_on_focus_loss(_env: Env<'_>) -> bool {
+    false
+}
+
+/// This method is called by SDL using JNI: whether the screen keyboard is
+/// shown. Translation of `isScreenKeyboardShown()`, whose `mTextEdit`
+/// comes with the keyboard: null until then, so false.
+#[allow(dead_code)] // (the keyboard asks)
+pub(crate) fn is_screen_keyboard_shown(_env: Env<'_>) -> bool {
+    // (mTextEdit == null)
+    false
+}
+
+/// This method is called by SDLControllerManager's API 26 Generic Motion
+/// Handler. Translation of `getContentView()`.
+#[allow(dead_code)] // (the motion listener asks)
+pub(crate) fn get_content_view<'a>(env: Env<'a>) -> Option<Local<'a>> {
+    let s = statics();
+    s.layout.as_ref().and_then(|l| env.new_local_ref(l.obj()))
+}
+
+/// This method is called by SDL using JNI: the surface's `Surface` (null
+/// without a surface). Translation of `getNativeSurface()`.
+pub(crate) fn get_native_surface<'a>(env: Env<'a>) -> JniResult<'a, Option<Local<'a>>> {
+    let surface = {
+        let s = statics();
+        s.surface.as_ref().and_then(|s| env.new_local_ref(s.obj()))
+    };
+    match surface {
+        None => Ok(None),
+        Some(surface) => surface::get_native_surface(env, surface.obj()),
+    }
+}
+
+/// `rehideSystemUi`: an `SDLNativeListener`'s proxy of `Runnable`, which
+/// hides the system bars again (Note: a proxy, which runs each time it's
+/// posted, as upstream's anonymous `Runnable` does; and its
+/// `SDLActivity.this` is the activity of the moment, `mSingleton`).
+fn new_rehide_system_ui<'a>(env: Env<'a>) -> JniResult<'a, Local<'a>> {
+    anonymous::listener(env, c"java/lang/Runnable", |env, method, _args| {
+        if method == "run" {
+            rehide_system_ui_run(env)?;
+        }
+        Ok(None)
+    })
+}
+
+/// `rehideSystemUi.run()`.
+fn rehide_system_ui_run<'a>(env: Env<'a>) -> JniResult<'a, ()> {
+    let this = singleton_or_throw(env)?;
+    let window = env
+        .call_method(this.obj(), c"getWindow", c"()Landroid/view/Window;", &[])?
+        .object()
+        .expect("the activity's window");
+    if super::super::sdk_int(env) >= 30
+    /* Android 11 (R) */
+    {
+        let controller = env
+            .call_method(
+                window.obj(),
+                c"getInsetsController",
+                c"()Landroid/view/WindowInsetsController;",
+                &[],
+            )?
+            .object();
+        if let Some(controller) = controller {
+            let types = env.find_class(c"android/view/WindowInsets$Type")?;
+            let system_bars = env
+                .call_static_method(types.obj(), c"systemBars", c"()I", &[])?
+                .int();
+            env.call_method(controller.obj(), c"hide", c"(I)V", &[Arg::Int(system_bars)])?;
+        }
+    } else {
+        let flags = SYSTEM_UI_FLAG_FULLSCREEN
+            | SYSTEM_UI_FLAG_HIDE_NAVIGATION
+            | SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+            | SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+            | SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+            | SYSTEM_UI_FLAG_LAYOUT_STABLE
+            | INVISIBLE;
+
+        set_system_ui_visibility(env, window.obj(), flags)?;
+    }
+    Ok(())
+}
+
+/// The system UI shown while the activity is fullscreen: hidden again 2 s
+/// later. Translation of `onSystemUiVisibilityChange()`.
+pub(crate) extern "system" fn on_system_ui_visibility_change(
+    env: *mut JNIEnv,
+    this: jobject,
+    visibility: jint,
+) {
+    // SAFETY: a native method's environment and object.
+    let (env, this) = unsafe { (Env::from_raw(env), Obj::from_raw(this)) };
+    native(env, |env| {
+        if statics().fullscreen_mode_active
+            && ((visibility & SYSTEM_UI_FLAG_FULLSCREEN) == 0
+                || (visibility & SYSTEM_UI_FLAG_HIDE_NAVIGATION) == 0)
+        {
+            let window = env
+                .call_method(this, c"getWindow", c"()Landroid/view/Window;", &[])?
+                .object()
+                .expect("the activity's window");
+            let decor_view = env
+                .call_method(window.obj(), c"getDecorView", c"()Landroid/view/View;", &[])?
+                .object()
+                .expect("a decor view");
+            let handler = env
+                .call_method(
+                    decor_view.obj(),
+                    c"getHandler",
+                    c"()Landroid/os/Handler;",
+                    &[],
+                )?
+                .object();
+            if let Some(handler) = handler {
+                let rehide_system_ui = env
+                    .get_field(this, c"rehideSystemUi", c"Ljava/lang/Runnable;")?
+                    .object();
+                let rehide_system_ui = rehide_system_ui.as_ref().map_or(Obj::NULL, Local::obj);
+                env.call_method(
+                    handler.obj(),
+                    c"removeCallbacks",
+                    c"(Ljava/lang/Runnable;)V",
+                    &[Arg::Object(rehide_system_ui)],
+                )?; // Prevent a hide loop.
+                env.call_method(
+                    handler.obj(),
+                    c"postDelayed",
+                    c"(Ljava/lang/Runnable;J)Z",
+                    &[Arg::Object(rehide_system_ui), Arg::Long(2000)],
+                )?;
+            }
+        }
+        Ok(())
+    });
 }
 
 /// This method is called by SDL using JNI: a command and its parameter to
