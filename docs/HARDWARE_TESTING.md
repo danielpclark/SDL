@@ -26,7 +26,7 @@ Every skip names one *capability* (the list is `CAPABILITIES` in
 | `xvfb` | Linux | an X server: `Xvfb` in `PATH` (each X11 test starts its own), or `DISPLAY` |
 | `glx` | Linux | libGL with GLX on that server (Mesa's llvmpipe is enough) |
 | `egl` | Linux, Windows, macOS | libEGL and the GL/GLES libraries (Mesa on Linux; on Windows an EGL such as ANGLE's `libEGL.dll`, which Windows doesn't ship, or Mesa's (below) with `EGL_PLATFORM=windows`; on macOS ANGLE's `libEGL.dylib` and `libGLESv2.dylib`, from the directory `SDL3_TEST_ANGLE_DIR` names or the copy the Android emulator ships in `~/Library/Android/sdk/emulator/lib64/gles_angle`). The offscreen driver has EGL only on Linux and the other Unix systems, so the OpenGL ES 2 renderer's checks, which draw on it, skip on Windows, macOS and the Apple Simulators, as the OpenGL renderer's checks on it do on macOS; on Android its EGL needs a device platform (`EGL_EXT_device_enumeration`) that Android's EGL lacks, so they skip there too, and so do the OpenGL renderer's, which Android doesn't build (see [Android emulator](#android-emulator)) |
-| `vulkan` | Linux, Windows, macOS, the iOS, tvOS and visionOS Simulators, the Android emulator | a Vulkan loader and a driver with the surface extensions, `VK_EXT_headless_surface` included for the tests of the Vulkan and GPU renderers and of the GPU API's swapchains on offscreen windows (Mesa's lavapipe is enough; on Windows those tests present to the Windows video driver's windows instead, since the GPU drivers there (NVIDIA's, say) have no `VK_EXT_headless_surface`, and only the offscreen driver's own headless-surface check skips; the tests of the GPU API's Vulkan backend and of the GPU renderer run under `VK_LAYER_KHRONOS_validation` when it is installed, and present to an X11 window too when `DISPLAY` is set); on macOS MoltenVK, by upstream's default names: `libMoltenVK.dylib` itself (in `/usr/local/lib`, say), which runs every check, or the Vulkan loader with it (the Cocoa driver's surface check also tries Homebrew's `/opt/homebrew/lib/libvulkan.1.dylib`), through which the Vulkan renderer's checks skip with `VK_ERROR_INCOMPATIBLE_DRIVER`: MoltenVK's devices then need portability enumeration, which upstream's renderer doesn't ask for. Under Metal's API validation, which the GPU API's Metal devices in debug mode turn on for the rest of the process (as upstream's do, setting `MTL_DEBUG_LAYER=1` unless it's set), MoltenVK misdraws the fills after another render state's in a pass in the GPU renderer's render-state test on the CI runners' Apple Paravirtual device (1.3.0 to 1.4.2, reporting no error), so with a MoltenVK device and `MTL_DEBUG_LAYER` set and not `0` those three checks skip (run the test again with `MTL_DEBUG_LAYER=0` for them; with discrete descriptor binding, `MVK_CONFIG_USE_METAL_ARGUMENT_BUFFERS=0`, more of the renderer's checks misdraw under the layer; Khronos' validation layer, with synchronization validation, finds nothing in them on lavapipe, and they pass on Metal under the same validation); on the iOS and tvOS Simulators MoltenVK's framework for the simulator, which `tools/ios_run.py` takes from `SDL3_IOS_MOLTENVK` (see [Apple Simulators](#apple-simulators): there the GPU API's Vulkan checks skip, the simulator's device lacking features the backend asks for, see [iOS Simulator](#ios-simulator)); on the visionOS Simulator it never loads, upstream's `SDL_LoadObject()` loading nothing there (see [visionOS Simulator](#visionos-simulator)); on the Android emulator SwiftShader's Vulkan 1.3 (`libvulkan.so`), which has no `VK_EXT_headless_surface`, so only the checks that need no surface run there (see [Android emulator](#android-emulator)) |
+| `vulkan` | Linux, Windows, macOS, the iOS, tvOS and visionOS Simulators, the Android emulator | a Vulkan loader and a driver with the surface extensions, `VK_EXT_headless_surface` included for the tests of the Vulkan and GPU renderers and of the GPU API's swapchains on offscreen windows (Mesa's lavapipe is enough; on Windows those tests present to the Windows video driver's windows instead, since the GPU drivers there (NVIDIA's, say) have no `VK_EXT_headless_surface`, and only the offscreen driver's own headless-surface check skips; the tests of the GPU API's Vulkan backend and of the GPU renderer run under `VK_LAYER_KHRONOS_validation` when it is installed, and present to an X11 window too when `DISPLAY` is set); on macOS MoltenVK, by upstream's default names: `libMoltenVK.dylib` itself (in `/usr/local/lib`, say), which runs every check, or the Vulkan loader with it (the Cocoa driver's surface check also tries Homebrew's `/opt/homebrew/lib/libvulkan.1.dylib`), through which the Vulkan renderer's checks skip with `VK_ERROR_INCOMPATIBLE_DRIVER`: MoltenVK's devices then need portability enumeration, which upstream's renderer doesn't ask for. Under Metal's API validation, which the GPU API's Metal devices in debug mode turn on for the rest of the process (as upstream's do, setting `MTL_DEBUG_LAYER=1` unless it's set), MoltenVK misdraws the fills after another render state's in a pass in the GPU renderer's render-state test on the CI runners' Apple Paravirtual device (1.3.0 to 1.4.2, reporting no error), so with a MoltenVK device and `MTL_DEBUG_LAYER` set and not `0` those three checks skip (run the test again with `MTL_DEBUG_LAYER=0` for them; with discrete descriptor binding, `MVK_CONFIG_USE_METAL_ARGUMENT_BUFFERS=0`, more of the renderer's checks misdraw under the layer; Khronos' validation layer, with synchronization validation, finds nothing in them on lavapipe, and they pass on Metal under the same validation); on the iOS and tvOS Simulators MoltenVK's framework for the simulator, which `tools/ios_run.py` takes from `SDL3_IOS_MOLTENVK` (see [Apple Simulators](#apple-simulators): there the GPU API's Vulkan checks skip, the simulator's device lacking features the backend asks for, see [iOS Simulator](#ios-simulator)); on the visionOS Simulator it never loads, upstream's `SDL_LoadObject()` loading nothing there (see [visionOS Simulator](#visionos-simulator)); on the Android emulator SwiftShader's Vulkan 1.3 (`libvulkan.so`), which has no `VK_EXT_headless_surface`, so only the checks that need no surface run in spawned programs, and the Vulkan and GPU renderers and the GPU API's swapchains draw on the android video driver's window in the app programs (see [Android emulator](#android-emulator)) |
 | `wayland` | Linux | libwayland-client/-egl/-cursor, libxkbcommon and `sway` (or `weston`) in `PATH`; the input and clipboard tests need sway |
 | `dbus` | Linux | libdbus and `dbus-daemon` (the tests start private buses) |
 | `pulseaudio` | Linux | libpulse, and the `pulseaudio` and `pactl` binaries (the tests start a private server) |
@@ -1662,13 +1662,25 @@ revoking a granted permission ends the app's process, as Android does),
 `permission-dialog allow|deny` (the system's permission dialog's button,
 found in `uiautomator dump`'s view tree, then tapped), `toast` (whether a
 toast of the app's is shown: `dumpsys notification`'s toast queue or
-`dumpsys window`) and `top-activity app|other` (the package on top, once it
-is the app's or another's); the runner answers each on the app's stdout
+`dumpsys window`), `top-activity app|other` (the package on top, once it
+is the app's or another's), `rotate 0|1|2|3` (the display's rotation:
+`settings put system user_rotation` with the auto-rotation off) and
+`density DPI|reset` (`wm density`, which recreates the activity), the
+last two put back as they were when the run ends; the runner answers each on the app's stdout
 socket when it's done (`sdl3-android-runner: reply LINE` for the log's lines,
 then `sdl3-android-runner: done`), which `request()` returns. An app's
 process the system thinks cached is frozen about ten seconds after it
 leaves the foreground, so a program waits in the background no longer
-than that.
+than that; so is one none of whose activities is left (once BACK
+finishes the activity, `main` goes on): the runner checks for that every
+ten seconds (`dumpsys activity processes`' `isFrozen`), and fails a run
+whose app is frozen at two checks in a row, rather than wait for its
+`SDL3_ANDROID_TIMEOUT`. A program whose process ends otherwise than by returning from
+`main` (the activity recreated: upstream's `System.exit()`) prints
+`sdl3-android-runner: exit N once the process ends`
+(`android_support::finish_once_the_process_ends()`) instead: the runner
+waits for the app's process to end (up to a minute), and fails the run if
+it doesn't.
 
 The app programs so far: `sdl3/tests/android_runner.rs` (the runner's
 app mode: the process, the SDL thread, `main`'s arguments, the
@@ -1689,7 +1701,7 @@ background with the hint on and off, the system's dark mode, the app's
 locale, `SDL_SendAndroidMessage()`, and the back button (`onBackPressed()`
 with the trap's hint, the BACK key with the trap's callback, and
 `SDL_SendAndroidBackButton()`, which finishes the activity while main runs:
-`SDL_EVENT_TERMINATING`), with the dummy video driver; and
+`SDL_EVENT_TERMINATING`), with the android video driver; and
 `android_backends.rs`, the small backends against upstream's C, with
 assets of its own (`sdl3/tests/android_assets/`) and two permissions:
 the paths (base, pref, internal and external storage and its state,
@@ -1701,7 +1713,17 @@ the file operations on both, a `content://` file of `MediaStore`'s, the
 title storage on the assets and the user storage on the pref path, a
 toast, URLs (with the activity that answers), and permissions
 (`pm grant` and `revoke`, a request granted at once, two answered through
-the system's dialog, one the manifest doesn't ask for).
+the system's dialog, one the manifest doesn't ask for). The video
+driver's, against upstream's C too: `android_video.rs` (the display, its
+modes, orientations and content scale, the window and its properties,
+the second window's error, the title, fullscreen, the rotations, a trip
+to the background, an OpenGL window), `android_gles.rs` (OpenGL ES
+through EGL: the attributes, the context, the swap interval, the OpenGL
+ES 2 renderer's scenes against the software renderer's, the context kept
+across a trip to the background), `android_vulkan.rs` (the Vulkan surface
+of the window, the Vulkan renderer's scenes, the GPU API's swapchain and
+the GPU renderer) and `android_recreate.rs` (the activity recreated by a
+density change, which ends the process).
 
 The expected traces of the app programs are upstream's C SDL's: the same
 program in C, as upstream's android-project's app (built with Gradle,
@@ -1714,7 +1736,12 @@ socket to read them from: `sdl3-android-runner: reply LINE`; and, once
 each is done, its number and the answer in the app's
 `cache/sdl3-android-runner-done`, written with `run-as`, which the C waits
 for), and its exit status from the exit line. It installs the package
-without granting its permissions, as the runner's own.
+without granting its permissions, as the runner's own. Where the Rust
+translation fixes upstream in what a reference traces, the reference is
+built with the same fix applied to upstream's source: the OpenGL ES 2
+renderer's program cache (`android_gles.rs`, as on iOS), and the Vulkan
+renderer's pre-rotated swapchain and `VK_EXT_4444_formats` formats
+(`android_vulkan.rs`).
 
 What runs where, in spawned programs: everything pure (the satellites'
 decoders, the converters, the parsers), the file operations, threads,
@@ -1722,8 +1749,8 @@ time and timers, `sdl3-net` on the loopback interface (IPv4 and IPv6),
 the audio core with the dummy and disk drivers, the joystick core with
 the virtual and HIDAPI drivers (no HID backend yet, so no devices), and
 the GPU API's Vulkan devices on SwiftShader's Vulkan 1.3. A spawned
-process is no app, and nothing of Android's own platform layer is
-translated yet, so:
+process is no app, so what of Android's platform layer needs one isn't
+there:
 
 * the offscreen driver can't draw: Android's EGL has no device platform
   (`EGL_EXT_device_enumeration`), which upstream's offscreen OpenGL ES
@@ -1731,7 +1758,8 @@ translated yet, so:
   `VK_EXT_headless_surface`, so the OpenGL ES 2, Vulkan and GPU
   renderers' checks and the GPU API's swapchain checks skip (`egl`,
   `vulkan`), as upstream's C does there; they draw on the android video
-  driver's windows, in apps, which aren't translated yet. The desktop
+  driver's windows in the app programs above (the driver needs an app's
+  Java VM, so spawned programs don't have it). The desktop
   OpenGL renderer isn't built (Android has OpenGL ES only), so its
   checks skip as `egl` too;
 * the filesystem paths that need the app's Java VM (the pref path, which
@@ -1743,9 +1771,9 @@ translated yet, so:
   (`base_path_and_exe_name`, `user_storage_and_driver_hints`), and
   `android_backends.rs` checks them in an app; the XDG paths' test isn't
   built;
-* JNI needs an app (see [Apps](#apps)); the android video, audio
-  (AAudio, OpenSL ES), joystick, haptic, sensor and camera drivers are
-  later work.
+* JNI needs an app (see [Apps](#apps)); the android audio (AAudio,
+  OpenSL ES), joystick, haptic, sensor and camera drivers, and the
+  surface's touch and key events, are later work.
 
 Under the ARM translation one more thing differs: a translated program
 whose threads start programs at the same time can hang there, as
