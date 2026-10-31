@@ -370,13 +370,15 @@ main returns
         trace_system(step);
     }
 
-    fn set_text(step: &str, text: &str) {
+    /// SDL's text set: `updates` are the updates it brings (SDL's own,
+    /// then the system's for a clip of text; SDL's only for none).
+    fn set_text(step: &str, text: &str, updates: usize) {
         t(format!(
             "{step}: set {}: {}",
             quoted(text),
             result(&clipboard::set_clipboard_text(text))
         ));
-        pump_updates(1);
+        pump_updates(updates);
         trace_updates(step);
         trace_state(step);
     }
@@ -413,7 +415,7 @@ main returns
 
     /// The system's clip changed on a thread of its own (through the
     /// ClipboardManager, as another app's change would come).
-    fn change(step: &str, what: &'static str, text: Option<&'static str>) {
+    fn change(step: &str, what: &'static str, text: Option<&'static str>, updates: usize) {
         std::thread::Builder::new()
             .name("clip change".into())
             .spawn(move || {
@@ -468,7 +470,7 @@ main returns
             if text.is_some() { " " } else { "" },
             text.map(quoted).unwrap_or_default()
         ));
-        pump_updates(1);
+        pump_updates(updates);
         trace_updates(step);
         trace_state(step);
     }
@@ -499,13 +501,13 @@ main returns
         trace_updates("start");
 
         // (whatever the device had: emptied)
-        set_text("emptied", "");
-        set_text("ascii", "Hello, clipboard!");
-        set_text("unicode", "Grüße, 世界 🎮");
-        set_text("again", "Hello, clipboard!");
-        set_text("control", "tab\there\nline \"quoted\" back\\slash");
-        set_text("empty", "");
-        set_text("empty again", "");
+        set_text("emptied", "", 1);
+        set_text("ascii", "Hello, clipboard!", 2);
+        set_text("unicode", "Grüße, 世界 🎮", 2);
+        set_text("again", "Hello, clipboard!", 2);
+        set_text("control", "tab\there\nline \"quoted\" back\\slash", 2);
+        set_text("empty", "", 1);
+        set_text("empty again", "", 1);
 
         // The app's own data: another MIME type only (the system's clip is
         // emptied: no text to give it), then with text too
@@ -528,19 +530,19 @@ main returns
                 &[CUSTOM, "text/plain;charset=utf-8"]
             ))
         ));
-        pump_updates(1);
+        pump_updates(2);
         trace_updates("custom and text");
         trace_state("custom and text");
         trace_data("custom and text", CUSTOM);
         trace_data("custom and text", "text/plain;charset=utf-8");
 
         // Changes from outside SDL
-        change("outside", "text", Some("set outside SDL"));
+        change("outside", "text", Some("set outside SDL"), 2);
         trace_data("outside", CUSTOM);
-        change("outside html", "html", Some("plain part"));
-        change("outside clear", "clear", None);
-        change("outside unicode", "text", Some("été 😀"));
-        set_text("sdl after outside", "SDL's again");
+        change("outside html", "html", Some("plain part"), 2);
+        change("outside clear", "clear", None, 1);
+        change("outside unicode", "text", Some("été 😀"), 2);
+        set_text("sdl after outside", "SDL's again", 2);
         t(format!(
             "clear data: {}",
             result(&clipboard::clear_clipboard_data())
