@@ -82,7 +82,7 @@ before init: simple: ok
 init: ok
 video driver: android
 window: ok
-start: window events: WINDOW_MOUSE_ENTER, WINDOW_FOCUS_GAINED, WINDOW_SAFE_AREA_CHANGED, WINDOW_SHOWN, WINDOW_PIXEL_SIZE_CHANGED, WINDOW_DISPLAY_SCALE_CHANGED, WINDOW_SAFE_AREA_CHANGED, WINDOW_RESIZED, WINDOW_PIXEL_SIZE_CHANGED, WINDOW_SAFE_AREA_CHANGED, WINDOW_FOCUS_LOST, WINDOW_FOCUS_GAINED
+start: window events: WINDOW_DISPLAY_SCALE_CHANGED, WINDOW_FOCUS_GAINED, WINDOW_FOCUS_LOST, WINDOW_MOUSE_ENTER, WINDOW_PIXEL_SIZE_CHANGED, WINDOW_RESIZED, WINDOW_SAFE_AREA_CHANGED, WINDOW_SHOWN
 logcat: ui: TextView \"Simple title\" [1109,386][1423,480]
 logcat: ui: TextView \"Simple message\" [1083,520][1449,571]
 logcat: ui: Button \"OK\" [1212,571][1319,697]
@@ -198,8 +198,20 @@ main returns
     }
 
     fn trace_events(step: &str) {
+        trace_window_events(step, false);
+    }
+
+    /// The window's events since the last step, in their order, or (`set`)
+    /// sorted and each once: the order of a new window's own (its surface's
+    /// size, safe area and the rest) is the order the activity's callbacks
+    /// happen to arrive in, which differs from run to run.
+    fn trace_window_events(step: &str, set: bool) {
         pump_for(800);
-        let events = std::mem::take(&mut *EVENTS.lock().unwrap());
+        let mut events = std::mem::take(&mut *EVENTS.lock().unwrap());
+        if set {
+            events.sort();
+            events.dedup();
+        }
         t(format!(
             "{step}: window events: {}",
             if events.is_empty() {
@@ -272,7 +284,7 @@ main returns
         t(format!("window: {}", result(&win)));
         let window = win.as_ref().ok().copied();
         pump_for(1500);
-        trace_events("start");
+        trace_window_events("start", true);
 
         // A simple box, of the window
         {
