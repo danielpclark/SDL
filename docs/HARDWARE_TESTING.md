@@ -1664,9 +1664,14 @@ found in `uiautomator dump`'s view tree, then tapped), `toast` (whether a
 toast of the app's is shown: `dumpsys notification`'s toast queue or
 `dumpsys window`), `top-activity app|other` (the package on top, once it
 is the app's or another's), `rotate 0|1|2|3` (the display's rotation:
-`settings put system user_rotation` with the auto-rotation off) and
-`density DPI|reset` (`wm density`, which recreates the activity), the
-last two put back as they were when the run ends; the runner answers each on the app's stdout
+`settings put system user_rotation` with the auto-rotation off),
+`density DPI|reset` (`wm density`, which recreates the activity),
+`ime-with-hard-keyboard yes|no` (whether the input method shows its
+keyboard while there's a hardware keyboard: `settings put secure
+show_ime_with_hard_keyboard`) and `ime [shown|hidden]` (`dumpsys
+input_method`'s `mInputShown`, once it is as asked, within 5 s), the
+rotation, the density and the input method's setting put back as they
+were when the run ends; the runner answers each on the app's stdout
 socket when it's done (`sdl3-android-runner: reply LINE` for the log's lines,
 then `sdl3-android-runner: done`), which `request()` returns. An app's
 process the system thinks cached is frozen about ten seconds after it
@@ -1729,16 +1734,33 @@ upstream's C too: `android_input.rs`, with real input (the runner's
 wheel, the stylus's tap) and, for what `input` can't make (it has one
 pointer, the mouse's primary button or none, no pressure, hovering,
 eraser or captured pointer), stand-ins: `MotionEvent.obtain()`'s events
-injected into the app's own window (`Instrumentation.sendPointerSync()`,
-`sendTrackballEventSync()` for the captured pointer's, which an app may
-do without the `INJECT_EVENTS` permission), through the framework's
-input pipeline to the surface (two fingers, a pinch, a cancelled touch,
+dispatched to the focused view, the surface, on SDL's thread
+(`dispatchTouchEvent()`, `dispatchGenericMotionEvent()`,
+`dispatchCapturedPointerEvent()`: an app can't inject events into its own
+window on API 35 without the `INJECT_EVENTS` permission, so they skip
+the framework's input pipeline) (two fingers, a pinch, a cancelled touch,
 the mouse's hovering, buttons and wheel, the relative mode's captured
 pointer, the stylus's hovering, pressure, button and eraser); the touch
 devices and mice, `SDL_HINT_TOUCH_MOUSE_EVENTS` and
 `SDL_HINT_MOUSE_TOUCH_EVENTS` on and off, the cursors (the surface's
 pointer icon, `View.getPointerIcon()`) and the relative mode (the pointer
-captured, `View.hasPointerCapture()`).
+captured, `View.hasPointerCapture()`). And `android_keyboard.rs`: real
+keys (the runner's `input keyevent`, `keycombination` and `text`, which
+reach the focused view through the framework: the surface, or the text
+edit once text input has started; BACK with the back button's trap on,
+as without it the activity finishes) with text input off and on; the
+screen keyboard shown and hidden by text input (the input method's
+keyboard shown with the hardware keyboard too, the runner's
+`ime-with-hard-keyboard yes`), as SDL, the input method (the runner's
+`ime` request: `dumpsys input_method`'s `mInputShown`) and the window
+insets have it, restored with the surface (a rotation) and after a trip
+to the background; stand-ins for what
+an input method does (`commitText()`, `setComposingText()`,
+`finishComposingText()`, `deleteSurroundingText()`, `sendKeyEvent()` of
+the text edit's input connection, its `onCreateInputConnection()`'s,
+called on SDL's thread), with `SDL_HINT_RETURN_KEY_HIDES_IME` off and on;
+and the text input properties' input types (the `EditorInfo` the text
+edit fills).
 
 The expected traces of the app programs are upstream's C SDL's: the same
 program in C, as upstream's android-project's app (built with Gradle,
