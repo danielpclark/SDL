@@ -750,7 +750,7 @@ pub(crate) fn on_key_down(keycode: jint) {
     lock_activity_mutex();
 
     if crate::video::drivers::android::window().is_some() {
-        crate::video::drivers::android::on_key_down(keycode);
+        crate::video::drivers::android::keyboard::on_key_down(keycode);
     }
 
     unlock_activity_mutex();
@@ -765,7 +765,7 @@ pub(crate) fn on_key_up(keycode: jint) {
     lock_activity_mutex();
 
     if crate::video::drivers::android::window().is_some() {
-        crate::video::drivers::android::on_key_up(keycode);
+        crate::video::drivers::android::keyboard::on_key_up(keycode);
     }
 
     unlock_activity_mutex();
@@ -773,6 +773,99 @@ pub(crate) fn on_key_up(keycode: jint) {
 
 pub(crate) extern "system" fn on_native_key_up(_env: *mut JNIEnv, _cls: jclass, keycode: jint) {
     on_key_up(keycode);
+}
+
+/// Virtual keyboard return key might stop text input: whether it did
+/// (`SDL_HINT_RETURN_KEY_HIDES_IME`). Translation of
+/// `onNativeSoftReturnKey()`.
+pub(crate) fn on_soft_return_key() -> bool {
+    if crate::hints::get_bool(crate::hints::RETURN_KEY_HIDES_IME, false) {
+        stop_text_input();
+        return true;
+    }
+    false
+}
+
+pub(crate) extern "system" fn on_native_soft_return_key(
+    _env: *mut JNIEnv,
+    _cls: jclass,
+) -> jboolean {
+    on_soft_return_key() as jboolean
+}
+
+/// Keyboard Focus Lost. Translation of `onNativeKeyboardFocusLost()`.
+pub(crate) fn on_keyboard_focus_lost() {
+    // Calling SDL_StopTextInput will take care of hiding the keyboard and cleaning up the DummyText widget
+    stop_text_input();
+}
+
+pub(crate) extern "system" fn on_native_keyboard_focus_lost(_env: *mut JNIEnv, _cls: jclass) {
+    on_keyboard_focus_lost();
+}
+
+/// `SDL_StopTextInput(Android_Window)` (which fails without a window: an
+/// invalid one).
+fn stop_text_input() {
+    if let Some(window) = crate::video::drivers::android::window() {
+        let _ = crate::video::Window::from_raw(window).stop_text_input();
+    }
+}
+
+/// The input connection's text, committed. Translation of
+/// `SDLInputConnection.nativeCommitText()`. Note: the text is read as
+/// UTF-16 (`env`'s strings); upstream's `GetStringUTFChars()` gives
+/// Modified UTF-8, whose U+0000 is C0 80, so a key's null character (a
+/// printing key whose `getUnicodeChar()` is 0 under its modifiers) is a
+/// `TEXT_INPUT` of those two bytes upstream, and none here (a control
+/// character).
+pub(crate) fn commit_text(text: &str) {
+    crate::events::keyboard::send_keyboard_text(text);
+}
+
+pub(crate) extern "system" fn native_commit_text(
+    env: *mut JNIEnv,
+    _cls: jclass,
+    text: jstring,
+    _new_cursor_position: jint,
+) {
+    // SAFETY: a native method's environment and arguments.
+    let (env, text) = unsafe { (Env::from_raw(env), Obj::from_raw(text)) };
+    let Ok(utftext) = env.get_string(text) else {
+        // (pending, for the caller)
+        return;
+    };
+
+    commit_text(&utftext);
+}
+
+/// A key press and release of a character of the input connection's
+/// (`SDL_SendKeyboardUnicodeKey()` of a UTF-16 unit). Translation of
+/// `SDLInputConnection.nativeGenerateScancodeForUnichar()`.
+pub(crate) fn generate_scancode_for_unichar(ch_unicode: jchar) {
+    crate::events::keyboard::send_keyboard_unicode_code(Duration::ZERO, u32::from(ch_unicode));
+}
+
+pub(crate) extern "system" fn native_generate_scancode_for_unichar(
+    _env: *mut JNIEnv,
+    _cls: jclass,
+    ch_unicode: jchar,
+) {
+    generate_scancode_for_unichar(ch_unicode);
+}
+
+/// A gamepad's key pressed: whether the joystick took it. Translation of
+/// `SDLControllerManager.onNativePadDown()`, which upstream's
+/// `Android_OnPadDown()` (the android joystick driver's) answers; that
+/// comes with the joysticks: until then, as upstream without
+/// `SDL_JOYSTICK_ANDROID`, false.
+pub(crate) fn on_pad_down(_device_id: jint, _keycode: jint, _scancode: jint) -> bool {
+    false
+}
+
+/// A gamepad's key released: whether the joystick took it. Translation of
+/// `SDLControllerManager.onNativePadUp()` (see [`on_pad_down`]).
+pub(crate) fn on_pad_up(_device_id: jint, _keycode: jint, _scancode: jint) -> bool {
+    false
 }
 
 // ---------------------------------------------------------------------------
@@ -1202,9 +1295,10 @@ pub(crate) fn on_surface_changed() {
 
             // GL Context handling is done in the event loop because this function is run from the Java thread
         }
+    }
 
-        // (Android_RestoreScreenKeyboard(): the screen keyboard comes with
-        // the keyboard's translation)
+    if let Some(window) = android_window::android_window() {
+        crate::video::drivers::android::keyboard::restore_screen_keyboard(window);
     }
 
     unlock_activity_mutex();
@@ -1666,6 +1760,33 @@ pub(crate) fn supports_relative_mouse() -> bool {
 /// Translation of `Android_JNI_SetRelativeMouseEnabled()`.
 pub(crate) fn set_relative_mouse_enabled(enabled: bool) -> bool {
     with_env(|env| super::java::activity::set_relative_mouse_enabled(env, enabled)).unwrap_or(false)
+}
+
+// Screen keyboard
+
+/// The activity's text edit, of the input type, over the window's text
+/// input area (`SDLActivity.showTextInput()`). Translation of
+/// `Android_JNI_ShowScreenKeyboard()`.
+pub(crate) fn show_screen_keyboard(input_type: i32, input_rect: &crate::video::Rect) {
+    with_env(|env| {
+        super::java::activity::show_text_input(
+            env,
+            input_type,
+            input_rect.x,
+            input_rect.y,
+            input_rect.w,
+            input_rect.h,
+        )
+    });
+}
+
+/// `COMMAND_TEXTEDIT_HIDE` (it has to match the activity's).
+const COMMAND_TEXTEDIT_HIDE: i32 = 3;
+
+/// Translation of `Android_JNI_HideScreenKeyboard()`.
+pub(crate) fn hide_screen_keyboard() {
+    // has to match Activity constant
+    send_message(COMMAND_TEXTEDIT_HIDE, 0);
 }
 
 /// Translation of `Android_JNI_MinimizeWindow()`.

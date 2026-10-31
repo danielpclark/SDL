@@ -1365,10 +1365,19 @@ impl<'a> Env<'a> {
         Ok(unsafe { Local::from_raw(self, raw) }.expect("NewString() threw none"))
     }
 
+    /// `NewString()` of UTF-16 units (Java's `String` of a `char[]`).
+    pub(crate) fn new_string_utf16(self, units: &[jchar]) -> JniResult<'a, Local<'a>> {
+        // SAFETY: the units and their count.
+        let raw =
+            unsafe { (self.table().NewString)(self.raw(), units.as_ptr(), units.len() as jsize) };
+        self.check()?;
+        // SAFETY: a new local reference.
+        Ok(unsafe { Local::from_raw(self, raw) }.expect("NewString() threw none"))
+    }
+
     /// A Java string's characters (`GetStringLength()` and
-    /// `GetStringRegion()`, its UTF-16), as UTF-8 (an unpaired surrogate,
-    /// which UTF-8 can't have, becomes U+FFFD).
-    pub(crate) fn get_string(self, string: Obj<'_>) -> JniResult<'a, String> {
+    /// `GetStringRegion()`), its UTF-16 units.
+    pub(crate) fn get_string_utf16(self, string: Obj<'_>) -> JniResult<'a, Vec<jchar>> {
         // SAFETY: a valid string.
         let length = unsafe { (self.table().GetStringLength)(self.raw(), string.raw()) };
         self.check()?;
@@ -1378,7 +1387,14 @@ impl<'a> Env<'a> {
             (self.table().GetStringRegion)(self.raw(), string.raw(), 0, length, units.as_mut_ptr())
         };
         self.check()?;
-        Ok(String::from_utf16_lossy(&units))
+        Ok(units)
+    }
+
+    /// A Java string's characters (its UTF-16, [`Env::get_string_utf16`]),
+    /// as UTF-8 (an unpaired surrogate, which UTF-8 can't have, becomes
+    /// U+FFFD).
+    pub(crate) fn get_string(self, string: Obj<'_>) -> JniResult<'a, String> {
+        Ok(String::from_utf16_lossy(&self.get_string_utf16(string)?))
     }
 
     /// `NewStringUTF()` of a Modified UTF-8 string (one without U+0000 or

@@ -39,14 +39,21 @@
 //! `destroyCustomCursor()`, `setCustomCursor()`, `setSystemCursor()`: the
 //! surface's `PointerIcon`) and the relative mouse mode
 //! (`supportsRelativeMouse()`, `setRelativeMouseEnabled()`, the pointer
-//! captured again when the activity gets the focus back).
+//! captured again when the activity gets the focus back); the keys of its
+//! views (`handleKeyEvent()`: a game controller's to the controller
+//! manager first, the mouse's back and forward keys dropped, the others
+//! SDL's, with their text, `isTextInputEvent()`); and text input: its text
+//! edit (`mTextEdit`, an `SDLDummyEdit`: `super::dummy_edit`), put over
+//! the text input area, focused and given the input method's keyboard by
+//! `showTextInput()` (its `ShowTextInputTask`, a class of the DEX file),
+//! and hidden by the command handler's `COMMAND_TEXTEDIT_HIDE`.
 //!
-//! Not translated yet, and so skipped where upstream does them:
-//! `SDLDummyEdit` (`mTextEdit`, so `isScreenKeyboardShown()` is false),
-//! the controller, HID, clipboard and audio managers, the file dialogs'
-//! results (`onActivityResult()`), and what the activity offers SDL's C
-//! side for text input and message boxes. They come with the backends
-//! that use them. What it offers the small backends is here: permissions
+//! Not translated yet, and so skipped where upstream does them: the
+//! controller, HID, clipboard and audio managers (a game controller's keys
+//! go to the controller manager's natives, which answer false until the
+//! joysticks come), the file dialogs' results (`onActivityResult()`), and
+//! what the activity offers SDL's C side for message boxes. They come with
+//! the backends that use them. What it offers the small backends is here: permissions
 //! (`requestPermission()`,
 //! `onRequestPermissionsResult()`), URLs (`openURL()`), toasts
 //! (`showToast()`), the content resolver's files (`openFileDescriptor()`)
@@ -125,6 +132,9 @@ struct Statics {
     last_cursor_id: jint,
     /// `mMotionListener`.
     motion_listener: Option<Global>,
+    /// `mTextEdit`, the text edit (an `SDLDummyEdit`), once text input has
+    /// started.
+    text_edit: Option<Global>,
 }
 
 static STATICS: Mutex<Statics> = Mutex::new(Statics {
@@ -148,6 +158,7 @@ static STATICS: Mutex<Statics> = Mutex::new(Statics {
     cursors: BTreeMap::new(),
     last_cursor_id: 0,
     motion_listener: None,
+    text_edit: None,
 });
 
 fn statics() -> std::sync::MutexGuard<'static, Statics> {
@@ -525,7 +536,7 @@ pub(crate) fn initialize() {
     let mut s = statics();
     s.singleton = None;
     s.surface = None;
-    // (mTextEdit: with the keyboard)
+    s.text_edit = None;
     s.layout = None;
     // (mClipboardHandler: with the clipboard)
     s.cursors = BTreeMap::new();
@@ -1494,7 +1505,6 @@ pub(crate) extern "system" fn dispatch_key_event(
 }
 
 /// Translation of `dispatchingKeyEvent()`.
-#[allow(dead_code)] // (the keyboard's input connection asks)
 pub(crate) fn dispatching_key_event() -> bool {
     statics().dispatching_key_event
 }
@@ -1680,8 +1690,48 @@ pub(crate) extern "system" fn command_handler_handle_message(
                 }
             }
             COMMAND_TEXTEDIT_HIDE => {
-                // (mTextEdit != null: the text edit, with the keyboard;
-                // mTextEdit is null without it)
+                if let Some(text_edit) = text_edit(env) {
+                    // Note: On some devices setting view to GONE creates a flicker in landscape.
+                    // Setting the View's sizes to 0 is similar to GONE but without the flicker.
+                    // The sizes will be set to useful values when the keyboard is shown again.
+                    let params = new_relative_layout_params(env, 0, 0)?;
+                    env.call_method(
+                        text_edit.obj(),
+                        c"setLayoutParams",
+                        c"(Landroid/view/ViewGroup$LayoutParams;)V",
+                        &[Arg::Object(params.obj())],
+                    )?;
+
+                    let imm = input_method_manager(env, context)?;
+                    let token = env
+                        .call_method(
+                            text_edit.obj(),
+                            c"getWindowToken",
+                            c"()Landroid/os/IBinder;",
+                            &[],
+                        )?
+                        .object();
+                    env.call_method(
+                        imm.obj(),
+                        c"hideSoftInputFromWindow",
+                        c"(Landroid/os/IBinder;I)Z",
+                        &[
+                            Arg::Object(token.as_ref().map_or(Obj::NULL, Local::obj)),
+                            Arg::Int(0),
+                        ],
+                    )?;
+
+                    super::super::on_screen_keyboard_hidden();
+
+                    let surface = statics()
+                        .surface
+                        .as_ref()
+                        .and_then(|s| env.new_local_ref(s.obj()));
+                    let Some(surface) = surface else {
+                        return null_pointer(env, c"SDLActivity.mSurface is null");
+                    };
+                    env.call_method(surface.obj(), c"requestFocus", c"()Z", &[])?;
+                }
             }
             COMMAND_SET_KEEP_SCREEN_ON => {
                 if is_activity(env, context) {
@@ -2224,20 +2274,336 @@ pub(crate) fn set_relative_mouse_enabled<'a>(env: Env<'a>, enabled: bool) -> Jni
     controller_manager::set_relative_mouse_enabled(env, motion_listener.obj(), enabled)
 }
 
-/// This method is called by SDL using JNI: whether the screen keyboard is
-/// shown. Translation of `isScreenKeyboardShown()`, whose `mTextEdit`
-/// comes with the keyboard: null until then, so false.
-#[allow(dead_code)] // (the keyboard asks)
-pub(crate) fn is_screen_keyboard_shown(_env: Env<'_>) -> bool {
-    // (mTextEdit == null)
-    false
-}
-
 /// This method is called by SDLControllerManager's API 26 Generic Motion
 /// Handler. Translation of `getContentView()`.
 pub(crate) fn get_content_view<'a>(env: Env<'a>) -> Option<Local<'a>> {
     let s = statics();
     s.layout.as_ref().and_then(|l| env.new_local_ref(l.obj()))
+}
+
+/// `mTextEdit`, as a local reference (`None`: null).
+pub(crate) fn text_edit<'a>(env: Env<'a>) -> Option<Local<'a>> {
+    let s = statics();
+    s.text_edit
+        .as_ref()
+        .and_then(|t| env.new_local_ref(t.obj()))
+}
+
+/// `new RelativeLayout.LayoutParams(w, h)`.
+fn new_relative_layout_params<'a>(env: Env<'a>, w: jint, h: jint) -> JniResult<'a, Local<'a>> {
+    let class = env.find_class(c"android/widget/RelativeLayout$LayoutParams")?;
+    env.new_object(class.obj(), c"(II)V", &[Arg::Int(w), Arg::Int(h)])
+}
+
+/// `(InputMethodManager) context.getSystemService(Context.INPUT_METHOD_SERVICE)`.
+fn input_method_manager<'a>(env: Env<'a>, context: Obj<'_>) -> JniResult<'a, Local<'a>> {
+    let name = env.new_string("input_method")?; // Context.INPUT_METHOD_SERVICE
+    let imm = env
+        .call_method(
+            context,
+            c"getSystemService",
+            c"(Ljava/lang/String;)Ljava/lang/Object;",
+            &[Arg::Object(name.obj())],
+        )?
+        .object();
+    match imm {
+        Some(imm) => Ok(imm),
+        None => null_pointer(env, c"no InputMethodManager"),
+    }
+}
+
+/// This is used to regulate the pan&scan method to have some offset from
+/// the bottom edge of the input region and the top edge of an input method
+/// (soft keyboard). `ShowTextInputTask.HEIGHT_PADDING`.
+const HEIGHT_PADDING: jint = 15;
+
+/// `new ShowTextInputTask(input_type, x, y, w, h)`: the DEX file's
+/// `SDLActivity$ShowTextInputTask` (whose constructor is `Object`'s), its
+/// fields set as upstream's constructor sets them.
+fn new_show_text_input_task<'a>(
+    env: Env<'a>,
+    input_type: jint,
+    x: jint,
+    y: jint,
+    mut w: jint,
+    mut h: jint,
+) -> JniResult<'a, Local<'a>> {
+    let class = env::app_class(super::super::classes::SDL_SHOW_TEXT_INPUT_TASK)
+        .expect("JNI_OnLoad() found ShowTextInputTask");
+    let this = env.new_object(class.obj(), c"()V", &[])?;
+
+    /* Minimum size of 1 pixel, so it takes focus. */
+    if w <= 0 {
+        w = 1;
+    }
+    if h + HEIGHT_PADDING <= 0 {
+        h = 1 - HEIGHT_PADDING;
+    }
+    for (name, value) in [
+        (c"input_type", input_type),
+        (c"x", x),
+        (c"y", y),
+        (c"w", w),
+        (c"h", h),
+    ] {
+        env.set_field(this.obj(), name, c"I", Arg::Int(value))?;
+    }
+    Ok(this)
+}
+
+/// `View.VISIBLE`.
+const VISIBLE: jint = 0;
+
+/// The text edit over the text input area, of the input type, focused, and
+/// the input method's keyboard shown. Translation of
+/// `ShowTextInputTask.run()`.
+pub(crate) extern "system" fn show_text_input_task_run(env: *mut JNIEnv, this: jobject) {
+    // SAFETY: a native method's environment and object.
+    let (env, this) = unsafe { (Env::from_raw(env), Obj::from_raw(this)) };
+    native(env, |env| {
+        let field = |name: &CStr| env.get_field(this, name, c"I").map(env::Value::int);
+        let (input_type, x, y, w, h) = (
+            field(c"input_type")?,
+            field(c"x")?,
+            field(c"y")?,
+            field(c"w")?,
+            field(c"h")?,
+        );
+        let layout = {
+            let s = statics();
+            s.layout.as_ref().and_then(|l| env.new_local_ref(l.obj()))
+        };
+        let Some(layout) = layout else {
+            return Ok(());
+        };
+
+        let params = new_relative_layout_params(env, w, h + HEIGHT_PADDING)?;
+        env.set_field(params.obj(), c"leftMargin", c"I", Arg::Int(x))?;
+        env.set_field(params.obj(), c"topMargin", c"I", Arg::Int(y))?;
+
+        let text_edit = match text_edit(env) {
+            None => {
+                let context = context_or_throw(env)?;
+                let text_edit = super::dummy_edit::new_sdl_dummy_edit(env, context.obj())?;
+                statics().text_edit = Global::new(env, text_edit.obj());
+
+                env.call_method(
+                    layout.obj(),
+                    c"addView",
+                    c"(Landroid/view/View;Landroid/view/ViewGroup$LayoutParams;)V",
+                    &[Arg::Object(text_edit.obj()), Arg::Object(params.obj())],
+                )?;
+                text_edit
+            }
+            Some(text_edit) => {
+                env.call_method(
+                    text_edit.obj(),
+                    c"setLayoutParams",
+                    c"(Landroid/view/ViewGroup$LayoutParams;)V",
+                    &[Arg::Object(params.obj())],
+                )?;
+                text_edit
+            }
+        };
+        super::dummy_edit::set_input_type(env, text_edit.obj(), input_type)?;
+
+        env.call_method(
+            text_edit.obj(),
+            c"setVisibility",
+            c"(I)V",
+            &[Arg::Int(VISIBLE)],
+        )?;
+        env.call_method(text_edit.obj(), c"requestFocus", c"()Z", &[])?;
+
+        let context = context_or_throw(env)?;
+        let imm = input_method_manager(env, context.obj())?;
+        env.call_method(
+            imm.obj(),
+            c"showSoftInput",
+            c"(Landroid/view/View;I)Z",
+            &[Arg::Object(text_edit.obj()), Arg::Int(0)],
+        )?;
+
+        if env
+            .call_method(imm.obj(), c"isAcceptingText", c"()Z", &[])?
+            .boolean()
+        {
+            super::super::on_screen_keyboard_shown();
+        }
+        Ok(())
+    });
+}
+
+/// This method is called by SDL using JNI: the text edit shown on the main
+/// thread, whether its task was posted. Translation of `showTextInput()`.
+pub(crate) fn show_text_input<'a>(
+    env: Env<'a>,
+    input_type: jint,
+    x: jint,
+    y: jint,
+    w: jint,
+    h: jint,
+) -> JniResult<'a, bool> {
+    if statics().layout.is_none() {
+        return Ok(false);
+    }
+
+    // Transfer the task to the main thread as a Runnable
+    let task = new_show_text_input_task(env, input_type, x, y, w, h)?;
+    let singleton = singleton_or_throw(env)?;
+    let Some(command_handler) = env
+        .get_field(singleton.obj(), c"commandHandler", c"Landroid/os/Handler;")?
+        .object()
+    else {
+        return null_pointer(env, c"SDLActivity.commandHandler is null");
+    };
+    Ok(env
+        .call_method(
+            command_handler.obj(),
+            c"post",
+            c"(Ljava/lang/Runnable;)Z",
+            &[Arg::Object(task.obj())],
+        )?
+        .boolean())
+}
+
+/// `KeyEvent.KEYCODE_SPACE`.
+const KEYCODE_SPACE: jint = 62;
+
+/// Whether a key event's character is text (`SDL_EVENT_TEXT_INPUT`).
+/// Translation of `isTextInputEvent()`.
+pub(crate) fn is_text_input_event<'a>(env: Env<'a>, event: Obj<'_>) -> JniResult<'a, bool> {
+    // Key pressed with Ctrl should be sent as SDL_KEYDOWN/SDL_KEYUP and not SDL_TEXTINPUT
+    if env
+        .call_method(event, c"isCtrlPressed", c"()Z", &[])?
+        .boolean()
+    {
+        return Ok(false);
+    }
+
+    Ok(env
+        .call_method(event, c"isPrintingKey", c"()Z", &[])?
+        .boolean()
+        || env.call_method(event, c"getKeyCode", c"()I", &[])?.int() == KEYCODE_SPACE)
+}
+
+/// `KeyEvent.FLAG_FALLBACK`.
+const FLAG_FALLBACK: jint = 0x400;
+/// `InputDevice.SOURCE_UNKNOWN`, `SOURCE_MOUSE`.
+const SOURCE_UNKNOWN: jint = 0;
+const SOURCE_MOUSE: jint = 0x2002;
+/// `KeyEvent.ACTION_DOWN`, `ACTION_UP`.
+const ACTION_DOWN: jint = 0;
+const ACTION_UP: jint = 1;
+/// `KeyEvent.KEYCODE_FORWARD`.
+const KEYCODE_FORWARD: jint = 125;
+
+/// A view's key event (the surface's, the text edit's: `onKey()`), with
+/// the text edit's input connection (`ic`, which commits a key's text; null
+/// for the surface): whether it was handled. Translation of
+/// `handleKeyEvent()`.
+pub(crate) fn handle_key_event<'a>(
+    env: Env<'a>,
+    _v: Obj<'_>,
+    key_code: jint,
+    event: Obj<'_>,
+    ic: Obj<'_>,
+) -> JniResult<'a, bool> {
+    let device_id = env.call_method(event, c"getDeviceId", c"()I", &[])?.int();
+    let mut source = env.call_method(event, c"getSource", c"()I", &[])?.int();
+    let input_device = env.find_class(c"android/view/InputDevice")?;
+    let device = env
+        .call_static_method(
+            input_device.obj(),
+            c"getDevice",
+            c"(I)Landroid/view/InputDevice;",
+            &[Arg::Int(device_id)],
+        )?
+        .object();
+
+    if (env.call_method(event, c"getFlags", c"()I", &[])?.int() & FLAG_FALLBACK) != 0 {
+        // If this is a fallback event -- e.g., the mouse is being turned into dpad navigational keys
+        // just eat it, since that's almost never what we actually want to have happen. This will
+        // happen with Logitech mice on Amazon Fire TV devices and some Samsung devices.
+        return Ok(true);
+    }
+
+    if source == SOURCE_UNKNOWN {
+        if let Some(device) = &device {
+            source = env
+                .call_method(device.obj(), c"getSources", c"()I", &[])?
+                .int();
+        }
+    }
+
+    // Dispatch the different events depending on where they come from
+    // Some SOURCE_JOYSTICK, SOURCE_DPAD or SOURCE_GAMEPAD are also SOURCE_KEYBOARD
+    // So, we try to process them as JOYSTICK/DPAD/GAMEPAD events first, if that fails we try them as KEYBOARD
+    //
+    // Furthermore, it's possible a game controller has SOURCE_KEYBOARD and
+    // SOURCE_JOYSTICK, while its key events arrive from the keyboard source
+    // So, retrieve the device itself and check all of its sources
+    let action = env.call_method(event, c"getAction", c"()I", &[])?.int();
+    if sdl::is_controller_manager_ready()
+        && controller_manager::is_device_sdl_joystick(env, device.as_ref().map(Local::obj))?
+    {
+        // Note that we process events with specific key codes here
+        let scan_code = env.call_method(event, c"getScanCode", c"()I", &[])?.int();
+        if action == ACTION_DOWN {
+            if controller_manager::on_native_pad_down(device_id, key_code, scan_code) {
+                return Ok(true);
+            }
+        } else if action == ACTION_UP
+            && controller_manager::on_native_pad_up(device_id, key_code, scan_code)
+        {
+            return Ok(true);
+        }
+    }
+
+    if (source & SOURCE_MOUSE) == SOURCE_MOUSE {
+        if is_vr_headset(env)? {
+            // The Oculus Quest controller back button comes in as source mouse, so accept that
+        } else {
+            // on some devices key events are sent for mouse BUTTON_BACK/FORWARD presses
+            // they are ignored here because sending them as mouse input to SDL is messy
+            if (key_code == KEYCODE_BACK || key_code == KEYCODE_FORWARD)
+                && (action == ACTION_DOWN || action == ACTION_UP)
+            {
+                // mark the event as handled or it will be handled by system
+                // handling KEYCODE_BACK by system will call onBackPressed()
+                return Ok(true);
+            }
+        }
+    }
+
+    if action == ACTION_DOWN {
+        super::super::on_key_down(key_code);
+
+        if is_text_input_event(env, event)? {
+            // String.valueOf((char) event.getUnicodeChar())
+            let unicode_char = env
+                .call_method(event, c"getUnicodeChar", c"()I", &[])?
+                .int() as jchar;
+            if !ic.is_null() {
+                let text = env.new_string_utf16(&[unicode_char])?;
+                env.call_method(
+                    ic,
+                    c"commitText",
+                    c"(Ljava/lang/CharSequence;I)Z",
+                    &[Arg::Object(text.obj()), Arg::Int(1)],
+                )?;
+            } else {
+                // SDLInputConnection.nativeCommitText(String.valueOf(...), 1)
+                super::super::commit_text(&String::from_utf16_lossy(&[unicode_char]));
+            }
+        }
+        return Ok(true);
+    } else if action == ACTION_UP {
+        super::super::on_key_up(key_code);
+        return Ok(true);
+    }
+
+    Ok(false)
 }
 
 /// This method is called by SDL using JNI: the surface's `Surface` (null

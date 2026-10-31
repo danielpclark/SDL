@@ -33,9 +33,9 @@
 //!   load.
 //!
 //! Each class's entry lists the members translated so far, in upstream's
-//! order; the classes and members still to come (`SDLInputConnection`,
-//! `SDLDummyEdit`, the controller and HID managers' listeners and
-//! receivers, ...) are added with their translations. The
+//! order; the classes and members still to come (the controller and HID
+//! managers' listeners and receivers, ...) are added with their
+//! translations. The
 //! anonymous classes upstream creates (`new Runnable() {...}`, dialog
 //! listeners) can't be declared with upstream's names (`SDLActivity$1`),
 //! which are the compiler's: they are two classes of their own,
@@ -172,16 +172,22 @@ const fn constructor(access: u32, descriptor: &'static str) -> Method {
 }
 
 #[cfg(target_os = "android")]
-use super::java::{activity, anonymous, controller_manager, surface};
+use super::java::{activity, anonymous, controller_manager, dummy_edit, input_connection, surface};
 
 /// `org.libsdl.app.SDLActivity`.
 pub(crate) const SDL_ACTIVITY: &str = "org/libsdl/app/SDLActivity";
 /// `org.libsdl.app.SDLActivity.SDLCommandHandler`.
 pub(crate) const SDL_COMMAND_HANDLER: &str = "org/libsdl/app/SDLActivity$SDLCommandHandler";
+/// `org.libsdl.app.SDLActivity.ShowTextInputTask`.
+pub(crate) const SDL_SHOW_TEXT_INPUT_TASK: &str = "org/libsdl/app/SDLActivity$ShowTextInputTask";
 /// `org.libsdl.app.SDLMain`.
 pub(crate) const SDL_MAIN: &str = "org/libsdl/app/SDLMain";
 /// `org.libsdl.app.SDLSurface`.
 pub(crate) const SDL_SURFACE: &str = "org/libsdl/app/SDLSurface";
+/// `org.libsdl.app.SDLDummyEdit`.
+pub(crate) const SDL_DUMMY_EDIT: &str = "org/libsdl/app/SDLDummyEdit";
+/// `org.libsdl.app.SDLInputConnection`.
+pub(crate) const SDL_INPUT_CONNECTION: &str = "org/libsdl/app/SDLInputConnection";
 /// `org.libsdl.app.SDLNativeRunnable`, upstream's anonymous `Runnable`s.
 pub(crate) const SDL_NATIVE_RUNNABLE: &str = "org/libsdl/app/SDLNativeRunnable";
 /// `org.libsdl.app.SDLNativeListener`, the invocation handler of the
@@ -322,6 +328,18 @@ pub(crate) static CLASSES: &[Class] = &[
                 "onNativeKeyUp",
                 "(I)V",
                 super::on_native_key_up[_]
+            ),
+            native!(
+                PUBLIC | STATIC,
+                "onNativeSoftReturnKey",
+                "()Z",
+                super::on_native_soft_return_key[]
+            ),
+            native!(
+                PUBLIC | STATIC,
+                "onNativeKeyboardFocusLost",
+                "()V",
+                super::on_native_keyboard_focus_lost[]
             ),
             native!(
                 PUBLIC | STATIC,
@@ -484,6 +502,47 @@ pub(crate) static CLASSES: &[Class] = &[
             ),
         ],
     },
+    // SDLActivity.java's `static class ShowTextInputTask implements
+    // Runnable`, the text edit shown on the main thread. (Its constructor
+    // is `Object`'s: upstream's `(IIIII)V` sets the fields, which
+    // `super::java::activity` does.)
+    Class {
+        name: SDL_SHOW_TEXT_INPUT_TASK,
+        access: 0,
+        superclass: "java/lang/Object",
+        interfaces: &["java/lang/Runnable"],
+        fields: &[
+            Field {
+                name: "input_type",
+                descriptor: "I",
+                access: PUBLIC,
+            },
+            Field {
+                name: "x",
+                descriptor: "I",
+                access: PUBLIC,
+            },
+            Field {
+                name: "y",
+                descriptor: "I",
+                access: PUBLIC,
+            },
+            Field {
+                name: "w",
+                descriptor: "I",
+                access: PUBLIC,
+            },
+            Field {
+                name: "h",
+                descriptor: "I",
+                access: PUBLIC,
+            },
+        ],
+        methods: &[
+            constructor(PUBLIC, "()V"),
+            native!(PUBLIC, "run", "()V", activity::show_text_input_task_run[]),
+        ],
+    },
     // SDLActivity.java's `class SDLMain implements Runnable`, the SDL
     // thread's code.
     Class {
@@ -497,8 +556,7 @@ pub(crate) static CLASSES: &[Class] = &[
             native!(PUBLIC, "run", "()V", activity::sdl_main_run[]),
         ],
     },
-    // SDLSurface.java: the activity's view, what SDL draws on. (Its key
-    // method is a stub until the keyboard: super::java::surface.)
+    // SDLSurface.java: the activity's view, what SDL draws on.
     Class {
         name: SDL_SURFACE,
         access: PUBLIC,
@@ -696,6 +754,117 @@ pub(crate) static CLASSES: &[Class] = &[
         interfaces: &[],
         fields: &[],
         methods: &[constructor(0, "()V")],
+    },
+    // SDLDummyEdit.java: the text edit, a fake invisible editor view that
+    // receives the input.
+    Class {
+        name: SDL_DUMMY_EDIT,
+        access: PUBLIC,
+        superclass: "android/view/View",
+        interfaces: &["android/view/View$OnKeyListener"],
+        fields: &[
+            Field {
+                name: "ic",
+                descriptor: "Landroid/view/inputmethod/InputConnection;",
+                access: 0,
+            },
+            Field {
+                name: "input_type",
+                descriptor: "I",
+                access: 0,
+            },
+        ],
+        methods: &[
+            constructor(0, "(Landroid/content/Context;)V"),
+            native!(
+                PUBLIC,
+                "onCheckIsTextEditor",
+                "()Z",
+                dummy_edit::on_check_is_text_editor[]
+            ),
+            native!(
+                PUBLIC,
+                "onKey",
+                "(Landroid/view/View;ILandroid/view/KeyEvent;)Z",
+                dummy_edit::on_key[_, _, _]
+            ),
+            native!(
+                PUBLIC,
+                "onKeyPreIme",
+                "(ILandroid/view/KeyEvent;)Z",
+                dummy_edit::on_key_pre_ime[_, _]
+            ),
+            native!(
+                PUBLIC,
+                "onCreateInputConnection",
+                "(Landroid/view/inputmethod/EditorInfo;)Landroid/view/inputmethod/InputConnection;",
+                dummy_edit::on_create_input_connection[_]
+            ),
+        ],
+    },
+    // SDLInputConnection.java: the text edit's input connection.
+    Class {
+        name: SDL_INPUT_CONNECTION,
+        access: 0,
+        superclass: "android/view/inputmethod/BaseInputConnection",
+        interfaces: &[],
+        fields: &[
+            Field {
+                name: "mEditText",
+                descriptor: "Landroid/widget/EditText;",
+                access: PROTECTED,
+            },
+            Field {
+                name: "mCommittedText",
+                descriptor: "Ljava/lang/String;",
+                access: PROTECTED,
+            },
+        ],
+        methods: &[
+            constructor(0, "(Landroid/view/View;Z)V"),
+            native!(
+                PUBLIC,
+                "getEditable",
+                "()Landroid/text/Editable;",
+                input_connection::get_editable[]
+            ),
+            native!(
+                PUBLIC,
+                "sendKeyEvent",
+                "(Landroid/view/KeyEvent;)Z",
+                input_connection::send_key_event[_]
+            ),
+            native!(
+                PUBLIC,
+                "commitText",
+                "(Ljava/lang/CharSequence;I)Z",
+                input_connection::commit_text[_, _]
+            ),
+            native!(
+                PUBLIC,
+                "setComposingText",
+                "(Ljava/lang/CharSequence;I)Z",
+                input_connection::set_composing_text[_, _]
+            ),
+            native!(
+                PUBLIC,
+                "deleteSurroundingText",
+                "(II)Z",
+                input_connection::delete_surrounding_text[_, _]
+            ),
+            native!(
+                PUBLIC | STATIC,
+                "nativeCommitText",
+                "(Ljava/lang/String;I)V",
+                super::native_commit_text[_, _]
+            ),
+            native!(
+                PUBLIC | STATIC,
+                "nativeGenerateScancodeForUnichar",
+                "(C)V",
+                super::native_generate_scancode_for_unichar[_]
+            ),
+        ],
     },
     // Upstream's anonymous `Runnable`s (`new Runnable() {...}`): a Rust
     // closure in `ptr`, run once (super::java::anonymous).
