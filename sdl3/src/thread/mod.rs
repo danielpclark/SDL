@@ -225,6 +225,28 @@ impl RawMutex {
         }
     }
 
+    /// Lock unless another thread holds the lock: whether it's locked.
+    /// Translation of `SDL_TryLockMutex()`.
+    #[cfg_attr(not(target_os = "android"), allow(dead_code))] // (the android camera driver's)
+    pub(crate) fn try_lock(&self) -> bool {
+        if THREADS_DISABLED {
+            return true;
+        }
+        let this_thread = current_thread_id();
+        if self.owner.load(Ordering::Acquire) == this_thread {
+            // SAFETY: we own the lock, nobody else touches `recursive`.
+            unsafe { *self.recursive.get() += 1 };
+            true
+        } else if self.sem.try_wait() {
+            self.owner.store(this_thread, Ordering::Release);
+            // SAFETY: we now own the lock.
+            unsafe { *self.recursive.get() = 0 };
+            true
+        } else {
+            false
+        }
+    }
+
     /// Translation of `SDL_UnlockMutex()`.
     pub(crate) fn unlock(&self) {
         if THREADS_DISABLED {
@@ -307,6 +329,18 @@ impl<T> ReentrantMutex<T> {
     pub fn lock(&self) -> ReentrantMutexGuard<'_, T> {
         self.raw.lock();
         ReentrantMutexGuard { m: self }
+    }
+
+    /// Lock (recursively) unless another thread holds the lock.
+    /// Translation of `SDL_TryLockMutex()`.
+    #[cfg_attr(not(target_os = "android"), allow(dead_code))] // (the android camera driver's)
+    pub(crate) fn try_lock(&self) -> Option<ReentrantMutexGuard<'_, T>> {
+        // (the guard made only once it's locked: dropping one unlocks)
+        if self.raw.try_lock() {
+            Some(ReentrantMutexGuard { m: self })
+        } else {
+            None
+        }
     }
 }
 
@@ -491,6 +525,26 @@ mod tests {
             h.join().unwrap();
         }
         assert_eq!(m.lock().get(), 8000);
+    }
+
+    #[test]
+    #[cfg_attr(target_os = "emscripten", ignore = "threads (SDL_THREADS_DISABLED)")]
+    fn try_lock_recursive_and_exclusion() {
+        let m = Arc::new(ReentrantMutex::new(()));
+        {
+            let _a = m.try_lock().expect("an unlocked mutex");
+            let _b = m.try_lock().expect("recursive");
+            let other = m.clone();
+            assert!(std::thread::spawn(move || other.try_lock().is_none())
+                .join()
+                .unwrap());
+        }
+        let other = m.clone();
+        assert!(std::thread::spawn(move || other.try_lock().is_some())
+            .join()
+            .unwrap());
+        // (and released: a lock from here doesn't wait)
+        drop(m.lock());
     }
 
     #[test]

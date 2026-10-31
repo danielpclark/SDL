@@ -25,14 +25,16 @@
 //!
 //! The camera backends are platform drivers: on Linux, V4L2 and PipeWire
 //! (in that order, as upstream); on macOS and iOS (not tvOS or visionOS,
-//! as upstream), CoreMedia (AVFoundation); on Windows, Media Foundation;
-//! on Emscripten, the browser's camera (`getUserMedia()`); elsewhere, so
-//! far, only the dummy driver, which
+//! as upstream), CoreMedia (AVFoundation); on Android, the camera2 NDK;
+//! on Windows, Media Foundation; on Emscripten, the browser's camera
+//! (`getUserMedia()`); elsewhere, so far, only the dummy driver, which
 //! reports no cameras and is used only when requested with
 //! [`hints::CAMERA_DRIVER`]. Without a platform driver, initializing the
 //! camera subsystem fails with "No available camera driver", as upstream
 //! does on a platform without camera support.
 
+#[cfg(target_os = "android")]
+mod android;
 #[cfg(any(target_os = "macos", target_os = "ios"))]
 mod coremedia;
 mod dummy;
@@ -202,6 +204,8 @@ static BOOTSTRAP: &[&CameraBootStrap] = &[
     &pipewire::PIPEWIRECAMERA_BOOTSTRAP,
     #[cfg(any(target_os = "macos", target_os = "ios"))]
     &coremedia::COREMEDIA_BOOTSTRAP,
+    #[cfg(target_os = "android")]
+    &android::ANDROIDCAMERA_BOOTSTRAP,
     #[cfg(target_os = "emscripten")]
     &emscripten::EMSCRIPTENCAMERA_BOOTSTRAP,
     #[cfg(windows)]
@@ -299,6 +303,12 @@ pub(crate) struct CameraDevice {
 impl CameraDevice {
     fn lock(&self) -> DeviceGuard<'_> {
         self.lock.lock()
+    }
+
+    /// The device's lock, unless another thread holds it.
+    #[cfg(target_os = "android")]
+    fn try_lock(&self) -> Option<DeviceGuard<'_>> {
+        self.lock.try_lock()
     }
 
     /// Whether the device thread is being asked to end.
