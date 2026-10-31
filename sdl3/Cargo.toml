@@ -406,3 +406,10 @@ harness = false
 [[test]]
 name = "android_camera"
 harness = false
+
+# HIDAPI's Android backend and the HID device manager in an app (no
+# devices on the emulator: the manager's natives tell of devices, which
+# are enumerated, opened, read and closed), against upstream's C.
+[[test]]
+name = "android_hidapi"
+harness = false
