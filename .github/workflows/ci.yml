@@ -955,8 +955,8 @@ jobs:
             "$ADB" logcat -b all -c
             rc=0; cargo test --target x86_64-linux-android -p sdl3 --test android_clipboard > "$RUNNER_TEMP/clip$i.log" 2>&1 || rc=$?
             echo "round $i: rc=$rc"
-            grep -E "differs" "$RUNNER_TEMP/clip$i.log" | cut -c1-300
-            timeout 60 "$ADB" logcat -d -v time | grep -iE "SDLDIAG|focus|Overlay|lipboardListener" | grep -v IPCThreadState | grep -E "SDLDIAG|Changing focus|Overlay|lipboardListener|FocusChanged|setFocusedWindow|mCurrentFocus" | cut -c1-260 | tail -300
+            { grep -E "differs" "$RUNNER_TEMP/clip$i.log" || true; } | cut -c1-300
+            timeout 60 "$ADB" logcat -d -v time | grep -iE "SDLDIAG|focus|Overlay|lipboardListener" | grep -v IPCThreadState | grep -E "SDLDIAG|Changing focus|Overlay|lipboardListener|FocusChanged|setFocusedWindow|mCurrentFocus" | cut -c1-260 | tail -300 || true
           done
       # The app mode once more, with arguments and a variable (the same
       # string, which comes through the manifest and the arguments each its
