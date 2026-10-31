@@ -520,3 +520,19 @@ pub fn string_utf16(env: JNIEnv, string: Jobject) -> Vec<u16> {
         units
     }
 }
+
+/// `NewByteArray()` and `SetByteArrayRegion()`: a local reference to a
+/// `byte[]` of the bytes.
+pub fn new_byte_array(env: JNIEnv, bytes: &[u8]) -> Jobject {
+    // SAFETY: jni.h's functions 176 and 208, of a new array and its length.
+    unsafe {
+        let new: unsafe extern "system" fn(JNIEnv, i32) -> Jobject = function(env, 176);
+        let array = new(env, bytes.len() as i32);
+        assert!(!exception(env) && !array.is_null(), "NewByteArray()");
+        let set: unsafe extern "system" fn(JNIEnv, Jobject, i32, i32, *const u8) =
+            function(env, 208);
+        set(env, array, 0, bytes.len() as i32, bytes.as_ptr());
+        assert!(!exception(env), "SetByteArrayRegion()");
+        array
+    }
+}
