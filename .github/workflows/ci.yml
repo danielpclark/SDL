@@ -941,6 +941,22 @@ jobs:
           TEST_ARGS: ${{ inputs.android_test_args }}
           SDL3_TEST_SKIP_LOG: ${{ runner.temp }}/skips.tsv
         run: cargo test --target x86_64-linux-android --no-fail-fast ${TEST_ARGS:---workspace} 2>&1 | tee "$RUNNER_TEMP/test.log"
+      - name: (diag) android_clipboard again and again
+        if: ${{ !cancelled() }}
+        shell: bash
+        run: |
+          ADB="$ANDROID_HOME/platform-tools/adb"
+          "$ADB" shell setprop log.tag.ClipboardService VERBOSE || true
+          for i in 1 2 3 4 5 6 7 8 9 10; do
+            echo "=== round $i"
+            if [ $((i % 2)) = 1 ]; then "$ADB" shell am start -a android.intent.action.VIEW -d https://example.com/ || true; sleep 8; fi
+            "$ADB" shell dumpsys window | grep -E "mCurrentFocus=" | head -1
+            "$ADB" logcat -b all -c
+            rc=0; cargo test --target x86_64-linux-android -p sdl3 --test android_clipboard > "$RUNNER_TEMP/clip$i.log" 2>&1 || rc=$?
+            echo "round $i: rc=$rc"
+            grep -E "events:|differs|has the focus" "$RUNNER_TEMP/clip$i.log" | cut -c1-300
+            timeout 60 "$ADB" logcat -d -v time | grep -iE "clip|SDLDIAG|focus|Overlay" | grep -v IPCThreadState | cut -c1-300 | tail -250
+          done
       # The app mode once more, with arguments and a variable (the same
       # string, which comes through the manifest and the arguments each its
       # own way: android_runner.rs compares them), and android_spawned.rs

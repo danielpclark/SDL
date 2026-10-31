@@ -199,9 +199,28 @@ main returns
     /// The clipboard updates since the last [`trace_updates`].
     static UPDATES: Mutex<Vec<String>> = Mutex::new(Vec::new());
 
+    pub(super) fn diag(msg: &str) {
+        #[link(name = "log")]
+        extern "C" {
+            fn __android_log_write(
+                prio: i32,
+                tag: *const std::ffi::c_char,
+                text: *const std::ffi::c_char,
+            ) -> i32;
+        }
+        let text = std::ffi::CString::new(msg.replace('\0', " ")).unwrap();
+        unsafe { __android_log_write(4, c"SDLDIAG".as_ptr(), text.as_ptr()) };
+    }
+
     fn watch() -> EventWatch {
         events::add_watch(|event| {
             if let Event::Clipboard(e) = event {
+                diag(&format!(
+                    "update owner={} mime_types={:?} thread={:?}",
+                    e.owner,
+                    e.mime_types,
+                    std::thread::current().name()
+                ));
                 UPDATES.lock().unwrap().push(format!(
                     "CLIPBOARD_UPDATE(owner={} mime_types=[{}])",
                     i32::from(e.owner),
@@ -215,16 +234,26 @@ main returns
     /// system notifies its listeners asynchronously, of SDL's own changes
     /// too).
     fn pump_updates(n: usize) {
+        diag(&format!("wait for {n}"));
         let end = Instant::now() + Duration::from_millis(3000);
         while Instant::now() < end && UPDATES.lock().unwrap().len() < n {
             events::pump();
             events::flush_events(EventType::FIRST, EventType::LAST);
             std::thread::sleep(Duration::from_millis(10));
         }
+        diag(&format!(
+            "waited: {} updates",
+            UPDATES.lock().unwrap().len()
+        ));
         pump_for(1000);
+        diag(&format!(
+            "settled: {} updates",
+            UPDATES.lock().unwrap().len()
+        ));
     }
 
     fn trace_updates(step: &str) {
+        diag(&format!("step {step}"));
         let updates = std::mem::take(&mut *UPDATES.lock().unwrap());
         t(format!(
             "{step}: events: {}",
