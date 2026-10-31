@@ -594,8 +594,8 @@ device; the same for `CARGO_TARGET_TMPDIR` and `CARGO_BIN_EXE_NAME`.
   `SDLControllerManager.handleJoystickMotionEvent()`, whose joystick
   handler is null until the controller manager is translated) and keys
   (`onNativePadDown()` and `onNativePadUp()` answer false), the audio
-  drivers' pause, and the controller, HID, clipboard and audio managers
-  (comments where upstream calls them).
+  drivers' pause, and the controller, HID and audio managers (comments
+  where upstream calls them).
 * The app's `main` runs on the activity's "SDLThread" thread
   (`nativeRunMain()`, through the generic `SDL_RunApp()`; the main
   callbacks are the generic ones too), which isn't SDL's main thread until
@@ -670,6 +670,36 @@ device; the same for `CARGO_TARGET_TMPDIR` and `CARGO_BIN_EXE_NAME`.
 * The GPU API makes its surfaces with the video device's own
   `Vulkan_CreateSurface()`, as upstream's, which leaves the window's
   flags alone (`SDL_Vulkan_CreateSurface()` makes it a Vulkan window).
+* The clipboard (`clipboard.rs`, SDL_androidclipboard.c) is the system's
+  primary clip, through `SDLClipboardHandler` (a DEX class, a
+  `ClipboardManager.OnPrimaryClipChangedListener`: `java::clipboard_handler`),
+  which the activity makes in `onCreate()`: text only, as upstream (the
+  clipboard front end keeps the app's other MIME types to itself, and
+  data without text clears the system's clip); the clip's changes made
+  other than through SDL are `CLIPBOARD_UPDATE`s the app doesn't own, with
+  no MIME types (`onNativeClipboardChanged()`'s TODO).
+* Message boxes (`messagebox.rs`, the bootstrap's, so they work before
+  `init()`) are the activity's `AlertDialog` (`java::messagebox`:
+  `messageboxShowMessageBox()` and `messageboxCreateAndShow()`, the
+  buttons reversed for `BUTTONS_RIGHT_TO_LEFT`, the color scheme's
+  background, text and button background colors, Enter and Escape mapped
+  to the buttons that are their defaults), made on the main thread while
+  the calling thread waits; its anonymous listeners are
+  `java::anonymous::listener()` proxies. The default assertion handler
+  asks in a message box first, as upstream's does on every platform, and
+  on the terminal only when no box can be shown.
+* The file dialogs (`dialog/android.rs`, SDL_androiddialog.c) are the
+  documents' picker the activity starts for a result
+  (`java::file_dialog`: `showFileDialog()`, `ACTION_OPEN_DOCUMENT`,
+  `ACTION_CREATE_DOCUMENT` and `ACTION_OPEN_DOCUMENT_TREE`, the filters'
+  extensions as `MimeTypeMap`'s MIME types), answered in the activity's
+  `onActivityResult()` (a native of the DEX file's `SDLActivity`) with
+  the documents' `content://` URIs, on the main thread; one at a time.
+* "Open with" (the launch intent's data) is a drop, sent by `onCreate()`
+  (`onNativeDropFile()`): `FIXME (upstream)`, before `SDL_main` runs, so
+  its `DROP_*` events are lost (the event queue isn't active until
+  `init()`), and a launch while the app runs reaches the singleTop
+  activity's `onNewIntent()`, which upstream doesn't override.
 
 ### What is built
 
@@ -687,7 +717,8 @@ it) stands in:
 | joysticks | android, HIDAPI (off by default), virtual | HIDAPI with no HID backend (the Android one: later), virtual |
 | haptic | android, HIDAPI | dummy (the android driver: later), HIDAPI |
 | power, locale, URL, filesystem paths, assets | Android's | the same |
-| sensor, camera, dialog | Android's | dummy, or no backend (later) |
+| dialog | Android's | the same |
+| sensor, camera | Android's | dummy, or no backend (later) |
 | file operations, threads, time, timer, `loadso` | POSIX, pthread, Unix, Unix, `dlopen` | the same |
 | process, tray, notification | dummy, dummy, none | the same |
 

@@ -1668,9 +1668,19 @@ is the app's or another's), `rotate 0|1|2|3` (the display's rotation:
 `density DPI|reset` (`wm density`, which recreates the activity),
 `ime-with-hard-keyboard yes|no` (whether the input method shows its
 keyboard while there's a hardware keyboard: `settings put secure
-show_ime_with_hard_keyboard`) and `ime [shown|hidden]` (`dumpsys
-input_method`'s `mInputShown`, once it is as asked, within 5 s), the
-rotation, the density and the input method's setting put back as they
+show_ime_with_hard_keyboard`), `ime [shown|hidden]` (`dumpsys
+input_method`'s `mInputShown`, once it is as asked, within 5 s),
+`ui-tap [--long] [--in PACKAGE|app|top] TEXT` (a tap, or a long press, on
+the view of that text, description or resource ID in `uiautomator
+dump`'s view tree, once there is one), `ui-dump [PACKAGE|app|top] [--id
+ID] [--class NAME] [--all]` (the views of a package, their texts, places
+and states), `ui-colors TEXT` (the two most frequent colors of a view's
+place in a screen capture, once it's still), `back-to-app` (BACK while
+another app's activity is on top, until the app's is: never on the app
+itself), `files reset NAME...|list` (a directory of the shared storage's
+Download, `sdl3_dialog`, made with those files, or listed) and `view
+URI` (`ACTION_VIEW` of the URI, to the running activity), the rotation,
+the density, the input method's setting and the files put back as they
 were when the run ends; the runner answers each on the app's stdout
 socket when it's done (`sdl3-android-runner: reply LINE` for the log's lines,
 then `sdl3-android-runner: done`), which `request()` returns. An app's
@@ -1760,7 +1770,24 @@ an input method does (`commitText()`, `setComposingText()`,
 the text edit's input connection, its `onCreateInputConnection()`'s,
 called on SDL's thread), with `SDL_HINT_RETURN_KEY_HIDES_IME` off and on;
 and the text input properties' input types (the `EditorInfo` the text
-edit fills).
+edit fills). And the video driver's clipboard, message boxes and file
+dialogs, against upstream's C too: `android_clipboard.rs` (text set,
+read and tested through SDL, the app's own data in another MIME type,
+each with its `CLIPBOARD_UPDATE` events and the system's clip as the
+`ClipboardManager` has it; and the system's clip changed from outside
+SDL, through stand-ins: the program's own `ClipboardManager` calls on a
+thread of its own, as Android lets only the focused app and the input
+method use the clipboard, sent by the activity's primary clip
+listener), `android_messagebox.rs` (each box answered by the runner
+while SDL's thread waits: its views as `uiautomator` dumps them, the
+color scheme's colors in a screen capture, then a real tap on a button
+found in the dump, or a real Enter or Escape; before `init()`, three
+buttons both ways, a color scheme, empty texts, another thread, and the
+default assertion handler's box) and `android_dialog.rs` (launched as
+another app's "Open with" launches it, the program's word `data=URI`:
+the drop, lost upstream as it comes before `SDL_main`; then each file
+dialog answered in the documents' picker by real taps on the files and
+buttons the runner finds in its view tree, or BACK, its cancel path).
 
 The expected traces of the app programs are upstream's C SDL's: the same
 program in C, as upstream's android-project's app (built with Gradle,
