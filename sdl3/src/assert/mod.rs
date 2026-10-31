@@ -49,6 +49,22 @@ pub enum AssertState {
     AlwaysIgnore,
 }
 
+impl AssertState {
+    /// The state of a value of `SDL_AssertState` (a message box button's
+    /// ID), `None` for any other.
+    fn from_i32(value: i32) -> Option<AssertState> {
+        [
+            AssertState::Retry,
+            AssertState::Break,
+            AssertState::Abort,
+            AssertState::Ignore,
+            AssertState::AlwaysIgnore,
+        ]
+        .into_iter()
+        .find(|&state| state as i32 == value)
+    }
+}
+
 /// Information about an assertion failure. Translation of `SDL_AssertData`.
 ///
 /// Each assertion macro call site owns one `static` instance, exactly as in
@@ -237,13 +253,12 @@ fn abort_assertion() -> ! {
 }
 
 /// The default assertion handler: logs the failure, then honours
-/// `SDL_HINT_ASSERT` or asks on the terminal. Translation of `SDL_PromptAssertion()`.
+/// `SDL_HINT_ASSERT`, or asks: in a message box (Retry, Break, Abort,
+/// Ignore, Always Ignore; the keyboard's focus leaving exclusive
+/// fullscreen first), or, when no message box can be shown, on the
+/// terminal. Translation of `SDL_PromptAssertion()`.
 ///
-/// Upstream shows a message box first; message boxes arrive with the video
-/// subsystem, so this goes straight to upstream's stdio fallback (what C SDL
-/// does when `SDL_ShowMessageBox()` fails).
-///
-/// On Emscripten that fallback is the page's `window.prompt()`, asked
+/// On Emscripten that terminal fallback is the page's `window.prompt()`, asked
 /// until the reply is one of `a`, `r`, `i` or `A` (a cancelled prompt is
 /// `i`). Under node there is no `window`: the prompt's JavaScript throws a
 /// `ReferenceError`, which ends the program with exit status 1. That's how
@@ -269,7 +284,57 @@ pub fn default_assertion_handler(data: &AssertData) -> AssertState {
         };
     }
 
-    // Leave fullscreen mode, if possible (scary!) -- needs the video subsystem.
+    // Leave fullscreen mode, if possible (scary!)
+    let mut window = crate::video::core::toplevel_for_keyboard_focus();
+    if let Some(id) = window {
+        if crate::video::core::with_window(id, |w| w.fullscreen_exclusive).unwrap_or(false) {
+            let _ = crate::video::Window::from_raw(id).minimize();
+        } else {
+            // !!! FIXME: ungrab the input if we're not fullscreen?
+            // No need to mess with the window
+            window = None;
+        }
+    }
+
+    // Show a messagebox if we can, otherwise fall back to stdio
+    use crate::video::messagebox::{
+        show_message_box, MessageBoxButtonData, MessageBoxButtonFlags, MessageBoxData,
+        MessageBoxFlags,
+    };
+    let button = |flags, id: AssertState, text: &str| MessageBoxButtonData {
+        flags,
+        button_id: id as i32,
+        text: text.to_owned(),
+    };
+    let messagebox = MessageBoxData {
+        flags: MessageBoxFlags::WARNING,
+        window: window.map(crate::video::Window::from_raw),
+        title: "Assertion Failed".to_owned(),
+        message: message.clone(),
+        buttons: vec![
+            button(MessageBoxButtonFlags::NONE, AssertState::Retry, "Retry"),
+            button(MessageBoxButtonFlags::NONE, AssertState::Break, "Break"),
+            button(MessageBoxButtonFlags::NONE, AssertState::Abort, "Abort"),
+            button(
+                MessageBoxButtonFlags::ESCAPEKEY_DEFAULT,
+                AssertState::Ignore,
+                "Ignore",
+            ),
+            button(
+                MessageBoxButtonFlags::RETURNKEY_DEFAULT,
+                AssertState::AlwaysIgnore,
+                "Always Ignore",
+            ),
+        ],
+        color_scheme: None,
+    };
+
+    if let Ok(selected) = show_message_box(&messagebox) {
+        if selected == -1 {
+            return AssertState::Ignore;
+        }
+        return AssertState::from_i32(selected).unwrap_or(AssertState::Abort);
+    }
 
     #[cfg(target_os = "emscripten")]
     {
