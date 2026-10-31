@@ -443,3 +443,80 @@ pub fn set_object_array_element(env: JNIEnv, array: Jobject, index: i32, value: 
     }
     assert!(!exception(env), "SetObjectArrayElement()");
 }
+
+/// `DeleteGlobalRef()`.
+pub fn delete_global_ref(env: JNIEnv, obj: Jobject) {
+    // SAFETY: jni.h's function 22.
+    unsafe {
+        let f: unsafe extern "system" fn(JNIEnv, Jobject) = function(env, 22);
+        f(env, obj)
+    }
+}
+
+/// `GetIntField()` of `obj`'s (a `class`) `name`.
+pub fn get_int_field(env: JNIEnv, class: Jobject, obj: Jobject, name: &str) -> i32 {
+    let field = field_id(env, class, name, "I");
+    // SAFETY: jni.h's function 100, of an int field.
+    unsafe {
+        let get: unsafe extern "system" fn(JNIEnv, Jobject, *mut c_void) -> i32 =
+            function(env, 100);
+        get(env, obj, field)
+    }
+}
+
+/// `GetObjectField()` of `obj`'s (a `class`) `name`: a local reference.
+pub fn get_object_field(
+    env: JNIEnv,
+    class: Jobject,
+    obj: Jobject,
+    name: &str,
+    sig: &str,
+) -> Jobject {
+    let field = field_id(env, class, name, sig);
+    // SAFETY: jni.h's function 95, of an object field.
+    let value = unsafe {
+        let get: unsafe extern "system" fn(JNIEnv, Jobject, *mut c_void) -> Jobject =
+            function(env, 95);
+        get(env, obj, field)
+    };
+    assert!(!exception(env), "the field {name}");
+    value
+}
+
+/// `GetObjectClass()`: a local reference.
+pub fn object_class(env: JNIEnv, obj: Jobject) -> Jobject {
+    // SAFETY: jni.h's function 31.
+    unsafe {
+        let f: unsafe extern "system" fn(JNIEnv, Jobject) -> Jobject = function(env, 31);
+        f(env, obj)
+    }
+}
+
+/// `CallStaticIntMethodA()` of `class`'s `name`.
+pub fn call_static_int(env: JNIEnv, class: Jobject, name: &str, sig: &str, args: &[Jvalue]) -> i32 {
+    let method = static_method(env, class, name, sig);
+    // SAFETY: jni.h's function 131, with the method's arguments.
+    let result = unsafe {
+        let call: unsafe extern "system" fn(JNIEnv, Jobject, MethodId, *const Jvalue) -> i32 =
+            function(env, 131);
+        call(env, class, method, args.as_ptr())
+    };
+    assert!(!exception(env), "{name}{sig} threw");
+    result
+}
+
+/// A Java string's UTF-16 units (`GetStringLength()`, `GetStringChars()`).
+pub fn string_utf16(env: JNIEnv, string: Jobject) -> Vec<u16> {
+    // SAFETY: jni.h's functions 164, 165 and 166, of a string.
+    unsafe {
+        let length: unsafe extern "system" fn(JNIEnv, Jobject) -> i32 = function(env, 164);
+        let n = length(env, string);
+        let get: unsafe extern "system" fn(JNIEnv, Jobject, *mut u8) -> *const u16 =
+            function(env, 165);
+        let chars = get(env, string, std::ptr::null_mut());
+        let units = std::slice::from_raw_parts(chars, n.max(0) as usize).to_vec();
+        let release: unsafe extern "system" fn(JNIEnv, Jobject, *const u16) = function(env, 166);
+        release(env, string, chars);
+        units
+    }
+}
