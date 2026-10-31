@@ -183,6 +183,15 @@ ARGUMENTS are shell words):
               change that recreates the activity, upstream's not handling
               it: see its manifest's configChanges); reset once the app
               ends
+  ime-with-hard-keyboard yes|no
+              whether the input method shows its keyboard while there's a
+              hardware keyboard (the virtual device has one): `settings put
+              secure show_ime_with_hard_keyboard 1|0`, restored once the
+              app ends
+  ime [shown|hidden]
+              whether the input method is shown (`dumpsys input_method`'s
+              mInputShown), once it is as asked (within 5 s): the answer
+              is `ime: mInputShown=true|false`
 The runner answers each request on the app's stdout socket, once it's
 done: its lines (`sdl3-android-runner: reply LINE`), then
 `sdl3-android-runner: done` (android_support's `request()` reads them).
@@ -1543,7 +1552,8 @@ class AppRequests:
     def __init__(self, serial, package):
         self.serial = serial
         self.package = package
-        # (the settings to restore once the app ends: name -> value)
+        # (the settings to restore once the app ends: (namespace, name) ->
+        # value)
         self.saved_settings = {}
         self.density_changed = False
 
@@ -1606,9 +1616,7 @@ class AppRequests:
                 note(f"request {what} {args}: not `rotate 0|1|2|3` (ignored)")
                 return []
             for name in ("accelerometer_rotation", "user_rotation"):
-                if name not in self.saved_settings:
-                    result = adb_shell(self.serial, f"settings get system {name}", check=False)
-                    self.saved_settings[name] = result.stdout.strip()
+                self.save_setting("system", name)
             command = f"settings put system accelerometer_rotation 0 && settings put system user_rotation {words[0]}"
         elif what == "density":
             if len(words) != 1 or not (words[0] == "reset" or words[0].isdigit()):
@@ -1616,6 +1624,14 @@ class AppRequests:
                 return []
             self.density_changed = words[0] != "reset"
             command = f"wm density {words[0]}"
+        elif what == "ime-with-hard-keyboard":
+            if len(words) != 1 or words[0] not in ("yes", "no"):
+                note(f"request {what} {args}: not `ime-with-hard-keyboard yes|no` (ignored)")
+                return []
+            self.save_setting("secure", "show_ime_with_hard_keyboard")
+            command = f"settings put secure show_ime_with_hard_keyboard {1 if words[0] == 'yes' else 0}"
+        elif what == "ime":
+            return self.ime(words[0] if words else "any")
         else:
             note(f"unknown request {what!r} (ignored)")
             return []
@@ -1624,14 +1640,22 @@ class AppRequests:
             note(f"request {what} {args}: failed ({result.returncode}): {(result.stderr or result.stdout).strip()}")
         return []
 
+    def save_setting(self, namespace, name):
+        """Keep a setting's value (`settings get NAMESPACE NAME`) the first
+        time a request changes it, for restore()."""
+        if (namespace, name) not in self.saved_settings:
+            result = adb_shell(self.serial, f"settings get {namespace} {name}", check=False)
+            self.saved_settings[(namespace, name)] = result.stdout.strip()
+
     def restore(self):
         """Put back what the requests changed for the device (the rotation,
-        the density), once the app has ended."""
-        for name, value in self.saved_settings.items():
+        the input method's setting, the density), once the app has
+        ended."""
+        for (namespace, name), value in self.saved_settings.items():
             if value and value != "null":
-                adb_shell(self.serial, f"settings put system {name} {shlex.quote(value)}", check=False)
+                adb_shell(self.serial, f"settings put {namespace} {name} {shlex.quote(value)}", check=False)
             else:
-                adb_shell(self.serial, f"settings delete system {name}", check=False)
+                adb_shell(self.serial, f"settings delete {namespace} {name}", check=False)
         self.saved_settings = {}
         if self.density_changed:
             adb_shell(self.serial, "wm density reset", check=False)
@@ -1720,6 +1744,22 @@ class AppRequests:
             if time.monotonic() > deadline:
                 return ["toast: not seen"]
             time.sleep(0.2)
+
+    def ime(self, wanted):
+        """Whether the input method is shown (`dumpsys input_method`'s
+        mInputShown), once it is as WANTED (`shown` or `hidden`; anything
+        else: at once) or 5 s have gone."""
+        deadline = time.monotonic() + 5
+        while True:
+            result = adb_shell(self.serial, "dumpsys input_method", check=False, timeout=60)
+            match = re.search(r"\bmInputShown=(\w+)", result.stdout)
+            shown = match.group(1) if match else None
+            if wanted not in ("shown", "hidden") or (shown is not None and (shown == "true") == (wanted == "shown")):
+                break
+            if time.monotonic() > deadline:
+                break
+            time.sleep(0.2)
+        return [f"ime: mInputShown={shown}" if shown is not None else "ime: no mInputShown"]
 
     def top_activity(self, which):
         """The package of the activity on top, once it's the app's (`app`)
