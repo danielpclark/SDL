@@ -1660,7 +1660,9 @@ ARGUMENTS`, `am ARGUMENTS`, `cmd ARGUMENTS`, `trim-memory LEVEL` (`am
 send-trim-memory`), `night yes|no|auto` (`cmd uimode night`), `locale
 [TAGS]` (`cmd locale set-app-locales`), `logcat TAGS [--grep REGEX]` (the
 app's lines of the device's log), `power ARGUMENTS` (`adb emu power`: the
-emulator's battery), `permission grant|revoke NAME` (`pm grant|revoke`;
+emulator's battery), `sensor set NAME VALUES` (`adb emu sensor set`: an
+emulated sensor's values, which it reports from then on, put back as they
+were, `sensor get`, when the run ends), `permission grant|revoke NAME` (`pm grant|revoke`;
 revoking a granted permission ends the app's process, as Android does),
 `permission-dialog allow|deny` (the system's permission dialog's button,
 found in `uiautomator dump`'s view tree, then tapped), `toast` (whether a
@@ -1856,7 +1858,34 @@ joystick handler keeps what it found then, as upstream's does. The
 library's tests
 (`joystick/android/tests.rs`, `haptic/android/tests.rs`) check the drivers
 in a spawned program, the devices added and moved as the Java handlers'
-natives would.
+natives would. And the sensor and camera drivers, against upstream's C
+too: `android_sensor.rs`, the sensor manager's sensors (the emulator's,
+with Android's software ones) and their types, the accelerometer, the
+gyroscope and the light sensor opened and their values set by the
+runner's `sensor set` (the first event with those values, all six of its
+values, and the sensor's data), no event once each is closed, and the same
+sensors after the subsystem starts again; `android_camera.rs` (whose
+manifest asks for `CAMERA`), the emulator's two emulated cameras, their
+positions and formats (sorted by name: upstream's list is its hash
+table's order), the back one opened without the permission (the system's
+dialog denied by the runner's `permission-dialog deny` from a thread of
+the program's while SDL's main thread pumps: the denial's event and
+state, no frame), then with it (`pm grant`: approved at once) in its best
+format, and the front one as RGBA at 320x240 (converted and scaled from
+what it gives): their frames' size, format, pitch and rotation (the
+display's portrait orientation and the sensor's) and that their
+timestamps advance, no event once each is closed (the camera manager's
+availability callbacks, which tell of the app's own open and close, don't
+disconnect or add a camera), and the cameras again after the subsystem
+starts again; upstream's assertion that each plane of a frame has the Y
+plane's row stride fails on the emulator's YUV frames (their chroma
+planes' are half of it), so both programs ignore assertions (`SDL_ASSERT`
+`always_ignore`, as a release build compiles them out) and trace how
+many failed. The library's tests (`sensor/android/tests.rs`,
+`camera/android/tests.rs`) check both drivers in a spawned program,
+where the sensor manager needs no Java VM (an accelerometer at rest
+reports gravity) and the cameras are listed but can't be opened (the
+permission's request needs the app).
 
 The expected traces of the app programs are upstream's C SDL's: the same
 program in C, as upstream's android-project's app (built with Gradle,
@@ -1874,9 +1903,12 @@ translation fixes upstream in what a reference traces, the reference is
 built with the same fix applied to upstream's source: the OpenGL ES 2
 renderer's program cache (`android_gles.rs`, as on iOS), and the Vulkan
 renderer's pre-rotated swapchain and `VK_EXT_4444_formats` formats
-(`android_vulkan.rs`), and a physical audio device opened at the spec
+(`android_vulkan.rs`), a physical audio device opened at the spec
 asked for (`android_audio.rs`, `android_audio_opensles.rs`: a stream's
-device's format).
+device's format), and the camera's stream configurations read as many as
+there are (`android_camera.rs`: upstream's loop reads four times as many,
+past the metadata entry's data). The camera's reference's manifest asks
+for `CAMERA` (upstream's android-project has it commented out).
 
 What runs where, in spawned programs: everything pure (the satellites'
 decoders, the converters, the parsers), the file operations, threads,
@@ -1885,7 +1917,8 @@ the audio core with the dummy and disk drivers and AAudio and OpenSL
 ES (playback: recording needs the app's permission), the joystick core with
 the virtual and HIDAPI drivers (no HID backend yet, so no devices) and the
 android joystick and haptic drivers (with the devices their tests add),
-and the GPU API's Vulkan devices on SwiftShader's Vulkan 1.3. A spawned
+the android sensor driver (the NDK's sensor manager), the android camera
+driver's cameras (not opened: see below), and the GPU API's Vulkan devices on SwiftShader's Vulkan 1.3. A spawned
 process is no app, so what of Android's platform layer needs one isn't
 there:
 
@@ -1910,8 +1943,9 @@ there:
   built;
 * JNI needs an app (see [Apps](#apps)): the android joystick and haptic
   drivers find no devices there (their Java handlers aren't there), so
-  their tests add and move them as the handlers' natives would; the
-  android sensor and camera drivers are later work.
+  their tests add and move them as the handlers' natives would; opening
+  a camera fails (`Failed, there is no JavaVM`: the `CAMERA` permission's
+  request needs the app's activity).
 
 Under the ARM translation one more thing differs: a translated program
 whose threads start programs at the same time can hang there, as
