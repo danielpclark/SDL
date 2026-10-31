@@ -349,3 +349,11 @@ harness = false
 [[test]]
 name = "android_input"
 harness = false
+
+# The android video driver's keyboard in an app (keys, text input, the
+# screen keyboard, the input method's connection, the text input
+# properties), real (the runner's input requests) and made in the
+# program, against upstream's C.
+[[test]]
+name = "android_keyboard"
+harness = false
