@@ -568,7 +568,9 @@ quit
         let created = Window::create("android vulkan", 320, 240, WindowFlags::VULKAN);
         t(format!("vulkan window: {}", result(&created)));
         let v = created.expect("the window");
-        ev::pump_for(300);
+        // (a window wider than tall turns the activity to landscape: the
+        // surface's capabilities follow once the surface is turned)
+        ev::pump_until(|| v.size_in_pixels().is_ok_and(|(w, h)| w > h), 5000, 300);
         ev::take();
         t(format!(
             "vulkan window: android window pointer: {}, android surface pointer: {}",
