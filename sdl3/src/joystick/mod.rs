@@ -23,11 +23,14 @@
 //! through libudev or inotify), the Windows drivers (RawInput; DirectInput
 //! and XInput; Windows.Gaming.Input), the IOKit driver (macOS), the MFi
 //! (GameController) driver (every Apple platform), the Emscripten driver
-//! (the browser's Gamepad API), the virtual driver
-//! ([`attach_virtual_joystick`]) and the dummy driver (on platforms without
-//! a driver), which reports no devices, exist; the other HIDAPI device
-//! drivers and platform drivers (Android's among them) arrive later.
+//! (the browser's Gamepad API), the Android driver (the input devices the
+//! app's Java side finds), the virtual driver ([`attach_virtual_joystick`])
+//! and the dummy driver (on platforms without a driver), which reports no
+//! devices, exist; the other HIDAPI device drivers and platform drivers
+//! arrive later.
 
+#[cfg(target_os = "android")]
+pub(crate) mod android;
 #[cfg(target_vendor = "apple")]
 pub(crate) mod apple;
 mod controller_type;
@@ -636,6 +639,11 @@ pub(crate) const MFI_DRIVER_INDEX: usize = if cfg!(target_os = "macos") {
     0
 };
 
+/// The index of the Android driver in [`JOYSTICK_DRIVERS`] (after the
+/// HIDAPI driver).
+#[cfg(target_os = "android")]
+const ANDROID_DRIVER_INDEX: usize = 1;
+
 /// The index of the Emscripten (Gamepad API) driver in [`JOYSTICK_DRIVERS`]
 /// (for the driver order's test: nothing else compares with it).
 #[cfg(all(test, target_os = "emscripten"))]
@@ -643,8 +651,8 @@ const EMSCRIPTEN_DRIVER_INDEX: usize = 0;
 
 /// The index of the virtual driver in [`JOYSTICK_DRIVERS`] (after the
 /// HIDAPI and platform drivers, if there are: on iOS and tvOS the HIDAPI
-/// and MFi drivers, on Android the HIDAPI driver; there's none on
-/// visionOS).
+/// and MFi drivers, on Android the HIDAPI and Android drivers; there's
+/// none on visionOS).
 #[cfg(not(target_os = "visionos"))]
 const VIRTUAL_DRIVER_INDEX: usize = if cfg!(windows) {
     5
@@ -653,10 +661,11 @@ const VIRTUAL_DRIVER_INDEX: usize = if cfg!(windows) {
 } else if cfg!(any(
     target_os = "ios",
     target_os = "tvos",
-    target_os = "linux"
+    target_os = "linux",
+    target_os = "android"
 )) {
     2
-} else if cfg!(any(target_os = "android", target_os = "emscripten")) {
+} else if cfg!(target_os = "emscripten") {
     1
 } else {
     0
@@ -696,6 +705,8 @@ static JOYSTICK_DRIVERS: &[&dyn JoystickDriver] = &[
     // which SDL_PLATFORM_IOS covers)
     #[cfg(target_vendor = "apple")]
     &apple::MFI_JOYSTICK_DRIVER,
+    #[cfg(target_os = "android")]
+    &android::ANDROID_JOYSTICK_DRIVER,
     #[cfg(target_os = "emscripten")]
     &emscripten::EMSCRIPTEN_JOYSTICK_DRIVER,
     #[cfg(not(target_os = "visionos"))]

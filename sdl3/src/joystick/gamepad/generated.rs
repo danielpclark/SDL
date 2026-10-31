@@ -317,6 +317,141 @@ fn add(guid: Guid, mapping_string: &str) -> Option<u64> {
         .map(|(id, _)| id)
 }
 
+/// Helper function to guess at a mapping based on the elements reported
+/// for this gamepad: the button and axis masks of the Android driver's
+/// GUID (the Joy-Cons' layouts for theirs). Translation of
+/// `SDL_CreateMappingForAndroidGamepad()`.
+#[cfg(target_os = "android")]
+pub(super) fn create_mapping_for_android_gamepad(guid: Guid) -> Option<u64> {
+    use super::GamepadAxis;
+    use super::GamepadButton as B;
+    const fn bit(button: B) -> i32 {
+        1 << button as i32
+    }
+    const fn axis_bit(axis: GamepadAxis) -> i32 {
+        1 << axis as i32
+    }
+    let face_button_mask = bit(B::South) | bit(B::East) | bit(B::West) | bit(B::North);
+    let mut mapping_string = String::new();
+    let mut cat = |s: &str| strlcat(&mut mapping_string, s, MAPPING_SIZE);
+
+    cat("none,");
+
+    let (vendor, product, _, _) = joystick_guid_info(guid);
+    if vendor == USB_VENDOR_NINTENDO {
+        if product == USB_PRODUCT_NINTENDO_SWITCH_JOYCON_LEFT
+            || product == USB_PRODUCT_NINTENDO_SWITCH_JOYCON_RIGHT
+        {
+            // FIXME: Should we have a separate hint for non-HIDAPI JoyCon handling?
+            // Android doesn't report JoyCon SL/SR presses for some reason, so no horizontal triggers/vertical paddles
+            if hints::get_bool(hints::JOYSTICK_HIDAPI_VERTICAL_JOY_CONS, false) {
+                // Vertical mode
+                if product == USB_PRODUCT_NINTENDO_SWITCH_JOYCON_LEFT {
+                    cat("Nintendo Switch Joy-Con (L),back:b4,dpdown:b12,dpleft:b13,dpright:b14,dpup:b11,leftshoulder:b9,leftstick:b7,lefttrigger:b15,leftx:a0,lefty:a1,misc1:b18,");
+                } else {
+                    cat("Nintendo Switch Joy-Con (R),a:b0,b:b1,guide:b5,rightshoulder:b10,rightstick:b8,righttrigger:b16,rightx:a0,righty:a1,start:b6,x:b3,y:b2,");
+                }
+            } else {
+                // Mini gamepad mode
+                if product == USB_PRODUCT_NINTENDO_SWITCH_JOYCON_LEFT {
+                    cat("Nintendo Switch Joy-Con (L),a:b13,b:b12,guide:b18,leftstick:b7,leftx:a1,lefty:a0~,start:b4,x:b11,y:b14,paddle2:b9,paddle4:b15,");
+                } else {
+                    cat("Nintendo Switch Joy-Con (R),a:b1,b:b2,guide:b5,leftstick:b8,leftx:a1~,lefty:a0,start:b6,x:b0,y:b3,paddle1:b10,paddle3:b16,");
+                }
+            }
+        }
+        // Note (upstream): another Nintendo device's mapping is "none,"
+        // alone, which has no name: adding it fails.
+    } else {
+        let mut button_mask = u16::from_le_bytes([guid.0[12], guid.0[13]]) as i32;
+        let axis_mask = u16::from_le_bytes([guid.0[14], guid.0[15]]) as i32;
+        if button_mask == 0 && axis_mask == 0 {
+            // Accelerometer, shouldn't have a gamepad mapping
+            return None;
+        }
+        if (button_mask & face_button_mask) == 0 {
+            // We don't know what buttons or axes are supported, don't make up a mapping
+            return None;
+        }
+
+        cat("*,");
+
+        if (button_mask & bit(B::South)) != 0 {
+            cat("a:b0,");
+        }
+        if (button_mask & bit(B::East)) != 0 {
+            cat("b:b1,");
+        } else if (button_mask & bit(B::Back)) != 0 {
+            // Use the back button as "B" for easy UI navigation with TV remotes
+            cat("b:b4,");
+            button_mask &= !bit(B::Back);
+        }
+        if (button_mask & bit(B::West)) != 0 {
+            cat("x:b2,");
+        }
+        if (button_mask & bit(B::North)) != 0 {
+            cat("y:b3,");
+        }
+        if (button_mask & bit(B::Back)) != 0 {
+            cat("back:b4,");
+        }
+        if (button_mask & bit(B::Guide)) != 0 {
+            // The guide button generally isn't functional (or acts as a home button) on most Android gamepads before Android 11
+            if crate::core::android::get_android_sdk_version() >= 30
+            /* Android 11 */
+            {
+                cat("guide:b5,");
+            }
+        }
+        if (button_mask & bit(B::Start)) != 0 {
+            cat("start:b6,");
+        }
+        if (button_mask & bit(B::LeftStick)) != 0 {
+            cat("leftstick:b7,");
+        }
+        if (button_mask & bit(B::RightStick)) != 0 {
+            cat("rightstick:b8,");
+        }
+        if (button_mask & bit(B::LeftShoulder)) != 0 {
+            cat("leftshoulder:b9,");
+        }
+        if (button_mask & bit(B::RightShoulder)) != 0 {
+            cat("rightshoulder:b10,");
+        }
+        if (button_mask & bit(B::DpadUp)) != 0 {
+            cat("dpup:b11,");
+        }
+        if (button_mask & bit(B::DpadDown)) != 0 {
+            cat("dpdown:b12,");
+        }
+        if (button_mask & bit(B::DpadLeft)) != 0 {
+            cat("dpleft:b13,");
+        }
+        if (button_mask & bit(B::DpadRight)) != 0 {
+            cat("dpright:b14,");
+        }
+        if (axis_mask & axis_bit(GamepadAxis::LeftX)) != 0 {
+            cat("leftx:a0,");
+        }
+        if (axis_mask & axis_bit(GamepadAxis::LeftY)) != 0 {
+            cat("lefty:a1,");
+        }
+        if (axis_mask & axis_bit(GamepadAxis::RightX)) != 0 {
+            cat("rightx:a2,");
+        }
+        if (axis_mask & axis_bit(GamepadAxis::RightY)) != 0 {
+            cat("righty:a3,");
+        }
+        if (axis_mask & axis_bit(GamepadAxis::LeftTrigger)) != 0 {
+            cat("lefttrigger:a4,");
+        }
+        if (axis_mask & axis_bit(GamepadAxis::RightTrigger)) != 0 {
+            cat("righttrigger:a5,");
+        }
+    }
+    add(guid, &mapping_string)
+}
+
 /// Guess at a mapping for HIDAPI gamepads.
 /// Translation of `SDL_CreateMappingForHIDAPIGamepad()`.
 pub(super) fn create_mapping_for_hidapi_gamepad(guid: Guid) -> Option<u64> {

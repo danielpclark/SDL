@@ -28,9 +28,9 @@ use std::time::Duration;
 use super::vidpid::VidPidList;
 use super::{
     assert_joysticks_locked, is_joystick_being_added, is_joystick_gamecube, is_joystick_hidapi,
-    is_joystick_rawinput, is_joystick_steam_virtual_gamepad, is_joystick_wgi, joystick_guid_for_id,
-    joystick_guid_info, joystick_guid_uses_version, joystick_name_for_id,
-    joystick_virtual_gamepad_info_for_id, joysticks, lock_joysticks,
+    is_joystick_rawinput, is_joystick_steam_virtual_gamepad, is_joystick_virtual_guid,
+    is_joystick_wgi, joystick_guid_for_id, joystick_guid_info, joystick_guid_uses_version,
+    joystick_name_for_id, joystick_virtual_gamepad_info_for_id, joysticks, lock_joysticks,
     private_joystick_get_auto_gamepad_mapping, send_joystick_sensor, set_joystick_guid_crc,
     set_joystick_guid_version, with_joystick, Joystick, JoystickConnectionState, HAT_DOWN,
     HAT_LEFT, HAT_RIGHT, HAT_UP, JOYSTICK_AXIS_MAX, JOYSTICK_AXIS_MIN,
@@ -72,6 +72,14 @@ const GAMEPAD_PLATFORM_FIELD: &str = "platform:";
 const GAMEPAD_PLATFORM_FIELD_SIZE: usize = GAMEPAD_PLATFORM_FIELD.len();
 const GAMEPAD_HINT_FIELD: &str = "hint:";
 const GAMEPAD_HINT_FIELD_SIZE: usize = GAMEPAD_HINT_FIELD.len();
+#[cfg(target_os = "android")]
+const GAMEPAD_SDKGE_FIELD: &str = "sdk>=:";
+#[cfg(target_os = "android")]
+const GAMEPAD_SDKGE_FIELD_SIZE: usize = GAMEPAD_SDKGE_FIELD.len();
+#[cfg(target_os = "android")]
+const GAMEPAD_SDKLE_FIELD: &str = "sdk<=:";
+#[cfg(target_os = "android")]
+const GAMEPAD_SDKLE_FIELD_SIZE: usize = GAMEPAD_SDKLE_FIELD.len();
 
 /// Standard gamepad types. Translation of `SDL_GamepadType`.
 ///
@@ -1306,11 +1314,18 @@ fn private_get_gamepad_mapping_for_guid(guid: Guid, adding_mapping: bool) -> Opt
         generated::create_mapping_for_rawinput_gamepad(guid)
     } else if is_joystick_wgi(guid) {
         generated::create_mapping_for_wgi_gamepad(guid)
-    } else {
-        // (Virtual joysticks pick up a robust mapping in the driver's
-        // gamepad_mapping(); SDL_CreateMappingForAndroidGamepad() arrives with
-        // the Android driver.)
+    } else if is_joystick_virtual_guid(guid) {
+        // We'll pick up a robust mapping in VIRTUAL_JoystickGetGamepadMapping
         None
+    } else {
+        #[cfg(target_os = "android")]
+        {
+            generated::create_mapping_for_android_gamepad(guid)
+        }
+        #[cfg(not(target_os = "android"))]
+        {
+            None
+        }
     }
 }
 
@@ -2192,7 +2207,31 @@ fn private_add_gamepad_mapping(mapping_string: &str, priority: MappingPriority) 
         }
     }
 
-    // (The Android SDK version fields arrive with the Android driver.)
+    #[cfg(target_os = "android")]
+    {
+        // Extract and verify the SDK version
+        let sdk_version = crate::core::android::get_android_sdk_version();
+        if let Some(pos) = mapping_string.find(GAMEPAD_SDKGE_FIELD) {
+            let tmp = &mapping_string[pos + GAMEPAD_SDKGE_FIELD_SIZE..];
+            if sdk_version < atoi(tmp) {
+                return Err(Error::new(format!(
+                    "SDK version {} < minimum version {}",
+                    sdk_version,
+                    atoi(tmp)
+                )));
+            }
+        }
+        if let Some(pos) = mapping_string.find(GAMEPAD_SDKLE_FIELD) {
+            let tmp = &mapping_string[pos + GAMEPAD_SDKLE_FIELD_SIZE..];
+            if sdk_version > atoi(tmp) {
+                return Err(Error::new(format!(
+                    "SDK version {} > maximum version {}",
+                    sdk_version,
+                    atoi(tmp)
+                )));
+            }
+        }
+    }
 
     let (mapping, existing) = private_add_mapping_for_guid(guid, &mapping_string, priority)?;
 
@@ -2313,8 +2352,24 @@ fn load_gamepad_hints() {
 fn gamepad_mapping_file_path() -> Option<String> {
     const PATH_SIZE: usize = 1024;
 
-    let hint = hints::get(hints::GAMECONTROLLERCONFIG_FILE).filter(|h| !h.is_empty())?;
-    (hint.len() < PATH_SIZE).then_some(hint)
+    if let Some(hint) = hints::get(hints::GAMECONTROLLERCONFIG_FILE).filter(|h| !h.is_empty()) {
+        return (hint.len() < PATH_SIZE).then_some(hint);
+    }
+
+    #[cfg(target_os = "android")]
+    {
+        // Note: without an internal storage path upstream reads
+        // "(null)/gamepad_map.txt" (its snprintf()); no file here.
+        let path = format!(
+            "{}/gamepad_map.txt",
+            crate::core::android::get_android_internal_storage_path().ok()?
+        );
+        (path.len() < PATH_SIZE).then_some(path)
+    }
+    #[cfg(not(target_os = "android"))]
+    {
+        None
+    }
 }
 
 /// Initialize the gamepad system, mostly load our DB of gamepad config

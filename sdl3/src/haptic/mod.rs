@@ -18,16 +18,25 @@
 //! The haptic backends are platform drivers; so far the Linux driver (the
 //! kernel's force feedback interface on evdev devices), the Windows driver
 //! (DirectInput force feedback), the Darwin driver (the ForceFeedback
-//! framework) and the dummy driver, which reports no devices, exist. Where
+//! framework), the Android driver (the system's vibrator) and the dummy
+//! driver, which reports no devices, exist. Where
 //! the HIDAPI joystick driver is (Linux, Windows, macOS, iOS and tvOS),
 //! the HIDAPI haptic drivers come first for its joysticks: the Logitech
 //! wheels' force feedback (`haptic/hidapi`).
 
-// (on Linux, Windows and macOS, only the tests use the dummy driver)
+// (on Linux, Windows, macOS and Android, only the tests use the dummy
+// driver)
+#[cfg(target_os = "android")]
+pub(crate) mod android;
 #[cfg(target_os = "macos")]
 pub(crate) mod darwin;
 #[cfg_attr(
-    any(target_os = "linux", target_os = "macos", windows),
+    any(
+        target_os = "linux",
+        target_os = "macos",
+        windows,
+        target_os = "android"
+    ),
     allow(dead_code)
 )]
 mod dummy;
@@ -578,7 +587,15 @@ static DRIVER: &dyn HapticDriver = &windows::WINDOWS_HAPTIC_DRIVER;
 #[cfg(target_os = "macos")]
 static DRIVER: &dyn HapticDriver = &darwin::DARWIN_HAPTIC_DRIVER;
 /// The haptic backend (`SDL_SYS_*`, chosen when upstream is built).
-#[cfg(not(any(target_os = "linux", target_os = "macos", windows)))]
+#[cfg(target_os = "android")]
+static DRIVER: &dyn HapticDriver = &android::ANDROID_HAPTIC_DRIVER;
+/// The haptic backend (`SDL_SYS_*`, chosen when upstream is built).
+#[cfg(not(any(
+    target_os = "linux",
+    target_os = "macos",
+    windows,
+    target_os = "android"
+)))]
 static DRIVER: &dyn HapticDriver = &dummy::DUMMY_HAPTIC_DRIVER;
 
 static NEXT_SERIAL: AtomicU64 = AtomicU64::new(1);
