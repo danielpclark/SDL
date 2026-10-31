@@ -69,8 +69,10 @@ its ELF file holding the word `app` (a `#[used] #[link_section =
 ".sdl3_runner"]` static of words separated by spaces or NULs, as
 sdl3/tests/android_runner.rs has), which tools/android_link.py links as an
 app's libmain.so (a shared library whose `SDL_main` is the program's
-`main`, with sdl3's `JNI_OnLoad`). Two more words shape its package:
-`assets=DIR`, the files of the directory DIR (relative to CARGO_MANIFEST_DIR,
+`main`, with sdl3's `JNI_OnLoad`). More words shape its package and launch:
+`data=URI`, which launches it as another app's "Open with" does
+(`ACTION_VIEW` of the URI; SDL3_ANDROID_LAUNCH_DATA does the same
+for any app), `assets=DIR`, the files of the directory DIR (relative to CARGO_MANIFEST_DIR,
 else to the current directory) as the package's assets (`assets/...`,
 compressed, with the time Gradle's packager gives them,
 1981-01-01 01:01:02, as Gradle's are), and `permissions=NAME,...`, the
@@ -192,6 +194,42 @@ ARGUMENTS are shell words):
               whether the input method is shown (`dumpsys input_method`'s
               mInputShown), once it is as asked (within 5 s): the answer
               is `ime: mInputShown=true|false`
+  ui-tap [--long] [--in PACKAGE|app|top] TEXT
+              a tap (a press of a second with --long) on the middle of the
+              first view of the screen's view tree (`uiautomator dump`)
+              whose text or description is TEXT (the same case first),
+              or whose resource ID is `id/TEXT`, once there is one (within
+              20 s; of that package's views with --in: `app` the app's,
+              `top` the top activity's once it's another app's): the
+              answer is `ui: tapped TEXT` (`ui: long-pressed TEXT`), or
+              `ui: no TEXT`
+  ui-dump [PACKAGE|app|top] [--id ID] [--class NAME] [--all] [--no-bounds]
+              the views of the package (by default the app's; `top` as
+              ui-tap's) that have a text or a description (with --id,
+              those of that resource ID; with --class, those of that
+              class, its name without its package; with --all, every one,
+              with its resource ID), once there's one (within 20 s): `ui:
+              CLASS "TEXT" [X1,Y1][X2,Y2]` each (no place with
+              --no-bounds), then `disabled`, `checked`, `selected` as they
+              are
+  ui-colors TEXT
+              the two most frequent colors of the place of the view of
+              that text (as ui-tap finds it) in a screen capture
+              (`screencap`), once two captures half a second apart agree:
+              `colors TEXT: #RRGGBB #RRGGBB`
+  back-to-app
+              BACK pressed while another app's activity is on top (as the
+              documents' picker, once it's there, within 8 s), until the
+              app's is (never while it is, which BACK would finish): `top:
+              the app` or `top: PACKAGE`
+  files reset NAME... | files list
+              /sdcard/Download/sdl3_dialog made again with those files
+              (each holding its name; a NAME ending with / is a
+              directory), removed once the app ends; or its files, `file:
+              NAME SIZE` each
+  view URI    `am start -a android.intent.action.VIEW -d URI` of the app's
+              activity, another app's "Open with" while it runs (the
+              singleTop activity's onNewIntent())
 The runner answers each request on the app's stdout socket, once it's
 done: its lines (`sdl3-android-runner: reply LINE`), then
 `sdl3-android-runner: done` (android_support's `request()` reads them).
@@ -236,7 +274,18 @@ partition), started headless, with SwiftShader's GPU (OpenGL ES 3.0 and
 Vulkan 1.3), the emulated cameras, and no snapshot saved. The first
 program waits for the boot to finish (`sys.boot_completed`; a minute or
 two, or SDL3_ANDROID_BOOT_TIMEOUT seconds, after which an emulator of
-this script's that hasn't booted, as a hung one, is killed). `--boot`
+this script's that hasn't booted, as a hung one, is killed), then, while
+the device has been up for less than five minutes
+(SDL3_ANDROID_READY_UPTIME seconds), for it to be ready for apps (up to
+two minutes): the package manager answering, and the home activity (the
+launcher) having the input focus, which comes about 8 s after
+`sys.boot_completed` (the Settings app's FallbackHome, then the image's
+first-boot setup, are on top until then, and an app launched meanwhile
+may lose the front to them). An app that never connected to the runner,
+and whose process is gone 30 s after its launch, is launched once more
+(nothing of the program has run: connecting is the first thing it
+does), with its lines of the device's log and `am start`'s answer
+noted. `--boot`
 starts it and prints the serial at once, so that it can boot while the
 programs build:
 
@@ -301,6 +350,7 @@ import sys
 import tempfile
 import time
 import urllib.parse
+import xml.etree.ElementTree as ElementTree
 import zipfile
 
 PROGRAM = os.path.basename(__file__)
@@ -565,6 +615,13 @@ class Emulator:
             return "the emulator needs PulseAudio's library, libpulse.so.0 (apt-get install libpulse0)"
         if "/dev/kvm" in text:
             return "the emulator needs KVM: a /dev/kvm this user can open"
+        match = re.search(r"Not enough space to create userdata partition\. Available: ([\d.]+ MB) at (\S+), need ([\d.]+ MB)", text)
+        if match:
+            return (
+                f"not enough disk space for the virtual device's data partition ({match.group(3)} needed, "
+                f"{match.group(1)} free at {match.group(2)}): free some, or make the partition smaller "
+                "(disk.dataPartition.size in its config.ini)"
+            )
         if "Unknown AVD name" in text:
             return f"the emulator doesn't find the virtual device in ANDROID_AVD_HOME ({avd_home()})"
         return None
@@ -785,10 +842,66 @@ def device_properties(serial):
     return [abi for abi in lines[1].strip().split(",") if abi]
 
 
+def readiness(serial):
+    """What of the device isn't ready yet for an app (a list of reasons,
+    empty once it is): the package manager (`pm path android`), and the
+    home activity (the launcher, as the package manager resolves HOME)
+    having the input focus."""
+    script = (
+        "pm path android 2>&1 | head -1; echo '--'; "
+        "cmd package resolve-activity --brief -a android.intent.action.MAIN -c android.intent.category.HOME 2>&1 | tail -1; "
+        "echo '--'; dumpsys window 2>&1 | grep -E 'mCurrentFocus=' | head -1"
+    )
+    result = adb_shell(serial, script, check=False, timeout=60)
+    parts = (result.stdout.replace("\r", "").split("--\n") + ["", "", ""])[:3]
+    missing = []
+    if not parts[0].startswith("package:"):
+        missing.append(f"the package manager ({parts[0].strip() or 'no answer'})")
+    home = parts[1].strip()
+    focus = parts[2].strip()
+    if "/" not in home:
+        missing.append(f"a home activity ({home or 'none'})")
+    elif f" {home.split('/')[0]}/" not in focus:
+        missing.append(f"the home activity {home} with the focus ({focus or 'no focused window'})")
+    return missing
+
+
+def wait_until_ready(serial):
+    """Wait for the device to be ready for an app (readiness()), when it
+    booted less than READY_UPTIME seconds ago. Right after
+    `sys.boot_completed` the boot isn't over for apps: the Settings app's
+    FallbackHome ("Android is starting...") is on top, then the Google
+    APIs image's first-boot setup (com.google.android.googlesdksetup),
+    and the launcher starts about 4 s later and gets the input focus
+    about 8 s later (an app launched in that time may lose the front to
+    them)."""
+    result = adb_shell(serial, "cat /proc/uptime", check=False, timeout=30)
+    try:
+        uptime = float(result.stdout.split()[0])
+    except (IndexError, ValueError):
+        return
+    if uptime > number("SDL3_ANDROID_READY_UPTIME", READY_UPTIME):
+        return
+    start = time.monotonic()
+    missing = readiness(serial)
+    if not missing:
+        return
+    note(f"waiting for {serial} to be ready for apps (up {uptime:.0f} s; not yet: {', '.join(missing)})")
+    while missing and time.monotonic() - start < READY_TIMEOUT:
+        time.sleep(1)
+        missing = readiness(serial)
+    if missing:
+        note(f"{serial} still isn't ready after {READY_TIMEOUT} s ({', '.join(missing)}): going on")
+    else:
+        note(f"{serial} is ready for apps ({time.monotonic() - start:.0f} s later)")
+
+
 def wait_for_boot(serial):
-    """The device's ABIs, once it has booted (waited for)."""
+    """The device's ABIs, once it has booted (waited for), and is ready for
+    apps (wait_until_ready())."""
     abis = device_properties(serial)
     if abis is not None:
+        wait_until_ready(serial)
         return abis
     timeout = number("SDL3_ANDROID_BOOT_TIMEOUT", 600)
     emulator = Emulator(serial)
@@ -813,7 +926,14 @@ def wait_for_boot(serial):
             raise Failure(f"{serial} didn't boot in {timeout:g} s (SDL3_ANDROID_BOOT_TIMEOUT)")
         time.sleep(2)
     note(f"{serial} booted in {time.monotonic() - start:.0f} s")
+    wait_until_ready(serial)
     return abis
+
+
+# How long after its boot the device is checked for being ready for apps
+# (wait_until_ready()), and how long that's waited for.
+READY_UPTIME = 300
+READY_TIMEOUT = 120
 
 
 def cmd_boot(args):
@@ -1079,6 +1199,10 @@ ASSET_DATE_TIME = (1981, 1, 1, 1, 1, 2)
 # Where `--run-apk`'s app finds that its request is done (in its data
 # directory, written with run-as).
 RUN_APK_DONE = "cache/sdl3-android-runner-done"
+
+# The directory of the `files` request (the shared storage's Download
+# directory, which the documents' picker shows), removed once the app ends.
+FILES_DIR = "/sdcard/Download/sdl3_dialog"
 
 # The variables an app doesn't get: it has its own directories.
 NOT_FOR_APPS = ("HOME", "TMPDIR", "CARGO_TARGET_TMPDIR", "SDL3_TEST_SKIP_LOG")
@@ -1556,6 +1680,7 @@ class AppRequests:
         # value)
         self.saved_settings = {}
         self.density_changed = False
+        self.files_made = False
 
     def handle(self, what, args=""):
         """Do WHAT: the lines of its answer."""
@@ -1632,6 +1757,21 @@ class AppRequests:
             command = f"settings put secure show_ime_with_hard_keyboard {1 if words[0] == 'yes' else 0}"
         elif what == "ime":
             return self.ime(words[0] if words else "any")
+        elif what == "ui-tap":
+            return self.ui_tap(words)
+        elif what == "ui-dump":
+            return self.ui_dump(words)
+        elif what == "ui-colors":
+            return self.ui_colors(words)
+        elif what == "back-to-app":
+            return self.back_to_app()
+        elif what == "files":
+            return self.files(words)
+        elif what == "view":
+            if len(words) != 1:
+                note(f"request {what} {args}: not `view URI` (ignored)")
+                return []
+            command = f"am start -a android.intent.action.VIEW -d {shlex.quote(words[0])} -n {self.package}/{ACTIVITY}"
         else:
             note(f"unknown request {what!r} (ignored)")
             return []
@@ -1660,6 +1800,9 @@ class AppRequests:
         if self.density_changed:
             adb_shell(self.serial, "wm density reset", check=False)
             self.density_changed = False
+        if self.files_made:
+            adb_shell(self.serial, f"rm -rf {FILES_DIR}", check=False)
+            self.files_made = False
 
     def logcat(self, tags):
         """The app's lines of the device's log with those tags, as `P/TAG:
@@ -1730,6 +1873,257 @@ class AppRequests:
                 note("request permission-dialog: no permission dialog in 20 s")
                 return ["dialog: none"]
             time.sleep(1)
+
+    def ui_nodes(self):
+        """The nodes of the screen's view tree (`uiautomator dump`), in the
+        tree's order: their attributes."""
+        dump = f"{DEVICE_ROOT}/ui.xml"
+        for _ in range(3):
+            result = adb_shell(
+                self.serial, f"mkdir -p {DEVICE_ROOT} && uiautomator dump {dump} >/dev/null 2>&1; cat {dump}; rm -f {dump}",
+                check=False, timeout=60,
+            )
+            text = result.stdout
+            start = text.find("<?xml")
+            if start >= 0:
+                try:
+                    root = ElementTree.fromstring(text[start:].strip())
+                except ElementTree.ParseError:
+                    continue
+                return [dict(node.attrib) for node in root.iter("node")]
+            # (no idle state yet: an animation)
+            time.sleep(0.5)
+        return []
+
+    @staticmethod
+    def node_bounds(node):
+        match = re.fullmatch(r"\[(-?\d+),(-?\d+)\]\[(-?\d+),(-?\d+)\]", node.get("bounds", ""))
+        return tuple(int(v) for v in match.groups()) if match else None
+
+    def node_package(self, which):
+        """A package by name, `app` (the app's) or `top` (the top
+        activity's, while it's another app's: None while it's the app's,
+        whose views then don't count)."""
+        if which == "app":
+            return self.package
+        if which == "top":
+            top = self.top_package(1)
+            return None if top == self.package else (top or "")
+        return which
+
+    def find_node(self, nodes, wanted, package=None):
+        """The first node whose text or description is WANTED (the same
+        case first, then any case), or whose resource ID is `id/WANTED`
+        or `PACKAGE:id/WANTED`."""
+        nodes = [n for n in nodes if package is None or n.get("package") == package]
+        for same_case in (True, False):
+            for n in nodes:
+                for key in ("text", "content-desc"):
+                    value = n.get(key, "")
+                    if value and (value == wanted if same_case else value.lower() == wanted.lower()):
+                        return n
+        for n in nodes:
+            rid = n.get("resource-id", "")
+            if rid and (rid == wanted or rid.endswith(":" + wanted) or rid.endswith(":id/" + wanted)):
+                return n
+        return None
+
+    def ui_options(self, words):
+        """`[--long] [--in PACKAGE|app] WORDS...`: the options and the
+        words, joined."""
+        options = {"long": False, "in": None}
+        rest = list(words)
+        while rest and rest[0].startswith("--"):
+            option = rest.pop(0)
+            if option == "--long":
+                options["long"] = True
+            elif option == "--in" and rest:
+                options["in"] = rest.pop(0)
+            else:
+                note(f"ui request: unknown option {option} (ignored)")
+        return options, " ".join(rest)
+
+    def ui_tap(self, words):
+        """Tap the node of that text, description or ID (a long press
+        with --long), once it's there (within 20 s)."""
+        options, wanted = self.ui_options(words)
+        deadline = time.monotonic() + 20
+        while True:
+            package = self.node_package(options["in"]) if options["in"] else None
+            node = None
+            if package is not None or not options["in"]:
+                node = self.find_node(self.ui_nodes(), wanted, package)
+            bounds = self.node_bounds(node) if node else None
+            if bounds:
+                x, y = (bounds[0] + bounds[2]) // 2, (bounds[1] + bounds[3]) // 2
+                if options["long"]:
+                    command = f"input swipe {x} {y} {x} {y} 1000"
+                else:
+                    command = f"input tap {x} {y}"
+                adb_shell(self.serial, command, check=False, timeout=60)
+                return [f"ui: {'long-pressed' if options['long'] else 'tapped'} {wanted}"]
+            if time.monotonic() > deadline:
+                note(f"request ui-tap: no {wanted!r} on the screen in 20 s")
+                return [f"ui: no {wanted}"]
+            time.sleep(0.5)
+
+    def ui_dump(self, words):
+        """The nodes of a package (`app`: the app's) that have a text or a
+        description (with `--id ID`: those of that resource ID; with `--class
+        NAME`: those of that class, its name without its package; with
+        `--all`: every node, with its resource ID), each as
+        `CLASS "TEXT" [X1,Y1][X2,Y2]` (without the place with
+        `--no-bounds`) and its states (disabled, checked, selected), once
+        there's one (within 20 s)."""
+        which = "app"
+        rid = None
+        cls = None
+        every = False
+        bounds = True
+        rest = list(words)
+        while rest:
+            word = rest.pop(0)
+            if word == "--id" and rest:
+                rid = rest.pop(0)
+            elif word == "--class" and rest:
+                cls = rest.pop(0)
+            elif word == "--all":
+                every = True
+            elif word == "--no-bounds":
+                bounds = False
+            else:
+                which = word
+        deadline = time.monotonic() + 20
+        while True:
+            lines = []
+            package = self.node_package(which)
+            for n in self.ui_nodes() if package is not None else []:
+                if n.get("package") != package:
+                    continue
+                if rid is not None and not n.get("resource-id", "").endswith(rid):
+                    continue
+                if cls is not None and n.get("class", "").rpartition(".")[2] != cls:
+                    continue
+                text = n.get("text") or n.get("content-desc") or ""
+                if not text and rid is None and cls is None and not every:
+                    continue
+                line = f'{n.get("class", "").rpartition(".")[2]} "{text}"'
+                if bounds:
+                    line += f' {n.get("bounds", "")}'
+                if every:
+                    line += f' {n.get("resource-id", "")} clickable={n.get("clickable")}'
+                for state, flag in (("enabled", "false"), ("checked", "true"), ("selected", "true")):
+                    if n.get(state) == flag:
+                        line += " " + ("disabled" if state == "enabled" else state)
+                lines.append("ui: " + line)
+            if lines or time.monotonic() > deadline:
+                return lines or ["ui: nothing"]
+            time.sleep(0.5)
+
+    def screen(self):
+        """The screen's pixels (`screencap`'s raw RGBA): width, height,
+        bytes."""
+        argv = [sdk_tool("platform-tools", "adb", name="adb"), "-s", self.serial, "exec-out", "screencap"]
+        try:
+            data = subprocess.run(argv, stdin=subprocess.DEVNULL, capture_output=True, timeout=60).stdout
+        except subprocess.TimeoutExpired:
+            return 0, 0, b""
+        if len(data) < 12:
+            return 0, 0, b""
+        width, height, _ = struct.unpack_from("<III", data, 0)
+        header = len(data) - width * height * 4
+        if header not in (12, 16):
+            return 0, 0, b""
+        return width, height, data[header:]
+
+    def ui_colors(self, words):
+        """The colors of a node's place on the screen (the node of that
+        text, description or ID): `colors TEXT: #RRGGBB #RRGGBB`, the most
+        frequent two (its background, then mostly its text's), once two
+        captures half a second apart agree (an animation has ended)."""
+        _, wanted = self.ui_options(words)
+        node = None
+        deadline = time.monotonic() + 20
+        while node is None:
+            node = self.find_node(self.ui_nodes(), wanted)
+            if node is None:
+                if time.monotonic() > deadline:
+                    return [f"colors {wanted}: no such node"]
+                time.sleep(0.5)
+        bounds = self.node_bounds(node)
+        previous = None
+        for _ in range(10):
+            width, height, pixels = self.screen()
+            if not pixels or not bounds:
+                return [f"colors {wanted}: no screen capture"]
+            x1, y1, x2, y2 = max(0, bounds[0]), max(0, bounds[1]), min(width, bounds[2]), min(height, bounds[3])
+            counts = {}
+            for y in range(y1, y2):
+                row = pixels[(y * width + x1) * 4:(y * width + x2) * 4]
+                for i in range(0, len(row), 4):
+                    rgb = row[i:i + 3]
+                    counts[rgb] = counts.get(rgb, 0) + 1
+            top = sorted(counts.items(), key=lambda item: (-item[1], item[0]))[:2]
+            colors = " ".join("#" + rgb.hex() for rgb, _ in top)
+            if colors == previous:
+                return [f"colors {wanted}: {colors}"]
+            previous = colors
+            time.sleep(0.5)
+        return [f"colors {wanted}: {previous} (still changing)"]
+
+    def back_to_app(self):
+        """BACK pressed while another app's activity is on top (as the
+        documents' picker, once it's there: within 8 s), until the app's
+        is (up to 6 times): never while the app's is, which BACK would
+        finish."""
+        deadline = time.monotonic() + 8
+        while self.top_package(1) in (self.package, None) and time.monotonic() < deadline:
+            time.sleep(0.25)
+        for _ in range(6):
+            top = self.top_package(4)
+            if top == self.package:
+                return ["top: the app"]
+            if top is None:
+                continue
+            adb_shell(self.serial, "input keyevent KEYCODE_BACK", check=False, timeout=60)
+            time.sleep(1)
+        top = self.top_package(4)
+        return ["top: " + ("the app" if top == self.package else (top or "(none)"))]
+
+    def files(self, words):
+        """`files reset NAME...`: the directory FILES_DIR made again, with
+        those files (each holding its name and a newline; a NAME ending
+        with / is a directory); `files list`: its files, `file: NAME SIZE`
+        each."""
+        if words and words[0] == "reset":
+            script = f"rm -rf {FILES_DIR} && mkdir -p {FILES_DIR}"
+            for name in words[1:]:
+                path = shlex.quote(f"{FILES_DIR}/{name}")
+                if name.endswith("/"):
+                    script += f" && mkdir -p {path}"
+                else:
+                    script += f" && echo {shlex.quote(name)} > {path}"
+            self.files_made = True
+            result = adb_shell(self.serial, script, check=False)
+            if result.returncode != 0:
+                note(f"request files reset: failed ({result.returncode}): {(result.stderr or result.stdout).strip()}")
+            return []
+        if words and words[0] == "list":
+            result = adb_shell(self.serial, f"cd {FILES_DIR} && find . -type f -exec stat -c '%n %s' {{}} +", check=False)
+            return sorted(f"file: {line[2:]}" for line in result.stdout.splitlines() if line.startswith("./"))
+        note("request files: not `files reset NAME...` or `files list` (ignored)")
+        return []
+
+    def top_package(self, timeout):
+        """The package of the activity on top (None if none is, within
+        TIMEOUT seconds)."""
+        deadline = time.monotonic() + timeout
+        while True:
+            result = adb_shell(self.serial, "dumpsys activity activities", check=False, timeout=60)
+            match = re.search(r"(?:topResumedActivity=|ResumedActivity: )ActivityRecord\{\S+ u\d+ ([^/\s]+)/", result.stdout)
+            if match or time.monotonic() > deadline:
+                return match.group(1) if match else None
+            time.sleep(0.25)
 
     def toast(self):
         """Whether a toast of the app's is shown."""
@@ -1823,7 +2217,7 @@ def launch(serial, program, elf, args):
                     adb(serial, "logcat", "-b", "all", "-c", check=False)
                     install(serial, apk, package)
                     try:
-                        return run_app(serial, package, listeners)
+                        return run_app(serial, package, listeners, launch_data(elf))
                     finally:
                         adb(serial, "uninstall", package, check=False, timeout=120)
                 finally:
@@ -1841,7 +2235,34 @@ def device_log(serial):
     return result.stdout.splitlines()
 
 
-def run_app(serial, package, listeners):
+def launch_data(elf=None):
+    """The URI the app is launched with, if any: the program's word
+    `data=URI`, else SDL3_ANDROID_LAUNCH_DATA."""
+    words = word_values(elf.words, "data") if elf else []
+    return words[0] if words else os.environ.get("SDL3_ANDROID_LAUNCH_DATA") or None
+
+
+def launch_command(package, data=None):
+    """`am start -W` of the app's activity: as a launcher's icon launches it,
+    or, with DATA, as another app's "Open with" does (ACTION_VIEW of the
+    URI DATA)."""
+    if data:
+        return f"am start -W -a android.intent.action.VIEW -d {shlex.quote(data)} -n {package}/{ACTIVITY}"
+    return f"am start -W {LAUNCHER} -n {package}/{ACTIVITY}"
+
+
+def app_log_lines(log, package):
+    """The device's log lines of the app's: those that name its package,
+    and those of the processes the activity manager started for it."""
+    pids = set()
+    for line in log:
+        match = re.search(r"Start proc (\d+):" + re.escape(package) + r"\b", line)
+        if match:
+            pids.add(match.group(1))
+    return [line for line in log if package in line or any(f"({p.rjust(5)}):" in line for p in pids)]
+
+
+def run_app(serial, package, listeners, data=None):
     timeout = number("SDL3_ANDROID_TIMEOUT", 1800)
     requests = AppRequests(serial, package)
     out = Stream("stdout", listeners[0], sys.stdout, True, requests.handle)
@@ -1851,11 +2272,13 @@ def run_app(serial, package, listeners):
     for stream in streams:
         selector.register(stream.listener, selectors.EVENT_READ, (stream, "accept"))
     start = time.monotonic()
-    result = adb_shell(serial, f"am start -W {LAUNCHER} -n {package}/{ACTIVITY}", check=False, timeout=300)
+    result = adb_shell(serial, launch_command(package, data), check=False, timeout=300)
     launched = result.returncode == 0 and "Error" not in result.stdout + result.stderr
     pid = app_pid(serial, package) if launched else None
+    am_start = " | ".join((result.stdout + result.stderr).strip().splitlines())
     if VERBOSE:
-        note(f"am start: {' | '.join(result.stdout.strip().splitlines())} ({time.monotonic() - start:.1f} s)")
+        note(f"am start: {am_start} ({time.monotonic() - start:.1f} s)")
+    relaunches = 0
     reason = None
     if not launched:
         reason = f"am start failed ({result.returncode}): {(result.stderr or result.stdout).strip()}"
@@ -1905,7 +2328,28 @@ def run_app(serial, package, listeners):
         if out.connection is None and time.monotonic() - last_check > 2:
             last_check = time.monotonic()
             if time.monotonic() - start > CONNECT_TIMEOUT and not app_pid(serial, package):
-                reason = f"the app didn't connect to the runner in {CONNECT_TIMEOUT} s, and its process is gone"
+                reason = (
+                    f"the app didn't connect to the runner in {CONNECT_TIMEOUT} s, and its process is gone "
+                    f"(am start: {am_start}; process {pid or '(none after am start)'})"
+                )
+                if relaunches == 0 and err.connection is None and out.connections == 0 and err.connections == 0:
+                    # (nothing of the program ran past its connection, the
+                    # first thing it does: launched again, once)
+                    relaunches += 1
+                    note(f"{reason}: launching it again; its lines of the device's log:")
+                    for line in app_log_lines(device_log(serial), package)[-80:]:
+                        print(f"  | {line}", file=sys.stderr)
+                    adb_shell(serial, f"am force-stop {package}", check=False, timeout=60)
+                    adb(serial, "logcat", "-b", "all", "-c", check=False)
+                    start = time.monotonic()
+                    result = adb_shell(serial, launch_command(package, data), check=False, timeout=300)
+                    launched = result.returncode == 0 and "Error" not in result.stdout + result.stderr
+                    pid = app_pid(serial, package) if launched else None
+                    am_start = " | ".join((result.stdout + result.stderr).strip().splitlines())
+                    reason = None
+                    if not launched:
+                        reason = f"am start failed ({result.returncode}): {(result.stderr or result.stdout).strip()}"
+                    continue
                 break
     if out.status_on_end is not None and reason is None:
         # (its output until it ends; then whatever Android launches next is
@@ -1950,9 +2394,9 @@ def run_app(serial, package, listeners):
     # (the app's own lines, which the others may have pushed out of the
     # end, or the device's log has dropped)
     pids = (pid or "").split()
-    own = [line for line in log if any(f"({p.rjust(5)}):" in line for p in pids)]
+    own = [line for line in log if any(f"({p.rjust(5)}):" in line for p in pids)] or app_log_lines(log, package)
     if own:
-        note(f"the app's own lines of the device's log (process {' '.join(pids)}):")
+        note(f"the app's own lines of the device's log (process {' '.join(pids) or 'as the activity manager started it'}):")
         for line in own[-150:]:
             print(f"  | {line}", file=sys.stderr)
     # (once more below the log, where a CI log's last lines show it)
@@ -2020,7 +2464,7 @@ def run_logcat_app(serial, package, timeout, requests):
     log = subprocess.Popen(argv, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE)
     try:
         start = time.monotonic()
-        result = adb_shell(serial, f"am start -W {LAUNCHER} -n {package}/{ACTIVITY}", check=False, timeout=300)
+        result = adb_shell(serial, launch_command(package, launch_data()), check=False, timeout=300)
         if result.returncode != 0 or "Error" in result.stdout + result.stderr:
             raise Failure(f"am start failed ({result.returncode}): {(result.stderr or result.stdout).strip()}")
         selector = selectors.DefaultSelector()
