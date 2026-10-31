@@ -172,7 +172,10 @@ const fn constructor(access: u32, descriptor: &'static str) -> Method {
 }
 
 #[cfg(target_os = "android")]
-use super::java::{activity, anonymous, controller_manager, dummy_edit, input_connection, surface};
+use super::java::{
+    activity, anonymous, clipboard_handler, controller_manager, dummy_edit, file_dialog,
+    input_connection, surface,
+};
 
 /// `org.libsdl.app.SDLActivity`.
 pub(crate) const SDL_ACTIVITY: &str = "org/libsdl/app/SDLActivity";
@@ -182,6 +185,8 @@ pub(crate) const SDL_COMMAND_HANDLER: &str = "org/libsdl/app/SDLActivity$SDLComm
 pub(crate) const SDL_SHOW_TEXT_INPUT_TASK: &str = "org/libsdl/app/SDLActivity$ShowTextInputTask";
 /// `org.libsdl.app.SDLMain`.
 pub(crate) const SDL_MAIN: &str = "org/libsdl/app/SDLMain";
+/// `org.libsdl.app.SDLClipboardHandler`.
+pub(crate) const SDL_CLIPBOARD_HANDLER: &str = "org/libsdl/app/SDLClipboardHandler";
 /// `org.libsdl.app.SDLSurface`.
 pub(crate) const SDL_SURFACE: &str = "org/libsdl/app/SDLSurface";
 /// `org.libsdl.app.SDLDummyEdit`.
@@ -269,6 +274,12 @@ pub(crate) static CLASSES: &[Class] = &[
             ),
             native!(PROTECTED, "onDestroy", "()V", activity::on_destroy[]),
             native!(PUBLIC, "onBackPressed", "()V", activity::on_back_pressed[]),
+            native!(
+                PROTECTED,
+                "onActivityResult",
+                "(IILandroid/content/Intent;)V",
+                file_dialog::on_activity_result[_, _, _]
+            ),
             native!(
                 PUBLIC,
                 "dispatchKeyEvent",
@@ -358,6 +369,12 @@ pub(crate) static CLASSES: &[Class] = &[
                 "onNativePen",
                 "(IIIIFFF)V",
                 super::on_native_pen[_, _, _, _, _, _, _]
+            ),
+            native!(
+                PUBLIC | STATIC,
+                "onNativeClipboardChanged",
+                "()V",
+                super::on_native_clipboard_changed[]
             ),
             native!(
                 PUBLIC | STATIC,
@@ -458,6 +475,12 @@ pub(crate) static CLASSES: &[Class] = &[
             ),
             native!(
                 PUBLIC | STATIC,
+                "onNativeFileDialog",
+                "(I[Ljava/lang/String;I)V",
+                super::on_native_file_dialog[_, _, _]
+            ),
+            native!(
+                PUBLIC | STATIC,
                 "onNativePinchStart",
                 "(FFFF)V",
                 super::on_native_pinch_start[_, _, _, _]
@@ -554,6 +577,31 @@ pub(crate) static CLASSES: &[Class] = &[
         methods: &[
             constructor(0, "()V"),
             native!(PUBLIC, "run", "()V", activity::sdl_main_run[]),
+        ],
+    },
+    // SDLActivity.java's `class SDLClipboardHandler implements
+    // ClipboardManager.OnPrimaryClipChangedListener`, the system's
+    // clipboard. (Its constructor is `Object`'s: upstream's gets the
+    // ClipboardManager and listens to it, which
+    // `super::java::clipboard_handler` does.)
+    Class {
+        name: SDL_CLIPBOARD_HANDLER,
+        access: 0,
+        superclass: "java/lang/Object",
+        interfaces: &["android/content/ClipboardManager$OnPrimaryClipChangedListener"],
+        fields: &[Field {
+            name: "mClipMgr",
+            descriptor: "Landroid/content/ClipboardManager;",
+            access: PROTECTED,
+        }],
+        methods: &[
+            constructor(0, "()V"),
+            native!(
+                PUBLIC,
+                "onPrimaryClipChanged",
+                "()V",
+                clipboard_handler::on_primary_clip_changed[]
+            ),
         ],
     },
     // SDLSurface.java: the activity's view, what SDL draws on.

@@ -4,8 +4,8 @@
 // environment and pass the activity's lifecycle on, the lifecycle event
 // queue, the activity mutex, the manifest's environment variables, the
 // entry points of SDL_system.h, the storage paths, the package's name,
-// toasts, permissions, the locale, URLs, the content resolver's files and
-// the battery).
+// toasts, permissions, the locale, URLs, the content resolver's files,
+// the battery, the clipboard, message boxes and file dialogs).
 // Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
 // This is an altered (translated) version of the original software; see LICENSE.txt.
 
@@ -31,9 +31,13 @@
 //! `SDL_GetAndroidCachePath()`), the package's name, toasts
 //! (`SDL_ShowAndroidToast()`), permissions (`SDL_RequestAndroidPermission()`
 //! and `nativePermissionResult()`), the locale, URLs, the content
-//! resolver's files (`content://`) and the battery. The assets are
-//! [`super::assets`]. The rest of SDL_android.c (the video, audio and
-//! controller natives, ...) comes with the backends that use it.
+//! resolver's files (`content://`) and the battery; and the video
+//! driver's clipboard (`Android_JNI_SetClipboardText()`, ...,
+//! `onNativeClipboardChanged()`), message boxes
+//! (`Android_JNI_ShowMessageBox()`) and the file dialogs
+//! (`Android_JNI_ShowFileDialog()`, `onNativeFileDialog()`). The assets are
+//! [`super::assets`]. The rest of SDL_android.c (the audio and controller
+//! natives, ...) comes with the backends that use it.
 //!
 //! This library is exported as libSDL3.so's is: a program that links it
 //! has its `JNI_OnLoad()` (as an app with upstream's static library has),
@@ -2458,4 +2462,310 @@ fn bool_extra<'a>(env: Env<'a>, intent: Obj<'_>, key: &str) -> env::JniResult<'a
             &[Arg::Object(bname.obj()), Arg::Boolean(false)],
         )?
         .boolean())
+}
+
+// ---------------------------------------------------------------------------
+// Clipboard
+
+/// The system's clipboard changed (not by SDL). Translation of
+/// `onNativeClipboardChanged()`.
+pub(crate) fn on_clipboard_changed() {
+    // TODO: compute new mime types
+    crate::events::window::send_clipboard_update(false, Vec::new());
+}
+
+pub(crate) extern "system" fn on_native_clipboard_changed(_env: *mut JNIEnv, _cls: jclass) {
+    on_clipboard_changed();
+}
+
+/// The clipboard's text set (an empty one clears it); false without a
+/// Java VM, or when the Java side throws. Translation of
+/// `Android_JNI_SetClipboardText()`. Note (upstream): upstream gives true
+/// always (and leaves a thrown exception pending).
+pub(crate) fn set_clipboard_text(text: &str) -> bool {
+    with_env(|env| super::java::clipboard_handler::clipboard_set_text(env, text)).is_some()
+}
+
+/// The clipboard's text, empty when it has none. Translation of
+/// `Android_JNI_GetClipboardText()`.
+pub(crate) fn get_clipboard_text() -> String {
+    with_env(super::java::clipboard_handler::clipboard_get_text)
+        .flatten()
+        .unwrap_or_default()
+}
+
+/// Translation of `Android_JNI_HasClipboardText()`.
+pub(crate) fn has_clipboard_text() -> bool {
+    with_env(super::java::clipboard_handler::clipboard_has_text).unwrap_or(false)
+}
+
+// ---------------------------------------------------------------------------
+// MessageBox
+
+/// The message box shown by the activity (`messageboxShowMessageBox()` of
+/// `SDLActivity.getContext()`), while this thread waits: the ID of the
+/// button chosen (-1 when it's dismissed otherwise). The buttons are
+/// given in their order on the screen (reversed for
+/// `BUTTONS_RIGHT_TO_LEFT`), the color scheme's colors as opaque ARGB.
+/// Translation of `Android_JNI_ShowMessageBox()`. Note: an error without a
+/// Java VM (a program that isn't an app), or an activity; upstream's would
+/// crash there.
+pub(crate) fn show_message_box(
+    messageboxdata: &crate::video::messagebox::MessageBoxData,
+) -> crate::error::Result<i32> {
+    use crate::video::messagebox::{MessageBoxFlags, MESSAGEBOX_COLOR_COUNT};
+
+    let Some(env) = env::get_env() else {
+        return Err(crate::error::Error::new(
+            "No Java VM: message boxes need an app",
+        ));
+    };
+
+    // convert parameters
+
+    let numbuttons = messageboxdata.buttons.len();
+    let mut button_flags = Vec::with_capacity(numbuttons);
+    let mut button_ids = Vec::with_capacity(numbuttons);
+    let mut button_texts = Vec::with_capacity(numbuttons);
+    for i in 0..numbuttons {
+        let sdl_button = if messageboxdata
+            .flags
+            .contains(MessageBoxFlags::BUTTONS_RIGHT_TO_LEFT)
+        {
+            &messageboxdata.buttons[numbuttons - 1 - i]
+        } else {
+            &messageboxdata.buttons[i]
+        };
+
+        button_flags.push(sdl_button.flags.0 as jint);
+        button_ids.push(sdl_button.button_id);
+        button_texts.push(sdl_button.text.clone());
+    }
+
+    let colors = messageboxdata.color_scheme.as_ref().map(|scheme| {
+        (0..MESSAGEBOX_COLOR_COUNT)
+            .map(|i| {
+                let color = scheme.colors[i];
+                ((0xFFu32 << 24)
+                    | (u32::from(color.r) << 16)
+                    | (u32::from(color.g) << 8)
+                    | u32::from(color.b)) as jint
+            })
+            .collect()
+    });
+
+    let args = super::java::messagebox::MessageBoxArgs {
+        flags: messageboxdata.flags.0 as jint,
+        // (C strings: they end at a NUL)
+        title: c_text(&messageboxdata.title),
+        message: c_text(&messageboxdata.message),
+        button_flags,
+        button_ids,
+        button_texts: button_texts.iter().map(|t| c_text(t)).collect(),
+        colors,
+    };
+
+    // context = SDLActivity.getContext();
+    let Some(context) = super::java::activity::get_context(env) else {
+        return Err(crate::error::Error::new("Couldn't get Android context!"));
+    };
+
+    match super::java::messagebox::messagebox_show_message_box(env, context.obj(), args) {
+        Ok(button_id) => Ok(button_id),
+        Err(thrown) => {
+            thrown.describe();
+            Err(crate::error::Error::new(
+                "SDLActivity.messageboxShowMessageBox() threw",
+            ))
+        }
+    }
+}
+
+/// A Rust string as upstream's C string would have it: up to its first
+/// NUL.
+fn c_text(s: &str) -> String {
+    s.split('\0').next().unwrap_or_default().to_owned()
+}
+
+// ---------------------------------------------------------------------------
+// File dialogs
+
+/// The file dialog being shown: its request's code and its callback
+/// (`calling`: taken, while it's called, which upstream's is too).
+/// Translation of `struct AndroidFileDialog` (`mAndroidFileDialogData`).
+struct AndroidFileDialog {
+    request_code: jint,
+    callback: Option<crate::dialog::DialogFileCallback>,
+    calling: bool,
+}
+
+impl AndroidFileDialog {
+    /// `mAndroidFileDialogData.callback != NULL`.
+    fn has_callback(&self) -> bool {
+        self.callback.is_some() || self.calling
+    }
+}
+
+static ANDROID_FILE_DIALOG_DATA: Mutex<AndroidFileDialog> = Mutex::new(AndroidFileDialog {
+    request_code: 0,
+    callback: None,
+    calling: false,
+});
+
+fn android_file_dialog_data() -> MutexGuard<'static, AndroidFileDialog> {
+    ANDROID_FILE_DIALOG_DATA
+        .lock()
+        .unwrap_or_else(|e| e.into_inner())
+}
+
+/// The picker's answer to the request `request_code` (the documents' URIs,
+/// none when it was cancelled; `None` for upstream's null array) to the
+/// dialog's callback, if it's the dialog being shown. Translation of
+/// `onNativeFileDialog()`.
+pub(crate) fn on_file_dialog(request_code: jint, file_list: Option<Vec<String>>, filter: jint) {
+    let callback = {
+        let mut data = android_file_dialog_data();
+        if data.callback.is_none() || data.request_code != request_code {
+            return;
+        }
+        data.calling = true;
+        data.callback.take().expect("a callback")
+    };
+    let filter = usize::try_from(filter).ok();
+    match file_list {
+        None => callback(
+            Err(crate::error::Error::new("Unspecified error in JNI")),
+            filter,
+        ),
+        // Call user-provided callback
+        Some(file_list) => callback(Ok(file_list), filter),
+    }
+    android_file_dialog_data().calling = false;
+}
+
+/// Note: the file list's strings are read as UTF-16 (`env`'s strings);
+/// upstream reads them in Modified UTF-8 (`GetStringUTFChars()`: "TODO: Fix
+/// modified UTF-8 to classic UTF-8"), whose U+0000 differs (a URI has
+/// none).
+pub(crate) extern "system" fn on_native_file_dialog(
+    env: *mut JNIEnv,
+    _cls: jclass,
+    request_code: jint,
+    file_list: jobjectArray,
+    filter: jint,
+) {
+    // SAFETY: a native method's environment and arguments.
+    let (env, file_list) = unsafe { (Env::from_raw(env), Obj::from_raw(file_list)) };
+    let ours = {
+        let data = android_file_dialog_data();
+        data.callback.is_some() && data.request_code == request_code
+    };
+    if !ours {
+        return;
+    }
+    if file_list.is_null() {
+        on_file_dialog(request_code, None, filter);
+        return;
+    }
+
+    // Convert fileList to string
+    let count = env.get_array_length(file_list);
+    let mut list = Vec::with_capacity(count.max(0) as usize);
+    for i in 0..count {
+        let string = match env.get_object_array_element(file_list, i) {
+            Ok(Some(string)) => string,
+            Ok(None) => continue,
+            Err(thrown) => {
+                thrown.clear();
+                continue;
+            }
+        };
+        match env.get_string(string.obj()) {
+            Ok(utf8string) => list.push(utf8string),
+            Err(thrown) => thrown.clear(),
+        }
+    }
+    on_file_dialog(request_code, Some(list), filter);
+}
+
+/// Show the documents' picker of `type` (`SDLActivity.showFileDialog()`),
+/// whose answer comes to `callback` ([`on_file_dialog`]); the callback
+/// back, with the error, when it can't be shown (another dialog is, or
+/// the activity couldn't show it). Translation of
+/// `Android_JNI_ShowFileDialog()`.
+pub(crate) fn show_file_dialog(
+    callback: crate::dialog::DialogFileCallback,
+    filters: Option<&[crate::dialog::DialogFileFilter]>,
+    r#type: crate::dialog::FileDialogType,
+    mut multiple: bool,
+    initial_path: Option<&str>,
+) -> Result<(), (crate::dialog::DialogFileCallback, crate::error::Error)> {
+    use crate::dialog::FileDialogType;
+    use crate::error::Error;
+
+    if android_file_dialog_data().has_callback() {
+        return Err((
+            callback,
+            Error::new("Only one file dialog can be run at a time."),
+        ));
+    }
+
+    // Setup type
+    let dialog_type = match r#type {
+        FileDialogType::OpenFile => 0,
+        FileDialogType::SaveFile => {
+            multiple = false;
+            1
+        }
+        FileDialogType::OpenFolder => {
+            multiple = false;
+            2
+        }
+    };
+
+    let Some(env) = env::get_env() else {
+        return Err((callback, Error::new("No Java VM: file dialogs need an app")));
+    };
+
+    // Setup filters (C strings: they end at a NUL)
+    let filters_array: Option<Vec<String>> =
+        filters.map(|filters| filters.iter().map(|f| c_text(&f.pattern)).collect());
+
+    // Setup initial path
+    let initial_path = initial_path.filter(|p| !p.is_empty()).map(c_text);
+
+    // Setup data
+    static NEXT_REQUEST_CODE: AtomicI32 = AtomicI32::new(0);
+    let request_code = NEXT_REQUEST_CODE.fetch_add(1, Ordering::AcqRel);
+    {
+        let mut data = android_file_dialog_data();
+        data.request_code = request_code;
+        data.callback = Some(callback);
+    }
+
+    // Invoke JNI
+    let success = match super::java::file_dialog::show_file_dialog(
+        env,
+        filters_array.as_deref(),
+        multiple,
+        dialog_type,
+        initial_path.as_deref(),
+        request_code,
+    ) {
+        Ok(success) => success,
+        Err(thrown) => {
+            thrown.describe();
+            false
+        }
+    };
+    if !success {
+        let callback = android_file_dialog_data()
+            .callback
+            .take()
+            .expect("the callback, just set");
+        NEXT_REQUEST_CODE.fetch_sub(1, Ordering::AcqRel);
+        return Err((callback, Error::new("Unspecified error in JNI")));
+    }
+
+    Ok(())
 }

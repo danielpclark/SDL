@@ -16,14 +16,14 @@
 //! the system's theme ([`set_dark_mode`]), and the input of the surface:
 //! the touch screens and their fingers ([`touch`]), the mouse, its cursors
 //! and its relative mode ([`mouse`]), the pens ([`pen`]), and the keys and
-//! the screen keyboard ([`keyboard`]).
-//!
-//! What later drivers' parts own is left where upstream calls them: the
-//! clipboard and message boxes, with comments.
+//! the screen keyboard ([`keyboard`]); the clipboard ([`clipboard`]) and
+//! message boxes ([`messagebox`], the bootstrap's).
 
+pub(crate) mod clipboard;
 pub(crate) mod events;
 pub(crate) mod gl;
 pub(crate) mod keyboard;
+pub(crate) mod messagebox;
 pub(crate) mod mouse;
 pub(crate) mod pen;
 pub(crate) mod touch;
@@ -384,8 +384,23 @@ impl VideoDriver for AndroidVideo {
         Some(())
     }
 
-    // (the clipboard's Android_SetClipboardText(), Android_GetClipboardText()
-    // and Android_HasClipboardText(): with the clipboard)
+    // * * * Clipboard
+
+    fn implements_clipboard_text(&self) -> bool {
+        true
+    }
+
+    fn set_clipboard_text(&self, text: &str) -> Option<Result<()>> {
+        Some(clipboard::set_clipboard_text(text))
+    }
+
+    fn clipboard_text(&self) -> Option<Option<String>> {
+        Some(Some(clipboard::get_clipboard_text()))
+    }
+
+    fn has_clipboard_text(&self) -> Option<bool> {
+        Some(clipboard::has_clipboard_text())
+    }
 }
 
 /// Translation of `Android_CreateDevice()` (whose data is
@@ -398,13 +413,12 @@ fn create_device() -> Option<Arc<dyn VideoDriver>> {
     Some(Arc::new(AndroidVideo::default()))
 }
 
-/// Translation of `Android_bootstrap`. (`Android_ShowMessageBox()`: with
-/// the message boxes.)
+/// Translation of `Android_bootstrap`.
 pub(crate) static ANDROID_BOOTSTRAP: VideoBootStrap = VideoBootStrap {
     name: ANDROID_VID_DRIVER_NAME,
     desc: "SDL Android video driver",
     create: create_device,
-    show_message_box: None,
+    show_message_box: Some(messagebox::show_message_box),
     is_preferred: false,
 };
 
