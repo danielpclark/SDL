@@ -257,7 +257,7 @@ pub(crate) mod test_support {
         ("uinput", "a writable /dev/uinput"),
         (
             "hidapi",
-            "the HID backend: hidraw/libudev, hid.dll, IOKit, or CoreBluetooth",
+            "the HID backend: hidraw/libudev, hid.dll, IOKit, CoreBluetooth, or Android's HID device manager",
         ),
         ("ipv6", "IPv6 sockets on the loopback interface (::1)"),
         ("tzdata", "the time zone database in /usr/share/zoneinfo"),

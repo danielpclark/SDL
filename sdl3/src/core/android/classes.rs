@@ -33,12 +33,14 @@
 //!   load.
 //!
 //! Each class's entry lists the members translated so far, in upstream's
-//! order; the classes and members still to come (the HID manager's
-//! receivers and callbacks, ...) are added with their translations. The
-//! anonymous classes upstream creates (`new Runnable() {...}`, dialog
-//! listeners) can't be declared with upstream's names (`SDLActivity$1`),
-//! which are the compiler's: they are two classes of their own,
-//! `SDLNativeRunnable` and `SDLNativeListener` (`super::java::anonymous`).
+//! order; the classes and members still to come are added with their
+//! translations. The anonymous classes upstream creates (`new Runnable()
+//! {...}`, dialog listeners) can't be declared with upstream's names
+//! (`SDLActivity$1`), which are the compiler's: they are two classes of
+//! their own, `SDLNativeRunnable` and `SDLNativeListener`
+//! (`super::java::anonymous`), but those that extend an abstract class
+//! (an `AudioDeviceCallback`, the HID device manager's `BroadcastReceiver`s),
+//! which a proxy can't, each a class of its own name.
 
 #[cfg(target_os = "android")]
 use std::ffi::c_void;
@@ -173,8 +175,10 @@ const fn constructor(access: u32, descriptor: &'static str) -> Method {
 #[cfg(target_os = "android")]
 use super::java::{
     activity, anonymous, audio_manager, clipboard_handler, controller_manager, dummy_edit,
-    file_dialog, input_connection, surface,
+    file_dialog, hid_device_ble_steam, hid_device_manager, input_connection, surface,
 };
+#[cfg(target_os = "android")]
+use crate::hidapi::android as hid;
 
 /// `org.libsdl.app.SDLActivity`.
 pub(crate) const SDL_ACTIVITY: &str = "org/libsdl/app/SDLActivity";
@@ -210,6 +214,22 @@ pub(crate) const SDL_CONTROLLER_MANAGER: &str = "org/libsdl/app/SDLControllerMan
 pub(crate) const SDL_DEVICE_LISTENER: &str = "org/libsdl/app/SDLDeviceListener";
 /// `org.libsdl.app.SDLJoySensorListener`.
 pub(crate) const SDL_JOY_SENSOR_LISTENER: &str = "org/libsdl/app/SDLJoySensorListener";
+
+/// `org.libsdl.app.HIDDeviceManager`.
+pub(crate) const HID_DEVICE_MANAGER: &str = "org/libsdl/app/HIDDeviceManager";
+/// `org.libsdl.app.HIDDeviceManagerUsbReceiver`, upstream's anonymous
+/// `BroadcastReceiver` of HIDDeviceManager's `mUsbBroadcast`
+/// (`HIDDeviceManager$1`).
+pub(crate) const HID_DEVICE_MANAGER_USB_RECEIVER: &str =
+    "org/libsdl/app/HIDDeviceManagerUsbReceiver";
+/// `org.libsdl.app.HIDDeviceManagerBluetoothReceiver`, upstream's anonymous
+/// `BroadcastReceiver` of HIDDeviceManager's `mBluetoothBroadcast`
+/// (`HIDDeviceManager$2`).
+pub(crate) const HID_DEVICE_MANAGER_BLUETOOTH_RECEIVER: &str =
+    "org/libsdl/app/HIDDeviceManagerBluetoothReceiver";
+/// `org.libsdl.app.HIDDeviceBLESteamController`.
+pub(crate) const HID_DEVICE_BLE_STEAM_CONTROLLER: &str =
+    "org/libsdl/app/HIDDeviceBLESteamController";
 
 /// The names of SDLControllerManager.java's generic motion listeners.
 mod controller_manager_names {
@@ -249,6 +269,13 @@ pub(crate) static CLASSES: &[Class] = &[
                 name: "rehideSystemUi",
                 descriptor: "Ljava/lang/Runnable;",
                 access: PRIVATE,
+            },
+            // (set from native code, for Java to reach the HID device
+            // manager as upstream's code can)
+            Field {
+                name: "mHIDDeviceManager",
+                descriptor: "Lorg/libsdl/app/HIDDeviceManager;",
+                access: PROTECTED | STATIC,
             },
         ],
         methods: &[
@@ -1052,6 +1079,207 @@ pub(crate) static CLASSES: &[Class] = &[
         interfaces: &[],
         fields: &[],
         methods: &[constructor(0, "()V")],
+    },
+    // HIDDeviceManager.java (super::java::hid_device_manager): the
+    // methods hid.cpp calls through JNI (Rust functions, declared native so
+    // that Java can call them too), then its natives (hid.cpp's,
+    // crate::hidapi::android). (Its constructor is Object's: upstream's
+    // takes the context, and the rest of it runs in Rust.)
+    Class {
+        name: HID_DEVICE_MANAGER,
+        access: PUBLIC,
+        superclass: "java/lang/Object",
+        interfaces: &[],
+        fields: &[],
+        methods: &[
+            constructor(PRIVATE, "()V"),
+            // JNI interface functions
+            native!(0, "initialize", "(ZZ)Z", hid_device_manager::initialize_java[_, _]),
+            native!(
+                0,
+                "openDevice",
+                "(I)Z",
+                hid_device_manager::open_device_java[_]
+            ),
+            native!(
+                0,
+                "writeReport",
+                "(I[BZ)I",
+                hid_device_manager::write_report_java[_, _, _]
+            ),
+            native!(
+                0,
+                "readReport",
+                "(I[BZ)Z",
+                hid_device_manager::read_report_java[_, _, _]
+            ),
+            native!(
+                0,
+                "closeDevice",
+                "(I)V",
+                hid_device_manager::close_device_java[_]
+            ),
+            // Native methods
+            native!(
+                PRIVATE,
+                "HIDDeviceRegisterCallback",
+                "()V",
+                hid::native_hid_device_register_callback[]
+            ),
+            native!(
+                PRIVATE,
+                "HIDDeviceReleaseCallback",
+                "()V",
+                hid::native_hid_device_release_callback[]
+            ),
+            native!(
+                0,
+                "HIDDeviceConnected",
+                "(ILjava/lang/String;IILjava/lang/String;ILjava/lang/String;Ljava/lang/String;IIIIZI)V",
+                hid::native_hid_device_connected[_, _, _, _, _, _, _, _, _, _, _, _, _, _]
+            ),
+            native!(
+                0,
+                "HIDDeviceOpenPending",
+                "(I)V",
+                hid::native_hid_device_open_pending[_]
+            ),
+            native!(
+                0,
+                "HIDDeviceOpenResult",
+                "(IZ)V",
+                hid::native_hid_device_open_result[_, _]
+            ),
+            native!(
+                0,
+                "HIDDeviceDisconnected",
+                "(I)V",
+                hid::native_hid_device_disconnected[_]
+            ),
+            native!(
+                0,
+                "HIDDeviceInputReport",
+                "(I[B)V",
+                hid::native_hid_device_input_report[_, _]
+            ),
+            native!(
+                0,
+                "HIDDeviceReportResponse",
+                "(I[B)V",
+                hid::native_hid_device_report_response[_, _]
+            ),
+        ],
+    },
+    // Its anonymous BroadcastReceivers (classes of their own: they extend
+    // an abstract class, which a proxy can't)
+    Class {
+        name: HID_DEVICE_MANAGER_USB_RECEIVER,
+        access: FINAL,
+        superclass: "android/content/BroadcastReceiver",
+        interfaces: &[],
+        fields: &[],
+        methods: &[
+            constructor(0, "()V"),
+            native!(
+                PUBLIC,
+                "onReceive",
+                "(Landroid/content/Context;Landroid/content/Intent;)V",
+                hid_device_manager::usb_broadcast_on_receive[_, _]
+            ),
+        ],
+    },
+    Class {
+        name: HID_DEVICE_MANAGER_BLUETOOTH_RECEIVER,
+        access: FINAL,
+        superclass: "android/content/BroadcastReceiver",
+        interfaces: &[],
+        fields: &[],
+        methods: &[
+            constructor(0, "()V"),
+            native!(
+                PUBLIC,
+                "onReceive",
+                "(Landroid/content/Context;Landroid/content/Intent;)V",
+                hid_device_manager::bluetooth_broadcast_on_receive[_, _]
+            ),
+        ],
+    },
+    // HIDDeviceBLESteamController.java (super::java::hid_device_ble_steam):
+    // a Steam Controller's GATT callbacks. (Its constructor is
+    // BluetoothGattCallback's: upstream's takes the manager and the
+    // device, and the rest of it runs in Rust. HIDDevice, the interface it
+    // implements, is upstream's own, which the framework doesn't use: a
+    // Rust trait.)
+    Class {
+        name: HID_DEVICE_BLE_STEAM_CONTROLLER,
+        access: 0,
+        superclass: "android/bluetooth/BluetoothGattCallback",
+        interfaces: &[],
+        fields: &[],
+        methods: &[
+            constructor(0, "()V"),
+            // BluetoothGattCallback overridden methods
+            native!(
+                PUBLIC,
+                "onConnectionStateChange",
+                "(Landroid/bluetooth/BluetoothGatt;II)V",
+                hid_device_ble_steam::on_connection_state_change[_, _, _]
+            ),
+            native!(
+                PUBLIC,
+                "onServicesDiscovered",
+                "(Landroid/bluetooth/BluetoothGatt;I)V",
+                hid_device_ble_steam::on_services_discovered[_, _]
+            ),
+            native!(
+                PUBLIC,
+                "onCharacteristicRead",
+                "(Landroid/bluetooth/BluetoothGatt;Landroid/bluetooth/BluetoothGattCharacteristic;I)V",
+                hid_device_ble_steam::on_characteristic_read[_, _, _]
+            ),
+            native!(
+                PUBLIC,
+                "onCharacteristicWrite",
+                "(Landroid/bluetooth/BluetoothGatt;Landroid/bluetooth/BluetoothGattCharacteristic;I)V",
+                hid_device_ble_steam::on_characteristic_write[_, _, _]
+            ),
+            native!(
+                PUBLIC,
+                "onCharacteristicChanged",
+                "(Landroid/bluetooth/BluetoothGatt;Landroid/bluetooth/BluetoothGattCharacteristic;)V",
+                hid_device_ble_steam::on_characteristic_changed[_, _]
+            ),
+            native!(
+                PUBLIC,
+                "onDescriptorRead",
+                "(Landroid/bluetooth/BluetoothGatt;Landroid/bluetooth/BluetoothGattDescriptor;I)V",
+                hid_device_ble_steam::on_descriptor_read[_, _, _]
+            ),
+            native!(
+                PUBLIC,
+                "onDescriptorWrite",
+                "(Landroid/bluetooth/BluetoothGatt;Landroid/bluetooth/BluetoothGattDescriptor;I)V",
+                hid_device_ble_steam::on_descriptor_write[_, _, _]
+            ),
+            native!(
+                PUBLIC,
+                "onReliableWriteCompleted",
+                "(Landroid/bluetooth/BluetoothGatt;I)V",
+                hid_device_ble_steam::on_reliable_write_completed[_, _]
+            ),
+            native!(
+                PUBLIC,
+                "onReadRemoteRssi",
+                "(Landroid/bluetooth/BluetoothGatt;II)V",
+                hid_device_ble_steam::on_read_remote_rssi[_, _, _]
+            ),
+            native!(
+                PUBLIC,
+                "onMtuChanged",
+                "(Landroid/bluetooth/BluetoothGatt;II)V",
+                hid_device_ble_steam::on_mtu_changed[_, _, _]
+            ),
+        ],
     },
     // SDLDummyEdit.java: the text edit, a fake invisible editor view that
     // receives the input.

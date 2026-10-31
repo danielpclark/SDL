@@ -75,10 +75,11 @@
 use super::super::env::{self, Arg, Env, Global, JniResult, Local, Obj};
 use super::super::jni::*;
 use super::super::ndk::LogPriority;
+use super::hid_device_manager::{self, HidDeviceManager};
 use super::{anonymous, controller_manager, sdl, surface};
 use std::collections::BTreeMap;
 use std::ffi::CStr;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 
 const TAG: &str = "SDL";
 const SDL_MAJOR_VERSION: u16 = 3;
@@ -143,6 +144,9 @@ struct Statics {
     /// `mTextEdit`, the text edit (an `SDLDummyEdit`), once text input has
     /// started.
     text_edit: Option<Global>,
+    /// `mHIDDeviceManager` (its Java object in the class's static field
+    /// too).
+    hid_device_manager: Option<Arc<HidDeviceManager>>,
 }
 
 static STATICS: Mutex<Statics> = Mutex::new(Statics {
@@ -167,10 +171,33 @@ static STATICS: Mutex<Statics> = Mutex::new(Statics {
     last_cursor_id: 0,
     motion_listener: None,
     text_edit: None,
+    hid_device_manager: None,
 });
 
 fn statics() -> std::sync::MutexGuard<'static, Statics> {
     STATICS.lock().unwrap_or_else(|e| e.into_inner())
+}
+
+/// `mHIDDeviceManager`.
+fn hid_device_manager() -> Option<Arc<HidDeviceManager>> {
+    statics().hid_device_manager.clone()
+}
+
+/// `mHIDDeviceManager = manager`, and the class's static field.
+fn set_hid_device_manager<'a>(
+    env: Env<'a>,
+    manager: Option<Arc<HidDeviceManager>>,
+) -> JniResult<'a, ()> {
+    if let Some(class) = env::app_class(super::super::classes::SDL_ACTIVITY) {
+        env.set_static_field(
+            class.obj(),
+            c"mHIDDeviceManager",
+            c"Lorg/libsdl/app/HIDDeviceManager;",
+            Arg::Object(manager.as_ref().map_or(Obj::NULL, |m| m.object())),
+        )?;
+    }
+    statics().hid_device_manager = manager;
+    Ok(())
 }
 
 /// The motion listener of the device's API level, made once. Translation
@@ -786,8 +813,10 @@ pub(crate) extern "system" fn on_create(
             super::clipboard_handler::create(env)?;
         }
 
-        // (the HID device manager when nativeIsHIDAPIEnabled(): with the
-        // HID driver)
+        if super::super::is_hidapi_enabled() {
+            let manager = hid_device_manager::acquire(env, this)?;
+            set_hid_device_manager(env, Some(manager))?;
+        }
 
         // Set up the surface
         if sdl::is_subsystem_initialized(sdl::SDL_INIT_VIDEO) {
@@ -1069,8 +1098,9 @@ pub(crate) extern "system" fn on_pause(env: *mut JNIEnv, this: jobject) {
         log(LogPriority::Verbose, "onPause()");
         call_super(env, this, c"onPause", c"()V", &[])?;
 
-        // (mHIDDeviceManager.setFrozen(true): the HID device manager
-        // comes with HIDAPI's Android backend)
+        if let Some(manager) = hid_device_manager() {
+            manager.set_frozen(env, true)?;
+        }
 
         if !has_multi_window(env) {
             pause_native_thread(env)?;
@@ -1087,7 +1117,9 @@ pub(crate) extern "system" fn on_resume(env: *mut JNIEnv, this: jobject) {
         log(LogPriority::Verbose, "onResume()");
         call_super(env, this, c"onResume", c"()V", &[])?;
 
-        // (mHIDDeviceManager.setFrozen(false): see on_pause())
+        if let Some(manager) = hid_device_manager() {
+            manager.set_frozen(env, false)?;
+        }
 
         if !has_multi_window(env) {
             resume_native_thread(env)?;
@@ -1148,8 +1180,13 @@ pub(crate) extern "system" fn on_window_focus_changed(
 
         // If we are gaining focus, we can always try to restore our USB devices. If we are losing focus,
         // only try to relinquish them if we don't have background events allowed (for multi-window Android setups).
-        // (hasFocus, or not nativeGetHintBoolean("SDL_JOYSTICK_ALLOW_BACKGROUND_EVENTS", false):
-        // mHIDDeviceManager.setFrozen(!hasFocus), see on_pause())
+        if has_focus
+            || !super::super::get_hint_boolean("SDL_JOYSTICK_ALLOW_BACKGROUND_EVENTS", false)
+        {
+            if let Some(manager) = hid_device_manager() {
+                manager.set_frozen(env, !has_focus)?;
+            }
+        }
 
         if statics().broken_libraries {
             return Ok(());
@@ -1257,7 +1294,10 @@ pub(crate) extern "system" fn on_destroy(env: *mut JNIEnv, this: jobject) {
     native(env, |env| {
         log(LogPriority::Verbose, "onDestroy()");
 
-        // (HIDDeviceManager.release(mHIDDeviceManager), see on_pause())
+        if let Some(manager) = hid_device_manager() {
+            hid_device_manager::release(env, &manager)?;
+            set_hid_device_manager(env, None)?;
+        }
 
         super::audio_manager::release(env, this);
 

@@ -44,8 +44,10 @@
 //! `Android_JNI_JoystickSetSensorsEnabled()`,
 //! `Android_JNI_DetectHapticDevices()`, `Android_JNI_HapticRun()`,
 //! `Android_JNI_HapticRumble()`, `Android_JNI_HapticStop()`). The assets
-//! are [`super::assets`]. The rest of SDL_android.c (HIDDeviceManager's
-//! natives, ...) comes with the backends that use it.
+//! are [`super::assets`]. HIDDeviceManager's natives
+//! (`HIDDeviceManager_tab`, which upstream's `JNI_OnLoad()` registers) are
+//! HIDAPI's backend's (`crate::hidapi::android`), registered with the
+//! other classes'.
 //!
 //! This library is exported as libSDL3.so's is: a program that links it
 //! has its `JNI_OnLoad()` (as an app with upstream's static library has),
