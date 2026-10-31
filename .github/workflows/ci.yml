@@ -38,6 +38,14 @@ on:
         description: "The Android emulator job's cargo test arguments in place of --workspace (e.g. -p sdl3 --lib -- video::)"
         type: string
         default: ""
+      android_cref:
+        description: "(diag) the C references of the android tests: NAME.c programs and headers, .tar.gz then base64"
+        type: string
+        default: ""
+      android_probe:
+        description: "(diag) the boot probe"
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -837,6 +845,214 @@ jobs:
   # the NDK are pinned; nothing of the emulator is cached (the image and a
   # booted device's snapshot would take 4 GB of the repository's cache for
   # about 40 s: the emulator boots while the programs build).
+  # (diag branch only) The C references of sdl3/tests/android_*.rs:
+  # upstream's android-project with each C program of the android_cref
+  # input (a .tar.gz, base64: NAME.c programs and their headers), built
+  # with Gradle and CMake, run by the runner's --run-apk on the same
+  # emulator, one after the other.
+  cref:
+    name: C reference (upstream's android-project with Gradle)
+    if: ${{ inputs.android_cref != '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      ANDROID_EMULATOR_BUILD: "16428233"
+      ANDROID_EMULATOR_SHA256: b08fc43d8608d2955f607f1b287beb525041e730086bdca3af152accac3af9c1
+      ANDROID_IMAGE_ARCHIVE: x86_64-35_r09.zip
+      ANDROID_IMAGE_SHA256: c67b9ba0ff5bc0eb6d046871bfa228af14d4d47b02f0cdae94f048e511b7566e
+      SDL3_ANDROID_SYSTEM_IMAGE: "system-images;android-35;google_apis;x86_64"
+      ANDROID_NDK_VERSION: "29.0.14206865"
+      SDL3_ANDROID_BUILD_TOOLS: "35.0.0"
+      SDL3_ANDROID_TIMEOUT: 600
+      UPSTREAM_COMMIT: ea7a2dabfd1ab6b0a5720568ffd207f5825e47f1
+    steps:
+      - uses: actions/checkout@v5
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Install the emulator and its system image
+        run: |
+          D="$RUNNER_TEMP/android-download"
+          mkdir -p "$D"
+          curl -fsSL -o "$D/emulator.zip" "https://dl.google.com/android/repository/emulator-linux_x64-$ANDROID_EMULATOR_BUILD.zip"
+          curl -fsSL -o "$D/image.zip" "https://dl.google.com/android/repository/sys-img/google_apis/$ANDROID_IMAGE_ARCHIVE"
+          echo "$ANDROID_EMULATOR_SHA256  $D/emulator.zip" | sha256sum -c
+          echo "$ANDROID_IMAGE_SHA256  $D/image.zip" | sha256sum -c
+          rm -rf "$ANDROID_HOME/emulator"
+          unzip -q "$D/emulator.zip" -d "$ANDROID_HOME"
+          I="$ANDROID_HOME/$(echo "$SDL3_ANDROID_SYSTEM_IMAGE" | tr ';' /)"
+          rm -rf "$I"
+          mkdir -p "$(dirname "$I")"
+          unzip -q "$D/image.zip" -d "$(dirname "$I")"
+          rm -rf "$D"
+          sudo apt-get install -y -q libpulse0 > /dev/null || { sudo apt-get update -q > /dev/null && sudo apt-get install -y -q libpulse0 > /dev/null; }
+      - name: Start the emulator
+        run: echo "SDL3_ANDROID_SERIAL=$(tools/android_run.py --boot)" >> "$GITHUB_ENV"
+      - name: Build upstream's android-project with each C reference
+        env:
+          CREF: ${{ inputs.android_cref }}
+        run: |
+          up="$RUNNER_TEMP/upstream"
+          proj="$RUNNER_TEMP/cref"
+          src="$RUNNER_TEMP/cref-src"
+          mkdir -p "$src" "$RUNNER_TEMP/apks"
+          if [ "$CREF" = file ]; then base64 -d .github/diag-cref.b64 | tar -xz -C "$src"; else echo "$CREF" | base64 -d | tar -xz -C "$src"; fi
+          ls -la "$src"
+          git init -q "$up"
+          git -C "$up" fetch -q --depth 1 https://github.com/libsdl-org/SDL "$UPSTREAM_COMMIT"
+          git -C "$up" checkout -q FETCH_HEAD
+          # Upstream's GLES2 program cache: moving the tail entry to the
+          # front leaves `tail` on it, and an eviction leaves the new
+          # tail's `next` on the freed entry, so destroying the renderer
+          # after the scenes frees an entry twice. Both fixed, as the Rust
+          # cache (a Vec) behaves (as for the iOS references).
+          G="$up/src/render/opengles2/SDL_render_gles2.c"
+          perl -0pi -e 's/(            if \(entry->prev\) \{\n                entry->prev->next = entry->next;\n            \}\n)/$1            if (data->program_cache.tail == entry) {\n                data->program_cache.tail = entry->prev;\n            }\n/' "$G"
+          perl -0pi -e 's/(        data->program_cache.tail = oldest->prev;\n)/$1        if (data->program_cache.tail) {\n            data->program_cache.tail->next = NULL;\n        }\n/' "$G"
+          # (and the input's patches of upstream: the Rust translation's
+          # fixes, for the references of the checks they change)
+          for p in "$src"/*.patch; do
+            if [ -e "$p" ]; then git -C "$up" apply -v "$p"; fi
+          done
+          git -C "$up" diff --stat
+          cp -r "$up/android-project" "$proj"
+          ln -s "$up" "$proj/app/jni/SDL"
+          cp "$src"/*.h "$proj/app/jni/src/"
+          sed -i 's/YourSourceHere.c/main.c/' "$proj/app/jni/src/CMakeLists.txt"
+          sed -i "s/abiFilters 'arm64-v8a'/abiFilters 'x86_64'/" "$proj/app/build.gradle"
+          sed -i "s/ndkVersion = \"28.2.13676358\"/ndkVersion = \"$ANDROID_NDK_VERSION\"/" "$proj/app/build.gradle"
+          cd "$proj"
+          for c in "$src"/*.c; do
+            n=$(basename "$c" .c)
+            cp "$c" app/jni/src/main.c
+            s=$(date +%s)
+            ./gradlew --no-daemon -q -PBUILD_WITH_CMAKE assembleDebug 2>&1 | tail -40
+            echo "gradle $n: $(( $(date +%s) - s )) s"
+            cp app/build/outputs/apk/debug/app-debug.apk "$RUNNER_TEMP/apks/$n.apk"
+          done
+          ls -la "$RUNNER_TEMP/apks"
+      - name: Run the C references
+        env:
+          SDL3_ANDROID_VERBOSE: 1
+        run: |
+          status=0
+          for apk in "$RUNNER_TEMP"/apks/*.apk; do
+            n=$(basename "$apk" .apk)
+            echo "===== $n"
+            s=$(date +%s)
+            rc=0
+            if [ "$n" = android_dialog ]; then export SDL3_ANDROID_LAUNCH_DATA=file:///sdcard/Download/sdl3_dialog/dropped.txt; else unset SDL3_ANDROID_LAUNCH_DATA; fi
+            tools/android_run.py --run-apk "$apk" org.libsdl.app | tee "$RUNNER_TEMP/$n.txt" || rc=$?
+            echo "--run-apk $n: exit status $rc, $(( $(date +%s) - s )) s"
+            echo "--- the trace of $n"
+            python3 - "$RUNNER_TEMP/$n.txt" "$n" <<'EOF'
+          import sys
+          lines = []
+          for raw in open(sys.argv[1], encoding="utf-8", errors="replace"):
+              text = raw.rstrip("\n")
+              if text.startswith("trace: "):
+                  lines.append(text[len("trace: "):])
+              elif text.startswith("sdl3-android-runner: reply "):
+                  lines.append("logcat: " + text[len("sdl3-android-runner: reply "):])
+          for line in lines:
+              print(f"EXPECTED[{sys.argv[2]}]| " + line)
+          print(f"({len(lines)} lines)")
+          EOF
+            "$ANDROID_HOME/platform-tools/adb" -s "$SDL3_ANDROID_SERIAL" logcat -d -v threadtime | grep -E " (SDL|SDL/[A-Z]+|AndroidRuntime|DEBUG|libc|ActivityTaskManager|ActivityManager) *:" | tail -150 | sed "s/^/LOG[$n]| /" || true
+            test "$rc" = 0 || status=1
+          done
+          exit $status
+      - name: Stop the emulator
+        if: always()
+        run: tools/android_run.py --kill
+
+  # (diag branch only) What isn't ready for an app right after the
+  # emulator's sys.boot_completed: fresh virtual devices (first boots), an
+  # app of the runner's launched at once (the runner's readiness wait off),
+  # and the device's readiness each second meanwhile.
+  bootprobe:
+    name: boot probe
+    if: ${{ inputs.android_probe }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      ANDROID_EMULATOR_BUILD: "16428233"
+      ANDROID_EMULATOR_SHA256: b08fc43d8608d2955f607f1b287beb525041e730086bdca3af152accac3af9c1
+      ANDROID_IMAGE_ARCHIVE: x86_64-35_r09.zip
+      ANDROID_IMAGE_SHA256: c67b9ba0ff5bc0eb6d046871bfa228af14d4d47b02f0cdae94f048e511b7566e
+      SDL3_ANDROID_SYSTEM_IMAGE: "system-images;android-35;google_apis;x86_64"
+      ANDROID_NDK_VERSION: "29.0.14206865"
+      SDL3_ANDROID_BUILD_TOOLS: "35.0.0"
+      SDL3_ANDROID_PLATFORM: "35"
+      CARGO_PROFILE_DEV_DEBUG: line-tables-only
+    steps:
+      - uses: actions/checkout@v5
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Install the emulator, its system image and the NDK
+        run: |
+          df -h /
+          D="$RUNNER_TEMP/android-download"
+          mkdir -p "$D"
+          curl -fsSL -o "$D/emulator.zip" "https://dl.google.com/android/repository/emulator-linux_x64-$ANDROID_EMULATOR_BUILD.zip"
+          curl -fsSL -o "$D/image.zip" "https://dl.google.com/android/repository/sys-img/google_apis/$ANDROID_IMAGE_ARCHIVE"
+          echo "$ANDROID_EMULATOR_SHA256  $D/emulator.zip" | sha256sum -c
+          echo "$ANDROID_IMAGE_SHA256  $D/image.zip" | sha256sum -c
+          rm -rf "$ANDROID_HOME/emulator"
+          unzip -q "$D/emulator.zip" -d "$ANDROID_HOME"
+          I="$ANDROID_HOME/$(echo "$SDL3_ANDROID_SYSTEM_IMAGE" | tr ';' /)"
+          rm -rf "$I"
+          mkdir -p "$(dirname "$I")"
+          unzip -q "$D/image.zip" -d "$(dirname "$I")"
+          rm -rf "$D"
+          sudo apt-get install -y -q libpulse0 > /dev/null || { sudo apt-get update -q > /dev/null && sudo apt-get install -y -q libpulse0 > /dev/null; }
+          if [ ! -d "$ANDROID_HOME/ndk/$ANDROID_NDK_VERSION" ]; then
+            yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "ndk;$ANDROID_NDK_VERSION" > /dev/null
+          fi
+          echo "SDL3_ANDROID_NDK=$ANDROID_HOME/ndk/$ANDROID_NDK_VERSION" >> "$GITHUB_ENV"
+          df -h /
+      - name: Install Rust
+        run: |
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal --target x86_64-linux-android
+          rustup default "$RUST_TOOLCHAIN"
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: android
+          save-if: false
+      - name: Build android_runner
+        run: cargo test --no-run --target x86_64-linux-android -p sdl3 --test android_runner
+      - name: Boot and launch at once, four times
+        shell: bash
+        run: |
+          ADB="$ANDROID_HOME/platform-tools/adb"
+          exe=$(cargo test --target x86_64-linux-android -p sdl3 --test android_runner --no-run --message-format=json 2>/dev/null |
+            python3 -c 'import json, sys; print([m["executable"] for m in map(json.loads, sys.stdin) if m.get("executable")][-1])')
+          for i in 1 2 3 4; do
+            echo "===== boot $i"
+            tools/android_run.py --kill || true
+            rm -rf "$HOME/.android/avd"
+            S=$(tools/android_run.py --boot)
+            t0=$(date +%s.%N)
+            until [ "$(timeout 10 "$ADB" -s "$S" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = 1 ]; do sleep 0.5; done
+            echo "boot_completed after $(echo "$(date +%s.%N) - $t0" | bc) s"
+            ( t1=$(date +%s.%N); for j in $(seq 1 80); do
+                echo "t+$(echo "$(date +%s.%N) - $t1" | bc | cut -c1-5): $(timeout 20 "$ADB" -s "$S" shell 'pm path android 2>&1 | head -1; dumpsys activity activities | grep -E "topResumedActivity=" | head -1; cmd package resolve-activity --brief -a android.intent.action.MAIN -c android.intent.category.HOME | tail -1; dumpsys window | grep -E "mCurrentFocus=|mFocusedApp=" | head -2; dumpsys window | grep -E "isKeyguardShowing|mShowingLockscreen|KeyguardController" | head -2' 2>&1 | tr -s ' \n\r' ' ' | cut -c1-500)"
+                sleep 1; done ) > "$RUNNER_TEMP/probe_$i.txt" 2>&1 &
+            P=$!
+            rc=0
+            SDL3_ANDROID_SERIAL="$S" SDL3_ANDROID_VERBOSE=1 timeout 400 tools/android_run.py "$exe" > "$RUNNER_TEMP/run_$i.txt" 2>&1 || rc=$?
+            echo "run $i: exit status $rc"
+            grep -E "am start|didn't connect|booted|ready|failed|process|waiting" "$RUNNER_TEMP/run_$i.txt" | cut -c1-400 | head -30
+            wait $P || true
+            cat "$RUNNER_TEMP/probe_$i.txt" | head -40
+            timeout 60 "$ADB" -s "$S" logcat -d -b main,system,crash -v time | grep -E "sdl3_rust|org.libsdl|Start proc|Displayed|adbd|keyguard|Keyguard" | head -120 || true
+          done
+          tools/android_run.py --kill || true
   android:
     name: test (x86_64-linux-android, Android emulator)
     if: ${{ !inputs.ios_only && !inputs.tvos_only && !inputs.visionos_only }}
