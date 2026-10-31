@@ -946,18 +946,15 @@ jobs:
         shell: bash
         run: |
           ADB="$ANDROID_HOME/platform-tools/adb"
-          "$ADB" shell wm logging enable-text WM_DEBUG_FOCUS_LIGHT WM_DEBUG_FOCUS || true
-          "$ADB" shell device_config get systemui clipboard_overlay_enabled || true
-          for i in 1 2 3 4 5 6 7 8 9 10 11 12; do
-            if [ $i -le 6 ]; then ov=true; else ov=false; fi
-            "$ADB" shell device_config put systemui clipboard_overlay_enabled $ov || true
-            echo "=== round $i overlay=$ov ($("$ADB" shell device_config get systemui clipboard_overlay_enabled))"
-            "$ADB" logcat -b all -c
-            rc=0; cargo test --target x86_64-linux-android -p sdl3 --test android_clipboard > "$RUNNER_TEMP/clip$i.log" 2>&1 || rc=$?
-            echo "round $i: rc=$rc"
-            { grep -E "differs" "$RUNNER_TEMP/clip$i.log" || true; } | cut -c1-300
-            timeout 60 "$ADB" logcat -d -v time | grep -iE "SDLDIAG|focus|Overlay|lipboardListener" | grep -v IPCThreadState | grep -E "SDLDIAG|Changing focus|Overlay|lipboardListener|FocusChanged|setFocusedWindow|mCurrentFocus" | cut -c1-260 | tail -300 || true
+          "$ADB" shell device_config put systemui clipboard_overlay_enabled false
+          echo "overlay: $("$ADB" shell device_config get systemui clipboard_overlay_enabled)"
+          fails=0
+          for i in $(seq 1 30); do
+            rc=0; cargo test -q --target x86_64-linux-android -p sdl3 --test android_clipboard > "$RUNNER_TEMP/clip$i.log" 2>&1 || rc=$?
+            [ $rc = 0 ] || fails=$((fails+1))
+            echo "round $i: rc=$rc $({ grep -E "differs" "$RUNNER_TEMP/clip$i.log" || true; } | cut -c1-200)"
           done
+          echo "FAILS $fails of 30 with the overlay off"
       # The app mode once more, with arguments and a variable (the same
       # string, which comes through the manifest and the arguments each its
       # own way: android_runner.rs compares them), and android_spawned.rs
