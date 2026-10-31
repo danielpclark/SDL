@@ -526,9 +526,9 @@ the small backends: the filesystem paths, the assets and
 and the video driver: its window, its surface, OpenGL ES through EGL and
 Vulkan, its touch, pinch, mouse and pen input, and its keyboard, text
 input and screen keyboard (below), the audio drivers (AAudio and
-OpenSL ES, with the audio manager), and the joystick and haptic drivers
-(with the controller manager); the other Android drivers (sensors, the
-camera, HIDAPI's backend) aren't translated yet.
+OpenSL ES, with the audio manager), the joystick and haptic drivers
+(with the controller manager), and the sensor and camera drivers; the
+other Android driver (HIDAPI's backend) isn't translated yet.
 
 A test that reads its package's files does so at run time, through
 `CARGO_MANIFEST_DIR` (falling back on `env!("CARGO_MANIFEST_DIR")`), which
@@ -753,6 +753,48 @@ device; the same for `CARGO_TARGET_TMPDIR` and `CARGO_BIN_EXE_NAME`.
   the first slot), the haptic list kept when the subsystem quits. Without
   a Java VM (a spawned program) there are no devices, where upstream
   dereferences a null `JNIEnv` (`Note (upstream)`).
+* Sensors: the android sensor driver (`sensor/android.rs`, first in the
+  driver list, as upstream's) is the NDK's sensor manager
+  (`<android/sensor.h>`, linked from libandroid as upstream links it,
+  declared in `core/android/ndk.rs` with `<android/looper.h>`'s looper),
+  not Java's: all of its sensors (an accelerometer and a gyroscope are
+  SDL's types, the others unknown, Android's type their non-portable
+  one), read on the "Sensors" thread, whose looper the open sensors' event
+  queues (60 Hz) are attached to, each event's 16 values sent with the
+  sensor lock held; `SDL_ANDROID_SensorQuit()`'s unlocking around the
+  thread's end is `with_sensors_unlocked()`. Kept as upstream does them
+  (`Note (upstream)`): the list read once, an event's timestamps the time
+  the thread started waiting, a failed open leaving the sensor marked
+  open. It needs no Java VM, so it works in spawned programs too.
+* The camera: the android camera driver (`camera/android.rs`, after
+  CoreMedia's in the bootstrap list, as upstream's) is the camera2 NDK
+  with an `AImageReader`, libcamera2ndk.so and libmediandk.so loaded at
+  run time as upstream does (their functions in `camera/android/sys.rs`,
+  a table per library, the first missing one logged): the camera
+  manager's cameras with SDL's formats (30 frames per second each), their
+  names (`ACAMERA_INFO_VERSION`, else the lens's facing) and positions,
+  the availability callbacks adding and disconnecting cameras; opening
+  one asks for the `CAMERA` permission (`request_android_permission()`),
+  and opens it once granted (at once when it was); the image reader's
+  listener drives the camera's iteration (`ProvidesOwnCallbackThread`),
+  and a frame's rotation is the display's orientation and the sensor's.
+  The callbacks' context is the camera's instance ID (as the other
+  drivers' callbacks), and an opened camera's `hidden` is the backend's
+  own (`None` once closed), which its permission callback checks. Fixed:
+  the stream configurations read as many as there are (upstream reads
+  four times as many, past the entry's data: `FIXME (upstream)`, and the
+  C reference is built with the fix), the driver not starting when a
+  function is missing (upstream goes on with the libraries closed), and
+  the image listener waiting for the camera's lock only while the camera
+  isn't shutting down (`ReentrantMutex::try_lock()`, `SDL_TryLockMutex()`:
+  closing a camera holds the lock while deleting the reader, which waits
+  for the listener's thread), and the libraries never closed (closed, as
+  upstream closes them, libcamera_client's static vendor tag cache from
+  libcamera2ndk aborts the process at its `exit()`: a CFI check fails);
+  the availability callbacks read whether a camera is open with its lock.
+  Kept: the assertion that each plane of a frame has the Y plane's row
+  stride, which fails on the emulator's YUV frames. Without a Java VM (a spawned program) the
+  cameras are there but opening one fails (`Failed, there is no JavaVM`).
 
 ### What is built
 
@@ -771,7 +813,8 @@ it) stands in:
 | haptic | android, HIDAPI | the same |
 | power, locale, URL, filesystem paths, assets | Android's | the same |
 | dialog | Android's | the same |
-| sensor, camera | Android's | dummy, or no backend (later) |
+| sensor | android | the same |
+| camera | android, dummy | the same |
 | file operations, threads, time, timer, `loadso` | POSIX, pthread, Unix, Unix, `dlopen` | the same |
 | process, tray, notification | dummy, dummy, none | the same |
 
