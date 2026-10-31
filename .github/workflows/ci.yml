@@ -941,6 +941,20 @@ jobs:
           TEST_ARGS: ${{ inputs.android_test_args }}
           SDL3_TEST_SKIP_LOG: ${{ runner.temp }}/skips.tsv
         run: cargo test --target x86_64-linux-android --no-fail-fast ${TEST_ARGS:---workspace} 2>&1 | tee "$RUNNER_TEMP/test.log"
+      - name: (diag) android_clipboard again and again
+        if: ${{ !cancelled() }}
+        shell: bash
+        run: |
+          fails=0; replays=0
+          for i in $(seq 1 30); do
+            rc=0; cargo test -q --target x86_64-linux-android -p sdl3 --test android_clipboard > "$RUNNER_TEMP/clip$i.log" 2>&1 || rc=$?
+            [ $rc = 0 ] || fails=$((fails+1))
+            r=$({ grep -c "upstream's race" "$RUNNER_TEMP/clip$i.log" || true; })
+            replays=$((replays+r))
+            echo "round $i: rc=$rc replays=$r $({ grep -E "differs|upstream's race" "$RUNNER_TEMP/clip$i.log" || true; } | cut -c1-200 | tr '\n' ' ')"
+          done
+          echo "FAILS $fails of 30, $replays replays"
+          test $fails = 0
       # The app mode once more, with arguments and a variable (the same
       # string, which comes through the manifest and the arguments each its
       # own way: android_runner.rs compares them), and android_spawned.rs
