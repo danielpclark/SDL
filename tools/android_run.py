@@ -72,7 +72,10 @@ app's libmain.so (a shared library whose `SDL_main` is the program's
 `main`, with sdl3's `JNI_OnLoad`). More words shape its package and launch:
 `data=URI`, which launches it as another app's "Open with" does
 (`ACTION_VIEW` of the URI; SDL3_ANDROID_LAUNCH_DATA does the same
-for any app), `assets=DIR`, the files of the directory DIR (relative to CARGO_MANIFEST_DIR,
+for any app), `devices=NAME,...`, the devices plugged in before the
+launch and unplugged once the app ends (`dualsense`, the `dualsense add`
+request's; SDL3_ANDROID_LAUNCH_DEVICES does the same for any app, as
+`--run-apk`'s), `assets=DIR`, the files of the directory DIR (relative to CARGO_MANIFEST_DIR,
 else to the current directory) as the package's assets (`assets/...`,
 compressed, with the time Gradle's packager gives them,
 1981-01-01 01:01:02, as Gradle's are), and `permissions=NAME,...`, the
@@ -230,6 +233,57 @@ ARGUMENTS are shell words):
   view URI    `am start -a android.intent.action.VIEW -d URI` of the app's
               activity, another app's "Open with" while it runs (the
               singleTop activity's onNewIntent())
+  gamepad add [NAME]
+              a gamepad made by the device's uinput command (`uinput -`,
+              as the shell user, kept running: a uinput device): USB,
+              1209:5d3a, NAME (by default "SDL3 Test Gamepad"), the
+              buttons BTN_SOUTH, BTN_EAST, BTN_NORTH, BTN_WEST, BTN_TL,
+              BTN_TR, BTN_SELECT, BTN_START, BTN_MODE, BTN_THUMBL and
+              BTN_THUMBR, the axes ABS_X, ABS_Y, ABS_RX and ABS_RY (-32768
+              to 32767), ABS_Z and ABS_RZ (0 to 255), ABS_HAT0X and
+              ABS_HAT0Y (-1 to 1), and FF_RUMBLE (one effect); once the
+              input reader has it (`dumpsys input`, within 10 s): the
+              answer is `gamepad: added` (or `gamepad: not added`)
+  gamepad key CODE VALUE [CODE VALUE...] | gamepad abs CODE VALUE [...]
+              the gamepad's events (EV_KEY's or EV_ABS's: the codes as
+              numbers or names, BTN_SOUTH, ABS_X, ...), then SYN_REPORT
+              (uinput acts on a command once the next one comes: a delay
+              of a millisecond follows them)
+  gamepad vibrating yes|no
+              whether the input reader has the gamepad vibrating (`dumpsys
+              input`'s `Vibrating:`), once it is as asked (within 5 s):
+              the answer is `gamepad: vibrating true|false`
+  dualsense add
+              a DualSense (USB, 054c:0ce6) made by the device's hid command
+              (`hid -`, a uhid device, kept running), which the kernel's
+              hid-playstation driver makes a gamepad, motion sensors, a
+              touchpad, the lightbar's RGB LED and the player LEDs of (the
+              driver's feature reports answered: the calibration, the
+              pairing information, the firmware's), once the input reader
+              has it with its sensors (within 10 s; made again, up to
+              three times, when Android names its input device after the
+              motion sensors' node, which it adds first now and then):
+              `dualsense: added` (or `dualsense: not added`)
+  dualsense sensors GX GY GZ AX AY AZ
+              an input report of the gyroscope's and the accelerometer's
+              raw values (the sticks centered, nothing pressed)
+  dualsense vibrating yes|no
+              as `gamepad vibrating`, of the DualSense
+  dualsense remove
+              the DualSense destroyed (its input closed), once the input
+              reader hasn't it: the answer is `dualsense: lightbar R G B`
+              (the last output report's that set it), `dualsense: motors
+              peak RIGHT LEFT last RIGHT LEFT` (of the output reports that
+              set them), then `dualsense: removed`. It is also removed
+              once the app ends
+  vibrations  the app's vibrations of the system's vibrator (`dumpsys
+              vibrator_manager`'s recent vibrations), sorted: the
+              answer is `vibration: USAGE STATUS PLAYED` each (its usage,
+              how it ended, and the effect played)
+  gamepad remove
+              the gamepad destroyed (uinput's input closed); once the
+              input reader hasn't it (within 10 s): `gamepad: removed`.
+              It is also removed once the app ends
 The runner answers each request on the app's stdout socket, once it's
 done: its lines (`sdl3-android-runner: reply LINE`), then
 `sdl3-android-runner: done` (android_support's `request()` reads them).
@@ -340,6 +394,7 @@ import base64
 import fcntl
 import hashlib
 import html
+import json
 import os
 import re
 import selectors
@@ -1687,6 +1742,8 @@ class AppRequests:
         self.saved_settings = {}
         self.density_changed = False
         self.files_made = False
+        self.gamepad = None
+        self.dualsense = None
 
     def handle(self, what, args=""):
         """Do WHAT: the lines of its answer."""
@@ -1773,6 +1830,12 @@ class AppRequests:
             return self.back_to_app()
         elif what == "files":
             return self.files(words)
+        elif what == "gamepad":
+            return self.gamepad_request(words)
+        elif what == "vibrations":
+            return self.vibrations()
+        elif what == "dualsense":
+            return self.dualsense_request(words)
         elif what == "view":
             if len(words) != 1:
                 note(f"request {what} {args}: not `view URI` (ignored)")
@@ -1809,6 +1872,101 @@ class AppRequests:
         if self.files_made:
             adb_shell(self.serial, f"rm -rf {FILES_DIR}", check=False)
             self.files_made = False
+        if self.gamepad:
+            self.gamepad.remove()
+            self.gamepad = None
+        if self.dualsense:
+            self.dualsense.remove()
+            self.dualsense = None
+
+    def vibrations(self):
+        """The app's recent vibrations, sorted."""
+        result = adb_shell(self.serial, "dumpsys vibrator_manager", check=False, timeout=60)
+        lines = []
+        recent = False
+        for line in result.stdout.splitlines():
+            if line.strip() == "Recent vibrations:":
+                recent = True
+            elif recent and line.strip().endswith(":") and not line.startswith("    "):
+                recent = False
+            elif recent and f" {self.package} " in line:
+                parts = [part.strip() for part in line.split("|")]
+                fields = {}
+                for part in parts:
+                    name, _, value = part.partition(":")
+                    fields[name.strip()] = value.strip()
+                status = parts[2] if len(parts) > 2 else "?"
+                lines.append(f"vibration: {fields.get('usage', '?')} {status} {fields.get('played', '?')}")
+        # (sorted: the dump's order isn't the vibrations')
+        return sorted(lines)
+
+    def plug(self, devices):
+        """The devices plugged in before the launch (`devices=`)."""
+        for name in devices:
+            if name == "dualsense":
+                self.dualsense = HidDualSense(self.serial)
+                if not self.dualsense.add():
+                    note("the DualSense wasn't added before the launch")
+            else:
+                note(f"devices: unknown device {name!r} (ignored)")
+
+    def dualsense_request(self, words):
+        """The `dualsense` requests (see the module's documentation)."""
+        command = words[0] if words else ""
+        if command == "add":
+            if self.dualsense:
+                self.dualsense.remove()
+            self.dualsense = HidDualSense(self.serial)
+            return [f"dualsense: {'added' if self.dualsense.add() else 'not added'}"]
+        if not self.dualsense:
+            note(f"request dualsense {shlex.join(words)}: no DualSense (ignored)")
+            return []
+        if command == "sensors" and len(words) == 7:
+            try:
+                values = [int(word, 0) for word in words[1:]]
+            except ValueError as e:
+                note(f"request dualsense {shlex.join(words)}: {e} (ignored)")
+                return []
+            self.dualsense.sensors(values[:3], values[3:])
+            return []
+        if command == "vibrating" and len(words) == 2 and words[1] in ("yes", "no"):
+            return [f"dualsense: vibrating {self.dualsense.vibrating(words[1] == 'yes')}"]
+        if command == "remove":
+            lines = self.dualsense.remove()
+            self.dualsense = None
+            return lines
+        note(f"request dualsense {shlex.join(words)}: not `add`, `sensors GX GY GZ AX AY AZ`, `vibrating yes|no` or `remove` (ignored)")
+        return []
+
+    def gamepad_request(self, words):
+        """The `gamepad` requests (see the module's documentation)."""
+        command = words[0] if words else ""
+        if command == "add":
+            if self.gamepad:
+                self.gamepad.remove()
+            self.gamepad = UinputGamepad(self.serial, " ".join(words[1:]) or "SDL3 Test Gamepad")
+            return [f"gamepad: {'added' if self.gamepad.add() else 'not added'}"]
+        if not self.gamepad:
+            note(f"request gamepad {shlex.join(words)}: no gamepad (ignored)")
+            return []
+        if command in ("key", "abs") and len(words) >= 3 and len(words) % 2 == 1:
+            try:
+                events = []
+                for code, value in zip(words[1::2], words[2::2]):
+                    events += [EV_KEY if command == "key" else EV_ABS, evdev_code(code), int(value, 0)]
+            except (KeyError, ValueError) as e:
+                note(f"request gamepad {shlex.join(words)}: {e} (ignored)")
+                return []
+            self.gamepad.inject(events + [EV_SYN, SYN_REPORT, 0])
+            return []
+        if command == "vibrating" and len(words) == 2 and words[1] in ("yes", "no"):
+            return [f"gamepad: vibrating {self.gamepad.vibrating(words[1] == 'yes')}"]
+        if command == "remove":
+            removed = self.gamepad.remove()
+            self.gamepad = None
+            return [f"gamepad: {'removed' if removed else 'not removed'}"]
+        note(f"request gamepad {shlex.join(words)}: not `add`, `key`, `abs`, `vibrating yes|no` or `remove` (ignored)")
+        return []
 
     def logcat(self, tags):
         """The app's lines of the device's log with those tags, as `P/TAG:
@@ -2177,6 +2335,253 @@ class AppRequests:
         return ["top: " + ("the app" if top == self.package else (top or "(none)"))]
 
 
+# The evdev event types and codes of the `gamepad` requests
+# (linux/input-event-codes.h)
+EV_SYN, EV_KEY, EV_ABS, EV_FF = 0x00, 0x01, 0x03, 0x15
+SYN_REPORT = 0
+FF_RUMBLE = 0x50
+GAMEPAD_KEYS = {
+    "BTN_SOUTH": 0x130, "BTN_EAST": 0x131, "BTN_NORTH": 0x133, "BTN_WEST": 0x134,
+    "BTN_TL": 0x136, "BTN_TR": 0x137, "BTN_SELECT": 0x13a, "BTN_START": 0x13b,
+    "BTN_MODE": 0x13c, "BTN_THUMBL": 0x13d, "BTN_THUMBR": 0x13e,
+}
+GAMEPAD_AXES = {
+    "ABS_X": (0x00, -32768, 32767), "ABS_Y": (0x01, -32768, 32767),
+    "ABS_Z": (0x02, 0, 255), "ABS_RX": (0x03, -32768, 32767),
+    "ABS_RY": (0x04, -32768, 32767), "ABS_RZ": (0x05, 0, 255),
+    "ABS_HAT0X": (0x10, -1, 1), "ABS_HAT0Y": (0x11, -1, 1),
+}
+
+
+def evdev_code(code):
+    """An event code of the `gamepad` requests: a number, or a name of
+    GAMEPAD_KEYS or GAMEPAD_AXES."""
+    if code in GAMEPAD_KEYS:
+        return GAMEPAD_KEYS[code]
+    if code in GAMEPAD_AXES:
+        return GAMEPAD_AXES[code][0]
+    return int(code, 0)
+
+
+class UinputGamepad:
+    """The `gamepad` requests' device: the device's uinput command
+    (frameworks/base/cmds/uinput: JSON commands on its input) run through
+    `adb shell uinput -`, kept running until the device is removed. (Its
+    output isn't read: it comes late, if at all.)"""
+
+    def __init__(self, serial, name):
+        self.serial = serial
+        self.name = name
+        self.process = None
+
+    def send(self, *commands):
+        try:
+            for command in commands:
+                self.process.stdin.write(json.dumps(dict(id=1, **command)) + "\n")
+            self.process.stdin.flush()
+        except (BrokenPipeError, OSError) as e:
+            note(f"uinput: {e}")
+
+    def section(self):
+        """The input reader's part of `dumpsys input` about the gamepad
+        (empty when it hasn't it)."""
+        result = adb_shell(self.serial, "dumpsys input", check=False, timeout=60)
+        match = re.search(r"^ *Device \d+: " + re.escape(self.name) + r"\n((?: {4,}.*\n)*)", result.stdout, re.M)
+        return match.group(1) if match else ""
+
+    def wait_presence(self, present):
+        deadline = time.monotonic() + 10
+        while bool(self.section()) != present:
+            if time.monotonic() > deadline:
+                return False
+            time.sleep(0.2)
+        return True
+
+    def add(self):
+        self.process = subprocess.Popen(
+            [sdk_tool("platform-tools", "adb", name="adb"), "-s", self.serial, "shell", "-T", "uinput -"],
+            stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, text=True)
+        axes = list(GAMEPAD_AXES.values())
+        self.send({
+            "command": "register",
+            "name": self.name,
+            "vid": 0x1209,
+            "pid": 0x5d3a,
+            "bus": "usb",
+            "configuration": [
+                {"type": 100, "data": [EV_KEY, EV_ABS, EV_FF]},  # UI_SET_EVBIT
+                {"type": 101, "data": list(GAMEPAD_KEYS.values())},  # UI_SET_KEYBIT
+                {"type": 103, "data": [code for code, _, _ in axes]},  # UI_SET_ABSBIT
+                {"type": 107, "data": [FF_RUMBLE]},  # UI_SET_FFBIT
+            ],
+            "ff_effects_max": 1,
+            "abs_info": [
+                {"code": code, "info": {"value": 0, "minimum": low, "maximum": high, "fuzz": 0, "flat": 0, "resolution": 0}}
+                for code, low, high in axes
+            ],
+        }, {"command": "delay", "duration": 1})
+        return self.wait_presence(True)
+
+    def inject(self, events):
+        """EVENTS written (uinput acts on them once the delay after them
+        comes; one of no time ends it)."""
+        self.send({"command": "inject", "events": events}, {"command": "delay", "duration": 1})
+
+    def vibrating(self, wanted):
+        """Whether the input reader has the gamepad vibrating, once it is
+        WANTED (or 5 s have gone)."""
+        deadline = time.monotonic() + 5
+        while True:
+            match = re.search(r"\bVibrating: (\w+)", self.section())
+            state = match.group(1) if match else "unknown"
+            if state == ("true" if wanted else "false") or time.monotonic() > deadline:
+                return state
+            time.sleep(0.1)
+
+    def remove(self):
+        """The device destroyed (uinput ends once its input is closed):
+        whether the input reader lost it."""
+        if not self.process:
+            return False
+        try:
+            self.process.stdin.close()
+        except OSError:
+            pass
+        try:
+            self.process.wait(timeout=10)
+        except subprocess.TimeoutExpired:
+            self.process.kill()
+        self.process = None
+        return self.wait_presence(False)
+
+
+def le16(value):
+    """VALUE's two bytes, little-endian (two's complement)."""
+    value &= 0xffff
+    return [value & 0xff, value >> 8]
+
+
+class HidDualSense(UinputGamepad):
+    """The `dualsense` requests' device: the device's hid command
+    (frameworks/base/cmds/hid: JSON commands on its input, the output
+    reports the device gets on its output, which comes once it ends), run
+    through `adb shell hid -`. A report descriptor of the reports
+    hid-playstation reads and writes (a vendor page's bytes: the input
+    report 1 of 63 bytes, the output report 2 of 47, the feature reports
+    5, 9 and 0x20), and their answers: calibration data of a gyroscope
+    of 8000 a side at 540 degrees per second and an accelerometer of
+    8192 a side, the pairing information's address 11:22:33:44:55:66,
+    the firmware's versions."""
+
+    NAME = "DualSense Wireless Controller"
+
+    def __init__(self, serial):
+        super().__init__(serial, self.NAME)
+
+    def add(self):
+        descriptor = [
+            0x05, 0x01, 0x09, 0x05, 0xA1, 0x01,  # Generic Desktop, Game Pad, Application
+            0x85, 0x01, 0x06, 0x00, 0xFF, 0x09, 0x20, 0x15, 0x00, 0x26, 0xFF, 0x00,
+            0x75, 0x08, 0x95, 0x3F, 0x81, 0x02,  # input report 1: 63 bytes
+            0x85, 0x02, 0x09, 0x21, 0x95, 0x2F, 0x91, 0x02,  # output report 2: 47 bytes
+            0x85, 0x05, 0x09, 0x22, 0x95, 0x28, 0xB1, 0x02,  # feature report 5: 40 bytes
+            0x85, 0x09, 0x09, 0x23, 0x95, 0x13, 0xB1, 0x02,  # feature report 9: 19 bytes
+            0x85, 0x20, 0x09, 0x24, 0x95, 0x3F, 0xB1, 0x02,  # feature report 0x20: 63 bytes
+            0xC0,
+        ]
+        calibration = [0x05] + le16(0) * 3 + (le16(8000) + le16(-8000)) * 3 + le16(540) * 2 + (le16(8192) + le16(-8192)) * 3
+        calibration += [0] * (41 - len(calibration))
+        pairing = [0x09, 0x66, 0x55, 0x44, 0x33, 0x22, 0x11] + [0] * 13
+        firmware = [0x20] + [0] * 63
+        firmware[24:28] = [0x13, 0x06, 0x00, 0x00]  # hardware 0x00000613
+        firmware[28:32] = [0x05, 0x00, 0x04, 0x01]  # firmware 0x01040005
+        firmware[44:46] = le16(0x0430)  # update
+        # (Android's input device is named after whichever of the
+        # driver's nodes the input reader adds first, now and then its
+        # motion sensors': then it's made again, up to three times)
+        for _ in range(3):
+            self.process = subprocess.Popen(
+                [sdk_tool("platform-tools", "adb", name="adb"), "-s", self.serial, "shell", "-T", "hid -"],
+                stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
+            self.send({
+                "command": "register",
+                "name": self.name,
+                "vid": 0x054c,
+                "pid": 0x0ce6,
+                "bus": "usb",
+                "descriptor": descriptor,
+                "feature_reports": [{"id": 0x05, "data": calibration}, {"id": 0x09, "data": pairing}, {"id": 0x20, "data": firmware}],
+            }, {"command": "delay", "duration": 1})
+            deadline = time.monotonic() + 10
+            while time.monotonic() < deadline:
+                if "SENSOR" in self.section():
+                    return True
+                time.sleep(0.2)
+            note("dualsense: no input device of that name with its sensors in 10 s: made again")
+            self.process.communicate(timeout=10)
+            self.process = None
+            deadline = time.monotonic() + 10
+            while time.monotonic() < deadline and self.name in adb_shell(self.serial, "dumpsys input", check=False, timeout=60).stdout:
+                time.sleep(0.2)
+        return False
+
+    def sensors(self, gyro, accel):
+        """An input report: the sticks centered, the d-pad released, the
+        sensors' values."""
+        report = [0x01, 0x80, 0x80, 0x80, 0x80, 0, 0, 0, 0x08, 0, 0, 0, 0, 0, 0, 0]
+        for value in gyro + accel:
+            report += le16(value)
+        # (the sensors' timestamp, 0.33 µs steps, a few milliseconds on
+        # from the last report's)
+        self.timestamp = (getattr(self, "timestamp", 0) + 30000) & 0xffffffff
+        report += [(self.timestamp >> (8 * i)) & 0xff for i in range(4)]
+        report += [0] * (64 - len(report))
+        # (the touchpad's two points not touching)
+        report[33] = report[37] = 0x80
+        self.send({"command": "report", "report": report}, {"command": "delay", "duration": 1})
+
+    def remove(self):
+        """The device destroyed: the lightbar and motors its output reports
+        set, then whether the input reader lost it."""
+        if not self.process:
+            return []
+        try:
+            # (its input closed: it ends, and writes what it has)
+            output, _ = self.process.communicate(timeout=10)
+        except subprocess.TimeoutExpired:
+            self.process.kill()
+            output = ""
+        self.process = None
+        lightbar = None
+        peak = [0, 0]
+        last = [0, 0]
+        decoder = json.JSONDecoder()
+        i = 0
+        while True:
+            start = output.find("{", i)
+            if start < 0:
+                break
+            try:
+                message, i = decoder.raw_decode(output, start)
+            except ValueError:
+                i = start + 1
+                continue
+            data = message.get("reportData") if isinstance(message, dict) else None
+            if not data or data[0] != 0x02 or len(data) < 48:
+                continue
+            # (dualsense_output_report_common after the report ID: the
+            # valid flags, the motors, ..., the lightbar's color last)
+            if data[1] & 0x03:
+                last = [data[3], data[4]]
+                peak = [max(peak[0], data[3]), max(peak[1], data[4])]
+            if data[2] & 0x04:
+                lightbar = data[45:48]
+        lines = [f"dualsense: lightbar {' '.join(map(str, lightbar)) if lightbar else 'none'}",
+                 f"dualsense: motors peak {peak[0]} {peak[1]} last {last[0]} {last[1]}"]
+        lines.append(f"dualsense: {'removed' if self.wait_presence(False) else 'not removed'}")
+        return lines
+
+
 def app_pid(serial, package):
     result = adb_shell(serial, f"pidof {package}", check=False, timeout=30)
     return result.stdout.strip() or None
@@ -2223,7 +2628,7 @@ def launch(serial, program, elf, args):
                     adb(serial, "logcat", "-b", "all", "-c", check=False)
                     install(serial, apk, package)
                     try:
-                        return run_app(serial, package, listeners, launch_data(elf))
+                        return run_app(serial, package, listeners, launch_data(elf), launch_devices(elf))
                     finally:
                         adb(serial, "uninstall", package, check=False, timeout=120)
                 finally:
@@ -2239,6 +2644,15 @@ def device_log(serial):
     """The device's log since the app's install (the crash buffer too)."""
     result = adb(serial, "logcat", "-d", "-b", "main,system,crash", "-v", "brief", check=False, timeout=120)
     return result.stdout.splitlines()
+
+
+def launch_devices(elf=None):
+    """The devices plugged in before the app is launched (and unplugged
+    once it ends): the program's word `devices=NAME,...`, else
+    SDL3_ANDROID_LAUNCH_DEVICES; `dualsense` (as the `dualsense add`
+    request's) is the only one."""
+    words = word_values(elf.words, "devices") if elf else [os.environ.get("SDL3_ANDROID_LAUNCH_DEVICES", "")]
+    return [name for value in words for name in value.split(",") if name]
 
 
 def launch_data(elf=None):
@@ -2301,9 +2715,10 @@ def app_log_lines(log, package):
     return [line for line in log if package in line or any(f"({p.rjust(5)}):" in line for p in pids)]
 
 
-def run_app(serial, package, listeners, data=None):
+def run_app(serial, package, listeners, data=None, devices=()):
     timeout = number("SDL3_ANDROID_TIMEOUT", 1800)
     requests = AppRequests(serial, package)
+    requests.plug(devices)
     out = Stream("stdout", listeners[0], sys.stdout, True, requests.handle)
     err = Stream("stderr", listeners[1], sys.stderr, False)
     streams = [out, err]
@@ -2488,6 +2903,7 @@ def cmd_run_apk(args):
             raise Failure(f"adb install {apk} failed ({result.returncode}): {(result.stdout + result.stderr).strip()}")
         requests = AppRequests(serial, package)
         try:
+            requests.plug(launch_devices())
             return run_logcat_app(serial, package, timeout, requests)
         finally:
             adb_shell(serial, f"am force-stop {package}", check=False, timeout=60)
