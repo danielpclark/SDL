@@ -178,8 +178,8 @@ they are used (there is no build script to make aliases):
   `native`; `onCapturedPointerEvent()` and the surface's generic motion
   listener are SDLControllerManager.java's
   `SDLGenericMotionListener_API14` to `_API29`
-  (`core/android/java/controller_manager.rs`, the motion listeners
-  only): four classes of the DEX file, each extending the previous one,
+  (`core/android/java/controller_manager.rs`): four classes of the DEX
+  file, each extending the previous one,
   `onGenericMotion()` native, their fields the DEX file's (API 26's
   `mRelativeModeEnabled` shadows API 24's, as upstream's); their other
   methods are Rust functions dispatching on the listener's class, as
@@ -205,9 +205,9 @@ they are used (there is no build script to make aliases):
 * The activity's and the surface's views give their keys to
   `SDLActivity.handleKeyEvent()`: a game controller's (a device that
   `SDLControllerManager.isDeviceSDLJoystick()`) to the controller
-  manager's `onNativePadDown()`/`onNativePadUp()` first (false until the
-  joysticks are translated, as upstream without its android joystick
-  driver), the mouse's back and forward keys dropped, the others SDL's,
+  manager's `onNativePadDown()`/`onNativePadUp()` first (the joystick
+  driver's: a gamepad key, sent as the open joystick's button or else a
+  keyboard key, is consumed), the mouse's back and forward keys dropped, the others SDL's,
   with their text (`isTextInputEvent()`), through the text edit's input
   connection when it has the focus.
 * The text edit and its input connection are SDLDummyEdit.java and
@@ -525,9 +525,10 @@ the small backends: the filesystem paths, the assets and
 `content://` files, the locale, URLs, the battery, toasts and permissions,
 and the video driver: its window, its surface, OpenGL ES through EGL and
 Vulkan, its touch, pinch, mouse and pen input, and its keyboard, text
-input and screen keyboard (below), and the audio drivers (AAudio and
-OpenSL ES, with the audio manager); the other Android drivers (joysticks,
-...) aren't translated yet.
+input and screen keyboard (below), the audio drivers (AAudio and
+OpenSL ES, with the audio manager), and the joystick and haptic drivers
+(with the controller manager); the other Android drivers (sensors, the
+camera, HIDAPI's backend) aren't translated yet.
 
 A test that reads its package's files does so at run time, through
 `CARGO_MANIFEST_DIR` (falling back on `env!("CARGO_MANIFEST_DIR")`), which
@@ -590,12 +591,8 @@ device; the same for `CARGO_TARGET_TMPDIR` and `CARGO_BIN_EXE_NAME`.
   Java can't extend `SDLActivity`, so the methods upstream's subclasses
   override (`getLibraries()`, `getArguments()`, `onUnhandledMessage()`)
   are fixed: `Note`s.
-* What a later driver owns is stubbed where upstream calls it: the
-  joysticks' motion events (the motion listener's
-  `SDLControllerManager.handleJoystickMotionEvent()`, whose joystick
-  handler is null until the controller manager is translated) and keys
-  (`onNativePadDown()` and `onNativePadUp()` answer false), and the
-  controller and HID managers (comments where upstream calls them).
+* What a later driver owns is stubbed where upstream calls it: the HID
+  manager (comments where upstream calls it).
 * The app's `main` runs on the activity's "SDLThread" thread
   (`nativeRunMain()`, through the generic `SDL_RunApp()`; the main
   callbacks are the generic ones too), which isn't SDL's main thread until
@@ -722,6 +719,40 @@ device; the same for `CARGO_TARGET_TMPDIR` and `CARGO_BIN_EXE_NAME`.
   Without a Java VM (a spawned program) the drivers work but recording
   (the permission's request fails), where upstream dereferences a null
   `JNIEnv` (`Note (upstream)`).
+* Joysticks and haptics: the android joystick driver
+  (`joystick/android/`, after HIDAPI's in the driver list, before the
+  virtual one) and haptic driver (`haptic/android.rs`) are fed by
+  SDLControllerManager.java's handlers (`core/android/java/
+  controller_manager.rs`): the joystick handler finds the input devices
+  whose sources are a joystick's, a d-pad's or a gamepad's when the
+  driver initializes (`detectDevices()`) and as the input device listener
+  (`SDLDeviceListener`, a DEX class) hears of them, with their buttons
+  (`hasKeys()`), axes (the joystick class's motion ranges, sorted by
+  upstream's comparator) and hats, and on API 31 and later their
+  vibrators, RGB lights and motion sensors; the GUID is a Bluetooth one
+  with the button and axis masks in its last four bytes, which
+  SDL_gamepad.c's Android mapping (`create_mapping_for_android_gamepad()`
+  in `gamepad/generated.rs`, for a GUID no other driver's mapping takes)
+  is guessed from. The gamepad database's Android section, its
+  `sdk>=:`/`sdk<=:` fields and the default mapping file in the internal
+  storage (`gamepad_map.txt`) are SDL_gamepad.c's Android code. Keys come
+  from `handleKeyEvent()` (`onNativePadDown()`/`onNativePadUp()`), the
+  surface's joystick motion events from the motion listener
+  (`handleMotionEvent()`), sensor events from `SDLJoySensorListener` (a
+  DEX class); rumble is the device's vibrators, the LED its lights
+  session. The haptic handler is the API level's (`SDLHapticHandler`,
+  `_API26`, `_API31`: one Rust handler and the API it is), with the
+  system's vibrator (`VIBRATOR_SERVICE`) as its device. `SDLControllerManager`
+  is a DEX class with its natives and, declared native too, the static
+  methods SDL calls; the handlers are Rust (their `synchronized` methods
+  under a reentrant lock), and a motion range is kept as its axis,
+  source, minimum and range. `checkJNIReady()` waits for its
+  `nativeSetupJNI()`, as upstream's. Kept as upstream does them (`Note
+  (upstream)`): a joystick's gyroscope taken as there when it has an
+  accelerometer, the haptic effect never allocated (each new one takes
+  the first slot), the haptic list kept when the subsystem quits. Without
+  a Java VM (a spawned program) there are no devices, where upstream
+  dereferences a null `JNIEnv` (`Note (upstream)`).
 
 ### What is built
 
@@ -736,8 +767,8 @@ it) stands in:
 | Vulkan | `libvulkan.so` | the same (the offscreen driver's: `FIXME (upstream)`, which tries `libvulkan.so.1`) |
 | renderers | OpenGL ES 2, OpenGL ES, Vulkan, GPU, software | OpenGL ES 2, Vulkan, GPU, software (the OpenGL ES 1 renderer isn't translated anywhere) |
 | audio | AAudio, OpenSL ES, disk, dummy | the same |
-| joysticks | android, HIDAPI (off by default), virtual | HIDAPI with no HID backend (the Android one: later), virtual |
-| haptic | android, HIDAPI | dummy (the android driver: later), HIDAPI |
+| joysticks | android, HIDAPI (off by default), virtual | android, HIDAPI with no HID backend (the Android one: later), virtual |
+| haptic | android, HIDAPI | the same |
 | power, locale, URL, filesystem paths, assets | Android's | the same |
 | dialog | Android's | the same |
 | sensor, camera | Android's | dummy, or no backend (later) |
