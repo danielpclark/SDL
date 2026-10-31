@@ -190,6 +190,45 @@ they are used (there is no build script to make aliases):
   touch device, "mouse_input", is there from the start) are the shared
   mouse code's.
 
+### Keyboard and text input
+
+* `video/drivers/android/keyboard.rs` is SDL_androidkeyboard.c: Android's
+  key codes as scancodes (`Android_Keycodes`, a game controller's buttons
+  without a scancode and unlogged), and the screen keyboard: the text
+  input properties' `InputType` (or `SDL_PROP_TEXTINPUT_ANDROID_INPUTTYPE_NUMBER`),
+  `SDLActivity.showTextInput()` and `COMMAND_TEXTEDIT_HIDE`, and
+  `Android_RestoreScreenKeyboard()` when the surface changes. Its natives
+  (`onNativeKeyDown()`, `onNativeSoftReturnKey()`,
+  `onNativeKeyboardFocusLost()`, `SDLInputConnection.nativeCommitText()`,
+  `nativeGenerateScancodeForUnichar()`, ...) are in
+  `core/android/sdl_android.rs`.
+* The activity's and the surface's views give their keys to
+  `SDLActivity.handleKeyEvent()`: a game controller's (a device that
+  `SDLControllerManager.isDeviceSDLJoystick()`) to the controller
+  manager's `onNativePadDown()`/`onNativePadUp()` first (false until the
+  joysticks are translated, as upstream without its android joystick
+  driver), the mouse's back and forward keys dropped, the others SDL's,
+  with their text (`isTextInputEvent()`), through the text edit's input
+  connection when it has the focus.
+* The text edit and its input connection are SDLDummyEdit.java and
+  SDLInputConnection.java (`core/android/java/dummy_edit.rs` and
+  `input_connection.rs`): two classes of the DEX file (`extends View
+  implements View.OnKeyListener`, `extends BaseInputConnection`), their
+  fields (`ic`, `input_type`, `mEditText`, `mCommittedText`) the DEX
+  file's, the framework's methods `native` (`onCreateInputConnection()`,
+  `onKeyPreIme()`, `commitText()`, `setComposingText()`,
+  `deleteSurroundingText()`, `sendKeyEvent()`, `getEditable()`, ...), the
+  supers called with `CallNonvirtual*Method()`; `updateText()` compares
+  the UTF-16 units as Java's `codePointAt()` does. `ShowTextInputTask` is
+  a class of the DEX file too (`SDLActivity$ShowTextInputTask`), whose
+  constructor is `Object`'s: the Rust sets its fields as upstream's
+  constructor does.
+* Upstream sends no `SDL_EVENT_TEXT_EDITING` on Android: a composition is
+  committed as it changes (backspaces, then the new characters).
+* Note: upstream's Java has no `isScreenKeyboardShown()` (SDL's
+  `SDL_ScreenKeyboardShown()` is the shown and hidden events'
+  `screen_keyboard_shown`).
+
 ### What is built
 
 What is built follows upstream's CMake build for the platform, as for
@@ -485,8 +524,9 @@ the app's start and lifecycle, the event pump's Android parts, the log,
 the small backends: the filesystem paths, the assets and
 `content://` files, the locale, URLs, the battery, toasts and permissions,
 and the video driver: its window, its surface, OpenGL ES through EGL and
-Vulkan, and its touch, pinch, mouse and pen input (below); the other
-Android drivers (the keyboard, audio, ...) aren't translated yet.
+Vulkan, its touch, pinch, mouse and pen input, and its keyboard, text
+input and screen keyboard (below); the other Android drivers (audio,
+joysticks, ...) aren't translated yet.
 
 A test that reads its package's files does so at run time, through
 `CARGO_MANIFEST_DIR` (falling back on `env!("CARGO_MANIFEST_DIR")`), which
@@ -550,14 +590,12 @@ device; the same for `CARGO_TARGET_TMPDIR` and `CARGO_BIN_EXE_NAME`.
   override (`getLibraries()`, `getArguments()`, `onUnhandledMessage()`)
   are fixed: `Note`s.
 * What a later driver owns is stubbed where upstream calls it: the
-  surface's key events (`SDLSurface.onKey()`: it returns what upstream's
-  does for a key it ignores), the joysticks' motion events (the motion
-  listener's `SDLControllerManager.handleJoystickMotionEvent()`, whose
-  joystick handler is null until the controller manager is translated),
-  the screen
-  keyboard (`isScreenKeyboardShown()` is false), the audio drivers'
-  pause, and the controller, HID, clipboard and audio managers (comments
-  where upstream calls them).
+  joysticks' motion events (the motion listener's
+  `SDLControllerManager.handleJoystickMotionEvent()`, whose joystick
+  handler is null until the controller manager is translated) and keys
+  (`onNativePadDown()` and `onNativePadUp()` answer false), the audio
+  drivers' pause, and the controller, HID, clipboard and audio managers
+  (comments where upstream calls them).
 * The app's `main` runs on the activity's "SDLThread" thread
   (`nativeRunMain()`, through the generic `SDL_RunApp()`; the main
   callbacks are the generic ones too), which isn't SDL's main thread until
