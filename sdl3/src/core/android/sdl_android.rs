@@ -5,7 +5,7 @@
 // queue, the activity mutex, the manifest's environment variables, the
 // entry points of SDL_system.h, the storage paths, the package's name,
 // toasts, permissions, the locale, URLs, the content resolver's files,
-// the battery, the clipboard, message boxes and file dialogs).
+// the battery, the clipboard, message boxes, file dialogs and audio).
 // Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
 // This is an altered (translated) version of the original software; see LICENSE.txt.
 
@@ -35,8 +35,10 @@
 //! driver's clipboard (`Android_JNI_SetClipboardText()`, ...,
 //! `onNativeClipboardChanged()`), message boxes
 //! (`Android_JNI_ShowMessageBox()`) and the file dialogs
-//! (`Android_JNI_ShowFileDialog()`, `onNativeFileDialog()`). The assets are
-//! [`super::assets`]. The rest of SDL_android.c (the audio and controller
+//! (`Android_JNI_ShowFileDialog()`, `onNativeFileDialog()`); and the
+//! audio drivers' (SDLAudioManager's natives, `Android_StartAudioHotplug()`,
+//! `Android_StopAudioHotplug()`, `Android_AudioThreadInit()`). The assets
+//! are [`super::assets`]. The rest of SDL_android.c (the controller
 //! natives, ...) comes with the backends that use it.
 //!
 //! This library is exported as libSDL3.so's is: a program that links it
@@ -273,12 +275,16 @@ pub(crate) fn sdk_int(env: Env<'_>) -> jint {
 }
 
 /// Translation of `checkJNIReady()`: SDL's main is ready once the
-/// activity's JNI is set up. (Upstream also waits for the audio and
-/// controller managers' `nativeSetupJNI()`, which come with those
-/// classes.)
+/// activity's and the audio manager's JNI are set up. (Upstream also waits
+/// for the controller manager's `nativeSetupJNI()`, which comes with that
+/// class.)
 fn check_jni_ready() {
     if activity_class().is_none() {
         // We aren't fully initialized, let's just return.
+        return;
+    }
+
+    if AUDIO_MANAGER_CLASS.load(Ordering::Acquire).is_null() {
         return;
     }
 
@@ -567,6 +573,132 @@ pub(crate) extern "system" fn native_run_main(
         )
     };
     run_main(env, library, function, array)
+}
+
+// ---------------------------------------------------------------------------
+// Audio support
+
+/// `ALLOW_MULTIPLE_ANDROID_AUDIO_DEVICES` (SDL_android.h): this appears to
+/// be broken right now (on Android, not SDL, I think...?).
+pub(crate) const ALLOW_MULTIPLE_ANDROID_AUDIO_DEVICES: bool = false;
+
+/// audio manager: `mAudioManagerClass` (`SDLAudioManager`, a global
+/// reference that is never deleted, as upstream's).
+static AUDIO_MANAGER_CLASS: AtomicPtr<_jobject> = AtomicPtr::new(ptr::null_mut());
+
+/// Audio initialization -- called before SDL_main() to initialize JNI
+/// bindings. Translation of SDLAudioManager's `nativeSetupJNI()`.
+pub(crate) fn audio_setup_jni(env: Env<'_>, cls: Obj<'_>) {
+    log(LogPriority::Verbose, "AUDIO nativeSetupJNI()");
+
+    if let Some(class) = Global::new(env, cls) {
+        let raw = class.obj().raw();
+        std::mem::forget(class);
+        AUDIO_MANAGER_CLASS.store(raw, Ordering::Release);
+    }
+
+    // (midRegisterAudioDeviceCallback, midUnregisterAudioDeviceCallback
+    // and midAudioSetThreadPriority: Rust functions here, so never
+    // "Missing some Java callbacks")
+
+    check_jni_ready();
+}
+
+pub(crate) extern "system" fn native_audio_setup_jni(env: *mut JNIEnv, cls: jclass) {
+    // SAFETY: a native method's environment and class.
+    let (env, cls) = unsafe { (Env::from_raw(env), Obj::from_raw(cls)) };
+    audio_setup_jni(env, cls);
+}
+
+/// A device the audio manager found: added to SDL's when the audio driver
+/// is up and doesn't have it yet (with multiple devices only). Translation
+/// of `nativeAddAudioDevice()`.
+pub(crate) fn add_audio_device(recording: bool, name: &str, device_id: jint) {
+    if ALLOW_MULTIPLE_ANDROID_AUDIO_DEVICES && crate::audio::current_audio_driver().is_some() {
+        let handle = device_id as usize;
+        if crate::audio::device::find_physical_audio_device_by_handle(handle).is_none() {
+            crate::audio::device::add_audio_device(recording, name, None, None, handle);
+        }
+    }
+}
+
+pub(crate) extern "system" fn native_add_audio_device(
+    env: *mut JNIEnv,
+    _cls: jclass,
+    recording: jboolean,
+    name: jstring,
+    device_id: jint,
+) {
+    // SAFETY: a native method's environment and arguments.
+    let (env, name) = unsafe { (Env::from_raw(env), Obj::from_raw(name)) };
+    if ALLOW_MULTIPLE_ANDROID_AUDIO_DEVICES {
+        let name = env.get_string(name).unwrap_or_else(|thrown| {
+            thrown.clear();
+            String::new()
+        });
+        add_audio_device(recording != 0, &name, device_id);
+    }
+}
+
+/// A device the audio manager lost: SDL's disconnected (with multiple
+/// devices only). Translation of `nativeRemoveAudioDevice()`.
+pub(crate) fn remove_audio_device(recording: bool, device_id: jint) {
+    if ALLOW_MULTIPLE_ANDROID_AUDIO_DEVICES && crate::audio::current_audio_driver().is_some() {
+        crate::log!(
+            "Removing device with handle {}, recording {}",
+            device_id,
+            recording as i32
+        );
+        if let Some(device) =
+            crate::audio::device::find_physical_audio_device_by_handle(device_id as usize)
+        {
+            crate::audio::device::audio_device_disconnected(&device);
+        }
+    }
+}
+
+pub(crate) extern "system" fn native_remove_audio_device(
+    _env: *mut JNIEnv,
+    _cls: jclass,
+    recording: jboolean,
+    device_id: jint,
+) {
+    remove_audio_device(recording != 0, device_id);
+}
+
+/// Translation of `Android_JNI_AudioSetThreadPriority()`. Note
+/// (upstream): without a Java VM (a program spawned from the shell)
+/// upstream dereferences a null `JNIEnv`; here nothing is done.
+fn audio_set_thread_priority(recording: bool, device_id: i32) {
+    with_env(|env| {
+        super::java::audio_manager::audio_set_thread_priority(env, recording, device_id)
+    });
+}
+
+/// The audio manager's devices, then its hotplug callback: this will fire
+/// the callback for each existing device right away (which will eventually
+/// `SDL_AddAudioDevice`), and again later when things change. No default
+/// devices. Translation of `Android_StartAudioHotplug()` (used with
+/// [`ALLOW_MULTIPLE_ANDROID_AUDIO_DEVICES`] only).
+pub(crate) fn start_audio_hotplug() -> (
+    Option<std::sync::Arc<crate::audio::device::PhysicalDevice>>,
+    Option<std::sync::Arc<crate::audio::device::PhysicalDevice>>,
+) {
+    with_env(super::java::audio_manager::register_audio_device_callback);
+    (None, None) // !!! FIXME: how do you decide the default device id?
+}
+
+/// Translation of `Android_StopAudioHotplug()`. Note (upstream): without a
+/// Java VM upstream dereferences a null `JNIEnv`; here nothing is done.
+pub(crate) fn stop_audio_hotplug() {
+    with_env(super::java::audio_manager::unregister_audio_device_callback);
+}
+
+/// A device thread's start: its name and priority, by the audio manager
+/// (`impl->ThreadInit` of the AAudio and OpenSL ES drivers). Translation
+/// of `Android_AudioThreadInit()`.
+pub(crate) fn audio_thread_init(device: &crate::audio::device::PhysicalDevice) {
+    audio_set_thread_priority(device.recording, device.instance_id as i32);
 }
 
 // ---------------------------------------------------------------------------

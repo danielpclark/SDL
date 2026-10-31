@@ -20,8 +20,8 @@
 //! surface can be freed; when it resumes, it's made current again with
 //! the new surface, or, lost, replaced (with
 //! `SDL_EVENT_RENDER_DEVICE_RESET`: [`android_egl_context_restore`]).
-//! What upstream does with the audio drivers' devices (AAudio's and
-//! OpenSL ES's, paused) comes with them.
+//! The audio drivers' devices (AAudio's and OpenSL ES's) are paused with
+//! the block on pause, and resumed with the app.
 
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
@@ -135,16 +135,16 @@ pub(crate) fn init_events() {
 
 /// Translation of `Android_PauseAudio()`.
 fn pause_audio() {
-    // (OPENSLES_PauseDevices() and AAUDIO_PauseDevices(): those audio
-    // drivers come later)
+    crate::audio::drivers::opensles::pause_devices();
+    crate::audio::drivers::aaudio::pause_devices();
     PAUSED_AUDIO.store(true, Ordering::Release);
 }
 
 /// Translation of `Android_ResumeAudio()`.
 fn resume_audio() {
     if PAUSED_AUDIO.load(Ordering::Acquire) {
-        // (OPENSLES_ResumeDevices() and AAUDIO_ResumeDevices(): see
-        // pause_audio())
+        crate::audio::drivers::opensles::resume_devices();
+        crate::audio::drivers::aaudio::resume_devices();
         PAUSED_AUDIO.store(false, Ordering::Release);
     }
 }

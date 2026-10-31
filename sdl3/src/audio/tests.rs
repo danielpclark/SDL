@@ -721,7 +721,8 @@ fn dummy_driver_playback_and_recording() {
         target_os = "linux",
         target_vendor = "apple",
         windows,
-        target_os = "emscripten"
+        target_os = "emscripten",
+        target_os = "android"
     )))]
     {
         crate::hints::reset(crate::hints::AUDIO_DRIVER);

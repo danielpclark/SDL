@@ -91,18 +91,7 @@ pub(crate) trait AudioDriverImpl: Send + Sync {
     /// Translation of `DetectDevices`; the default adds one default device
     /// of each kind (`SDL_AudioDetectDevices_Default()`).
     fn detect_devices(&self) -> (Option<Arc<PhysicalDevice>>, Option<Arc<PhysicalDevice>>) {
-        let flags = self.flags();
-        // you have to write your own implementation if these assertions fail.
-        crate::sdl_assert!(flags.only_has_default_playback_device);
-        crate::sdl_assert!(flags.only_has_default_recording_device || !flags.has_recording_support);
-
-        let default_playback = add_audio_device(false, DEFAULT_PLAYBACK_DEVNAME, None, None, 0x1);
-        let default_recording = if flags.has_recording_support {
-            add_audio_device(true, DEFAULT_RECORDING_DEVNAME, None, None, 0x2)
-        } else {
-            None
-        };
-        (default_playback, default_recording)
+        default_detect_devices(&self.flags())
     }
 
     /// Translation of `OpenDevice`: open the device at the format in
@@ -182,6 +171,25 @@ pub(crate) trait DeviceBackend: Send + Sync {
     fn close_device(&self, _device: &PhysicalDevice) {}
 }
 
+/// The default `DetectDevices` (`SDL_AudioDetectDevices_Default()`): one
+/// default device of each kind, which backends that override
+/// [`AudioDriverImpl::detect_devices`] only some of the time may call.
+pub(crate) fn default_detect_devices(
+    flags: &DriverFlags,
+) -> (Option<Arc<PhysicalDevice>>, Option<Arc<PhysicalDevice>>) {
+    // you have to write your own implementation if these assertions fail.
+    crate::sdl_assert!(flags.only_has_default_playback_device);
+    crate::sdl_assert!(flags.only_has_default_recording_device || !flags.has_recording_support);
+
+    let default_playback = add_audio_device(false, DEFAULT_PLAYBACK_DEVNAME, None, None, 0x1);
+    let default_recording = if flags.has_recording_support {
+        add_audio_device(true, DEFAULT_RECORDING_DEVNAME, None, None, 0x2)
+    } else {
+        None
+    };
+    (default_playback, default_recording)
+}
+
 /// The default `ThreadInit` (`SDL_AudioThreadInit_Default()`), which
 /// backends that override [`DeviceBackend::thread_init`] may call.
 pub(crate) fn default_thread_init(device: &PhysicalDevice) {
@@ -220,6 +228,10 @@ static BOOTSTRAP: &[&AudioBootStrap] = &[
     &drivers::wasapi::WASAPI_BOOTSTRAP,
     #[cfg(target_vendor = "apple")]
     &drivers::coreaudio::COREAUDIO_BOOTSTRAP,
+    #[cfg(target_os = "android")]
+    &drivers::aaudio::AAUDIO_BOOTSTRAP,
+    #[cfg(target_os = "android")]
+    &drivers::opensles::OPENSLES_BOOTSTRAP,
     #[cfg(target_os = "emscripten")]
     &drivers::emscripten::EMSCRIPTENAUDIO_BOOTSTRAP,
     &drivers::disk::DISKAUDIO_BOOTSTRAP,

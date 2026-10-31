@@ -68,7 +68,7 @@
 mod channel_converters;
 mod convert;
 pub(crate) mod device;
-mod drivers;
+pub(crate) mod drivers;
 mod format;
 mod mixer;
 mod queue;
