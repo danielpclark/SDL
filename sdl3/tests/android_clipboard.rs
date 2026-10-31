@@ -29,7 +29,14 @@
 //! The expected trace is upstream's C SDL's, from the same program in C
 //! (built with upstream's android-project, Gradle and CMake, run by the
 //! runner's `--run-apk`) on the same emulator (API 35, Google APIs,
-//! x86-64). Elsewhere this program does nothing.
+//! x86-64). Each of SDL's own changes of the system's clip is followed in
+//! it by the listener's update of it, which a race of upstream's makes
+//! come only most of the time (the listener's removed while SDL sets the
+//! clip, and back once the system tells its listeners, asynchronously:
+//! the `FIXME (upstream)` of `clipboard_set_text()`): when it doesn't come
+//! (in about one run of ten on the emulator, at any of those changes),
+//! this program calls the listener itself, as the system would have, and
+//! says so on stderr. Elsewhere this program does nothing.
 
 #[cfg(not(target_os = "android"))]
 fn main() {}
@@ -224,6 +231,50 @@ main returns
         pump_for(1000);
     }
 
+    /// Pump until SDL's own change of the system's clip has brought its two
+    /// updates (up to 3 s), SDL's and the listener's; when the listener's
+    /// didn't come (upstream's race: see the module's documentation), the
+    /// listener's `onPrimaryClipChanged()` called as the system would have
+    /// (on an `SDLClipboardHandler` of the activity's class loader: its
+    /// native doesn't use the instance); then a second more.
+    fn pump_own_change(step: &str) {
+        let end = Instant::now() + Duration::from_millis(3000);
+        while Instant::now() < end && UPDATES.lock().unwrap().len() < 2 {
+            events::pump();
+            events::flush_events(EventType::FIRST, EventType::LAST);
+            std::thread::sleep(Duration::from_millis(10));
+        }
+        if UPDATES.lock().unwrap().len() == 1 {
+            eprintln!(
+                "{step}: the listener didn't hear of SDL's change in 3 s (upstream's race): its onPrimaryClipChanged() called"
+            );
+            let java = java();
+            let env = java.env;
+            let activity_class = jni::object_class(env, java.activity);
+            let loader = jni::call_object(
+                env,
+                activity_class,
+                "getClassLoader",
+                "()Ljava/lang/ClassLoader;",
+                &[],
+            );
+            let name = jni::new_string(env, "org.libsdl.app.SDLClipboardHandler");
+            let class = jni::call_object(
+                env,
+                loader,
+                "loadClass",
+                "(Ljava/lang/String;)Ljava/lang/Class;",
+                &[Jvalue { l: name }],
+            );
+            let handler = jni::new_object(env, class, "()V", &[]);
+            jni::call_void(env, handler, "onPrimaryClipChanged", "()V", &[]);
+            for r in [handler, class, name, loader, activity_class] {
+                jni::delete_local_ref(env, r);
+            }
+        }
+        pump_updates(2);
+    }
+
     fn trace_updates(step: &str) {
         let updates = std::mem::take(&mut *UPDATES.lock().unwrap());
         t(format!(
@@ -370,15 +421,19 @@ main returns
         trace_system(step);
     }
 
-    /// SDL's text set: `updates` are the updates it brings (SDL's own,
-    /// then the system's for a clip of text; SDL's only for none).
-    fn set_text(step: &str, text: &str, updates: usize) {
+    /// SDL's text set: SDL's update, then the listener's for a clip of
+    /// text (none for an empty one, which clears the clip).
+    fn set_text(step: &str, text: &str) {
         t(format!(
             "{step}: set {}: {}",
             quoted(text),
             result(&clipboard::set_clipboard_text(text))
         ));
-        pump_updates(updates);
+        if text.is_empty() {
+            pump_updates(1);
+        } else {
+            pump_own_change(step);
+        }
         trace_updates(step);
         trace_state(step);
     }
@@ -501,13 +556,13 @@ main returns
         trace_updates("start");
 
         // (whatever the device had: emptied)
-        set_text("emptied", "", 1);
-        set_text("ascii", "Hello, clipboard!", 2);
-        set_text("unicode", "Grüße, 世界 🎮", 2);
-        set_text("again", "Hello, clipboard!", 2);
-        set_text("control", "tab\there\nline \"quoted\" back\\slash", 2);
-        set_text("empty", "", 1);
-        set_text("empty again", "", 1);
+        set_text("emptied", "");
+        set_text("ascii", "Hello, clipboard!");
+        set_text("unicode", "Grüße, 世界 🎮");
+        set_text("again", "Hello, clipboard!");
+        set_text("control", "tab\there\nline \"quoted\" back\\slash");
+        set_text("empty", "");
+        set_text("empty again", "");
 
         // The app's own data: another MIME type only (the system's clip is
         // emptied: no text to give it), then with text too
@@ -530,7 +585,7 @@ main returns
                 &[CUSTOM, "text/plain;charset=utf-8"]
             ))
         ));
-        pump_updates(2);
+        pump_own_change("custom and text");
         trace_updates("custom and text");
         trace_state("custom and text");
         trace_data("custom and text", CUSTOM);
@@ -542,7 +597,7 @@ main returns
         change("outside html", "html", Some("plain part"), 2);
         change("outside clear", "clear", None, 1);
         change("outside unicode", "text", Some("été 😀"), 2);
-        set_text("sdl after outside", "SDL's again", 2);
+        set_text("sdl after outside", "SDL's again");
         t(format!(
             "clear data: {}",
             result(&clipboard::clear_clipboard_data())
