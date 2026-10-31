@@ -11,6 +11,7 @@
 //! shown by the XDG desktop portal over D-Bus, or else with `zenity` (see
 //! `unix/`); on Windows by `IFileDialog` (or the older common dialogs, see
 //! `windows.rs`); on macOS by `NSOpenPanel`/`NSSavePanel` (see `cocoa.rs`);
+//! on Android by the system's documents' picker (see `android.rs`);
 //! elsewhere the dummy backend reports that the operation is unsupported.
 //!
 //! The zenity message box (used by the X11 video driver) is in `unix/` too.
@@ -374,9 +375,15 @@ mod cocoa;
 #[cfg(target_os = "macos")]
 use cocoa as sys;
 
+#[cfg(target_os = "android")]
+mod android;
+#[cfg(target_os = "android")]
+use android as sys;
+
 #[cfg(not(any(
     windows,
     target_os = "macos",
+    target_os = "android",
     all(
         unix,
         not(any(

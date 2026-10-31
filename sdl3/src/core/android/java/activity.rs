@@ -48,13 +48,20 @@
 //! `showTextInput()` (its `ShowTextInputTask`, a class of the DEX file),
 //! and hidden by the command handler's `COMMAND_TEXTEDIT_HIDE`.
 //!
+//! What it offers SDL's clipboard, message boxes and file dialogs is in
+//! modules of its own: [`super::clipboard_handler`] (`mClipboardHandler`,
+//! an `SDLClipboardHandler`, made here when video is compiled, and
+//! `clipboardHasText()`, `clipboardGetText()`, `clipboardSetText()`),
+//! [`super::messagebox`] (`messageboxShowMessageBox()`) and
+//! [`super::file_dialog`] (`showFileDialog()` and the picker's result,
+//! `onActivityResult()`). The "Open with" of another app (the intent's
+//! data, a file's path) is a drop, sent by `onCreate()`.
+//!
 //! Not translated yet, and so skipped where upstream does them: the
-//! controller, HID, clipboard and audio managers (a game controller's keys
-//! go to the controller manager's natives, which answer false until the
-//! joysticks come), the file dialogs' results (`onActivityResult()`), and
-//! what the activity offers SDL's C side for message boxes. They come with
-//! the backends that use them. What it offers the small backends is here: permissions
-//! (`requestPermission()`,
+//! controller, HID and audio managers (a game controller's keys go to the
+//! controller manager's natives, which answer false until the joysticks
+//! come). They come with the backends that use them. What it offers the
+//! small backends is here: permissions (`requestPermission()`,
 //! `onRequestPermissionsResult()`), URLs (`openURL()`), toasts
 //! (`showToast()`), the content resolver's files (`openFileDescriptor()`)
 //! and the locales (`getPreferredLocales()`).
@@ -194,7 +201,7 @@ fn activity_superclass<'a>(env: Env<'a>) -> JniResult<'a, Local<'a>> {
 }
 
 /// `super.name()` of a method returning `void`.
-fn call_super<'a>(
+pub(crate) fn call_super<'a>(
     env: Env<'a>,
     this: Obj<'_>,
     name: &CStr,
@@ -538,7 +545,9 @@ pub(crate) fn initialize() {
     s.surface = None;
     s.text_edit = None;
     s.layout = None;
-    // (mClipboardHandler: with the clipboard)
+    drop(s);
+    super::clipboard_handler::reset();
+    let mut s = statics();
     s.cursors = BTreeMap::new();
     s.last_cursor_id = 0;
     s.sdl_thread = None;
@@ -769,9 +778,15 @@ pub(crate) extern "system" fn on_create(
         sdl::set_context(sdl::global(env, this));
 
         // (SDL.isControllerManagerReady():
-        // SDLControllerManager.initializeDeviceListener(), the clipboard
-        // handler when video is compiled, and the HID device manager when
-        // nativeIsHIDAPIEnabled(): those managers come with their drivers)
+        // SDLControllerManager.initializeDeviceListener(): with the
+        // joysticks)
+
+        if sdl::is_subsystem_compiled(sdl::SDL_INIT_VIDEO) {
+            super::clipboard_handler::create(env)?;
+        }
+
+        // (the HID device manager when nativeIsHIDAPIEnabled(): with the
+        // HID driver)
 
         // Set up the surface
         if sdl::is_subsystem_initialized(sdl::SDL_INIT_VIDEO) {
@@ -847,6 +862,11 @@ pub(crate) extern "system" fn on_create(
         )?;
 
         // Get filename from "Open with" of another application
+        // FIXME (upstream): onCreate() runs before SDL_main, so the drop's
+        // events are pushed before SDL_Init() has made the event queue
+        // active, and lost (unless the activity is made again while SDL
+        // runs); and the singleTop activity's next "Open with" goes to
+        // onNewIntent(), which SDLActivity doesn't override.
         if sdl::is_subsystem_initialized(sdl::SDL_INIT_VIDEO) {
             let intent = env
                 .call_method(this, c"getIntent", c"()Landroid/content/Intent;", &[])?
