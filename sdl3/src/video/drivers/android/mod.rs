@@ -15,14 +15,15 @@
 //! the driver, with the EGL context's backup while the app is paused), and
 //! the system's theme ([`set_dark_mode`]), and the input of the surface:
 //! the touch screens and their fingers ([`touch`]), the mouse, its cursors
-//! and its relative mode ([`mouse`]) and the pens ([`pen`]).
+//! and its relative mode ([`mouse`]), the pens ([`pen`]), and the keys and
+//! the screen keyboard ([`keyboard`]).
 //!
 //! What later drivers' parts own is left where upstream calls them: the
-//! keyboard and the screen keyboard ([`on_key_down`]), the clipboard and
-//! message boxes, with comments.
+//! clipboard and message boxes, with comments.
 
 pub(crate) mod events;
 pub(crate) mod gl;
+pub(crate) mod keyboard;
 pub(crate) mod mouse;
 pub(crate) mod pen;
 pub(crate) mod touch;
@@ -367,10 +368,24 @@ impl VideoDriver for AndroidVideo {
         })
     }
 
-    // (Screen keyboard: Android_HasScreenKeyboardSupport(),
-    // Android_ShowScreenKeyboard() and Android_HideScreenKeyboard(), and
-    // the clipboard's Android_SetClipboardText(), Android_GetClipboardText()
-    // and Android_HasClipboardText(): with the keyboard and the clipboard)
+    // * * * Screen keyboard (`Android_*ScreenKeyboard*()`)
+
+    fn has_screen_keyboard_support(&self) -> Option<bool> {
+        Some(keyboard::has_screen_keyboard_support())
+    }
+
+    fn show_screen_keyboard(&self, window: WindowID, props: Option<&Properties>) -> Option<()> {
+        keyboard::show_screen_keyboard(window, props);
+        Some(())
+    }
+
+    fn hide_screen_keyboard(&self, window: WindowID) -> Option<()> {
+        keyboard::hide_screen_keyboard(window);
+        Some(())
+    }
+
+    // (the clipboard's Android_SetClipboardText(), Android_GetClipboardText()
+    // and Android_HasClipboardText(): with the clipboard)
 }
 
 /// Translation of `Android_CreateDevice()` (whose data is
@@ -554,12 +569,3 @@ pub(crate) fn set_dark_mode(enabled: bool) {
         crate::video::core::set_system_theme(system_theme());
     }
 }
-
-/// A key pressed. Translation of `Android_OnKeyDown()`, which upstream's
-/// `onNativeKeyDown()` calls when there's a window ([`window`]): the
-/// keyboard comes with its translation.
-pub(crate) fn on_key_down(_keycode: i32) {}
-
-/// A key released. Translation of `Android_OnKeyUp()` (see
-/// [`on_key_down`]).
-pub(crate) fn on_key_up(_keycode: i32) {}

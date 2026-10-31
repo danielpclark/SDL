@@ -86,6 +86,10 @@ pub const PROP_TEXTINPUT_PLACEHOLDER_STRING: &str = "SDL.textinput.placeholder";
 pub const PROP_TEXTINPUT_DEFAULT_TEXT_STRING: &str = "SDL.textinput.default_text";
 /// Translation of `SDL_PROP_TEXTINPUT_MAX_LENGTH_NUMBER`.
 pub const PROP_TEXTINPUT_MAX_LENGTH_NUMBER: &str = "SDL.textinput.max_length";
+/// Translation of `SDL_PROP_TEXTINPUT_ANDROID_INPUTTYPE_NUMBER`: the
+/// `android.text.InputType` of the text input on Android, in place of the
+/// one the other properties make.
+pub const PROP_TEXTINPUT_ANDROID_INPUTTYPE_NUMBER: &str = "SDL.textinput.android.inputtype";
 
 /// Translation of `SDL_GetTextInputType()`.
 #[allow(dead_code)] // (used by the video drivers)

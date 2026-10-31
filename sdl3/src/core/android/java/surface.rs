@@ -32,11 +32,8 @@
 //! (`onScale()`, `onScaleBegin()`, `onScaleEnd()`: `onNativePinch*()`);
 //! the other motion events go to the generic motion listener
 //! (`super::controller_manager`), the captured pointer's too
-//! (`onCapturedPointerEvent()`).
-//!
-//! Not translated yet, where upstream does them: the key events
-//! (`onKey()`, `SDLActivity.handleKeyEvent()`: with the keyboard): a stub,
-//! noted.
+//! (`onCapturedPointerEvent()`). Its key events (`onKey()`) are
+//! `SDLActivity.handleKeyEvent()`'s, without an input connection.
 
 use super::super::env::{Arg, Env, JniResult, Local, Obj};
 use super::super::jni::*;
@@ -567,18 +564,20 @@ pub(crate) extern "system" fn on_apply_window_insets(
     })
 }
 
-/// Key events. Translation of `onKey()`, a stub: upstream's gives the key
-/// to `SDLActivity.handleKeyEvent()`, which comes with the keyboard's
-/// translation; until then the key isn't handled here (false), and the
-/// system handles it.
+// Key events
+/// Translation of `onKey()`.
 pub(crate) extern "system" fn on_key(
-    _env: *mut JNIEnv,
+    env: *mut JNIEnv,
     _this: jobject,
-    _v: jobject,
-    _key_code: jint,
-    _event: jobject,
+    v: jobject,
+    key_code: jint,
+    event: jobject,
 ) -> jboolean {
-    JNI_FALSE
+    // SAFETY: a native method's environment and arguments.
+    let (env, v, event) = unsafe { (Env::from_raw(env), Obj::from_raw(v), Obj::from_raw(event)) };
+    native_boolean(env, |env| {
+        activity::handle_key_event(env, v, key_code, event, Obj::NULL)
+    })
 }
 
 /// Translation of `getNormalizedX()`.

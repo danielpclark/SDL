@@ -24,6 +24,11 @@
 //! which dispatch on the listener's class as Java's virtual calls do
 //! ([`Api`]).
 //!
+//! Of the controller manager itself: `isDeviceSDLJoystick()` (whether a
+//! device's keys are a game controller's, `SDLActivity.handleKeyEvent()`
+//! asks) and its natives `onNativePadDown()` and `onNativePadUp()`, which
+//! answer false until the joystick driver comes.
+//!
 //! Not translated yet (with the joysticks): the rest of the file, the
 //! controller manager, its joystick and haptic handlers, and so the
 //! joystick's motion events: `handleJoystickMotionEvent()` handles none
@@ -524,4 +529,42 @@ pub(crate) fn api_for(sdk_int: jint) -> Api {
     } else {
         Api::Api14
     }
+}
+
+/// `InputDevice.SOURCE_CLASS_JOYSTICK`, `SOURCE_DPAD`, `SOURCE_GAMEPAD`.
+const SOURCE_CLASS_JOYSTICK: jint = 0x10;
+const SOURCE_DPAD: jint = 0x201;
+const SOURCE_GAMEPAD: jint = 0x401;
+
+/// Check if a given device is considered a possible SDL joystick.
+/// Translation of `SDLControllerManager.isDeviceSDLJoystick(InputDevice)`.
+pub(crate) fn is_device_sdl_joystick<'a>(
+    env: Env<'a>,
+    device: Option<Obj<'_>>,
+) -> JniResult<'a, bool> {
+    // No virtual device (eg nonnegative deviceId. VIRTUAL_KEYBOARD equals -1)
+    let Some(device) = device else {
+        return Ok(false);
+    };
+    if env
+        .call_method(device, c"isVirtual", c"()Z", &[])?
+        .boolean()
+    {
+        return Ok(false);
+    }
+    let sources = env.call_method(device, c"getSources", c"()I", &[])?.int();
+
+    Ok((sources & SOURCE_CLASS_JOYSTICK) != 0
+        || ((sources & SOURCE_DPAD) == SOURCE_DPAD)
+        || ((sources & SOURCE_GAMEPAD) == SOURCE_GAMEPAD))
+}
+
+/// `SDLControllerManager.onNativePadDown()`.
+pub(crate) fn on_native_pad_down(device_id: jint, keycode: jint, scancode: jint) -> bool {
+    super::super::on_pad_down(device_id, keycode, scancode)
+}
+
+/// `SDLControllerManager.onNativePadUp()`.
+pub(crate) fn on_native_pad_up(device_id: jint, keycode: jint, scancode: jint) -> bool {
+    super::super::on_pad_up(device_id, keycode, scancode)
 }
