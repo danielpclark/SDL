@@ -373,3 +373,15 @@ harness = false
 [[test]]
 name = "android_dialog"
 harness = false
+
+# The Android audio drivers in an app (AAudio, OpenSL ES: their devices,
+# playback, a stream, recording with the permission denied and granted, the
+# devices through trips to the background, the audio manager's device
+# callback), against upstream's C.
+[[test]]
+name = "android_audio"
+harness = false
+
+[[test]]
+name = "android_audio_opensles"
+harness = false
