@@ -873,6 +873,16 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
           ls -l /dev/kvm
+      # The virtual device's data partition takes 14.4 GB of the disk (its
+      # 12 GB, and the emulator's margin), which the build and its cache
+      # leave too little of on some runners (the emulator then ends at
+      # once: "Not enough space to create userdata partition"): the runner
+      # image's toolchains this job doesn't use, removed.
+      - name: Free disk space
+        run: |
+          df -h /
+          sudo rm -rf /usr/share/dotnet /usr/local/.ghcup /opt/ghc /opt/hostedtoolcache/CodeQL /usr/local/share/powershell /usr/share/swift /usr/local/lib/node_modules
+          df -h /
       # The emulator and the system image from the SDK repository's
       # archives, checked against their SHA-256 (sdkmanager installs only
       # the newest ones), in the SDK where it would put them; PulseAudio's
@@ -1036,8 +1046,11 @@ jobs:
             echo "== $(basename "$log")"
             perl -pe 's/\e\[[0-9;]*m//g' "$log" | grep -E "^ *(Running|Doc-tests) |^test result: |^error: " || true
           done
+      # (adb waits for a device that isn't there, as an emulator that never
+      # started: each call is bounded, and the step too)
       - name: The failed tests and the device's log
         if: failure() && env.SDL3_ANDROID_SERIAL != ''
+        timeout-minutes: 5
         shell: bash
         run: |
           touch "$RUNNER_TEMP/test.log" "$RUNNER_TEMP/test-arm64.log"
@@ -1046,8 +1059,12 @@ jobs:
             grep -E -B30 "process didn't exit|android_run.py: " "$log" | cut -c1-400 | head -1000 || true
           done
           ADB="$ANDROID_HOME/platform-tools/adb"
-          "$ADB" -s "$SDL3_ANDROID_SERIAL" logcat -d -b crash | tail -300 || true
-          "$ADB" -s "$SDL3_ANDROID_SERIAL" logcat -d | tail -300 || true
+          if [ "$(timeout 20 "$ADB" -s "$SDL3_ANDROID_SERIAL" get-state 2>/dev/null)" = device ]; then
+            timeout 60 "$ADB" -s "$SDL3_ANDROID_SERIAL" logcat -d -b crash | tail -300 || true
+            timeout 60 "$ADB" -s "$SDL3_ANDROID_SERIAL" logcat -d | tail -300 || true
+          else
+            echo "($SDL3_ANDROID_SERIAL isn't a device adb can reach: no device log)"
+          fi
           # (the emulator's own log, where tools/android_run.py keeps it)
           tail -100 "${TMPDIR:-/tmp}/sdl3-android-run-$(id -u)/$SDL3_ANDROID_SERIAL/emulator.log" || true
           # (last: the app mode's step, whose output the logs above push out of a
