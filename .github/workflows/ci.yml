@@ -155,6 +155,10 @@ jobs:
       # Print a failing test's panic as it happens rather than in the summary
       # at the end, so a run that then hangs still shows what went wrong.
       RUST_TEST_NOCAPTURE: 1
+      # A failing assertion aborts the test, as the Simulator and emulator
+      # runners make it do: the default handler asks in a message box first,
+      # as upstream's, which nothing on a runner would answer.
+      SDL_ASSERT: abort
       # The test capabilities (test_support::CAPABILITIES in sdl3/src/lib.rs)
       # the packages and GPU drivers installed below provide: tests that
       # would skip without them fail instead. Not uinput on ubuntu (the
