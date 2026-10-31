@@ -1352,6 +1352,38 @@ impl<'a> Env<'a> {
         Ok(value)
     }
 
+    /// `Class.name = value`, a static field (`SetStatic<Type>Field()`).
+    pub(crate) fn set_static_field(
+        self,
+        class: Obj<'_>,
+        name: &CStr,
+        descriptor: &CStr,
+        value: Arg<'_>,
+    ) -> JniResult<'a, ()> {
+        assert_eq!(
+            value.shorty(),
+            field_shorty(descriptor),
+            "{value:?} isn't a {descriptor:?}"
+        );
+        let field = self.get_static_field_id(class, name, descriptor)?;
+        let (t, e, c, f) = (self.table(), self.raw(), class.raw(), field.raw());
+        // SAFETY: the value's type is the field's.
+        unsafe {
+            match value {
+                Arg::Boolean(z) => (t.SetStaticBooleanField)(e, c, f, z as jboolean),
+                Arg::Byte(b) => (t.SetStaticByteField)(e, c, f, b),
+                Arg::Char(ch) => (t.SetStaticCharField)(e, c, f, ch),
+                Arg::Short(s) => (t.SetStaticShortField)(e, c, f, s),
+                Arg::Int(i) => (t.SetStaticIntField)(e, c, f, i),
+                Arg::Long(j) => (t.SetStaticLongField)(e, c, f, j),
+                Arg::Float(v) => (t.SetStaticFloatField)(e, c, f, v),
+                Arg::Double(d) => (t.SetStaticDoubleField)(e, c, f, d),
+                Arg::Object(l) => (t.SetStaticObjectField)(e, c, f, l.raw()),
+            }
+        }
+        Ok(())
+    }
+
     // Strings
 
     /// `NewString()` of the string's UTF-16.
@@ -1552,6 +1584,23 @@ impl<'a> Env<'a> {
         };
         self.check()?;
         Ok(array)
+    }
+
+    /// `GetByteArrayRegion()` of every element: a `byte[]`'s bytes.
+    pub(crate) fn get_byte_array(self, array: Obj<'_>) -> JniResult<'a, Vec<u8>> {
+        let mut bytes = vec![0u8; self.get_array_length(array).max(0) as usize];
+        // SAFETY: a valid array, and room for its elements.
+        unsafe {
+            (self.table().GetByteArrayRegion)(
+                self.raw(),
+                array.raw(),
+                0,
+                bytes.len() as jsize,
+                bytes.as_mut_ptr().cast(),
+            )
+        };
+        self.check()?;
+        Ok(bytes)
     }
 
     /// `NewIntArray()` and `SetIntArrayRegion()`: a Java `int[]` of the

@@ -561,6 +561,7 @@ native_function!(A B C D F G H I J K L);
 native_function!(A B C D F G H I J K L M);
 native_function!(A B C D F G H I J K L M N);
 native_function!(A B C D F G H I J K L M N O);
+native_function!(A B C D F G H I J K L M N O P);
 
 /// The shorty of a method descriptor (`(Ljava/lang/String;I)V`: `VLI`),
 /// in `out`, and its length. Panics (at compile time, where it's used) on

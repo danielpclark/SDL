@@ -15,10 +15,15 @@
 //! (devices found through libudev, which is loaded at run time), the HID
 //! class driver on Windows (`hid.dll` and `cfgmgr32.dll`, loaded at run
 //! time), the IOHIDManager on macOS (IOKit, linked as upstream links
-//! it), and on iOS and tvOS Valve's Steam Controllers over Bluetooth LE
-//! (CoreBluetooth, loaded at run time: see [`ble_scan`]). The libusb and
-//! Android backends of upstream are not translated: on other platforms
-//! there are no devices, as in an SDL built without a HID backend.
+//! it), on iOS and tvOS Valve's Steam Controllers over Bluetooth LE
+//! (CoreBluetooth, loaded at run time: see [`ble_scan`]), and on Android
+//! the USB devices' HID interfaces and Steam Controllers over Bluetooth
+//! LE, which the app's HID device manager finds (its USB and Bluetooth
+//! managers, through JNI; Bluetooth when [`hints::JOYSTICK_HIDAPI_STEAM`]
+//! is set as the library starts, which needs the `BLUETOOTH_CONNECT`
+//! permission from API 31: it is asked for). The libusb backend of
+//! upstream is not translated: on other platforms there are no devices, as
+//! in an SDL built without a HID backend.
 //!
 //! Every function initializes the library on first use; [`init`] and
 //! [`exit`] are counted, like upstream's `SDL_hid_init()` and
@@ -30,6 +35,8 @@
 //! small performance cost, until distributions have granted access to
 //! /dev/hidraw*
 
+#[cfg(target_os = "android")]
+pub(crate) mod android;
 #[cfg(any(target_os = "ios", target_os = "tvos", test))]
 pub(crate) mod ble;
 #[cfg(any(windows, test))]
@@ -52,6 +59,8 @@ use crate::hints;
 use crate::joystick::usb_ids::*;
 use crate::properties::Properties;
 
+#[cfg(target_os = "android")]
+use android as platform;
 #[cfg(any(target_os = "ios", target_os = "tvos"))]
 use ios as platform;
 #[cfg(target_os = "linux")]
@@ -71,7 +80,8 @@ pub(crate) use windows::find_interface_path;
     target_os = "macos",
     windows,
     target_os = "ios",
-    target_os = "tvos"
+    target_os = "tvos",
+    target_os = "android"
 )))]
 mod platform {
     use super::DeviceInfo;
@@ -887,7 +897,8 @@ const LIBUSB_WHITELIST_DEFAULT: bool = cfg!(any(
     target_os = "macos",
     windows,
     target_os = "ios",
-    target_os = "tvos"
+    target_os = "tvos",
+    target_os = "android"
 ));
 
 /// Translation of `use_libusb_whitelist`.
@@ -907,7 +918,8 @@ static IGNORED_DEVICES: Mutex<Option<String>> = Mutex::new(None);
         target_os = "macos",
         windows,
         target_os = "ios",
-        target_os = "tvos"
+        target_os = "tvos",
+        target_os = "android"
     )),
     allow(dead_code)
 )] // (used by the platform backends)
@@ -1059,7 +1071,8 @@ fn init_locked(state: &mut HidapiState) -> Result<()> {
         target_os = "macos",
         windows,
         target_os = "ios",
-        target_os = "tvos"
+        target_os = "tvos",
+        target_os = "android"
     ))]
     let (attempts, success) = (1, i32::from(platform::hid_init().is_ok()));
     #[cfg(not(any(
@@ -1067,7 +1080,8 @@ fn init_locked(state: &mut HidapiState) -> Result<()> {
         target_os = "macos",
         windows,
         target_os = "ios",
-        target_os = "tvos"
+        target_os = "tvos",
+        target_os = "android"
     )))]
     let (attempts, success) = (0, 0);
 
@@ -1109,7 +1123,8 @@ pub fn exit() -> Result<()> {
         target_os = "macos",
         windows,
         target_os = "ios",
-        target_os = "tvos"
+        target_os = "tvos",
+        target_os = "android"
     ))]
     let result = platform::hid_exit();
     #[cfg(not(any(
@@ -1117,7 +1132,8 @@ pub fn exit() -> Result<()> {
         target_os = "macos",
         windows,
         target_os = "ios",
-        target_os = "tvos"
+        target_os = "tvos",
+        target_os = "android"
     )))]
     let result = Ok(());
 
@@ -1170,7 +1186,8 @@ pub fn enumerate(vendor_id: u16, product_id: u16) -> Result<Vec<DeviceInfo>> {
         target_os = "macos",
         windows,
         target_os = "ios",
-        target_os = "tvos"
+        target_os = "tvos",
+        target_os = "android"
     ))]
     let raw_devs = platform::hid_enumerate(vendor_id, product_id);
     #[cfg(not(any(
@@ -1178,7 +1195,8 @@ pub fn enumerate(vendor_id: u16, product_id: u16) -> Result<Vec<DeviceInfo>> {
         target_os = "macos",
         windows,
         target_os = "ios",
-        target_os = "tvos"
+        target_os = "tvos",
+        target_os = "android"
     )))]
     let raw_devs: Vec<DeviceInfo> = {
         let _ = (vendor_id, product_id);
