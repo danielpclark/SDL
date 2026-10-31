@@ -7,23 +7,26 @@
 //!
 //! A [`Sensor`] is an open sensor; it is closed when the last handle to it
 //! is dropped (upstream reference counts `SDL_OpenSensor()` calls). The
-//! sensor drivers are platform backends: the CoreMotion driver on iOS and
-//! visionOS, the Windows Sensor API driver on Windows, the `devicemotion`
-//! driver on Emscripten, and the dummy driver, which reports no sensors,
-//! elsewhere.
+//! sensor drivers are platform backends: the NDK's sensor manager on
+//! Android, the CoreMotion driver on iOS and visionOS, the Windows Sensor
+//! API driver on Windows, the `devicemotion` driver on Emscripten, and the
+//! dummy driver, which reports no sensors, elsewhere.
 //!
 //! Sensor data is in SI units: m/s² for accelerometers (a device at rest
 //! reports [`STANDARD_GRAVITY`] away from the center of the earth) and
 //! radians per second for gyroscopes, with the axes of the device in its
 //! natural orientation (see `SDL_sensor.h`).
 
+#[cfg(target_os = "android")]
+mod android;
 #[cfg(any(target_os = "ios", target_os = "visionos"))]
 mod coremotion;
 #[cfg(not(any(
     windows,
     target_os = "emscripten",
     target_os = "ios",
-    target_os = "visionos"
+    target_os = "visionos",
+    target_os = "android"
 )))]
 mod dummy;
 #[cfg(target_os = "emscripten")]
@@ -182,6 +185,8 @@ pub(crate) trait SensorDriver: Send + Sync {
 
 /// The available sensor drivers. Translation of `SDL_sensor_drivers`.
 static SENSOR_DRIVERS: &[&dyn SensorDriver] = &[
+    #[cfg(target_os = "android")]
+    &android::ANDROID_SENSOR_DRIVER,
     // (SDL_SENSOR_COREMOTION: CMake's IOS, VISIONOS and WATCHOS)
     #[cfg(any(target_os = "ios", target_os = "visionos"))]
     &coremotion::COREMOTION_SENSOR_DRIVER,
@@ -194,7 +199,8 @@ static SENSOR_DRIVERS: &[&dyn SensorDriver] = &[
         windows,
         target_os = "emscripten",
         target_os = "ios",
-        target_os = "visionos"
+        target_os = "visionos",
+        target_os = "android"
     )))]
     &dummy::DUMMY_SENSOR_DRIVER,
 ];
@@ -240,6 +246,26 @@ pub(crate) fn sensors_locked() -> bool {
 #[allow(dead_code)] // (used by the sensor drivers)
 fn assert_sensors_locked() {
     crate::sdl_assert!(sensors_locked());
+}
+
+/// Run `f` with one level of the sensor lock released, as a driver's
+/// `SDL_UnlockSensors()` ... `SDL_LockSensors()` around a wait does; the
+/// lock is taken back when `f` returns (or unwinds).
+#[cfg(target_os = "android")]
+pub(crate) fn with_sensors_unlocked<R>(f: impl FnOnce() -> R) -> R {
+    struct Relock;
+    impl Drop for Relock {
+        fn drop(&mut self) {
+            EVENT_LOCK.lock();
+            SENSORS_LOCKED.fetch_add(1, Ordering::Relaxed);
+        }
+    }
+
+    assert_sensors_locked();
+    SENSORS_LOCKED.fetch_sub(1, Ordering::Relaxed);
+    EVENT_LOCK.unlock();
+    let _relock = Relock;
+    f()
 }
 
 /// Run `f` on the open sensors (the lock must be held).
@@ -618,7 +644,8 @@ mod tests {
         windows,
         target_os = "emscripten",
         target_os = "ios",
-        target_os = "visionos"
+        target_os = "visionos",
+        target_os = "android"
     )))]
     #[test]
     fn dummy_driver_has_no_sensors() {

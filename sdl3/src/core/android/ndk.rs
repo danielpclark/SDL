@@ -4,9 +4,11 @@
 
 //! What upstream includes from the NDK's headers (layout facts of the
 //! NDK's Apache-2.0 headers: see docs/LICENSING.md), linked as upstream
-//! links them (`-llog`, `-landroid`, ...): `<android/log.h>`'s log, and
-//! `<android/asset_manager.h>`'s assets (the app package's files), and
-//! `<android/native_window.h>`'s windows (the activity's surface's).
+//! links them (`-llog`, `-landroid`, ...): `<android/log.h>`'s log,
+//! `<android/asset_manager.h>`'s assets (the app package's files),
+//! `<android/native_window.h>`'s windows (the activity's surface's), and
+//! `<android/looper.h>`'s loopers and `<android/sensor.h>`'s sensors (the
+//! sensor driver's).
 
 use std::ffi::{c_char, c_int, c_void, CString};
 
@@ -107,4 +109,131 @@ unsafe extern "C" {
         height: i32,
         format: i32,
     ) -> i32;
+}
+
+/// `ALooper` (`<android/looper.h>`): opaque.
+#[repr(C)]
+pub(crate) struct ALooper {
+    _private: [u8; 0],
+}
+
+/// `ALOOPER_PREPARE_ALLOW_NON_CALLBACKS`: the looper's `pollOnce()` may
+/// return the identifier of a file descriptor added without a callback.
+pub(crate) const ALOOPER_PREPARE_ALLOW_NON_CALLBACKS: c_int = 1 << 0;
+
+/// `ALooper_callbackFunc`.
+pub(crate) type ALooperCallbackFunc =
+    Option<unsafe extern "C" fn(fd: c_int, events: c_int, data: *mut c_void) -> c_int>;
+
+#[link(name = "android")]
+unsafe extern "C" {
+    /// `ALooper_prepare()`: the calling thread's looper, made if it has
+    /// none.
+    pub(crate) fn ALooper_prepare(opts: c_int) -> *mut ALooper;
+    /// `ALooper_pollOnce()`.
+    pub(crate) fn ALooper_pollOnce(
+        timeout_millis: c_int,
+        out_fd: *mut c_int,
+        out_events: *mut c_int,
+        out_data: *mut *mut c_void,
+    ) -> c_int;
+    /// `ALooper_wake()`.
+    pub(crate) fn ALooper_wake(looper: *mut ALooper);
+}
+
+/// `ASensorManager` (`<android/sensor.h>`): opaque.
+#[repr(C)]
+pub(crate) struct ASensorManager {
+    _private: [u8; 0],
+}
+
+/// `ASensor`: opaque.
+#[repr(C)]
+pub(crate) struct ASensor {
+    _private: [u8; 0],
+}
+
+/// `ASensorEventQueue`: opaque.
+#[repr(C)]
+pub(crate) struct ASensorEventQueue {
+    _private: [u8; 0],
+}
+
+/// `ASensorRef`.
+pub(crate) type ASensorRef = *const ASensor;
+
+/// `ASensorList`.
+pub(crate) type ASensorList = *const ASensorRef;
+
+/// `ASensorEvent` (104 bytes), its union after the timestamp read as
+/// `float data[16]`, the member SDL reads.
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub(crate) struct ASensorEvent {
+    /// `sizeof(struct ASensorEvent)`
+    pub(crate) version: i32,
+    pub(crate) sensor: i32,
+    pub(crate) type_: i32,
+    pub(crate) reserved0: i32,
+    /// time in nanoseconds
+    pub(crate) timestamp: i64,
+    pub(crate) data: [f32; 16],
+    pub(crate) flags: u32,
+    pub(crate) reserved1: [i32; 3],
+}
+
+#[link(name = "android")]
+unsafe extern "C" {
+    /// `ASensorManager_getInstance()` (deprecated in API 26 for
+    /// `ASensorManager_getInstanceForPackage()`, which upstream doesn't
+    /// use).
+    pub(crate) fn ASensorManager_getInstance() -> *mut ASensorManager;
+    /// `ASensorManager_getSensorList()`: the number of sensors.
+    pub(crate) fn ASensorManager_getSensorList(
+        manager: *mut ASensorManager,
+        list: *mut ASensorList,
+    ) -> c_int;
+    /// `ASensorManager_createEventQueue()`.
+    pub(crate) fn ASensorManager_createEventQueue(
+        manager: *mut ASensorManager,
+        looper: *mut ALooper,
+        ident: c_int,
+        callback: ALooperCallbackFunc,
+        data: *mut c_void,
+    ) -> *mut ASensorEventQueue;
+    /// `ASensorManager_destroyEventQueue()`.
+    pub(crate) fn ASensorManager_destroyEventQueue(
+        manager: *mut ASensorManager,
+        queue: *mut ASensorEventQueue,
+    ) -> c_int;
+    /// `ASensorEventQueue_enableSensor()`.
+    pub(crate) fn ASensorEventQueue_enableSensor(
+        queue: *mut ASensorEventQueue,
+        sensor: ASensorRef,
+    ) -> c_int;
+    /// `ASensorEventQueue_disableSensor()`.
+    pub(crate) fn ASensorEventQueue_disableSensor(
+        queue: *mut ASensorEventQueue,
+        sensor: ASensorRef,
+    ) -> c_int;
+    /// `ASensorEventQueue_setEventRate()`.
+    pub(crate) fn ASensorEventQueue_setEventRate(
+        queue: *mut ASensorEventQueue,
+        sensor: ASensorRef,
+        usec: i32,
+    ) -> c_int;
+    /// `ASensorEventQueue_getEvents()`: the number of events read, or a
+    /// negative error.
+    pub(crate) fn ASensorEventQueue_getEvents(
+        queue: *mut ASensorEventQueue,
+        events: *mut ASensorEvent,
+        count: usize,
+    ) -> isize;
+    /// `ASensor_getName()`.
+    pub(crate) fn ASensor_getName(sensor: ASensorRef) -> *const c_char;
+    /// `ASensor_getType()`.
+    pub(crate) fn ASensor_getType(sensor: ASensorRef) -> c_int;
+    /// `ASensor_getMinDelay()`: the minimum delay between events in
+    /// microseconds, 0 for a sensor that reports on changes only.
+    pub(crate) fn ASensor_getMinDelay(sensor: ASensorRef) -> c_int;
 }
