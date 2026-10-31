@@ -357,3 +357,19 @@ harness = false
 [[test]]
 name = "android_keyboard"
 harness = false
+
+# The android video driver's clipboard, message boxes, file dialogs and
+# "Open with" drops in an app (the system's clip, set from SDL and from
+# outside; the activity's AlertDialog and the documents' picker, answered
+# by real taps the runner finds with uiautomator), against upstream's C.
+[[test]]
+name = "android_clipboard"
+harness = false
+
+[[test]]
+name = "android_messagebox"
+harness = false
+
+[[test]]
+name = "android_dialog"
+harness = false
