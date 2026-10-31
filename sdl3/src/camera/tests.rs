@@ -201,6 +201,8 @@ fn driver_selection() {
     assert_eq!(names, ["test", "v4l2", "pipewire", "dummy"]);
     #[cfg(any(target_os = "macos", target_os = "ios"))]
     assert_eq!(names, ["test", "coremedia", "dummy"]);
+    #[cfg(target_os = "android")]
+    assert_eq!(names, ["test", "android", "dummy"]);
     #[cfg(windows)]
     assert_eq!(names, ["test", "mediafoundation", "dummy"]);
     #[cfg(target_os = "emscripten")]
@@ -209,6 +211,7 @@ fn driver_selection() {
         target_os = "linux",
         target_os = "macos",
         target_os = "ios",
+        target_os = "android",
         windows,
         target_os = "emscripten"
     )))]
