@@ -527,8 +527,8 @@ and the video driver: its window, its surface, OpenGL ES through EGL and
 Vulkan, its touch, pinch, mouse and pen input, and its keyboard, text
 input and screen keyboard (below), the audio drivers (AAudio and
 OpenSL ES, with the audio manager), the joystick and haptic drivers
-(with the controller manager), and the sensor and camera drivers; the
-other Android driver (HIDAPI's backend) isn't translated yet.
+(with the controller manager), the sensor and camera drivers, and
+HIDAPI's backend (with the HID device manager).
 
 A test that reads its package's files does so at run time, through
 `CARGO_MANIFEST_DIR` (falling back on `env!("CARGO_MANIFEST_DIR")`), which
@@ -591,8 +591,6 @@ device; the same for `CARGO_TARGET_TMPDIR` and `CARGO_BIN_EXE_NAME`.
   Java can't extend `SDLActivity`, so the methods upstream's subclasses
   override (`getLibraries()`, `getArguments()`, `onUnhandledMessage()`)
   are fixed: `Note`s.
-* What a later driver owns is stubbed where upstream calls it: the HID
-  manager (comments where upstream calls it).
 * The app's `main` runs on the activity's "SDLThread" thread
   (`nativeRunMain()`, through the generic `SDL_RunApp()`; the main
   callbacks are the generic ones too), which isn't SDL's main thread until
@@ -795,6 +793,48 @@ device; the same for `CARGO_TARGET_TMPDIR` and `CARGO_BIN_EXE_NAME`.
   Kept: the assertion that each plane of a frame has the Y plane's row
   stride, which fails on the emulator's YUV frames. Without a Java VM (a spawned program) the
   cameras are there but opening one fails (`Failed, there is no JavaVM`).
+* HID devices: HIDAPI's backend (`hidapi/android.rs`, upstream's
+  `src/hidapi/android/hid.cpp`, Valve's, zlib like SDL) keeps the devices
+  `HIDDeviceManager.java` (`core/android/java/hid_device_manager.rs`)
+  tells it of through its natives, and calls the manager's methods
+  (`initialize()`, `openDevice()`, `writeReport()`, `readReport()`,
+  `closeDevice()`), which are Rust calls here (the DEX class declares
+  them native too, beside the natives, which `JNI_OnLoad()` registers as
+  upstream's `HIDDeviceManager_tab`). The activity acquires the manager
+  in `onCreate()` (`nativeIsHIDAPIEnabled()`: it is), freezes it while
+  paused or unfocused (`setFrozen()`), and releases it in `onDestroy()`;
+  its Java object is in `SDLActivity.mHIDDeviceManager`, a static field of
+  the DEX class, as upstream's (the tests reach its natives there).
+  `hid_init()` starts the manager's USB part, and its Bluetooth part when
+  `SDL_HINT_JOYSTICK_HIDAPI_STEAM` is set (from API 31 after
+  `BLUETOOTH_CONNECT` is granted). The USB part (`HIDDeviceUSB.java`,
+  `java/hid_device_usb.rs`) is the `UsbManager`'s devices' HID interfaces
+  and Xbox 360/One controllers' (upstream's vendor lists), their
+  attach, detach and permission broadcasts (a `BroadcastReceiver`), the
+  connection's claimed interface, an input thread (a Rust thread attached
+  to the VM, for upstream's Java `Thread`) and class requests for feature
+  reports; the Bluetooth part (`HIDDeviceBLESteamController.java`,
+  `java/hid_device_ble_steam.rs`) is a Steam Controller's GATT client,
+  its operations queued on the main thread. Upstream's two anonymous
+  `BroadcastReceiver`s are the DEX classes `HIDDeviceManagerUsbReceiver`
+  and `HIDDeviceManagerBluetoothReceiver`, and
+  `HIDDeviceBLESteamController` extends the abstract
+  `BluetoothGattCallback` with native overrides, its constructor
+  `BluetoothGattCallback()`'s (the rest of upstream's runs in Rust, a
+  `Note`); `HIDDevice`, upstream's own interface, is a Rust trait. The
+  reports between hid.cpp and the manager are Rust bytes (upstream passes
+  `byte[]`s). hid.cpp's intrusive references are `Arc`s and its device
+  state is locked (`Note`: upstream reads parts of it unlocked); its
+  `LOGV()`s and `LOGD()`s are on in a debug build, as upstream's Gradle
+  debug build defines `DEBUG`. Fixed: a Bluetooth Steam Controller's
+  report read into a buffer it doesn't fit (upstream writes a byte past
+  it: `FIXME (upstream)`). Kept (`Note (upstream)`): the first device ID
+  given, 0, reading as none in the preferences, the feature report's
+  number sign-extended into the class request's value, a BLE feature
+  report's last byte dropped (`copyOfRange()`'s end), the input report
+  asked for never copied, a negative read timeout not waiting, the
+  Chromebook handlers that are never called. Without a Java VM (a spawned
+  program) there's no manager: no devices, and opening fails.
 
 ### What is built
 

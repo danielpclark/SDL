@@ -34,7 +34,7 @@ Every skip names one *capability* (the list is `CAPABILITIES` in
 | `alsa` | Linux | libasound and its configuration (the tests use its `file` and `null` PCMs, no sound card) |
 | `udev` | Linux | libudev and a working udev (netlink) |
 | `uinput` | Linux | a writable `/dev/uinput`, and read access to the event node it creates |
-| `hidapi` | Linux, Windows, macOS, iOS, tvOS | the HID backend: hidraw with libudev, `hid.dll`, IOKit's HID manager, or CoreBluetooth's Steam Controllers (iOS and tvOS: never missing, no devices without Bluetooth) |
+| `hidapi` | Linux, Windows, macOS, iOS, tvOS, Android | the HID backend: hidraw with libudev, `hid.dll`, IOKit's HID manager, CoreBluetooth's Steam Controllers (iOS and tvOS: never missing, no devices without Bluetooth), or the app's HID device manager (Android: never missing, no devices outside an app or on the emulator) |
 | `ipv6` | any | IPv6 sockets that can resolve and bind to the loopback address `::1` (`sdl3-net`'s IPv6 tests; containers often have IPv4 only) |
 | `tzdata` | Linux | the time zone database in `/usr/share/zoneinfo` (the local time tests set `TZ`) |
 | `locales` | Linux | glibc's `localedef` and its locale sources in `/usr/share/i18n/locales` (the tests compile the locales they read the date and time formats of) |
@@ -1885,7 +1885,35 @@ many failed. The library's tests (`sensor/android/tests.rs`,
 `camera/android/tests.rs`) check both drivers in a spawned program,
 where the sensor manager needs no Java VM (an accelerometer at rest
 reports gravity) and the cameras are listed but can't be opened (the
-permission's request needs the app).
+permission's request needs the app). And HIDAPI's backend with the HID
+device manager, against upstream's C too: `android_hidapi.rs` (whose
+manifest asks for `BLUETOOTH_CONNECT`, which the runner grants first,
+and which runs with the DualSense plugged in), the HID library started
+with `SDL_HINT_JOYSTICK_HIDAPI_STEAM` (the manager's USB part, and its
+Bluetooth part: the emulator has Bluetooth LE, on, with no bonded
+devices), and no devices (the emulator has no USB devices, and the uhid
+DualSense isn't a `UsbDevice`, which the manager doesn't see); then
+devices the manager's natives tell of (called through JNI on the
+activity's `SDLActivity.mHIDDeviceManager`, as its Java calls them, for
+devices it hasn't): a USB HID interface, a Steam Controller over
+Bluetooth and another USB interface, enumerated (all, by vendor, by
+vendor and product), opened (a path there isn't; one whose open the
+manager refuses, which disconnects it; a USB permission's handshake,
+pending and then granted, which opens it without the manager), their
+input reports queued (the 16 latest) and read, with and without a
+timeout (one coming from another thread while it waits), the Steam
+Controller's with its report ID first, their strings and information,
+a path opened twice, then a write, a feature report and the last close,
+which the manager answers by disconnecting the device, and a device
+disconnected while open; then the library stopped and started again (the
+manager isn't initialized again). The manager's log (the device's log's
+`hidapi` lines: its Java's, and hid.cpp's verbose ones, which a debug
+build has, upstream's as this one, their pointers masked) is traced
+too. The library's tests (`hidapi/android.rs`,
+`core/android/java/hid_device_*.rs`) check the report queue, the
+feature report's copy, the open handshake, the interfaces the manager
+takes, the Steam Controller's names and its characteristics' report IDs
+in a spawned program.
 
 The expected traces of the app programs are upstream's C SDL's: the same
 program in C, as upstream's android-project's app (built with Gradle,
@@ -1908,14 +1936,17 @@ asked for (`android_audio.rs`, `android_audio_opensles.rs`: a stream's
 device's format), and the camera's stream configurations read as many as
 there are (`android_camera.rs`: upstream's loop reads four times as many,
 past the metadata entry's data). The camera's reference's manifest asks
-for `CAMERA` (upstream's android-project has it commented out).
+for `CAMERA` (upstream's android-project has it commented out), the
+HIDAPI one's for `BLUETOOTH_CONNECT` (commented out too), which runs with
+the DualSense plugged in (`SDL3_ANDROID_LAUNCH_DEVICES=dualsense`).
 
 What runs where, in spawned programs: everything pure (the satellites'
 decoders, the converters, the parsers), the file operations, threads,
 time and timers, `sdl3-net` on the loopback interface (IPv4 and IPv6),
 the audio core with the dummy and disk drivers and AAudio and OpenSL
 ES (playback: recording needs the app's permission), the joystick core with
-the virtual and HIDAPI drivers (no HID backend yet, so no devices) and the
+the virtual and HIDAPI drivers (the HID backend's devices are the app's
+HID device manager's: none there) and the
 android joystick and haptic drivers (with the devices their tests add),
 the android sensor driver (the NDK's sensor manager), the android camera
 driver's cameras (not opened: see below), and the GPU API's Vulkan devices on SwiftShader's Vulkan 1.3. A spawned
@@ -1954,6 +1985,52 @@ whose threads start programs at the same time can hang there, as
 execs on Android; each test alone, or all with `--test-threads=1`, passes,
 running the arm64 or the x86-64 `shadercross`), so CI doesn't run it
 translated.
+
+### Android device
+
+The runner runs programs on a device as on the emulator: one that adb
+lists (USB debugging on, and "Install via USB" where the device has it),
+named by `SDL3_ANDROID_SERIAL` when there are others, for its ABI
+(`aarch64-linux-android` for most; an app needs the device to allow the
+runner's `adb reverse` ports). The traces of the app programs are the
+emulator's, which a device doesn't match. One program has a hardware
+check there:
+
+#### A USB or Bluetooth LE controller (HIDAPI)
+
+`android_hidapi` with `SDL3_HIDAPI_DEVICE=1` checks a real controller
+through HIDAPI's Android backend: a USB controller (one with a HID
+interface, as a DualShock 4, a DualSense or a Switch Pro Controller, or
+an Xbox 360 or Xbox One controller of the vendors upstream lists),
+plugged in through the device's USB host port (an OTG adapter), or a
+Steam Controller paired with the device over Bluetooth LE (in the
+system's Bluetooth settings, with its BLE firmware). It sets
+`SDL_HINT_JOYSTICK_HIDAPI` (off on Android) and
+`SDL_HINT_JOYSTICK_HIDAPI_STEAM`, starts the gamepad subsystem, waits two
+minutes for a joystick whose path is a HID device's (allow the app to
+access the USB device when Android asks, which may ask twice, and allow
+Nearby devices for Bluetooth), lists the HID devices, opens the
+controller as a gamepad and prints its name, GUID, IDs, type and path,
+asks for the A button (the bottom face button) pressed and released and
+the left stick moved fully, half a minute each, and rumbles it; it ends
+with the exit line, 0 when everything came:
+
+```sh
+export SDL3_ANDROID_SERIAL=DEVICE   # adb devices
+SDL3_HIDAPI_DEVICE=1 cargo test --target aarch64-linux-android -p sdl3 --test android_hidapi
+```
+
+The variable reaches the app through its manifest, as the others do. The
+runner plugs in its uhid DualSense before the launch there too (the
+program's word), which the check leaves alone (it isn't a USB device: the
+android joystick driver has it). Without the variable the program runs
+the emulator's trace. What else of the HID backend a device has and the
+emulator hasn't is checked only by hand: a device unplugged while open
+(the detach broadcast), the USB permission refused (the device left out
+of the enumeration), a Steam Controller connecting and disconnecting
+(the ACL broadcasts), feature reports answered over USB (class requests)
+and Bluetooth (the report characteristic), and the app's controllers
+released while it is in the background (`setFrozen()`).
 
 ## CI
 
