@@ -281,7 +281,10 @@ two minutes): the package manager answering, and the home activity (the
 launcher) having the input focus, which comes about 8 s after
 `sys.boot_completed` (the Settings app's FallbackHome, then the image's
 first-boot setup, are on top until then, and an app launched meanwhile
-may lose the front to them). An app that never connected to the runner,
+may lose the front to them). Before each app is launched, an app of
+another package that has the input focus (a previous program's: Chrome,
+after an SDL_OpenURL(), brings its first-run screen back over later
+apps) is stopped and the launcher brought back. An app that never connected to the runner,
 and whose process is gone 30 s after its launch, is launched once more
 (nothing of the program has run: connecting is the first thing it
 does), with its lines of the device's log and `am start`'s answer
@@ -859,9 +862,12 @@ def readiness(serial):
         missing.append(f"the package manager ({parts[0].strip() or 'no answer'})")
     home = parts[1].strip()
     focus = parts[2].strip()
+    other = re.search(r" ([A-Za-z0-9_.]+)/", focus)
     if "/" not in home:
         missing.append(f"a home activity ({home or 'none'})")
-    elif f" {home.split('/')[0]}/" not in focus:
+    elif f" {home.split('/')[0]}/" not in focus and not (other and other.group(1) not in SYSTEM_FOCUS):
+        # (an app of its own having the focus, the boot is over: a previous
+        # program's, which clear_foreground() stops before the next launch)
         missing.append(f"the home activity {home} with the focus ({focus or 'no focused window'})")
     return missing
 
@@ -2242,6 +2248,39 @@ def launch_data(elf=None):
     return words[0] if words else os.environ.get("SDL3_ANDROID_LAUNCH_DATA") or None
 
 
+# The packages whose window may have the focus when an app is launched:
+# the system's own and the boot's (wait_until_ready() waits those out).
+SYSTEM_FOCUS = ("android", "com.android.systemui", "com.android.settings", "com.google.android.googlesdksetup")
+
+
+def clear_foreground(serial, package):
+    """Before an app is launched: an app of another package that has the
+    input focus (one a previous program started: Chrome for an
+    SDL_OpenURL(), whose first-run screen comes back over later apps) is
+    stopped and the launcher brought back, so that it doesn't take the
+    front from the app being launched (its focus lost and gained again)."""
+    script = (
+        "cmd package resolve-activity --brief -a android.intent.action.MAIN -c android.intent.category.HOME 2>&1 | tail -1; "
+        "echo '--'; dumpsys window 2>&1 | grep -E 'mCurrentFocus=' | head -1"
+    )
+    result = adb_shell(serial, script, check=False, timeout=60)
+    parts = (result.stdout.replace("\r", "").split("--\n") + ["", ""])[:2]
+    home = parts[0].strip().split("/")[0]
+    match = re.search(r" ([A-Za-z0-9_.]+)/", parts[1])
+    other = match.group(1) if match else None
+    if not other or other in (home, package) or other in SYSTEM_FOCUS:
+        return
+    note(f"{other} has the focus: stopping it, and back to the launcher, before {package} is launched")
+    adb_shell(serial, f"am force-stop {other}; input keyevent KEYCODE_HOME", check=False, timeout=60)
+    end = time.monotonic() + 10
+    while time.monotonic() < end:
+        result = adb_shell(serial, "dumpsys window 2>&1 | grep -E 'mCurrentFocus=' | head -1", check=False, timeout=60)
+        if home and f" {home}/" in result.stdout:
+            return
+        time.sleep(0.5)
+    note(f"the launcher {home or '(none)'} didn't get the focus back in 10 s: going on")
+
+
 def launch_command(package, data=None):
     """`am start -W` of the app's activity: as a launcher's icon launches it,
     or, with DATA, as another app's "Open with" does (ACTION_VIEW of the
@@ -2271,6 +2310,7 @@ def run_app(serial, package, listeners, data=None):
     selector = selectors.DefaultSelector()
     for stream in streams:
         selector.register(stream.listener, selectors.EVENT_READ, (stream, "accept"))
+    clear_foreground(serial, package)
     start = time.monotonic()
     result = adb_shell(serial, launch_command(package, data), check=False, timeout=300)
     launched = result.returncode == 0 and "Error" not in result.stdout + result.stderr
@@ -2464,6 +2504,7 @@ def run_logcat_app(serial, package, timeout, requests):
     log = subprocess.Popen(argv, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE)
     try:
         start = time.monotonic()
+        clear_foreground(serial, package)
         result = adb_shell(serial, launch_command(package, launch_data()), check=False, timeout=300)
         if result.returncode != 0 or "Error" in result.stdout + result.stderr:
             raise Failure(f"am start failed ({result.returncode}): {(result.stderr or result.stdout).strip()}")
