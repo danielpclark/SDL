@@ -385,3 +385,10 @@ harness = false
 [[test]]
 name = "android_audio_opensles"
 harness = false
+
+# The Android joystick and haptic drivers in an app (the joysticks there
+# are, the system's vibrator, a uinput gamepad plugged in, used, closed and
+# unplugged: the runner's gamepad requests), against upstream's C.
+[[test]]
+name = "android_joystick"
+harness = false
