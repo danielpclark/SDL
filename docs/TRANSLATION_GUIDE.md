@@ -525,8 +525,9 @@ the small backends: the filesystem paths, the assets and
 `content://` files, the locale, URLs, the battery, toasts and permissions,
 and the video driver: its window, its surface, OpenGL ES through EGL and
 Vulkan, its touch, pinch, mouse and pen input, and its keyboard, text
-input and screen keyboard (below); the other Android drivers (audio,
-joysticks, ...) aren't translated yet.
+input and screen keyboard (below), and the audio drivers (AAudio and
+OpenSL ES, with the audio manager); the other Android drivers (joysticks,
+...) aren't translated yet.
 
 A test that reads its package's files does so at run time, through
 `CARGO_MANIFEST_DIR` (falling back on `env!("CARGO_MANIFEST_DIR")`), which
@@ -593,9 +594,8 @@ device; the same for `CARGO_TARGET_TMPDIR` and `CARGO_BIN_EXE_NAME`.
   joysticks' motion events (the motion listener's
   `SDLControllerManager.handleJoystickMotionEvent()`, whose joystick
   handler is null until the controller manager is translated) and keys
-  (`onNativePadDown()` and `onNativePadUp()` answer false), the audio
-  drivers' pause, and the controller, HID and audio managers (comments
-  where upstream calls them).
+  (`onNativePadDown()` and `onNativePadUp()` answer false), and the
+  controller and HID managers (comments where upstream calls them).
 * The app's `main` runs on the activity's "SDLThread" thread
   (`nativeRunMain()`, through the generic `SDL_RunApp()`; the main
   callbacks are the generic ones too), which isn't SDL's main thread until
@@ -700,6 +700,28 @@ device; the same for `CARGO_TARGET_TMPDIR` and `CARGO_BIN_EXE_NAME`.
   its `DROP_*` events are lost (the event queue isn't active until
   `init()`), and a launch while the app runs reaches the singleTop
   activity's `onNewIntent()`, which upstream doesn't override.
+* Audio: AAudio (`audio/drivers/aaudio.rs`, API 27 and later,
+  `libaaudio.so` loaded at run time) comes first, then OpenSL ES
+  (`opensles.rs`, `libOpenSLES` linked, as upstream links it), as
+  upstream's bootstrap orders them, with upstream's names (`AAudio`,
+  `openslES`; the hint's are case-insensitive). Both have the default
+  devices only (upstream's `ALLOW_MULTIPLE_ANDROID_AUDIO_DEVICES` is 0:
+  the audio manager's device callback isn't registered, and
+  `nativeAddAudioDevice()` and `nativeRemoveAudioDevice()` do nothing),
+  name their device threads and give them the audio priority through
+  `SDLAudioManager.audioSetThreadPriority()` (their `ThreadInit`, in place
+  of SDL's own priorities), ask for `RECORD_AUDIO` when recording opens
+  (blocking until it's answered), and are paused by the event pump while
+  the app is in the background with the block on pause (AAudio's streams;
+  OpenSL ES's player, not its recorder). The core owns the buffer
+  `PlayDevice` gets, so it is copied into the driver's ring or buffer
+  there. `SDLAudioManager` is a DEX class with its natives and, declared
+  native too, its static methods (so Java can call them, as upstream's);
+  its anonymous `AudioDeviceCallback` (an abstract class, which a proxy
+  can't extend) is the DEX class `SDLAudioDeviceCallback` (`Note`).
+  Without a Java VM (a spawned program) the drivers work but recording
+  (the permission's request fails), where upstream dereferences a null
+  `JNIEnv` (`Note (upstream)`).
 
 ### What is built
 
@@ -713,7 +735,7 @@ it) stands in:
 | OpenGL ES, EGL | GLES 1 and 2 through EGL (`libEGL.so`, `libGLESv2.so`, `libGLESv1_CM.so`), no desktop OpenGL | the same |
 | Vulkan | `libvulkan.so` | the same (the offscreen driver's: `FIXME (upstream)`, which tries `libvulkan.so.1`) |
 | renderers | OpenGL ES 2, OpenGL ES, Vulkan, GPU, software | OpenGL ES 2, Vulkan, GPU, software (the OpenGL ES 1 renderer isn't translated anywhere) |
-| audio | AAudio, OpenSL ES | dummy and disk (later) |
+| audio | AAudio, OpenSL ES, disk, dummy | the same |
 | joysticks | android, HIDAPI (off by default), virtual | HIDAPI with no HID backend (the Android one: later), virtual |
 | haptic | android, HIDAPI | dummy (the android driver: later), HIDAPI |
 | power, locale, URL, filesystem paths, assets | Android's | the same |

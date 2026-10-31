@@ -1787,7 +1787,30 @@ default assertion handler's box) and `android_dialog.rs` (launched as
 another app's "Open with" launches it, the program's word `data=URI`:
 the drop, lost upstream as it comes before `SDL_main`; then each file
 dialog answered in the documents' picker by real taps on the files and
-buttons the runner finds in its view tree, or BACK, its cancel path).
+buttons the runner finds in its view tree, or BACK, its cancel path). And
+the audio drivers, against upstream's C too: `android_audio.rs` (AAudio,
+the default) and `android_audio_opensles.rs` (OpenSL ES, asked for with
+`SDL_AUDIO_DRIVER`), the same program (`android_audio_app/`), in an app
+whose manifest asks for `RECORD_AUDIO` (the word
+`permissions=RECORD_AUDIO`): the drivers, the default devices and their
+formats; the audio manager's device callback registered and unregistered
+from Java (its natives do nothing with upstream's
+`ALLOW_MULTIPLE_ANDROID_AUDIO_DEVICES` off, so nothing changes: the
+emulator has no way to plug an audio device in from outside, and SDL
+never registers it); the default playback device opened (its format, its
+thread's name and priority from `audioSetThreadPriority()`, and whether
+it advances: its postmix callbacks in half a second, the counts
+themselves left out of the trace); a stream's tone played; recording
+with the permission denied (the system's dialog, answered by the
+runner's `permission-dialog deny` from a thread of the program's while
+SDL's waits in the open) and granted (`permission grant RECORD_AUDIO`);
+and both devices through a trip to the background made by a thread of
+the program's while SDL's main thread pumps (with the block on pause the
+pump pauses the devices: AAudio's both, OpenSL ES's player only), then
+with the pump not blocking (nothing paused). Without a Java VM, the
+library's tests open both drivers' playback devices and play a stream
+through them in a spawned program, where recording fails (the
+permission's request needs the app).
 
 The expected traces of the app programs are upstream's C SDL's: the same
 program in C, as upstream's android-project's app (built with Gradle,
@@ -1805,12 +1828,15 @@ translation fixes upstream in what a reference traces, the reference is
 built with the same fix applied to upstream's source: the OpenGL ES 2
 renderer's program cache (`android_gles.rs`, as on iOS), and the Vulkan
 renderer's pre-rotated swapchain and `VK_EXT_4444_formats` formats
-(`android_vulkan.rs`).
+(`android_vulkan.rs`), and a physical audio device opened at the spec
+asked for (`android_audio.rs`, `android_audio_opensles.rs`: a stream's
+device's format).
 
 What runs where, in spawned programs: everything pure (the satellites'
 decoders, the converters, the parsers), the file operations, threads,
 time and timers, `sdl3-net` on the loopback interface (IPv4 and IPv6),
-the audio core with the dummy and disk drivers, the joystick core with
+the audio core with the dummy and disk drivers and AAudio and OpenSL
+ES (playback: recording needs the app's permission), the joystick core with
 the virtual and HIDAPI drivers (no HID backend yet, so no devices), and
 the GPU API's Vulkan devices on SwiftShader's Vulkan 1.3. A spawned
 process is no app, so what of Android's platform layer needs one isn't
