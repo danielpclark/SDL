@@ -38,6 +38,10 @@ on:
         description: "The Android emulator job's cargo test arguments in place of --workspace (e.g. -p sdl3 --lib -- video::)"
         type: string
         default: ""
+      android_cref:
+        description: "(diag) run the C references of .github/diag-cref.b64 and the probe"
+        type: string
+        default: ""
 
 permissions:
   contents: read
@@ -841,6 +845,149 @@ jobs:
   # the NDK are pinned; nothing of the emulator is cached (the image and a
   # booted device's snapshot would take 4 GB of the repository's cache for
   # about 40 s: the emulator boots while the programs build).
+  # (diag branch only) The C references of sdl3/tests/android_*.rs:
+  # upstream's android-project with each C program of the android_cref
+  # input (a .tar.gz, base64: NAME.c programs and their headers), built
+  # with Gradle and CMake, run by the runner's --run-apk on the same
+  # emulator, one after the other.
+  cref:
+    name: C reference (upstream's android-project with Gradle)
+    if: ${{ inputs.android_cref != '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      ANDROID_EMULATOR_BUILD: "16428233"
+      ANDROID_EMULATOR_SHA256: b08fc43d8608d2955f607f1b287beb525041e730086bdca3af152accac3af9c1
+      ANDROID_IMAGE_ARCHIVE: x86_64-35_r09.zip
+      ANDROID_IMAGE_SHA256: c67b9ba0ff5bc0eb6d046871bfa228af14d4d47b02f0cdae94f048e511b7566e
+      SDL3_ANDROID_SYSTEM_IMAGE: "system-images;android-35;google_apis;x86_64"
+      ANDROID_NDK_VERSION: "29.0.14206865"
+      SDL3_ANDROID_BUILD_TOOLS: "35.0.0"
+      SDL3_ANDROID_TIMEOUT: 600
+      UPSTREAM_COMMIT: ea7a2dabfd1ab6b0a5720568ffd207f5825e47f1
+    steps:
+      - uses: actions/checkout@v5
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Install the emulator and its system image
+        run: |
+          D="$RUNNER_TEMP/android-download"
+          mkdir -p "$D"
+          curl -fsSL -o "$D/emulator.zip" "https://dl.google.com/android/repository/emulator-linux_x64-$ANDROID_EMULATOR_BUILD.zip"
+          curl -fsSL -o "$D/image.zip" "https://dl.google.com/android/repository/sys-img/google_apis/$ANDROID_IMAGE_ARCHIVE"
+          echo "$ANDROID_EMULATOR_SHA256  $D/emulator.zip" | sha256sum -c
+          echo "$ANDROID_IMAGE_SHA256  $D/image.zip" | sha256sum -c
+          rm -rf "$ANDROID_HOME/emulator"
+          unzip -q "$D/emulator.zip" -d "$ANDROID_HOME"
+          I="$ANDROID_HOME/$(echo "$SDL3_ANDROID_SYSTEM_IMAGE" | tr ';' /)"
+          rm -rf "$I"
+          mkdir -p "$(dirname "$I")"
+          unzip -q "$D/image.zip" -d "$(dirname "$I")"
+          rm -rf "$D"
+          sudo apt-get install -y -q libpulse0 > /dev/null || { sudo apt-get update -q > /dev/null && sudo apt-get install -y -q libpulse0 > /dev/null; }
+      - name: Start the emulator
+        run: echo "SDL3_ANDROID_SERIAL=$(tools/android_run.py --boot)" >> "$GITHUB_ENV"
+      - name: Build upstream's android-project with each C reference
+        env:
+          CREF: ${{ inputs.android_cref }}
+        run: |
+          up="$RUNNER_TEMP/upstream"
+          proj="$RUNNER_TEMP/cref"
+          src="$RUNNER_TEMP/cref-src"
+          mkdir -p "$src" "$RUNNER_TEMP/apks"
+          base64 -d .github/diag-cref.b64 | tar -xz -C "$src"
+          if ! ls "$src"/*.c > /dev/null 2>&1; then echo "no C reference"; exit 0; fi
+          ls -la "$src"
+          git init -q "$up"
+          git -C "$up" fetch -q --depth 1 https://github.com/libsdl-org/SDL "$UPSTREAM_COMMIT"
+          git -C "$up" checkout -q FETCH_HEAD
+          # Upstream's GLES2 program cache: moving the tail entry to the
+          # front leaves `tail` on it, and an eviction leaves the new
+          # tail's `next` on the freed entry, so destroying the renderer
+          # after the scenes frees an entry twice. Both fixed, as the Rust
+          # cache (a Vec) behaves (as for the iOS references).
+          G="$up/src/render/opengles2/SDL_render_gles2.c"
+          perl -0pi -e 's/(            if \(entry->prev\) \{\n                entry->prev->next = entry->next;\n            \}\n)/$1            if (data->program_cache.tail == entry) {\n                data->program_cache.tail = entry->prev;\n            }\n/' "$G"
+          perl -0pi -e 's/(        data->program_cache.tail = oldest->prev;\n)/$1        if (data->program_cache.tail) {\n            data->program_cache.tail->next = NULL;\n        }\n/' "$G"
+          # (and the input's patches of upstream: the Rust translation's
+          # fixes, for the references of the checks they change)
+          for p in "$src"/*.patch; do
+            if [ -e "$p" ]; then git -C "$up" apply -v "$p"; fi
+          done
+          git -C "$up" diff --stat
+          cp -r "$up/android-project" "$proj"
+          M="$proj/app/src/main/AndroidManifest.xml"
+          sed -i '/<!-- if you want to record video, uncomment this. -->/{n;d}' "$M"
+          sed -i '/<uses-feature android:name="android.hardware.camera" \/>/{n;d}' "$M"
+          grep -n -A4 "Camera support" "$M" || true
+          ln -s "$up" "$proj/app/jni/SDL"
+          cp "$src"/*.h "$proj/app/jni/src/"
+          sed -i 's/YourSourceHere.c/main.c/' "$proj/app/jni/src/CMakeLists.txt"
+          sed -i "s/abiFilters 'arm64-v8a'/abiFilters 'x86_64'/" "$proj/app/build.gradle"
+          sed -i "s/ndkVersion = \"28.2.13676358\"/ndkVersion = \"$ANDROID_NDK_VERSION\"/" "$proj/app/build.gradle"
+          cd "$proj"
+          for c in "$src"/*.c; do
+            n=$(basename "$c" .c)
+            cp "$c" app/jni/src/main.c
+            s=$(date +%s)
+            ./gradlew --no-daemon -q -PBUILD_WITH_CMAKE assembleDebug 2>&1 | tail -40
+            echo "gradle $n: $(( $(date +%s) - s )) s"
+            cp app/build/outputs/apk/debug/app-debug.apk "$RUNNER_TEMP/apks/$n.apk"
+          done
+          ls -la "$RUNNER_TEMP/apks"
+      - name: (diag) The NDK's sensor and camera declarations, and the emulator's sensors and cameras
+        if: ${{ !cancelled() }}
+        run: |
+          ADB="$ANDROID_HOME/platform-tools/adb"
+          CC="$ANDROID_HOME/ndk/$ANDROID_NDK_VERSION/toolchains/llvm/prebuilt/linux-x86_64/bin/x86_64-linux-android35-clang"
+          base64 -d .github/diag-cref.b64 | tar -xz -C "$RUNNER_TEMP" probe.probe
+          "$CC" -x c "$RUNNER_TEMP/probe.probe" -o "$RUNNER_TEMP/probe" -landroid -lcamera2ndk -lmediandk || true
+          "$ADB" -s "$SDL3_ANDROID_SERIAL" push "$RUNNER_TEMP/probe" /data/local/tmp/probe || true
+          timeout 120 "$ADB" -s "$SDL3_ANDROID_SERIAL" shell /data/local/tmp/probe 2>&1 | sed 's/^/ABI| /' || true
+          for c in "sensor status" "sensor get acceleration" "sensor get gyroscope" "sensor get light"; do
+            echo "===== emu $c"
+            timeout 60 "$ADB" -s "$SDL3_ANDROID_SERIAL" emu $c 2>&1 | sed 's/^/EMU| /' || true
+          done
+          for c in "dumpsys sensorservice" "dumpsys media.camera" "pm list packages" "cmd package resolve-activity -a android.media.action.STILL_IMAGE_CAMERA" "settings get system accelerometer_rotation"; do
+            echo "===== $c"
+            timeout 60 "$ADB" -s "$SDL3_ANDROID_SERIAL" shell "$c" 2>&1 | head -250 | sed 's/^/DEV| /' || true
+          done
+      - name: Run the C references
+        env:
+          SDL3_ANDROID_VERBOSE: 1
+        run: |
+          status=0
+          for apk in "$RUNNER_TEMP"/apks/*.apk; do
+            [ -e "$apk" ] || continue
+            n=$(basename "$apk" .apk)
+            echo "===== $n"
+            s=$(date +%s)
+            rc=0
+            tools/android_run.py --run-apk "$apk" org.libsdl.app | tee "$RUNNER_TEMP/$n.txt" || rc=$?
+            echo "--run-apk $n: exit status $rc, $(( $(date +%s) - s )) s"
+            echo "--- the trace of $n"
+            python3 - "$RUNNER_TEMP/$n.txt" "$n" <<'EOF'
+          import sys
+          lines = []
+          for raw in open(sys.argv[1], encoding="utf-8", errors="replace"):
+              text = raw.rstrip("\n")
+              if text.startswith("trace: "):
+                  lines.append(text[len("trace: "):])
+          for line in lines:
+              print(f"EXPECTED[{sys.argv[2]}]| " + line)
+          print(f"({len(lines)} lines)")
+          EOF
+            "$ANDROID_HOME/platform-tools/adb" -s "$SDL3_ANDROID_SERIAL" logcat -d -v threadtime | grep -E " (SDL|SDL/[A-Z]+|AndroidRuntime|DEBUG|libc|ActivityTaskManager|ActivityManager) *:" | tail -150 | sed "s/^/LOG[$n]| /" || true
+            test "$rc" = 0 || status=1
+          done
+          exit $status
+      - name: Stop the emulator
+        if: always()
+        run: tools/android_run.py --kill
+
   android:
     name: test (x86_64-linux-android, Android emulator)
     if: ${{ !inputs.ios_only && !inputs.tvos_only && !inputs.visionos_only }}
@@ -948,6 +1095,11 @@ jobs:
       # must give; then the app package itself: dexdump (which verifies
       # the DEX file as ART does), apksigner and zipalign check it; and
       # android_backends.rs's, with its assets and permissions.
+      - name: (diag) The device's crash log
+        if: ${{ !cancelled() }}
+        run: |
+          ADB="$ANDROID_HOME/platform-tools/adb"
+          "$ADB" -s "$SDL3_ANDROID_SERIAL" logcat -d -b crash 2>&1 | tail -400 | sed 's/^/CRASH| /' || true
       - name: The app mode's arguments, variables and exit status, and the app package
         if: ${{ !cancelled() }}
         shell: bash
