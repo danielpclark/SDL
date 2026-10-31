@@ -173,8 +173,8 @@ const fn constructor(access: u32, descriptor: &'static str) -> Method {
 
 #[cfg(target_os = "android")]
 use super::java::{
-    activity, anonymous, clipboard_handler, controller_manager, dummy_edit, file_dialog,
-    input_connection, surface,
+    activity, anonymous, audio_manager, clipboard_handler, controller_manager, dummy_edit,
+    file_dialog, input_connection, surface,
 };
 
 /// `org.libsdl.app.SDLActivity`.
@@ -185,6 +185,12 @@ pub(crate) const SDL_COMMAND_HANDLER: &str = "org/libsdl/app/SDLActivity$SDLComm
 pub(crate) const SDL_SHOW_TEXT_INPUT_TASK: &str = "org/libsdl/app/SDLActivity$ShowTextInputTask";
 /// `org.libsdl.app.SDLMain`.
 pub(crate) const SDL_MAIN: &str = "org/libsdl/app/SDLMain";
+/// `org.libsdl.app.SDLAudioManager`.
+pub(crate) const SDL_AUDIO_MANAGER: &str = "org/libsdl/app/SDLAudioManager";
+/// `org.libsdl.app.SDLAudioDeviceCallback`, upstream's anonymous
+/// `AudioDeviceCallback` subclass (`SDLAudioManager$1`) of
+/// SDLAudioManager's `initialize()`.
+pub(crate) const SDL_AUDIO_DEVICE_CALLBACK: &str = "org/libsdl/app/SDLAudioDeviceCallback";
 /// `org.libsdl.app.SDLClipboardHandler`.
 pub(crate) const SDL_CLIPBOARD_HANDLER: &str = "org/libsdl/app/SDLClipboardHandler";
 /// `org.libsdl.app.SDLSurface`.
@@ -748,6 +754,75 @@ pub(crate) static CLASSES: &[Class] = &[
                 "onScaleEnd",
                 "(Landroid/view/ScaleGestureDetector;)V",
                 surface::on_scale_end[_]
+            ),
+        ],
+    },
+    // SDLAudioManager.java (super::java::audio_manager): its static
+    // methods that SDL calls (Rust functions, declared native so that Java
+    // can call them too), then its natives
+    Class {
+        name: SDL_AUDIO_MANAGER,
+        access: 0,
+        superclass: "java/lang/Object",
+        interfaces: &[],
+        fields: &[],
+        methods: &[
+            constructor(0, "()V"),
+            native!(
+                STATIC,
+                "registerAudioDeviceCallback",
+                "()V",
+                audio_manager::register_audio_device_callback_java[]
+            ),
+            native!(
+                STATIC,
+                "unregisterAudioDeviceCallback",
+                "()V",
+                audio_manager::unregister_audio_device_callback_java[]
+            ),
+            // This method is called by SDL using JNI.
+            native!(
+                STATIC,
+                "audioSetThreadPriority",
+                "(ZI)V",
+                audio_manager::audio_set_thread_priority_java[_, _]
+            ),
+            native!(STATIC, "nativeSetupJNI", "()V", super::native_audio_setup_jni[]),
+            native!(
+                STATIC,
+                "nativeRemoveAudioDevice",
+                "(ZI)V",
+                super::native_remove_audio_device[_, _]
+            ),
+            native!(
+                STATIC,
+                "nativeAddAudioDevice",
+                "(ZLjava/lang/String;I)V",
+                super::native_add_audio_device[_, _, _]
+            ),
+        ],
+    },
+    // Its anonymous AudioDeviceCallback (a class of its own: it extends an
+    // abstract class, which a proxy can't)
+    Class {
+        name: SDL_AUDIO_DEVICE_CALLBACK,
+        access: FINAL,
+        superclass: "android/media/AudioDeviceCallback",
+        interfaces: &[],
+        fields: &[],
+        methods: &[
+            constructor(0, "()V"),
+            native!(
+                PUBLIC,
+                "onAudioDevicesAdded",
+                "([Landroid/media/AudioDeviceInfo;)V",
+                audio_manager::on_audio_devices_added[_]
+            ),
+            native!(
+                PUBLIC,
+                "onAudioDevicesRemoved",
+                "([Landroid/media/AudioDeviceInfo;)V",
+                audio_manager::on_audio_devices_removed[_]
             ),
         ],
     },

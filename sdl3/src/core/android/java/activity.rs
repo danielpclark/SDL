@@ -771,11 +771,11 @@ pub(crate) extern "system" fn on_create(
         sdl::setup_jni(env, get_init_subsystems());
 
         // Initialize state
-        sdl::initialize();
+        sdl::initialize(env)?;
 
         // So we can call stuff from static callbacks
         statics().singleton = Global::new(env, this);
-        sdl::set_context(sdl::global(env, this));
+        sdl::set_context(env, Some(this));
 
         // (SDL.isControllerManagerReady():
         // SDLControllerManager.initializeDeviceListener(): with the
@@ -1256,8 +1256,9 @@ pub(crate) extern "system" fn on_destroy(env: *mut JNIEnv, this: jobject) {
     native(env, |env| {
         log(LogPriority::Verbose, "onDestroy()");
 
-        // (HIDDeviceManager.release(mHIDDeviceManager), see on_pause(),
-        // and SDLAudioManager.release(this), with the audio manager)
+        // (HIDDeviceManager.release(mHIDDeviceManager), see on_pause())
+
+        super::audio_manager::release(env, this);
 
         if statics().broken_libraries {
             call_super(env, this, c"onDestroy", c"()V", &[])?;

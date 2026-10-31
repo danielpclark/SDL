@@ -16,6 +16,7 @@
 
 pub(crate) mod activity;
 pub(crate) mod anonymous;
+pub(crate) mod audio_manager;
 pub(crate) mod clipboard_handler;
 pub(crate) mod controller_manager;
 pub(crate) mod dummy_edit;

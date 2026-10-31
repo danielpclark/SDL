@@ -5,10 +5,10 @@
 
 //! `class SDL` (SDL library initialization): the subsystems the app's Java
 //! sets up, the context (the current activity), and the libraries'
-//! loading (through ReLinker when the app has it). The audio and
-//! controller managers (`SDLAudioManager`, `SDLControllerManager`), which
-//! `setupJNI()`, `initialize()` and `setContext()` set up too, come with
-//! the audio and joystick drivers.
+//! loading (through ReLinker when the app has it), with the audio manager
+//! (`SDLAudioManager`), which `setupJNI()`, `initialize()` and
+//! `setContext()` set up too. The controller manager
+//! (`SDLControllerManager`) comes with the joystick drivers.
 
 use super::super::env::{self, Arg, Env, Global, JniResult, Local, Obj};
 use super::activity;
@@ -53,20 +53,29 @@ pub(crate) fn setup_jni(env: Env<'_>, subsystems: i32) {
     COMPILED_SUBSYSTEMS.store(compiled, Ordering::Release);
     INITIALIZED_SUBSYSTEMS.store(subsystems & compiled, Ordering::Release);
 
-    // (isSubsystemCompiled(SDL_INIT_AUDIO): SDLAudioManager.nativeSetupJNI(),
-    // and isSubsystemCompiled(SDL_INIT_CONTROLLER):
-    // SDLControllerManager.nativeSetupJNI(), come with those managers)
+    if is_subsystem_compiled(SDL_INIT_AUDIO) {
+        if let Some(class) = env::app_class(super::super::classes::SDL_AUDIO_MANAGER) {
+            super::super::audio_setup_jni(env, class.obj());
+        }
+    }
+
+    // (isSubsystemCompiled(SDL_INIT_CONTROLLER):
+    // SDLControllerManager.nativeSetupJNI(), comes with that manager)
 }
 
 /// Translation of `initialize()`, `initialize(mInitializedSubsystems)`.
-pub(crate) fn initialize() {
-    set_context(None);
+pub(crate) fn initialize<'a>(env: Env<'a>) -> JniResult<'a, ()> {
+    set_context(env, None);
 
     activity::initialize();
 
-    // (isSubsystemCompiled(SDL_INIT_AUDIO): SDLAudioManager.initialize(),
-    // and isSubsystemCompiled(SDL_INIT_CONTROLLER):
+    if is_subsystem_compiled(SDL_INIT_AUDIO) {
+        super::audio_manager::initialize(env)?;
+    }
+
+    // (isSubsystemCompiled(SDL_INIT_CONTROLLER):
     // SDLControllerManager.initialize(): see setup_jni())
+    Ok(())
 }
 
 /// Translation of `isSubsystemInitialized()`.
@@ -85,10 +94,12 @@ pub(crate) fn is_controller_manager_ready() -> bool {
 }
 
 /// This function stores the current activity (SDL or not). Translation of
-/// `setContext()`. (`SDLAudioManager.setContext()`, when audio is
-/// compiled: see [`setup_jni`].)
-pub(crate) fn set_context(context: Option<Global>) {
-    *CONTEXT.lock().unwrap_or_else(|e| e.into_inner()) = context;
+/// `setContext()`.
+pub(crate) fn set_context(env: Env<'_>, context: Option<Obj<'_>>) {
+    if is_subsystem_compiled(SDL_INIT_AUDIO) {
+        super::audio_manager::set_context(env, context);
+    }
+    *CONTEXT.lock().unwrap_or_else(|e| e.into_inner()) = context.and_then(|c| Global::new(env, c));
 }
 
 /// The current activity, as a local reference of `env`. Translation of
@@ -101,11 +112,6 @@ pub(crate) fn get_context<'a>(env: Env<'a>) -> Option<Local<'a>> {
 /// Whether there's a context (`getContext() == null`).
 pub(crate) fn has_context() -> bool {
     CONTEXT.lock().unwrap_or_else(|e| e.into_inner()).is_some()
-}
-
-/// A global reference to `obj`, for [`set_context`].
-pub(crate) fn global(env: Env<'_>, obj: Obj<'_>) -> Option<Global> {
-    Global::new(env, obj)
 }
 
 /// Load the library `libraryName` (`lib<libraryName>.so`) of `context`'s
