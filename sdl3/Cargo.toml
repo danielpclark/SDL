@@ -392,3 +392,17 @@ harness = false
 [[test]]
 name = "android_joystick"
 harness = false
+
+# The Android sensor driver in an app (the sensor manager's sensors, their
+# events with the values the runner sets on the emulator's), against
+# upstream's C.
+[[test]]
+name = "android_sensor"
+harness = false
+
+# The Android camera driver in an app (the emulator's cameras, the
+# permission denied and granted, frames of both cameras), against
+# upstream's C.
+[[test]]
+name = "android_camera"
+harness = false
