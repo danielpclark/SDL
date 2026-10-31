@@ -5,7 +5,8 @@
 // queue, the activity mutex, the manifest's environment variables, the
 // entry points of SDL_system.h, the storage paths, the package's name,
 // toasts, permissions, the locale, URLs, the content resolver's files,
-// the battery, the clipboard, message boxes, file dialogs and audio).
+// the battery, the clipboard, message boxes, file dialogs, audio, the
+// joysticks and haptics).
 // Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
 // This is an altered (translated) version of the original software; see LICENSE.txt.
 
@@ -37,8 +38,13 @@
 //! (`Android_JNI_ShowMessageBox()`) and the file dialogs
 //! (`Android_JNI_ShowFileDialog()`, `onNativeFileDialog()`); and the
 //! audio drivers' (SDLAudioManager's natives, `Android_StartAudioHotplug()`,
-//! `Android_StopAudioHotplug()`, `Android_AudioThreadInit()`). The assets
-//! are [`super::assets`]. The rest of SDL_android.c (the controller
+//! `Android_StopAudioHotplug()`, `Android_AudioThreadInit()`); and the
+//! joystick and haptic drivers' (SDLControllerManager's natives,
+//! `Android_JNI_DetectDevices()`, `Android_JNI_JoystickSetLED()`,
+//! `Android_JNI_JoystickSetSensorsEnabled()`,
+//! `Android_JNI_DetectHapticDevices()`, `Android_JNI_HapticRun()`,
+//! `Android_JNI_HapticRumble()`, `Android_JNI_HapticStop()`). The assets
+//! are [`super::assets`]. The rest of SDL_android.c (HIDDeviceManager's
 //! natives, ...) comes with the backends that use it.
 //!
 //! This library is exported as libSDL3.so's is: a program that links it
@@ -275,12 +281,15 @@ pub(crate) fn sdk_int(env: Env<'_>) -> jint {
 }
 
 /// Translation of `checkJNIReady()`: SDL's main is ready once the
-/// activity's and the audio manager's JNI are set up. (Upstream also waits
-/// for the controller manager's `nativeSetupJNI()`, which comes with that
-/// class.)
+/// activity's, the controller manager's and the audio manager's JNI are
+/// set up.
 fn check_jni_ready() {
     if activity_class().is_none() {
         // We aren't fully initialized, let's just return.
+        return;
+    }
+
+    if CONTROLLER_MANAGER_CLASS.load(Ordering::Acquire).is_null() {
         return;
     }
 
@@ -702,6 +711,277 @@ pub(crate) fn audio_thread_init(device: &crate::audio::device::PhysicalDevice) {
 }
 
 // ---------------------------------------------------------------------------
+// Controller support: SDLControllerManager's natives, for the joystick and
+// haptic drivers (which SDL is built with: upstream's
+// SDL_ANDROID_NEED_CONTROLLER_MANAGER, SDL_JOYSTICK_ANDROID and
+// SDL_HAPTIC_ANDROID)
+
+/// controller manager: `mControllerManagerClass` (`SDLControllerManager`,
+/// a global reference that is never deleted, as upstream's).
+static CONTROLLER_MANAGER_CLASS: AtomicPtr<_jobject> = AtomicPtr::new(ptr::null_mut());
+
+/// Controller initialization -- called before SDL_main() to initialize JNI
+/// bindings. Translation of SDLControllerManager's `nativeSetupJNI()`.
+pub(crate) fn controller_setup_jni(env: Env<'_>, cls: Obj<'_>) {
+    log(LogPriority::Verbose, "CONTROLLER nativeSetupJNI()");
+
+    if let Some(class) = Global::new(env, cls) {
+        let raw = class.obj().raw();
+        std::mem::forget(class);
+        CONTROLLER_MANAGER_CLASS.store(raw, Ordering::Release);
+    }
+
+    // (midDetectDevices, midJoystickSetLED, midJoystickSetSensorsEnabled,
+    // midDetectHapticDevices, midHapticRun, midHapticRumble and
+    // midHapticStop: Rust functions here, so never "Missing some Java
+    // callbacks")
+
+    check_jni_ready();
+}
+
+pub(crate) extern "system" fn native_controller_setup_jni(env: *mut JNIEnv, cls: jclass) {
+    // SAFETY: a native method's environment and class.
+    let (env, cls) = unsafe { (Env::from_raw(env), Obj::from_raw(cls)) };
+    controller_setup_jni(env, cls);
+}
+
+/// Paddown: a gamepad's key pressed, whether the joystick took it.
+/// Translation of `onNativePadDown()` (`Android_OnPadDown()`).
+pub(crate) fn on_pad_down(device_id: jint, keycode: jint, scancode: jint) -> bool {
+    crate::joystick::android::on_pad_down(device_id, keycode, scancode)
+}
+
+pub(crate) extern "system" fn on_native_pad_down(
+    _env: *mut JNIEnv,
+    _cls: jclass,
+    device_id: jint,
+    keycode: jint,
+    scancode: jint,
+) -> jboolean {
+    on_pad_down(device_id, keycode, scancode) as jboolean
+}
+
+/// Padup: a gamepad's key released, whether the joystick took it.
+/// Translation of `onNativePadUp()` (`Android_OnPadUp()`).
+pub(crate) fn on_pad_up(device_id: jint, keycode: jint, scancode: jint) -> bool {
+    crate::joystick::android::on_pad_up(device_id, keycode, scancode)
+}
+
+pub(crate) extern "system" fn on_native_pad_up(
+    _env: *mut JNIEnv,
+    _cls: jclass,
+    device_id: jint,
+    keycode: jint,
+    scancode: jint,
+) -> jboolean {
+    on_pad_up(device_id, keycode, scancode) as jboolean
+}
+
+/// Joy: an axis of a joystick. Translation of `onNativeJoy()`
+/// (`Android_OnJoy()`).
+pub(crate) fn on_joy(device_id: jint, axis: jint, value: jfloat) {
+    crate::joystick::android::on_joy(device_id, axis, value);
+}
+
+pub(crate) extern "system" fn on_native_joy(
+    _env: *mut JNIEnv,
+    _cls: jclass,
+    device_id: jint,
+    axis: jint,
+    value: jfloat,
+) {
+    on_joy(device_id, axis, value);
+}
+
+/// POV Hat. Translation of `onNativeHat()` (`Android_OnHat()`).
+pub(crate) fn on_hat(device_id: jint, hat_id: jint, x: jint, y: jint) {
+    crate::joystick::android::on_hat(device_id, hat_id, x, y);
+}
+
+pub(crate) extern "system" fn on_native_hat(
+    _env: *mut JNIEnv,
+    _cls: jclass,
+    device_id: jint,
+    hat_id: jint,
+    x: jint,
+    y: jint,
+) {
+    on_hat(device_id, hat_id, x, y);
+}
+
+/// A joystick's sensor event. Translation of `onNativeJoySensor()`
+/// (`Android_OnJoySensor()`).
+pub(crate) fn on_joy_sensor(
+    device_id: jint,
+    sensor_type: jint,
+    sensor_timestamp: jlong,
+    x: jfloat,
+    y: jfloat,
+    z: jfloat,
+) {
+    // In Java there's no Uint64 type, so pass Sint64 as if it was Uint64.
+    crate::joystick::android::on_joy_sensor(
+        device_id,
+        sensor_type,
+        sensor_timestamp as u64,
+        x,
+        y,
+        z,
+    );
+}
+
+pub(crate) extern "system" fn on_native_joy_sensor(
+    _env: *mut JNIEnv,
+    _cls: jclass,
+    device_id: jint,
+    sensor_type: jint,
+    sensor_timestamp: jlong,
+    x: jfloat,
+    y: jfloat,
+    z: jfloat,
+) {
+    on_joy_sensor(device_id, sensor_type, sensor_timestamp, x, y, z);
+}
+
+/// A string argument of a native, `None` for null.
+fn string_arg(env: Env<'_>, string: Obj<'_>) -> Option<String> {
+    if string.is_null() {
+        return None;
+    }
+    env.get_string(string).map_err(|thrown| thrown.clear()).ok()
+}
+
+pub(crate) extern "system" fn native_add_joystick(
+    env: *mut JNIEnv,
+    _cls: jclass,
+    device_id: jint,
+    device_name: jstring,
+    device_desc: jstring,
+    vendor_id: jint,
+    product_id: jint,
+    button_mask: jint,
+    naxes: jint,
+    axis_mask: jint,
+    nhats: jint,
+    can_rumble: jboolean,
+    has_rgb_led: jboolean,
+    has_accelerometer: jboolean,
+    has_gyroscope: jboolean,
+) {
+    // SAFETY: a native method's environment and arguments.
+    let (env, device_name, device_desc) = unsafe {
+        (
+            Env::from_raw(env),
+            Obj::from_raw(device_name),
+            Obj::from_raw(device_desc),
+        )
+    };
+    let name = string_arg(env, device_name);
+    let desc = string_arg(env, device_desc).unwrap_or_default();
+
+    crate::joystick::android::add_joystick(
+        device_id,
+        name.as_deref(),
+        &desc,
+        vendor_id,
+        product_id,
+        button_mask,
+        naxes,
+        axis_mask,
+        nhats,
+        can_rumble != 0,
+        has_rgb_led != 0,
+        has_accelerometer != 0,
+        has_gyroscope != 0,
+    );
+}
+
+pub(crate) extern "system" fn native_remove_joystick(
+    _env: *mut JNIEnv,
+    _cls: jclass,
+    device_id: jint,
+) {
+    crate::joystick::android::remove_joystick(device_id);
+}
+
+pub(crate) extern "system" fn native_add_haptic(
+    env: *mut JNIEnv,
+    _cls: jclass,
+    device_id: jint,
+    device_name: jstring,
+) {
+    // SAFETY: a native method's environment and arguments.
+    let (env, device_name) = unsafe { (Env::from_raw(env), Obj::from_raw(device_name)) };
+    let name = string_arg(env, device_name).unwrap_or_default();
+
+    crate::haptic::android::add_haptic(device_id, &name);
+}
+
+pub(crate) extern "system" fn native_remove_haptic(
+    _env: *mut JNIEnv,
+    _cls: jclass,
+    device_id: jint,
+) {
+    crate::haptic::android::remove_haptic(device_id);
+}
+
+/// The joystick handler's devices passed to `nativeAddJoystick()`.
+/// Translation of `Android_JNI_DetectDevices()`. Note (upstream): without
+/// a Java VM (a program spawned from the shell) upstream dereferences a
+/// null `JNIEnv`; here nothing is done (and so in each of these).
+pub(crate) fn detect_devices() {
+    with_env(super::java::controller_manager::detect_devices);
+}
+
+/// Translation of `Android_JNI_JoystickSetLED()`.
+pub(crate) fn joystick_set_led(device_id: i32, red: i32, green: i32, blue: i32) {
+    with_env(|env| {
+        super::java::controller_manager::joystick_set_led(env, device_id, red, green, blue)
+    });
+}
+
+/// Translation of `Android_JNI_JoystickSetSensorsEnabled()`.
+pub(crate) fn joystick_set_sensors_enabled(device_id: i32, enabled: bool) {
+    with_env(|env| {
+        super::java::controller_manager::joystick_set_sensors_enabled(env, device_id, enabled)
+    });
+}
+
+/// The haptic handler's vibrators passed to `nativeAddHaptic()`.
+/// Translation of `Android_JNI_DetectHapticDevices()`.
+pub(crate) fn detect_haptic_devices() {
+    with_env(super::java::controller_manager::detect_haptic_devices);
+}
+
+/// Translation of `Android_JNI_HapticRun()`.
+pub(crate) fn haptic_run(device_id: i32, intensity: f32, length: i32) {
+    with_env(|env| super::java::controller_manager::haptic_run(env, device_id, intensity, length));
+}
+
+/// Translation of `Android_JNI_HapticRumble()`.
+pub(crate) fn haptic_rumble(
+    device_id: i32,
+    low_frequency_intensity: f32,
+    high_frequency_intensity: f32,
+    length: i32,
+) {
+    with_env(|env| {
+        super::java::controller_manager::haptic_rumble(
+            env,
+            device_id,
+            low_frequency_intensity,
+            high_frequency_intensity,
+            length,
+        )
+    });
+}
+
+/// Translation of `Android_JNI_HapticStop()`.
+pub(crate) fn haptic_stop(device_id: i32) {
+    with_env(|env| super::java::controller_manager::haptic_stop(env, device_id));
+}
+
+// ---------------------------------------------------------------------------
 // The lifecycle event queue, and the natives that fill it
 
 /// What the activity tells SDL's thread. Translation of
@@ -987,21 +1267,6 @@ pub(crate) extern "system" fn native_generate_scancode_for_unichar(
     ch_unicode: jchar,
 ) {
     generate_scancode_for_unichar(ch_unicode);
-}
-
-/// A gamepad's key pressed: whether the joystick took it. Translation of
-/// `SDLControllerManager.onNativePadDown()`, which upstream's
-/// `Android_OnPadDown()` (the android joystick driver's) answers; that
-/// comes with the joysticks: until then, as upstream without
-/// `SDL_JOYSTICK_ANDROID`, false.
-pub(crate) fn on_pad_down(_device_id: jint, _keycode: jint, _scancode: jint) -> bool {
-    false
-}
-
-/// A gamepad's key released: whether the joystick took it. Translation of
-/// `SDLControllerManager.onNativePadUp()` (see [`on_pad_down`]).
-pub(crate) fn on_pad_up(_device_id: jint, _keycode: jint, _scancode: jint) -> bool {
-    false
 }
 
 // ---------------------------------------------------------------------------

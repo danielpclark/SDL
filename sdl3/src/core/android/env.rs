@@ -1481,6 +1481,62 @@ impl<'a> Env<'a> {
         Ok(value)
     }
 
+    /// `GetIntArrayRegion()` of every element: an `int[]`'s values.
+    pub(crate) fn get_int_array(self, array: Obj<'_>) -> JniResult<'a, Vec<jint>> {
+        let mut values = vec![0; self.get_array_length(array).max(0) as usize];
+        // SAFETY: a valid array, and room for its elements.
+        unsafe {
+            (self.table().GetIntArrayRegion)(
+                self.raw(),
+                array.raw(),
+                0,
+                values.len() as jsize,
+                values.as_mut_ptr(),
+            )
+        };
+        self.check()?;
+        Ok(values)
+    }
+
+    /// `GetBooleanArrayRegion()` of every element: a `boolean[]`'s values.
+    pub(crate) fn get_boolean_array(self, array: Obj<'_>) -> JniResult<'a, Vec<bool>> {
+        let mut values: Vec<jboolean> = vec![0; self.get_array_length(array).max(0) as usize];
+        // SAFETY: a valid array, and room for its elements.
+        unsafe {
+            (self.table().GetBooleanArrayRegion)(
+                self.raw(),
+                array.raw(),
+                0,
+                values.len() as jsize,
+                values.as_mut_ptr(),
+            )
+        };
+        self.check()?;
+        Ok(values.into_iter().map(|b| b != JNI_FALSE).collect())
+    }
+
+    /// `GetFloatArrayRegion()`: `N` elements of a `float[]` from `start`
+    /// (an `ArrayIndexOutOfBoundsException` where it has fewer).
+    pub(crate) fn get_float_array_region<const N: usize>(
+        self,
+        array: Obj<'_>,
+        start: jsize,
+    ) -> JniResult<'a, [jfloat; N]> {
+        let mut values = [0.0; N];
+        // SAFETY: a valid array, and room for `N` elements.
+        unsafe {
+            (self.table().GetFloatArrayRegion)(
+                self.raw(),
+                array.raw(),
+                start,
+                N as jsize,
+                values.as_mut_ptr(),
+            )
+        };
+        self.check()?;
+        Ok(values)
+    }
+
     /// `NewByteArray()` and `SetByteArrayRegion()`: a Java `byte[]` of the
     /// bytes.
     pub(crate) fn new_byte_array(self, bytes: &[u8]) -> JniResult<'a, Local<'a>> {

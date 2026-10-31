@@ -672,12 +672,17 @@ fn driver_order() {
     }
     #[cfg(target_os = "android")]
     {
-        // HIDAPI, then the virtual driver (the Android driver isn't
-        // translated yet); no dummy driver
+        // HIDAPI, Android, then the virtual driver; no dummy driver
+        let android_driver: &dyn JoystickDriver = &android::ANDROID_JOYSTICK_DRIVER;
+        assert!(std::ptr::addr_eq(
+            JOYSTICK_DRIVERS[ANDROID_DRIVER_INDEX],
+            android_driver
+        ));
         const {
-            assert!(HIDAPI_DRIVER_INDEX < VIRTUAL_DRIVER_INDEX);
+            assert!(HIDAPI_DRIVER_INDEX < ANDROID_DRIVER_INDEX);
+            assert!(ANDROID_DRIVER_INDEX < VIRTUAL_DRIVER_INDEX);
         }
-        assert_eq!(JOYSTICK_DRIVERS.len(), 2);
+        assert_eq!(JOYSTICK_DRIVERS.len(), 3);
     }
     #[cfg(target_os = "emscripten")]
     {

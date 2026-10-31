@@ -57,10 +57,11 @@
 //! `onActivityResult()`). The "Open with" of another app (the intent's
 //! data, a file's path) is a drop, sent by `onCreate()`.
 //!
-//! Not translated yet, and so skipped where upstream does them: the
-//! controller, HID and audio managers (a game controller's keys go to the
-//! controller manager's natives, which answer false until the joysticks
-//! come). They come with the backends that use them. What it offers the
+//! The controller manager's input device listener is registered by
+//! `onCreate()` ([`super::controller_manager`]), and the audio manager is
+//! released by `onDestroy()`. Not translated yet, and so skipped where
+//! upstream does it: the HID manager, which comes with the HID backend.
+//! What it offers the
 //! small backends is here: permissions (`requestPermission()`,
 //! `onRequestPermissionsResult()`), URLs (`openURL()`), toasts
 //! (`showToast()`), the content resolver's files (`openFileDescriptor()`)
@@ -777,9 +778,9 @@ pub(crate) extern "system" fn on_create(
         statics().singleton = Global::new(env, this);
         sdl::set_context(env, Some(this));
 
-        // (SDL.isControllerManagerReady():
-        // SDLControllerManager.initializeDeviceListener(): with the
-        // joysticks)
+        if sdl::is_controller_manager_ready() {
+            super::controller_manager::initialize_device_listener(env)?;
+        }
 
         if sdl::is_subsystem_compiled(sdl::SDL_INIT_VIDEO) {
             super::clipboard_handler::create(env)?;

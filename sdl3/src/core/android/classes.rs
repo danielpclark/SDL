@@ -33,9 +33,8 @@
 //!   load.
 //!
 //! Each class's entry lists the members translated so far, in upstream's
-//! order; the classes and members still to come (the controller and HID
-//! managers' listeners and receivers, ...) are added with their
-//! translations. The
+//! order; the classes and members still to come (the HID manager's
+//! receivers and callbacks, ...) are added with their translations. The
 //! anonymous classes upstream creates (`new Runnable() {...}`, dialog
 //! listeners) can't be declared with upstream's names (`SDLActivity$1`),
 //! which are the compiler's: they are two classes of their own,
@@ -204,6 +203,13 @@ pub(crate) const SDL_NATIVE_RUNNABLE: &str = "org/libsdl/app/SDLNativeRunnable";
 /// `org.libsdl.app.SDLNativeListener`, the invocation handler of the
 /// proxies that are upstream's other anonymous classes.
 pub(crate) const SDL_NATIVE_LISTENER: &str = "org/libsdl/app/SDLNativeListener";
+
+/// `org.libsdl.app.SDLControllerManager`.
+pub(crate) const SDL_CONTROLLER_MANAGER: &str = "org/libsdl/app/SDLControllerManager";
+/// `org.libsdl.app.SDLDeviceListener`.
+pub(crate) const SDL_DEVICE_LISTENER: &str = "org/libsdl/app/SDLDeviceListener";
+/// `org.libsdl.app.SDLJoySensorListener`.
+pub(crate) const SDL_JOY_SENSOR_LISTENER: &str = "org/libsdl/app/SDLJoySensorListener";
 
 /// The names of SDLControllerManager.java's generic motion listeners.
 mod controller_manager_names {
@@ -823,6 +829,175 @@ pub(crate) static CLASSES: &[Class] = &[
                 "onAudioDevicesRemoved",
                 "([Landroid/media/AudioDeviceInfo;)V",
                 audio_manager::on_audio_devices_removed[_]
+            ),
+        ],
+    },
+    // SDLControllerManager.java (super::java::controller_manager): the
+    // static methods that SDL calls (Rust functions, declared native so
+    // that Java can call them too), then its natives. (Its joystick and
+    // haptic handlers, which the framework doesn't call, are Rust.)
+    Class {
+        name: SDL_CONTROLLER_MANAGER,
+        access: PUBLIC,
+        superclass: "java/lang/Object",
+        interfaces: &[],
+        fields: &[],
+        methods: &[
+            constructor(PUBLIC, "()V"),
+            native!(STATIC, "nativeSetupJNI", "()V", super::native_controller_setup_jni[]),
+            native!(
+                STATIC,
+                "nativeAddJoystick",
+                "(ILjava/lang/String;Ljava/lang/String;IIIIIIZZZZ)V",
+                super::native_add_joystick[_, _, _, _, _, _, _, _, _, _, _, _, _]
+            ),
+            native!(
+                STATIC,
+                "nativeRemoveJoystick",
+                "(I)V",
+                super::native_remove_joystick[_]
+            ),
+            native!(
+                STATIC,
+                "nativeAddHaptic",
+                "(ILjava/lang/String;)V",
+                super::native_add_haptic[_, _]
+            ),
+            native!(
+                STATIC,
+                "nativeRemoveHaptic",
+                "(I)V",
+                super::native_remove_haptic[_]
+            ),
+            native!(
+                PUBLIC | STATIC,
+                "onNativePadDown",
+                "(III)Z",
+                super::on_native_pad_down[_, _, _]
+            ),
+            native!(
+                PUBLIC | STATIC,
+                "onNativePadUp",
+                "(III)Z",
+                super::on_native_pad_up[_, _, _]
+            ),
+            native!(STATIC, "onNativeJoy", "(IIF)V", super::on_native_joy[_, _, _]),
+            native!(
+                STATIC,
+                "onNativeHat",
+                "(IIII)V",
+                super::on_native_hat[_, _, _, _]
+            ),
+            native!(
+                STATIC,
+                "onNativeJoySensor",
+                "(IIJFFF)V",
+                super::on_native_joy_sensor[_, _, _, _, _, _]
+            ),
+            // This method is called by SDL using JNI.
+            native!(
+                STATIC,
+                "detectDevices",
+                "()V",
+                controller_manager::detect_devices_java[]
+            ),
+            // This method is called by SDL using JNI.
+            native!(
+                STATIC,
+                "joystickSetLED",
+                "(IIII)V",
+                controller_manager::joystick_set_led_java[_, _, _, _]
+            ),
+            // This method is called by SDL using JNI.
+            native!(
+                STATIC,
+                "joystickSetSensorsEnabled",
+                "(IZ)V",
+                controller_manager::joystick_set_sensors_enabled_java[_, _]
+            ),
+            // This method is called by SDL using JNI.
+            native!(
+                STATIC,
+                "detectHapticDevices",
+                "()V",
+                controller_manager::detect_haptic_devices_java[]
+            ),
+            // This method is called by SDL using JNI.
+            native!(
+                STATIC,
+                "hapticRun",
+                "(IFI)V",
+                controller_manager::haptic_run_java[_, _, _]
+            ),
+            // This method is called by SDL using JNI.
+            native!(
+                STATIC,
+                "hapticRumble",
+                "(IFFI)V",
+                controller_manager::haptic_rumble_java[_, _, _, _]
+            ),
+            // This method is called by SDL using JNI.
+            native!(
+                STATIC,
+                "hapticStop",
+                "(I)V",
+                controller_manager::haptic_stop_java[_]
+            ),
+        ],
+    },
+    Class {
+        name: SDL_DEVICE_LISTENER,
+        access: 0,
+        superclass: "java/lang/Object",
+        interfaces: &["android/hardware/input/InputManager$InputDeviceListener"],
+        fields: &[],
+        methods: &[
+            constructor(0, "()V"),
+            native!(
+                PUBLIC,
+                "onInputDeviceAdded",
+                "(I)V",
+                controller_manager::on_input_device_added[_]
+            ),
+            native!(
+                PUBLIC,
+                "onInputDeviceChanged",
+                "(I)V",
+                controller_manager::on_input_device_changed[_]
+            ),
+            native!(
+                PUBLIC,
+                "onInputDeviceRemoved",
+                "(I)V",
+                controller_manager::on_input_device_removed[_]
+            ),
+        ],
+    },
+    // (Note: upstream's constructor takes the device ID; here the field is
+    // set after the object is made)
+    Class {
+        name: SDL_JOY_SENSOR_LISTENER,
+        access: 0,
+        superclass: "java/lang/Object",
+        interfaces: &["android/hardware/SensorEventListener"],
+        fields: &[Field {
+            name: "device_id",
+            descriptor: "I",
+            access: 0,
+        }],
+        methods: &[
+            constructor(0, "()V"),
+            native!(
+                PUBLIC,
+                "onAccuracyChanged",
+                "(Landroid/hardware/Sensor;I)V",
+                controller_manager::on_accuracy_changed[_, _]
+            ),
+            native!(
+                PUBLIC,
+                "onSensorChanged",
+                "(Landroid/hardware/SensorEvent;)V",
+                controller_manager::on_sensor_changed[_]
             ),
         ],
     },

@@ -5,10 +5,10 @@
 
 //! `class SDL` (SDL library initialization): the subsystems the app's Java
 //! sets up, the context (the current activity), and the libraries'
-//! loading (through ReLinker when the app has it), with the audio manager
-//! (`SDLAudioManager`), which `setupJNI()`, `initialize()` and
-//! `setContext()` set up too. The controller manager
-//! (`SDLControllerManager`) comes with the joystick drivers.
+//! loading (through ReLinker when the app has it), with the audio and
+//! controller managers (`SDLAudioManager`, `SDLControllerManager`), which
+//! `setupJNI()` and `initialize()` set up too (and `setContext()` the
+//! audio manager).
 
 use super::super::env::{self, Arg, Env, Global, JniResult, Local, Obj};
 use super::activity;
@@ -59,8 +59,11 @@ pub(crate) fn setup_jni(env: Env<'_>, subsystems: i32) {
         }
     }
 
-    // (isSubsystemCompiled(SDL_INIT_CONTROLLER):
-    // SDLControllerManager.nativeSetupJNI(), comes with that manager)
+    if is_subsystem_compiled(SDL_INIT_CONTROLLER) {
+        if let Some(class) = env::app_class(super::super::classes::SDL_CONTROLLER_MANAGER) {
+            super::super::controller_setup_jni(env, class.obj());
+        }
+    }
 }
 
 /// Translation of `initialize()`, `initialize(mInitializedSubsystems)`.
@@ -73,8 +76,9 @@ pub(crate) fn initialize<'a>(env: Env<'a>) -> JniResult<'a, ()> {
         super::audio_manager::initialize(env)?;
     }
 
-    // (isSubsystemCompiled(SDL_INIT_CONTROLLER):
-    // SDLControllerManager.initialize(): see setup_jni())
+    if is_subsystem_compiled(SDL_INIT_CONTROLLER) {
+        super::controller_manager::initialize(env);
+    }
     Ok(())
 }
 
