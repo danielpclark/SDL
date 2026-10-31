@@ -161,6 +161,12 @@ ARGUMENTS are shell words):
               `adb emu power ARGUMENTS`: the emulator's battery (`ac
               on|off`, `status charging|discharging|not-charging|full`,
               `present true|false`, `capacity PERCENT`)
+  sensor set NAME VALUES
+              `adb emu sensor set NAME VALUES`: an emulated sensor's
+              values (`acceleration X:Y:Z`, `gyroscope X:Y:Z`, `light LUX`,
+              ...: the console's `sensor status` lists them), which it
+              reports from then on; each sensor set is put back as it was
+              (`sensor get NAME`) once the app ends
   permission grant|revoke NAME
               `pm grant|revoke PACKAGE NAME` (a NAME without a dot is
               `android.permission.NAME`). Revoking a granted permission
@@ -1740,6 +1746,8 @@ class AppRequests:
         # (the settings to restore once the app ends: (namespace, name) ->
         # value)
         self.saved_settings = {}
+        # (the emulated sensors' values to restore: name -> value)
+        self.saved_sensors = {}
         self.density_changed = False
         self.files_made = False
         self.gamepad = None
@@ -1787,6 +1795,13 @@ class AppRequests:
             result = adb(self.serial, "emu", "power", *words, check=False, timeout=60)
             if result.returncode != 0 or "KO" in result.stdout:
                 note(f"request {what} {args}: failed ({result.returncode}): {(result.stderr or result.stdout).strip()}")
+            return []
+        elif what == "sensor":
+            if len(words) != 3 or words[0] != "set":
+                note(f"request {what} {args}: not `sensor set NAME VALUES` (ignored)")
+                return []
+            self.save_sensor(words[1])
+            self.set_sensor(words[1], words[2])
             return []
         elif what == "permission":
             if len(words) != 2 or words[0] not in ("grant", "revoke"):
@@ -1856,16 +1871,38 @@ class AppRequests:
             result = adb_shell(self.serial, f"settings get {namespace} {name}", check=False)
             self.saved_settings[(namespace, name)] = result.stdout.strip()
 
+    def save_sensor(self, name):
+        """Keep an emulated sensor's values (`sensor get NAME`: `NAME =
+        VALUES`) the first time a request sets it, for restore()."""
+        if name in self.saved_sensors:
+            return
+        result = adb(self.serial, "emu", "sensor", "get", name, check=False, timeout=60)
+        for line in result.stdout.splitlines():
+            key, sep, value = line.strip().partition(" = ")
+            if sep and key == name:
+                self.saved_sensors[name] = value.strip()
+                return
+        note(f"sensor get {name}: no value ({(result.stderr or result.stdout).strip()})")
+
+    def set_sensor(self, name, values):
+        """`adb emu sensor set NAME VALUES`."""
+        result = adb(self.serial, "emu", "sensor", "set", name, values, check=False, timeout=60)
+        if result.returncode != 0 or "KO" in result.stdout:
+            note(f"sensor set {name} {values}: failed ({result.returncode}): {(result.stderr or result.stdout).strip()}")
+
     def restore(self):
         """Put back what the requests changed for the device (the rotation,
-        the input method's setting, the density), once the app has
-        ended."""
+        the input method's setting, the density, the emulated sensors), once
+        the app has ended."""
         for (namespace, name), value in self.saved_settings.items():
             if value and value != "null":
                 adb_shell(self.serial, f"settings put {namespace} {name} {shlex.quote(value)}", check=False)
             else:
                 adb_shell(self.serial, f"settings delete {namespace} {name}", check=False)
         self.saved_settings = {}
+        for name, value in self.saved_sensors.items():
+            self.set_sensor(name, value)
+        self.saved_sensors = {}
         if self.density_changed:
             adb_shell(self.serial, "wm density reset", check=False)
             self.density_changed = False
