@@ -1580,7 +1580,10 @@ Two more words shape its package: `assets=DIR`, the files of DIR
 (`assets/...`, with Gradle's time for them, 1981-01-01 01:01:02), and
 `permissions=NAME,...`, the permissions its manifest asks for
 (`android.permission.NAME` for a NAME without a dot), none granted (the
-runner's `permission` request grants one). The runner packages it, with
+runner's `permission` request grants one); and one its launch:
+`devices=NAME,...`, devices plugged in before the app is launched and
+unplugged once it ends (`dualsense`, as the `dualsense add` request's;
+`SDL3_ANDROID_LAUNCH_DEVICES` for `--run-apk`'s apps). The runner packages it, with
 no Gradle (`tools/android_run.py --apk PROGRAM OUT.apk` writes the package
 alone), with the SDK's build-tools
 (35.0.0 by default, `SDL3_ANDROID_BUILD_TOOLS`) and a platform's
@@ -1678,10 +1681,18 @@ and states), `ui-colors TEXT` (the two most frequent colors of a view's
 place in a screen capture, once it's still), `back-to-app` (BACK while
 another app's activity is on top, until the app's is: never on the app
 itself), `files reset NAME...|list` (a directory of the shared storage's
-Download, `sdl3_dialog`, made with those files, or listed) and `view
-URI` (`ACTION_VIEW` of the URI, to the running activity), the rotation,
-the density, the input method's setting and the files put back as they
-were when the run ends; the runner answers each on the app's stdout
+Download, `sdl3_dialog`, made with those files, or listed), `view
+URI` (`ACTION_VIEW` of the URI, to the running activity), `gamepad
+add|key|abs|vibrating|remove` (a gamepad made by the device's `uinput`
+command, `uinput -` run as the shell user and kept running: plugged in,
+its buttons and axes as evdev events, whether the input reader has it
+vibrating, unplugged), `dualsense add|sensors|vibrating|remove` (a
+DualSense made by the device's `hid` command, which the kernel's
+hid-playstation driver serves: its sensors' input reports, and on removal
+the lightbar and motors its output reports set) and `vibrations` (the
+app's recent vibrations of the system's vibrator), the rotation, the
+density, the input method's setting and the files put back as they were,
+and the gamepads unplugged, when the run ends; the runner answers each on the app's stdout
 socket when it's done (`sdl3-android-runner: reply LINE` for the log's lines,
 then `sdl3-android-runner: done`), which `request()` returns. An app's
 process the system thinks cached is frozen about ten seconds after it
@@ -1810,7 +1821,42 @@ pump pauses the devices: AAudio's both, OpenSL ES's player only), then
 with the pump not blocking (nothing paused). Without a Java VM, the
 library's tests open both drivers' playback devices and play a stream
 through them in a spawned program, where recording fails (the
-permission's request needs the app).
+permission's request needs the app). And the joystick and haptic
+drivers, against upstream's C too: `android_joystick.rs`, the joysticks
+there are at the start (the emulator's keyboard, `qwerty2`, whose d-pad
+makes it one: upstream's C counts it too), the system's vibrator as the
+haptic device (its simple rumble and a left/right effect, and what the
+vibrator was asked to play: the runner's `vibrations`, `dumpsys
+vibrator_manager`'s recent vibrations), then a gamepad plugged in by the
+runner's `gamepad add` (a uinput device of eleven buttons, six axes, a hat
+and force feedback), its description (the GUID's CRC, from Android's
+descriptor of the device, left out), the mapping SDL_gamepad.c's Android
+guess makes, each button and axis and the hat with their events (an
+axis's motion event reaches the app with the next input, as Android
+batches motion events while nothing asks for a frame: upstream's C sees it
+the same), its rumble (the input reader's `Vibrating:` state, on, then off
+once the rumble's time is up), its trigger rumble, LED and sensors
+(unsupported: a uinput device has no lights or sensors), its keys while
+it's closed (keyboard keys, their repeats left out), and it unplugged while
+open, then plugged in and out again; then a DualSense plugged in before
+the launch (the program's word `devices=dualsense`: a uhid device made by
+the device's `hid` command, answering hid-playstation's feature reports, which the emulator's
+kernel makes a gamepad, motion sensors, a touchpad, an RGB lightbar and
+player LEDs of, and Android one input device with lights, sensors and a
+vibrator): the lightbar set through the device's lights session (the
+color the driver's last output report set, which the runner reads from
+the `hid` command's output once the device is removed), the accelerometer
+and gyroscope enabled through the device's sensor manager and their first
+events' data from an input report, its rumble through the device's
+vibrators (the input reader's state, and the motors the output reports
+set), and it unplugged while open; then plugged in while the app runs
+(`dualsense add`), where it has neither lights nor sensors: Android tells
+of the input device before the motion sensors' node is part of it, and the
+joystick handler keeps what it found then, as upstream's does. The
+library's tests
+(`joystick/android/tests.rs`, `haptic/android/tests.rs`) check the drivers
+in a spawned program, the devices added and moved as the Java handlers'
+natives would.
 
 The expected traces of the app programs are upstream's C SDL's: the same
 program in C, as upstream's android-project's app (built with Gradle,
@@ -1837,8 +1883,9 @@ decoders, the converters, the parsers), the file operations, threads,
 time and timers, `sdl3-net` on the loopback interface (IPv4 and IPv6),
 the audio core with the dummy and disk drivers and AAudio and OpenSL
 ES (playback: recording needs the app's permission), the joystick core with
-the virtual and HIDAPI drivers (no HID backend yet, so no devices), and
-the GPU API's Vulkan devices on SwiftShader's Vulkan 1.3. A spawned
+the virtual and HIDAPI drivers (no HID backend yet, so no devices) and the
+android joystick and haptic drivers (with the devices their tests add),
+and the GPU API's Vulkan devices on SwiftShader's Vulkan 1.3. A spawned
 process is no app, so what of Android's platform layer needs one isn't
 there:
 
@@ -1861,9 +1908,10 @@ there:
   (`base_path_and_exe_name`, `user_storage_and_driver_hints`), and
   `android_backends.rs` checks them in an app; the XDG paths' test isn't
   built;
-* JNI needs an app (see [Apps](#apps)); the android audio (AAudio,
-  OpenSL ES), joystick, haptic, sensor and camera drivers, and the
-  surface's touch and key events, are later work.
+* JNI needs an app (see [Apps](#apps)): the android joystick and haptic
+  drivers find no devices there (their Java handlers aren't there), so
+  their tests add and move them as the handlers' natives would; the
+  android sensor and camera drivers are later work.
 
 Under the ARM translation one more thing differs: a translated program
 whose threads start programs at the same time can hang there, as
