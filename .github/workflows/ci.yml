@@ -981,6 +981,17 @@ jobs:
           TEST_ARGS: ${{ inputs.android_test_args }}
           SDL3_TEST_SKIP_LOG: ${{ runner.temp }}/skips.tsv
         run: cargo test --target x86_64-linux-android --no-fail-fast ${TEST_ARGS:---workspace} 2>&1 | tee "$RUNNER_TEMP/test.log"
+      - name: (diag) the rotation's reading and the runner's waits
+        if: ${{ !cancelled() }}
+        shell: bash
+        run: |
+          ADB="$ANDROID_HOME/platform-tools/adb"
+          echo "== dumpsys display reading:"
+          "$ADB" shell "dumpsys display 2>&1 | grep -m1 -oE 'displayId 0[^}]*rotation [0-3]'" | cut -c1-300 || true
+          echo "== the runner's rotation notes:"
+          { grep -E "display is turned|display is still turned|rotation can't be read" "$RUNNER_TEMP/test.log" || true; } | cut -c1-300
+          echo "== test results:"
+          { grep -E "^test result|error: test failed|differs" "$RUNNER_TEMP/test.log" || true; } | cut -c1-300
       # The app mode once more, with arguments and a variable (the same
       # string, which comes through the manifest and the arguments each its
       # own way: android_runner.rs compares them), and android_spawned.rs
