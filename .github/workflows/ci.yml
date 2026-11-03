@@ -310,7 +310,7 @@ jobs:
         run: |
           A="$RUNNER_TEMP/angle"
           mkdir -p "$A"
-          curl -fsSL -o "$A/hs.zip" "https://storage.googleapis.com/chrome-for-testing-public/$ANGLE_CHROME_VERSION/linux64/chrome-headless-shell-linux64.zip"
+          curl -fsSL --retry 5 --retry-delay 10 --retry-all-errors -o "$A/hs.zip" "https://storage.googleapis.com/chrome-for-testing-public/$ANGLE_CHROME_VERSION/linux64/chrome-headless-shell-linux64.zip"
           echo "$ANGLE_CHROME_SHA256  $A/hs.zip" | sha256sum -c
           unzip -q "$A/hs.zip" -d "$A"
           ls -l "$SDL_EGL_LIBRARY" "$SDL_OPENGL_LIBRARY"
