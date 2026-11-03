@@ -541,7 +541,17 @@ quit
             post(memory_warning)
         ));
         video::set_ios_event_pump(true);
-        events::pump();
+        // (pumped until the block ran, for up to 2 s: the pump runs the
+        // main run loop for a moment, which on a loaded Simulator can end
+        // before the main queue's turn; the C program pumps once)
+        let end = Instant::now() + Duration::from_secs(2);
+        loop {
+            events::pump();
+            if ran.load(Ordering::SeqCst) || Instant::now() >= end {
+                break;
+            }
+            std::thread::sleep(Duration::from_millis(10));
+        }
         t(format!(
             "pump on: main queue ran: {}",
             yes_no(ran.load(Ordering::SeqCst))
