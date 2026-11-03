@@ -988,6 +988,12 @@ jobs:
           ADB="$ANDROID_HOME/platform-tools/adb"
           echo "== dumpsys display reading:"
           "$ADB" shell "dumpsys display 2>&1 | grep -m1 -oE 'displayId 0[^}]*rotation [0-3]'" | cut -c1-300 || true
+          echo "== dumpsys display, raw:"
+          "$ADB" shell "dumpsys display 2>&1 | grep -n -iE 'rotation|orientation|DisplayInfo\{' | head -30" | cut -c1-500 || true
+          echo "== dumpsys window, raw:"
+          "$ADB" shell "dumpsys window 2>&1 | grep -n -iE 'rotation|orientation' | head -30" | cut -c1-300 || true
+          echo "== dumpsys input, raw:"
+          "$ADB" shell "dumpsys input 2>&1 | grep -n -iE 'orientation|Viewport' | head -15" | cut -c1-300 || true
           echo "== the runner's rotation notes:"
           { grep -E "display is turned|display is still turned|rotation can't be read" "$RUNNER_TEMP/test.log" || true; } | cut -c1-300
           echo "== test results:"
