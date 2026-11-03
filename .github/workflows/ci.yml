@@ -877,6 +877,10 @@ jobs:
     if: ${{ !inputs.ios_only && !inputs.tvos_only && !inputs.visionos_only }}
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [settle, early-a, early-b, early-c]
     env:
       # The emulator's build (37.2.12.0) and the API 35 Google APIs x86-64
       # system image's revision (Android 15), as the SDK repository has
@@ -962,6 +966,14 @@ jobs:
       # program runs.
       - name: Start the emulator
         run: echo "SDL3_ANDROID_SERIAL=$(tools/android_run.py --boot)" >> "$GITHUB_ENV"
+      - name: (diag) the post-boot timeline, nothing else running
+        if: ${{ matrix.mode == 'settle' }}
+        shell: bash
+        run: bash .github/diag/boot-monitor.sh settle 30 10 2>&1 | tee "$RUNNER_TEMP/diag-settle.log"
+      - name: (diag) the post-boot timeline in the background
+        if: ${{ matrix.mode != 'settle' }}
+        shell: bash
+        run: setsid nohup bash .github/diag/boot-monitor.sh boot1 40 10 > "$RUNNER_TEMP/diag-boot1.log" 2>&1 < /dev/null &
       - name: Build the tests
         env:
           TEST_ARGS: ${{ inputs.android_test_args }}
@@ -972,6 +984,23 @@ jobs:
           TEST_ARGS: ${{ inputs.android_test_args }}
           SDL3_TEST_SKIP_LOG: ${{ runner.temp }}/skips.tsv
         run: cargo test --target x86_64-linux-android --no-fail-fast ${TEST_ARGS:---workspace} 2>&1 | tee "$RUNNER_TEMP/test.log"
+      - name: (diag) fresh boots, the tests at once
+        if: ${{ !cancelled() && matrix.mode != 'settle' }}
+        shell: bash
+        env:
+          TEST_ARGS: ${{ inputs.android_test_args }}
+          SDL3_TEST_SKIP_LOG: ${{ runner.temp }}/skips.tsv
+        run: |
+          for k in 2 3; do
+            pkill -f boot-monitor.sh || true
+            tools/android_run.py --kill
+            SDL3_ANDROID_SERIAL=$(tools/android_run.py --boot)
+            export SDL3_ANDROID_SERIAL
+            echo "== boot$k: $(date -u +%T) $SDL3_ANDROID_SERIAL"
+            setsid nohup bash .github/diag/boot-monitor.sh boot$k 40 10 > "$RUNNER_TEMP/diag-boot$k.log" 2>&1 < /dev/null &
+            cargo test --target x86_64-linux-android --no-fail-fast $TEST_ARGS > "$RUNNER_TEMP/test-boot$k.log" 2>&1 || true
+            perl -pe 's/\e\[[0-9;]*m//g' "$RUNNER_TEMP/test-boot$k.log" | grep -E "^ *Running |^test result: |differs|^error: |android_run.py: (waiting|emulator-|the display|.*settle|.*took more)" | cut -c1-260 || true
+          done
       # The app mode once more, with arguments and a variable (the same
       # string, which comes through the manifest and the arguments each its
       # own way: android_runner.rs compares them), and android_spawned.rs
@@ -980,7 +1009,7 @@ jobs:
       # the DEX file as ART does), apksigner and zipalign check it; and
       # android_backends.rs's, with its assets and permissions.
       - name: The app mode's arguments, variables and exit status, and the app package
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && !inputs.android_test_args }}
         shell: bash
         env:
           SDL3_ANDROID_RUNNER_CHECK: "two  words\ttab, \"quoted\", 'single', a\\backslash, <&>, \u00e9\u20ac\U0001F600"
@@ -1105,6 +1134,17 @@ jobs:
           # (last: the app mode's step, whose output the logs above push out of a
           # log's last lines)
           if [ -f "$RUNNER_TEMP/app-mode.log" ]; then echo "== the app mode's step"; tail -200 "$RUNNER_TEMP/app-mode.log"; fi
+      - name: (diag) the timelines and the runner's notes
+        if: always()
+        shell: bash
+        run: |
+          pkill -f boot-monitor.sh || true
+          for f in "$RUNNER_TEMP"/diag-*.log; do [ -f "$f" ] && { echo "==== $(basename "$f")"; cat "$f"; }; done
+          for f in "$RUNNER_TEMP"/test*.log; do
+            [ -f "$f" ] || continue
+            echo "==== $(basename "$f")"
+            perl -pe 's/\e\[[0-9;]*m//g' "$f" | grep -E "^ *Running |^test result: |differs|^error: |android_run.py: (waiting|emulator-|the display|.*settle|.*took more)" | cut -c1-260 || true
+          done
       - name: Stop the emulator
         if: always()
         run: tools/android_run.py --kill
