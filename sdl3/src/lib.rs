@@ -242,6 +242,10 @@ pub(crate) mod test_support {
         ("glx", "libGL with GLX contexts on the X server"),
         ("egl", "libEGL with contexts for the platform (Mesa, ANGLE)"),
         (
+            "gles1",
+            "OpenGL ES 1.1 contexts through EGL (ANGLE's, Android's; Mesa's Ubuntu builds have none)",
+        ),
+        (
             "vulkan",
             "a Vulkan loader and driver with surface extensions",
         ),

@@ -181,6 +181,11 @@ jobs:
       VULKAN_LOADER_TAG: vulkan-sdk-1.4.363.0
       VULKAN_LOADER_COMMIT: fa218055ff4948b159f31d43f800c808a13d51df
       MOLTENVK_SHA256: f95765a6229cb7b915990a2890ce12ebe36a730b021545d3d52ae69ce4c4024e
+      # Chrome for Testing's headless shell, whose ANGLE (libEGL.so and
+      # libGLESv2.so, with SwiftShader) the OpenGL ES 1 renderer's checks
+      # draw with on Linux
+      ANGLE_CHROME_VERSION: "131.0.6778.85"
+      ANGLE_CHROME_SHA256: a39e418d96afbc982cfd36432c775b9cbc2ae9a34703db6b0310326cb366057c
     steps:
       - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@master
@@ -284,6 +289,32 @@ jobs:
           # of skipping.
           SDL3_TEST_SKIP_LOG: ${{ runner.temp }}/skips.tsv
           SDL3_TEST_REQUIRE: ${{ runner.os == 'Linux' && env.LINUX_REQUIRE || runner.os == 'Windows' && env.WINDOWS_REQUIRE || '' }}
+      # The OpenGL ES 1 renderer's checks, which skip in the run above on
+      # Linux (Mesa's Ubuntu packages are built without OpenGL ES 1), on
+      # ANGLE's OpenGL ES 1.1 over SwiftShader: the libEGL.so and
+      # libGLESv2.so of Chrome for Testing's headless shell (pinned; the
+      # runner image's Chrome has ANGLE built in), on X11 (Xvfb), as the
+      # offscreen driver needs EGL_EXT_device_enumeration, which ANGLE
+      # hasn't.
+      - name: cargo test the OpenGL ES 1 renderer on ANGLE (Chrome for Testing's)
+        if: runner.os == 'Linux'
+        env:
+          SDL3_TEST_SKIP_LOG: ${{ runner.temp }}/skips.tsv
+          SDL3_TEST_REQUIRE: gles1,egl
+          SDL_VIDEO_DRIVER: x11
+          SDL_VIDEO_FORCE_EGL: 1
+          SDL_OPENGL_ES_DRIVER: 1
+          SDL_EGL_LIBRARY: ${{ runner.temp }}/angle/chrome-headless-shell-linux64/libEGL.so
+          SDL_OPENGL_LIBRARY: ${{ runner.temp }}/angle/chrome-headless-shell-linux64/libGLESv2.so
+          ANGLE_DEFAULT_PLATFORM: swiftshader
+        run: |
+          A="$RUNNER_TEMP/angle"
+          mkdir -p "$A"
+          curl -fsSL -o "$A/hs.zip" "https://storage.googleapis.com/chrome-for-testing-public/$ANGLE_CHROME_VERSION/linux64/chrome-headless-shell-linux64.zip"
+          echo "$ANGLE_CHROME_SHA256  $A/hs.zip" | sha256sum -c
+          unzip -q "$A/hs.zip" -d "$A"
+          ls -l "$SDL_EGL_LIBRARY" "$SDL_OPENGL_LIBRARY"
+          xvfb-run -a cargo test -p sdl3 --lib render::opengles::
       # sdl3-mixer without its default `timidity`, `fluidsynth`, `mpg123` and
       # `gme` features: the zlib-only build, without sdl3-mixer-timidity,
       # sdl3-mixer-fluidsynth, sdl3-mixer-mpg123 and sdl3-mixer-gme.
@@ -318,8 +349,8 @@ jobs:
       # VK_EXT_headless_surface (the offscreen driver's Vulkan check); on
       # macOS, MoltenVK misdraws render-state checks under the Metal debug
       # layer (run again without it above); on both, the offscreen
-      # driver has no EGL (the OpenGL and OpenGL ES 2 renderers' checks on
-      # it). Any other skip of them fails the job.
+      # driver has no EGL (the OpenGL, OpenGL ES 2 and OpenGL ES 1
+      # renderers' checks on it). Any other skip of them fails the job.
       - name: Check the GPU skips
         if: runner.os != 'Linux'
         shell: bash
@@ -330,7 +361,7 @@ jobs:
           awk -F '\t' -v os="$RUNNER_OS" '
             $1 == "vulkan" && os == "Windows" && $2 == "video::drivers::offscreen::vulkan::tests::offscreen_vulkan_surfaces" && $3 == "no VK_EXT_headless_surface" { next }
             $1 == "vulkan" && os == "macOS" && $2 == "render::gpu::tests::gpu_render_states" && $3 ~ /^MoltenVK misdraws .* \(MTL_DEBUG_LAYER\)$/ { next }
-            $1 == "egl" && $2 ~ /^render::opengl(es2)?::tests::/ && $3 ~ /offscreen/ { next }
+            $1 == "egl" && $2 ~ /^render::opengl(es2?)?::tests::/ && $3 ~ /offscreen/ { next }
             $1 == "vulkan" || $1 == "egl"' "$SDL3_TEST_SKIP_LOG" > "$RUNNER_TEMP/unexpected.tsv"
           if [ -f "$RUNNER_TEMP/skips-moltenvk.tsv" ]; then
             cat "$RUNNER_TEMP/skips-moltenvk.tsv" >> "$RUNNER_TEMP/unexpected.tsv"

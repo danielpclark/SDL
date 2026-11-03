@@ -646,6 +646,16 @@ fn create_for_window(
             let backend = super::opengles2::Gles2Renderer::for_window(window, output_colorspace)?;
             Ok((Box::new(backend), crate::video::PixelFormat::UNKNOWN))
         }
+        #[cfg(any(
+            target_os = "android",
+            all(any(target_os = "ios", target_os = "tvos"), not(target_abi = "macabi")),
+            test
+        ))]
+        super::opengles::GLES_RENDERER => {
+            let output_colorspace = super::setup_renderer_colorspace(info);
+            let backend = super::opengles::GlesRenderer::for_window(window, output_colorspace)?;
+            Ok((Box::new(backend), crate::video::PixelFormat::UNKNOWN))
+        }
         super::vulkan::VULKAN_RENDERER => {
             let output_colorspace = super::setup_renderer_colorspace(info);
             let backend =
