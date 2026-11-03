@@ -896,8 +896,8 @@ jobs:
         run: |
           D="$RUNNER_TEMP/android-download"
           mkdir -p "$D"
-          curl -fsSL -o "$D/emulator.zip" "https://dl.google.com/android/repository/emulator-linux_x64-$ANDROID_EMULATOR_BUILD.zip"
-          curl -fsSL -o "$D/image.zip" "https://dl.google.com/android/repository/sys-img/google_apis/$ANDROID_IMAGE_ARCHIVE"
+          curl -fsSL --retry 5 --retry-delay 10 --retry-all-errors -o "$D/emulator.zip" "https://dl.google.com/android/repository/emulator-linux_x64-$ANDROID_EMULATOR_BUILD.zip"
+          curl -fsSL --retry 5 --retry-delay 10 --retry-all-errors -o "$D/image.zip" "https://dl.google.com/android/repository/sys-img/google_apis/$ANDROID_IMAGE_ARCHIVE"
           echo "$ANDROID_EMULATOR_SHA256  $D/emulator.zip" | sha256sum -c
           echo "$ANDROID_IMAGE_SHA256  $D/image.zip" | sha256sum -c
           rm -rf "$ANDROID_HOME/emulator"
