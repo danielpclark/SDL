@@ -43,9 +43,12 @@
 //!   input report, its rumble (the device's vibrators: vibrating, then
 //!   stopped; the motors' peak and last values), then unplugged while
 //!   it's open; then plugged in while the app runs (`dualsense add`),
-//!   where it has neither lights nor sensors: Android tells of the input
-//!   device before its motion sensors' node is part of it, and the
-//!   joystick handler keeps what it found then.
+//!   whose lights and sensors are left out of the trace (on stderr):
+//!   Android tells of the input device while the kernel is still adding
+//!   its lights and its motion sensors' node, and the joystick handler
+//!   keeps what it found then, so which of them it has depends on the
+//!   timing (upstream's C saw none of them; this program has seen the
+//!   lights too).
 //!
 //! The expected trace is upstream's C SDL's, from the same program in C
 //! (built with upstream's android-project, Gradle and CMake, run by the
@@ -298,7 +301,7 @@ dualsense added: event: GAMEPAD_ADDED(which=J5)
 dualsense added: new joysticks: 1
 dualsense added: joystick J5: name=DualSense Wireless Controller vendor=0x054c product=0x0ce6 version=0xffff type=1 player=1 guid=0500xxxx4c050000e60c0000ffff3f00
 dualsense added: gamepad J5: name=PS5 Controller type=ps5 mapping=GUID,PS5 Controller,a:b0,b:b1,back:b4,dpdown:b12,dpleft:b13,dpright:b14,dpup:b11,guide:b5,leftshoulder:b9,leftstick:b7,lefttrigger:a4,leftx:a0,lefty:a1,rightshoulder:b10,rightstick:b8,righttrigger:a5,rightx:a2,righty:a3,start:b6,x:b2,y:b3,
-dualsense added: axes=8 buttons=17 hats=0 rumble=yes trigger rumble=no rgb led=no accel=no gyro=no player=1 connected=yes
+dualsense added: axes=8 buttons=17 hats=0 rumble=yes trigger rumble=no player=1 connected=yes
 logcat: dualsense: lightbar 0 0 128
 logcat: dualsense: motors peak 0 0 last 0 0
 logcat: dualsense: removed
@@ -557,18 +560,35 @@ quit
 
     /// The gamepad's buttons, axes and capabilities, opened.
     fn opened(label: &str, pad: &Gamepad, joy: &Joystick) {
+        opened_traced(label, pad, joy, true);
+    }
+
+    /// [`opened`], with its lights and sensors traced or (`!lights`) on
+    /// stderr only.
+    fn opened_traced(label: &str, pad: &Gamepad, joy: &Joystick, lights: bool) {
         let props = joy.properties().unwrap();
         let cap = |name: &str| yes(props.get_bool(name).unwrap_or(false));
+        let lights_and_sensors = format!(
+            "rgb led={} accel={} gyro={}",
+            cap(joystick::PROP_JOYSTICK_CAP_RGB_LED_BOOLEAN),
+            yes(pad.has_sensor(SensorType::Accel)),
+            yes(pad.has_sensor(SensorType::Gyro)),
+        );
+        if !lights {
+            eprintln!("{label}: {lights_and_sensors} (not traced: timing-dependent)");
+        }
         t(format!(
-            "{label}: axes={} buttons={} hats={} rumble={} trigger rumble={} rgb led={} accel={} gyro={} player={} connected={}",
+            "{label}: axes={} buttons={} hats={} rumble={} trigger rumble={} {}player={} connected={}",
             joy.num_axes().unwrap_or(0),
             joy.num_buttons().unwrap_or(0),
             joy.num_hats().unwrap_or(0),
             cap(PROP_JOYSTICK_CAP_RUMBLE_BOOLEAN),
             cap(joystick::PROP_JOYSTICK_CAP_TRIGGER_RUMBLE_BOOLEAN),
-            cap(joystick::PROP_JOYSTICK_CAP_RGB_LED_BOOLEAN),
-            yes(pad.has_sensor(SensorType::Accel)),
-            yes(pad.has_sensor(SensorType::Gyro)),
+            if lights {
+                format!("{lights_and_sensors} ")
+            } else {
+                String::new()
+            },
             pad.player_index(),
             yes(pad.connected())
         ));
@@ -822,8 +842,9 @@ quit
         drop(joy);
         drop(pad);
 
-        // Plugged in while the app runs: Android tells of it before its
-        // sensors and lights are part of it
+        // Plugged in while the app runs: Android tells of it while its
+        // lights and sensors are being added (which of them it has then
+        // depends on the timing: not traced)
         let before = joystick::joysticks();
         ask("dualsense add");
         settle(Some(EventType::GAMEPAD_ADDED), 1000);
@@ -837,7 +858,7 @@ quit
             info("dualsense added", id);
             if let Ok(pad) = Gamepad::open(id) {
                 let joy = pad.joystick().expect("its joystick");
-                opened("dualsense added", &pad, &joy);
+                opened_traced("dualsense added", &pad, &joy, false);
             }
         }
         ask("dualsense remove");
