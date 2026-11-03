@@ -28,13 +28,26 @@ fn driver_list_follows_upstreams_order() {
             SOFTWARE_RENDERER
         ]
     );
-    // (no desktop OpenGL on UIKit; upstream's "opengles", the OpenGL ES 1
-    // renderer after "opengles2", isn't translated)
-    #[cfg(not(any(target_os = "macos", target_os = "visionos")))]
+    // (no desktop OpenGL on UIKit; "opengles", the OpenGL ES 1 renderer,
+    // after "opengles2", as upstream's CMake build has it with OpenGL ES;
+    // none of them on Mac Catalyst)
+    #[cfg(all(
+        not(any(target_os = "macos", target_os = "visionos")),
+        not(target_abi = "macabi")
+    ))]
     assert_eq!(
         names,
-        ["metal", "opengles2", "vulkan", "gpu", SOFTWARE_RENDERER]
+        [
+            "metal",
+            "opengles2",
+            "opengles",
+            "vulkan",
+            "gpu",
+            SOFTWARE_RENDERER
+        ]
     );
+    #[cfg(target_abi = "macabi")]
+    assert_eq!(names, ["metal", "vulkan", "gpu", SOFTWARE_RENDERER]);
     // (no OpenGL ES on visionOS)
     #[cfg(target_os = "visionos")]
     assert_eq!(names, ["metal", "vulkan", "gpu", SOFTWARE_RENDERER]);
