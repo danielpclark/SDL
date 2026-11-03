@@ -237,7 +237,7 @@ macOS and Emscripten:
 | | iOS | tvOS | visionOS |
 |---|---|---|---|
 | video | UIKit | UIKit, no orientations, status bar or pasteboard | UIKit, flat windows on one fake display |
-| OpenGL ES (EAGL), the OpenGL ES 2 renderer | yes | yes (below) | no |
+| OpenGL ES (EAGL), the OpenGL ES 2 and 1 renderers | yes | yes (below) | no |
 | Metal renderer, the GPU API's Metal backend | yes | yes | yes |
 | Vulkan (MoltenVK) | yes | yes | built; nothing loads (below) |
 | audio | CoreAudio with the audio session | the same | the same |
@@ -269,6 +269,11 @@ build differ, the translation picks one, marked `Note` in the code:
   target_os = "tvos"), not(target_abi = "macabi"))`); the CMake build
   leaves them out on tvOS. The C references of the tvOS tests are
   upstream's CMake build with OpenGL ES allowed on tvOS.
+* The OpenGL ES 1 renderer: the CMake build's. `SDL_build_config_ios.h`
+  doesn't define `SDL_VIDEO_RENDER_OGL_ES` (the Xcode project builds no
+  `SDL_render_gles.c`); the CMake build has it with OpenGL ES, so on iOS,
+  and on tvOS with OpenGL ES (as above): "opengles", after "opengles2"
+  in the render drivers' list.
 * The virtual joystick on visionOS: the CMake build's. CMake's
   `SDL_VIRTUAL_JOYSTICK` needs `SDL_HIDAPI`, which visionOS doesn't
   build, so the virtual joystick functions fail there with upstream's
@@ -399,8 +404,12 @@ build differ, the translation picks one, marked `Note` in the code:
   Metal one. The swaps check UIDevice's battery monitoring
   (`SDL_UIKit_UpdateBatteryMonitoring()`), whose assertion fails on the
   iOS Simulator three seconds after a power query (`FIXME (upstream)`,
-  in `power/uikit.rs`). The OpenGL ES 1 renderer (`SDL_render_gles.c`),
-  which upstream builds there, isn't translated yet.
+  in `power/uikit.rs`). The OpenGL ES 1 renderer (`render/opengles/`,
+  `SDL_render_gles.c`) draws on EAGL's `kEAGLRenderingAPIOpenGLES1`
+  contexts (a window it makes again for OpenGL ES 1.1), its functions
+  looked up as the OpenGL ES 2 renderer's (the `GL_OES_*` ones,
+  `SDL_PROC_OES`, may be missing: `None`, where upstream's linked ones
+  never are).
 * Vulkan (`video/drivers/uikit/vulkan.rs`) is MoltenVK's (or a Vulkan
   loader's): the library `SDL_HINT_VULKAN_LIBRARY` names, else the
   program's own `vkGetInstanceProcAddr`, else `libvulkan.dylib` (upstream's
@@ -662,6 +671,24 @@ device; the same for `CARGO_TARGET_TMPDIR` and `CARGO_BIN_EXE_NAME`.
   upstream's viewport, clip rectangle and reads of a rotated swapchain
   image are elsewhere than the projection draws (`FIXME (upstream)`),
   which the renderer maps through the rotation here.
+* The OpenGL ES 1 renderer (`render/opengles/`, `SDL_render_gles.c`),
+  which upstream's CMake build has on Android, draws on the window made
+  again as an OpenGL ES 1.1 one (`EGL_OPENGL_ES_BIT`, `libGLESv1_CM.so`).
+  Upstream takes the `GL_OES_framebuffer_object`
+  functions, which Android doesn't report the extension of, as working
+  where they're found; the emulator's translator has them but fails them
+  all (garbage framebuffer names, never complete, and a crash deleting
+  them), so here they're tried first (`FIXME (upstream)`): there the
+  renderer has no render targets, as the C references, patched the same
+  way, show. Another `FIXME (upstream)`, which the C references
+  are patched with too: a new texture's GL address modes are set to the
+  clamped ones it records (upstream leaves GL's `GL_REPEAT`, so linear
+  scaling blends the edges with the opposite ones). Upstream's draw state cache points at the bound texture
+  and the target; here their GL texture names stand for them (`Note`:
+  the backend's calls don't see the textures' handles). Kept, as
+  `Note (upstream)`: the renderer takes any output colorspace, and
+  doesn't set `npot_texture_wrap_unsupported` though its textures of
+  other sizes are the top left of a power of two GL texture.
 * The GPU API makes its surfaces with the video device's own
   `Vulkan_CreateSurface()`, as upstream's, which leaves the window's
   flags alone (`SDL_Vulkan_CreateSurface()` makes it a Vulkan window).
@@ -847,7 +874,7 @@ it) stands in:
 | video | android, offscreen, dummy | the same (android in apps only) |
 | OpenGL ES, EGL | GLES 1 and 2 through EGL (`libEGL.so`, `libGLESv2.so`, `libGLESv1_CM.so`), no desktop OpenGL | the same |
 | Vulkan | `libvulkan.so` | the same (the offscreen driver's: `FIXME (upstream)`, which tries `libvulkan.so.1`) |
-| renderers | OpenGL ES 2, OpenGL ES, Vulkan, GPU, software | OpenGL ES 2, Vulkan, GPU, software (the OpenGL ES 1 renderer isn't translated anywhere) |
+| renderers | OpenGL ES 2, OpenGL ES, Vulkan, GPU, software | the same (the OpenGL ES 1 renderer on EGL's `EGL_OPENGL_ES_BIT` contexts, client version 1, `libGLESv1_CM.so`; the ndk-build's `SDL_build_config_android.h` leaves it out) |
 | audio | AAudio, OpenSL ES, disk, dummy | the same |
 | joysticks | android, HIDAPI (off by default), virtual | android, HIDAPI with no HID backend (the Android one: later), virtual |
 | haptic | android, HIDAPI | the same |
