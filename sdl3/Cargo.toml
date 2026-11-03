@@ -336,6 +336,10 @@ name = "android_gles"
 harness = false
 
 [[test]]
+name = "android_gles1"
+harness = false
+
+[[test]]
 name = "android_vulkan"
 harness = false
 

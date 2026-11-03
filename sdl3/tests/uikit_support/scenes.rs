@@ -125,7 +125,8 @@ pub type Scene<'a> = &'a dyn Fn(&mut Renderer) -> sdl3::Result<()>;
 /// (`None`: not compared).
 pub fn scene(r: &mut Renderer, name: &str, compare_with: Option<(u8, usize)>, draw: Scene<'_>) {
     let label = format!("scene {name}");
-    if let Err(e) = draw(r) {
+    let drawn = draw(r);
+    if let Err(e) = &drawn {
         t(format!("{label}: error: {e}"));
     }
     let image = hash_read(&label, r.read_pixels(Some(&Rect::new(0, 0, RW, RH))));
@@ -134,6 +135,10 @@ pub fn scene(r: &mut Renderer, name: &str, compare_with: Option<(u8, usize)>, dr
     // output colorspace is always linear sRGB, as upstream's: the hashes
     // are compared with upstream's alone there)
     let compare_with = compare_with.filter(|_| !cfg!(target_os = "visionos"));
+    // (nor a scene the renderer couldn't draw, whose error is traced, as
+    // upstream's: the OpenGL ES 1 renderer's render targets on the Android
+    // emulator, which has no GL_OES_framebuffer_object)
+    let compare_with = compare_with.filter(|_| drawn.is_ok());
     if let (Some(image), Some((tolerance, max_bad))) = (image, compare_with) {
         let mut sw =
             Renderer::software(Surface::new(RW, RH, PixelFormat::ARGB8888).unwrap()).unwrap();
@@ -306,12 +311,13 @@ fn streaming_texture(r: &mut Renderer) -> sdl3::Result<()> {
 
 fn render_target(r: &mut Renderer) -> sdl3::Result<()> {
     let target = r.create_texture(PixelFormat::ARGB8888, TextureAccess::Target, 32, 24)?;
-    r.set_render_target(Some(target))?;
+    // (as the C programs, which go on without the target)
+    let _ = r.set_render_target(Some(target));
     r.set_draw_color(255, 0, 255, 255);
     r.clear()?;
     r.set_draw_color(0, 255, 0, 255);
     r.render_fill_rect(Some(&FRect::new(4.0, 4.0, 8.0, 8.0)))?;
-    r.set_render_target(None)?;
+    let _ = r.set_render_target(None);
     r.set_draw_color(0, 0, 0, 255);
     r.clear()?;
     r.set_texture_scale_mode(target, ScaleMode::Nearest)?;
@@ -452,7 +458,10 @@ fn custom_blend(r: &mut Renderer) -> sdl3::Result<()> {
     r.set_draw_blend_mode(BlendMode::NONE)?;
     r.set_draw_color(100, 150, 200, 255);
     r.clear()?;
-    r.set_draw_blend_mode(mode)?;
+    // (as the C programs: a renderer that doesn't take the mode, as the
+    // OpenGL ES 1 renderer without its blend extensions, fills with the
+    // one it had)
+    let _ = r.set_draw_blend_mode(mode);
     r.set_draw_color(60, 60, 60, 128);
     r.render_fill_rect(Some(&FRect::new(10.0, 10.0, 30.0, 20.0)))?;
     r.set_draw_blend_mode(BlendMode::NONE)
@@ -601,15 +610,18 @@ pub fn scenes(r: &mut Renderer, text: &str) {
         .unwrap();
     hash_read("partial read", r.read_pixels(Some(&Rect::new(8, 8, 8, 8))));
     let _ = r.present();
+    // (without render targets, as the C programs: the output is read)
     let target = r
         .create_texture(PixelFormat::ABGR8888, TextureAccess::Target, 20, 10)
-        .unwrap();
-    r.set_render_target(Some(target)).unwrap();
+        .ok();
+    let _ = r.set_render_target(target);
     r.set_draw_color(0, 0, 255, 255);
     r.clear().unwrap();
     hash_read("target read", r.read_pixels(None));
-    r.set_render_target(None).unwrap();
-    r.destroy_texture(target);
+    let _ = r.set_render_target(None);
+    if let Some(target) = target {
+        r.destroy_texture(target);
+    }
 }
 
 /// The custom blend mode's pixels: dst - src for the color (in sRGB; on
