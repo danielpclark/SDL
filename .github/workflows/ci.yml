@@ -941,6 +941,21 @@ jobs:
           TEST_ARGS: ${{ inputs.android_test_args }}
           SDL3_TEST_SKIP_LOG: ${{ runner.temp }}/skips.tsv
         run: cargo test --target x86_64-linux-android --no-fail-fast ${TEST_ARGS:---workspace} 2>&1 | tee "$RUNNER_TEMP/test.log"
+      - name: (diag) android_main and the camera lib tests again and again
+        if: ${{ !cancelled() }}
+        shell: bash
+        run: |
+          fails=0
+          for i in $(seq 1 10); do
+            rc=0; cargo test -q --target x86_64-linux-android -p sdl3 --test android_main > "$RUNNER_TEMP/main$i.log" 2>&1 || rc=$?
+            [ $rc = 0 ] || fails=$((fails+1))
+            echo "android_main round $i: rc=$rc $({ grep -E "differs" "$RUNNER_TEMP/main$i.log" || true; } | cut -c1-200)"
+            rc=0; cargo test -q --target x86_64-linux-android -p sdl3 --lib -- camera:: > "$RUNNER_TEMP/cam$i.log" 2>&1 || rc=$?
+            [ $rc = 0 ] || fails=$((fails+1))
+            echo "camera round $i: rc=$rc $({ grep -E "panicked|FAILED" "$RUNNER_TEMP/cam$i.log" || true; } | head -3 | cut -c1-200 | tr '\n' ' ')"
+          done
+          echo "FAILS $fails"
+          test $fails = 0
       # The app mode once more, with arguments and a variable (the same
       # string, which comes through the manifest and the arguments each its
       # own way: android_runner.rs compares them), and android_spawned.rs
