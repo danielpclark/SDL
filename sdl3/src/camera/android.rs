@@ -131,6 +131,11 @@ fn driver() -> Option<Arc<AndroidCamera>> {
     DRIVER.read().unwrap_or_else(|e| e.into_inner()).clone()
 }
 
+/// Held (read) by the availability callbacks while they run, and taken
+/// (write) by `deinitialize()` once they're unregistered, so that it
+/// returns only once a callback already running has ended.
+static AVAILABILITY_CALLBACKS: RwLock<()> = RwLock::new(());
+
 /// Translation of `struct SDL_PrivateCameraData`.
 struct PrivateCameraData {
     device: *mut ACameraDevice,
@@ -847,6 +852,9 @@ fn maybe_add_device(driver: &AndroidCamera, devid: &CStr) {
 /// Translation of `onCameraAvailable()`.
 unsafe extern "C" fn on_camera_available(_context: *mut c_void, camera_id: *const c_char) {
     crate::sdl_assert!(!camera_id.is_null());
+    let _running = AVAILABILITY_CALLBACKS
+        .read()
+        .unwrap_or_else(|e| e.into_inner());
     let Some(driver) = driver() else {
         return;
     };
@@ -860,6 +868,9 @@ unsafe extern "C" fn on_camera_available(_context: *mut c_void, camera_id: *cons
 /// Translation of `onCameraUnavailable()`.
 unsafe extern "C" fn on_camera_unavailable(_context: *mut c_void, camera_id: *const c_char) {
     crate::sdl_assert!(!camera_id.is_null());
+    let _running = AVAILABILITY_CALLBACKS
+        .read()
+        .unwrap_or_else(|e| e.into_inner());
     if camera_id.is_null() {
         return;
     }
@@ -985,6 +996,18 @@ impl CameraDriverImpl for Arc<AndroidCamera> {
         // (DestroyCameraManager(): once the last reference drops, this one
         // or a running callback's)
         *DRIVER.write().unwrap_or_else(|e| e.into_inner()) = None;
+        // Note: and a callback already running is waited for (upstream's
+        // can still be adding a camera after this returns, which a camera
+        // subsystem started next, with another driver, then gets: the
+        // manager reports its cameras on its own thread soon after the
+        // registration, and the device's metadata takes a while). The
+        // subsystem holds no lock of its own here, and adding a camera
+        // while it shuts down returns at once.
+        drop(
+            AVAILABILITY_CALLBACKS
+                .write()
+                .unwrap_or_else(|e| e.into_inner()),
+        );
     }
 
     fn provides_own_callback_thread(&self) -> bool {
