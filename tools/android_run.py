@@ -454,6 +454,10 @@ class Failure(Exception):
     """An error this script reports (and exits 1 for)."""
 
 
+class Timeout(Failure):
+    """A command that took longer than it may (run_tool()'s timeout)."""
+
+
 def note(message):
     print(f"{PROGRAM}: {message}", file=sys.stderr, flush=True)
 
@@ -521,7 +525,7 @@ def run_tool(argv, check=True, timeout=None, env=None, stdin=None):
         except subprocess.TimeoutExpired:
             process.kill()
             process.wait()
-            raise Failure(f"{shlex.join(argv)} took more than {timeout:g} s") from None
+            raise Timeout(f"{shlex.join(argv)} took more than {timeout:g} s") from None
         out.seek(0)
         err.seek(0)
         result = subprocess.CompletedProcess(
@@ -901,8 +905,15 @@ def find_device():
 
 
 def device_properties(serial):
-    """Whether the device has booted, and its ABIs (None until it's up)."""
-    result = adb_shell(serial, "getprop sys.boot_completed; getprop ro.product.cpu.abilist", check=False, timeout=30)
+    """Whether the device has booted, and its ABIs (None until it's up: an
+    adb that doesn't answer in 30 s, as one of a device still booting
+    under load may not, too)."""
+    try:
+        result = adb_shell(serial, "getprop sys.boot_completed; getprop ro.product.cpu.abilist", check=False, timeout=30)
+    except Timeout as e:
+        if VERBOSE:
+            note(f"{e}: not booted yet")
+        return None
     lines = result.stdout.splitlines()
     if result.returncode != 0 or len(lines) < 2 or lines[0].strip() != "1":
         return None
