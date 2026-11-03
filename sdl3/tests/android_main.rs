@@ -128,6 +128,11 @@ main returns
     static PUMPS: AtomicI32 = AtomicI32::new(0);
     static BACKGROUND_PUMP: AtomicI32 = AtomicI32::new(-1);
     static FOREGROUND_PUMP: AtomicI32 = AtomicI32::new(-1);
+    /// The pumps that have returned.
+    static PUMPS_RETURNED: AtomicI32 = AtomicI32::new(0);
+    /// Whether the watch's foreground request waits for the pump that saw
+    /// the background to return (not blocking on pause).
+    static FOREGROUND_AFTER_THE_PUMP: AtomicBool = AtomicBool::new(false);
     static FOREGROUND_ON_BACKGROUND: AtomicBool = AtomicBool::new(false);
     static THREAD_ATTACHED: AtomicBool = AtomicBool::new(false);
 
@@ -184,11 +189,26 @@ main returns
                 FOREGROUND_PUMP.store(pumps, Ordering::SeqCst);
             }
             // (from the watch, before the pump blocks while in the
-            // background; not waited for, as the C's)
+            // background; not waited for, as the C's. Note: not blocking,
+            // once that pump has returned (for up to 5 s), where the C's
+            // asks at once too: the pump, still taking the lifecycle's
+            // events, may otherwise take the resume as well on a loaded
+            // device)
             if ty == EventType::DID_ENTER_BACKGROUND
                 && FOREGROUND_ON_BACKGROUND.load(Ordering::SeqCst)
             {
-                request_without_waiting("foreground");
+                if FOREGROUND_AFTER_THE_PUMP.load(Ordering::SeqCst) {
+                    std::thread::spawn(move || {
+                        let end = Instant::now() + Duration::from_secs(5);
+                        while PUMPS_RETURNED.load(Ordering::SeqCst) < pumps && Instant::now() < end
+                        {
+                            std::thread::sleep(Duration::from_millis(5));
+                        }
+                        request_without_waiting("foreground");
+                    });
+                } else {
+                    request_without_waiting("foreground");
+                }
             }
         }));
     }
@@ -215,6 +235,7 @@ main returns
     fn pump() {
         PUMPS.fetch_add(1, Ordering::SeqCst);
         events::pump();
+        PUMPS_RETURNED.fetch_add(1, Ordering::SeqCst);
         events::flush_events(EventType::FIRST, EventType::LAST);
     }
 
@@ -300,7 +321,8 @@ main returns
     /// whether the pump that saw the activity go returned only once it was
     /// back (not blocking, the resume comes once the activity's surface is
     /// ready and has the focus, long after the pump's 100 ms).
-    fn trip(label: &str, what: &str) {
+    fn trip(label: &str, what: &str, blocking: bool) {
+        FOREGROUND_AFTER_THE_PUMP.store(!blocking, Ordering::SeqCst);
         FOREGROUND_ON_BACKGROUND.store(true, Ordering::SeqCst);
         BACKGROUND_PUMP.store(-1, Ordering::SeqCst);
         FOREGROUND_PUMP.store(-1, Ordering::SeqCst);
@@ -476,12 +498,12 @@ main returns
         pause_and_resume_later("in-process pause, not blocking", vm);
         pump_until(Some(EventType::DID_ENTER_FOREGROUND), 10_000);
         t(format!("then: {}", list(None)));
-        trip("background and back, not blocking", "background");
+        trip("background and back, not blocking", "background", false);
 
         // Blocking again
         quit_video();
         init_video();
-        trip("background and back, blocking", "background");
+        trip("background and back, blocking", "background", true);
 
         // The system's dark mode
         request("night yes");
