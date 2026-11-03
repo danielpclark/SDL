@@ -962,6 +962,15 @@ jobs:
       # program runs.
       - name: Start the emulator
         run: echo "SDL3_ANDROID_SERIAL=$(tools/android_run.py --boot)" >> "$GITHUB_ENV"
+      - name: (diag) the display's rotation as the runner reads it
+        if: ${{ !cancelled() }}
+        shell: bash
+        run: |
+          ADB="$ANDROID_HOME/platform-tools/adb"
+          timeout 600 "$ADB" wait-for-device
+          for i in $(seq 1 60); do [ "$("$ADB" shell getprop sys.boot_completed | tr -d '\r')" = 1 ] && break; sleep 5; done
+          "$ADB" shell "dumpsys display 2>&1 | grep -m1 -oE 'displayId 0[^}]*rotation [0-3]'" | cut -c1-400 || true
+          "$ADB" shell "dumpsys display 2>&1 | grep -c DisplayInfo" || true
       - name: Build the tests
         env:
           TEST_ARGS: ${{ inputs.android_test_args }}
