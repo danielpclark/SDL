@@ -32,9 +32,9 @@
 //!   linked into the app's `libmain.so`, so there is no `libSDL3.so` to
 //!   load.
 //!
-//! Each class's entry lists the members translated so far, in upstream's
-//! order; the classes and members still to come are added with their
-//! translations. The anonymous classes upstream creates (`new Runnable()
+//! Each class's entry lists, in upstream's order, the members something
+//! outside the translation reaches (the framework, JNI); the rest of
+//! upstream's class is Rust. The anonymous classes upstream creates (`new Runnable()
 //! {...}`, dialog listeners) can't be declared with upstream's names
 //! (`SDLActivity$1`), which are the compiler's: they are two classes of
 //! their own, `SDLNativeRunnable` and `SDLNativeListener`

@@ -11,9 +11,12 @@
 // This is an altered (translated) version of the original software; see LICENSE.txt.
 
 //! `JNI_OnLoad()`, which registers the native methods of the classes of
-//! [`super::classes`] (upstream's `register_methods()` of its tables:
-//! `SDLActivity_tab` so far) and caches them, with the app's class loader,
-//! for the threads that aren't the VM's; `SDLActivity`'s natives that run
+//! [`super::classes`] (upstream's `register_methods()` of its tables,
+//! `SDLActivity_tab`, `SDLInputConnection_tab`, `SDLAudioManager_tab`,
+//! `SDLControllerManager_tab` and `HIDDeviceManager_tab`, with the
+//! framework callbacks the classes declare native) and caches them, with
+//! the app's class loader, for the threads that aren't the VM's;
+//! `SDLActivity`'s natives that run
 //! the app's `SDL_main` (`nativeSetupJNI()`, `nativeInitMainThread()`,
 //! `nativeRunMain()`, ...), set its environment (`nativeSetenv()`,
 //! `Android_JNI_GetManifestEnvironmentVariables()`) and pass the
