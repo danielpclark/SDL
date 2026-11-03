@@ -700,8 +700,8 @@ fn unpack_source(
     }
 }
 
-/// Translation of `SDL_powerof2()`.
-fn powerof2(x: i32) -> i32 {
+/// Translation of `SDL_powerof2()` (the OpenGL ES 1 renderer's too).
+pub(crate) fn powerof2(x: i32) -> i32 {
     if x <= 0 {
         // Return some sane value - we shouldn't hit this in our use cases
         return 1;

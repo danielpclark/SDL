@@ -221,18 +221,18 @@ fn driver_list_follows_upstreams_order() {
 }
 
 /// Upstream's Android build has the OpenGL ES 2, OpenGL ES, Vulkan, GPU
-/// and software renderers, and no desktop OpenGL; the OpenGL ES (1)
-/// renderer isn't translated.
+/// and software renderers, and no desktop OpenGL.
 #[test]
 #[cfg(target_os = "android")]
 fn android_driver_list_follows_upstreams_order() {
     use crate::render::{num_render_drivers, render_driver};
-    assert_eq!(num_render_drivers(), 4);
+    assert_eq!(num_render_drivers(), 5);
     assert_eq!(render_driver(0).unwrap(), "opengles2");
-    assert_eq!(render_driver(1).unwrap(), "vulkan");
-    assert_eq!(render_driver(2).unwrap(), "gpu");
-    assert_eq!(render_driver(3).unwrap(), SOFTWARE_RENDERER);
-    assert!(render_driver(4).is_err());
+    assert_eq!(render_driver(1).unwrap(), "opengles");
+    assert_eq!(render_driver(2).unwrap(), "vulkan");
+    assert_eq!(render_driver(3).unwrap(), "gpu");
+    assert_eq!(render_driver(4).unwrap(), SOFTWARE_RENDERER);
+    assert!(render_driver(5).is_err());
 }
 
 /// Upstream's Emscripten build has the OpenGL ES 2 and software renderers.

@@ -20,7 +20,8 @@
 //! Windows only, next), the Metal backend ("metal", on Apple platforms,
 //! tried first there), the OpenGL backend ("opengl", first elsewhere; not
 //! on the UIKit platforms, Android or Emscripten), the
-//! OpenGL ES 2.0 backend ("opengles2"), the Vulkan backend ("vulkan") or
+//! OpenGL ES 2.0 backend ("opengles2"), the OpenGL ES 1.1 backend
+//! ("opengles", on Android, iOS and tvOS), the Vulkan backend ("vulkan") or
 //! the GPU backend ("gpu", through the [GPU API](crate::gpu)); the other
 //! GPU backends come with the platform layer.
 //!
@@ -45,6 +46,16 @@ pub(crate) mod opengl;
 // driver list)
 #[cfg_attr(any(target_os = "visionos", target_abi = "macabi"), allow(dead_code))]
 pub(crate) mod opengles2;
+// (SDL_VIDEO_RENDER_OGL_ES: upstream's CMake build has it with OpenGL ES on
+// Android and the UIKit platforms, here iOS and tvOS (visionOS and Mac
+// Catalyst have no OpenGL ES); built for the tests elsewhere, which run it
+// where an OpenGL ES 1 library is found)
+#[cfg(any(
+    target_os = "android",
+    all(any(target_os = "ios", target_os = "tvos"), not(target_abi = "macabi")),
+    test
+))]
+pub(crate) mod opengles;
 pub(crate) mod software;
 pub(crate) mod sysrender;
 #[cfg(test)]
@@ -351,6 +362,12 @@ const RENDER_DRIVERS: &[&str] = &[
     // upstream builds without OpenGL ES)
     #[cfg(not(any(target_os = "visionos", target_abi = "macabi")))]
     opengles2::GLES2_RENDERER,
+    // (SDL_VIDEO_RENDER_OGL_ES: see the module)
+    #[cfg(any(
+        target_os = "android",
+        all(any(target_os = "ios", target_os = "tvos"), not(target_abi = "macabi"))
+    ))]
+    opengles::GLES_RENDERER,
     #[cfg(not(target_os = "emscripten"))]
     vulkan::VULKAN_RENDERER,
     #[cfg(not(target_os = "emscripten"))]
