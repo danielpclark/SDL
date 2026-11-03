@@ -26,6 +26,7 @@ Every skip names one *capability* (the list is `CAPABILITIES` in
 | `xvfb` | Linux | an X server: `Xvfb` in `PATH` (each X11 test starts its own), or `DISPLAY` |
 | `glx` | Linux | libGL with GLX on that server (Mesa's llvmpipe is enough) |
 | `egl` | Linux, Windows, macOS | libEGL and the GL/GLES libraries (Mesa on Linux; on Windows an EGL such as ANGLE's `libEGL.dll`, which Windows doesn't ship, or Mesa's (below) with `EGL_PLATFORM=windows`; on macOS ANGLE's `libEGL.dylib` and `libGLESv2.dylib`, from the directory `SDL3_TEST_ANGLE_DIR` names or the copy the Android emulator ships in `~/Library/Android/sdk/emulator/lib64/gles_angle`). The offscreen driver has EGL only on Linux and the other Unix systems, so the OpenGL ES 2 renderer's checks, which draw on it, skip on Windows, macOS and the Apple Simulators, as the OpenGL renderer's checks on it do on macOS; on Android its EGL needs a device platform (`EGL_EXT_device_enumeration`) that Android's EGL lacks, so they skip there too, and so do the OpenGL renderer's, which Android doesn't build (see [Android emulator](#android-emulator)) |
+| `gles1` | Linux, the Android emulator | OpenGL ES 1.1 contexts through EGL, which the OpenGL ES 1 renderer's checks draw with: Android's (`libGLESv1_CM.so`), or ANGLE's (`libEGL.so` and `libGLESv2.so`, from Chrome for Testing's headless shell, with SwiftShader) on X11, the libraries named by `SDL_EGL_LIBRARY` and `SDL_OPENGL_LIBRARY` (see [Linux](#linux-ubuntu-2404)); Mesa's Ubuntu packages are built without OpenGL ES 1, so the checks skip there (`gles1`, where the OpenGL ES 2 renderer can be made; `egl` where not even that) |
 | `vulkan` | Linux, Windows, macOS, the iOS, tvOS and visionOS Simulators, the Android emulator | a Vulkan loader and a driver with the surface extensions, `VK_EXT_headless_surface` included for the tests of the Vulkan and GPU renderers and of the GPU API's swapchains on offscreen windows (Mesa's lavapipe is enough; on Windows those tests present to the Windows video driver's windows instead, since the GPU drivers there (NVIDIA's, say) have no `VK_EXT_headless_surface`, and only the offscreen driver's own headless-surface check skips; the tests of the GPU API's Vulkan backend and of the GPU renderer run under `VK_LAYER_KHRONOS_validation` when it is installed, and present to an X11 window too when `DISPLAY` is set); on macOS MoltenVK, by upstream's default names: `libMoltenVK.dylib` itself (in `/usr/local/lib`, say), which runs every check, or the Vulkan loader with it (the Cocoa driver's surface check also tries Homebrew's `/opt/homebrew/lib/libvulkan.1.dylib`), through which the Vulkan renderer's checks skip with `VK_ERROR_INCOMPATIBLE_DRIVER`: MoltenVK's devices then need portability enumeration, which upstream's renderer doesn't ask for. Under Metal's API validation, which the GPU API's Metal devices in debug mode turn on for the rest of the process (as upstream's do, setting `MTL_DEBUG_LAYER=1` unless it's set), MoltenVK misdraws the fills after another render state's in a pass in the GPU renderer's render-state test on the CI runners' Apple Paravirtual device (1.3.0 to 1.4.2, reporting no error), so with a MoltenVK device and `MTL_DEBUG_LAYER` set and not `0` those three checks skip (run the test again with `MTL_DEBUG_LAYER=0` for them; with discrete descriptor binding, `MVK_CONFIG_USE_METAL_ARGUMENT_BUFFERS=0`, more of the renderer's checks misdraw under the layer; Khronos' validation layer, with synchronization validation, finds nothing in them on lavapipe, and they pass on Metal under the same validation); on the iOS and tvOS Simulators MoltenVK's framework for the simulator, which `tools/ios_run.py` takes from `SDL3_IOS_MOLTENVK` (see [Apple Simulators](#apple-simulators): there the GPU API's Vulkan checks skip, the simulator's device lacking features the backend asks for, see [iOS Simulator](#ios-simulator)); on the visionOS Simulator it never loads, upstream's `SDL_LoadObject()` loading nothing there (see [visionOS Simulator](#visionos-simulator)); on the Android emulator SwiftShader's Vulkan 1.3 (`libvulkan.so`), which has no `VK_EXT_headless_surface`, so only the checks that need no surface run in spawned programs, and the Vulkan and GPU renderers and the GPU API's swapchains draw on the android video driver's window in the app programs (see [Android emulator](#android-emulator)) |
 | `wayland` | Linux | libwayland-client/-egl/-cursor, libxkbcommon and `sway` (or `weston`) in `PATH`; the input and clipboard tests need sway |
 | `dbus` | Linux | libdbus and `dbus-daemon` (the tests start private buses) |
@@ -53,7 +54,7 @@ Every skip names one *capability* (the list is `CAPABILITIES` in
 | `cocoa` | macOS | a login session whose window server shows windows (Aqua), for the main-thread programs `cargo test -p sdl3 --test cocoa`, `--test cocoa_shell` and `--test cocoa_metal` (and `cargo test -p sdl3-shadercross --test metal`) |
 | `coreaudio` | macOS, the iOS, tvOS and visionOS Simulators | CoreAudio with a default playback and a default recording device (on the simulators, the Mac's audio, through the app's audio session) |
 | `metal` | macOS, the iOS, tvOS and visionOS Simulators | a Metal device (`MTLCreateSystemDefaultDevice()`): the GPU API's Metal backend, the GPU renderer on it, and the Metal renderer (on the visionOS Simulator, the GPU API's indirect draws and dispatches too, which its device hasn't) |
-| `gles` | the iOS and tvOS Simulators | OpenGL ES through EAGL (`EAGLContext`, which Apple deprecated; the simulator's renderer is "Apple Software Renderer"), for `uikit_gles`'s contexts and the OpenGL ES 2 renderer on UIKit windows |
+| `gles` | the iOS and tvOS Simulators | OpenGL ES through EAGL (`EAGLContext`, which Apple deprecated; the simulator's renderer is "Apple Software Renderer"), for `uikit_gles`'s contexts and the OpenGL ES 2 renderer on UIKit windows, and `uikit_gles1`'s OpenGL ES 1 renderer |
 | `gamecontroller` | iOS Simulator | GameController's on-screen virtual controller (`GCVirtualController`, iOS 15), which `uikit_gamepad` connects as a controller |
 | `idb` | iOS Simulator | idb (fb-idb's `idb` client, a Python program, and its `idb_companion`, in `PATH` or `SDL3_IOS_IDB`), through which `tools/ios_run.py` touches the simulator's screen and presses its keyboard's keys, for `uikit_input`'s real taps and swipes, `uikit_keyboard`'s real keys and text and `uikit_messagebox`'s tap on a button (see [below](#apple-simulators); not set up for the tvOS and visionOS Simulators, where only `uikit_input`'s real touches on visionOS skip it) |
 | `browser` | Emscripten | a browser the program runs in: headless Chrome or Chromium, through `tools/emscripten_run.py` (see [below](#emscripten-browser)) |
@@ -140,6 +141,21 @@ SDL3_TEST_REQUIRE=x11,xvfb,glx,egl,vulkan,wayland,dbus,pulseaudio,pipewire,alsa,
 xvfb-run -a cargo test --workspace
 # the camera checks (V4L2 and PipeWire):
 SDL3_TEST_REQUIRE=v4l2,camera cargo test --workspace -- --ignored --nocapture
+```
+
+The OpenGL ES 1 renderer's checks need OpenGL ES 1.1, which Mesa's
+Ubuntu packages leave out (they skip, `gles1`); ANGLE has it, over
+SwiftShader. CI takes Chrome for Testing's headless shell's (version and
+checksum in `.github/workflows/ci.yml`), on X11, as the offscreen
+driver needs `EGL_EXT_device_enumeration`, which ANGLE hasn't:
+
+```sh
+curl -fsSLO https://storage.googleapis.com/chrome-for-testing-public/131.0.6778.85/linux64/chrome-headless-shell-linux64.zip
+unzip -q chrome-headless-shell-linux64.zip
+A=$PWD/chrome-headless-shell-linux64
+SDL3_TEST_REQUIRE=gles1,egl SDL_VIDEO_DRIVER=x11 SDL_VIDEO_FORCE_EGL=1 SDL_OPENGL_ES_DRIVER=1 \
+  SDL_EGL_LIBRARY=$A/libEGL.so SDL_OPENGL_LIBRARY=$A/libGLESv2.so ANGLE_DEFAULT_PLATFORM=swiftshader \
+  xvfb-run -a cargo test -p sdl3 --lib render::opengles::
 ```
 
 The uinput joystick test needs `/dev/uinput` (`sudo modprobe uinput`) to be
@@ -920,6 +936,7 @@ idb's real taps and keys:
 | `uikit_messagebox` | yes | | | alert controllers (one tapped through idb) |
 | `uikit_metal` | yes | yes | yes | Metal views, the Metal renderer, the GPU API |
 | `uikit_gles` | yes | yes | | EAGL contexts, the OpenGL ES 2 renderer |
+| `uikit_gles1` | yes | yes | | the OpenGL ES 1 renderer |
 | `uikit_vulkan` | yes | yes | yes | Vulkan surfaces, the Vulkan renderer, the GPU API (word `moltenvk`) |
 | `uikit_audio` | yes | | | the audio session (word `privacy=microphone`) |
 | `uikit_gamepad` | yes | | | MFi controllers, `GCVirtualController` |
@@ -936,8 +953,9 @@ and GameController's coalesced keyboard), and the iOS and tvOS ones no
 GPU the GPU API can use (below). The offscreen driver has no EGL there,
 as on macOS (`egl`). The UIKit video driver only starts in an app, so
 the spawned programs use the offscreen and dummy drivers there, as
-elsewhere (and so its message boxes only show in an app); the OpenGL
-ES 1 renderer isn't translated. What needs a device is in
+elsewhere (and so its message boxes only show in an app), and the
+OpenGL ES 1 renderer's library checks skip (`egl`); `uikit_gles1` draws
+with it on UIKit windows. What needs a device is in
 [iOS, tvOS and visionOS devices](#ios-tvos-and-visionos-devices).
 
 ## iOS Simulator
@@ -1081,7 +1099,9 @@ simulator, an iPhone 16 with iOS 18.5 (with MoltenVK v1.4.2 for
 hashes are of the same pixels (`uikit_gles`'s C program is
 built on an upstream whose GLES2 program cache keeps its list's tail,
 which upstream's loses, freeing an entry twice when the renderer is
-destroyed: the `Note (upstream)` on the Rust cache). The simulator's Metal
+destroyed: the `Note (upstream)` on the Rust cache), and `uikit_gles1`'s
+on one whose OpenGL ES 1 renderer sets its textures' address modes (the
+`FIXME (upstream)` in the Rust renderer). The simulator's Metal
 device is in the Apple1
 family, so the renderer lists the packed 16-bit formats, but its Metal
 refuses them (an assertion ends the process, upstream's too), so they
@@ -1249,8 +1269,8 @@ spawned program as on iOS, without Bluetooth. Of the UIKit programs
   buttons (the menu button the pause button, B) set, closed, opened with
   `SDL_HINT_APPLE_TV_REMOTE_ALLOW_ROTATION`, and none with the joystick
   hint off;
-* `uikit_callbacks`, `uikit_main`, `uikit_metal`, `uikit_gles` and
-  `uikit_vulkan`, as on iOS: the main callbacks; the app delegate, the
+* `uikit_callbacks`, `uikit_main`, `uikit_metal`, `uikit_gles`,
+  `uikit_gles1` and `uikit_vulkan`, as on iOS: the main callbacks; the app delegate, the
   lifecycle (a trip to the background and back), the event pump and
   URLs, without the battery monitoring and the status bar's
   notification; the Metal views and renderer, OpenGL ES contexts with the
@@ -1261,9 +1281,9 @@ spawned program as on iOS, without Bluetooth. Of the UIKit programs
 The C references come from the CI's simulator, an Apple TV 4K (3rd
 generation) with tvOS 18.5, built from upstream's CMake build for the
 tvOS Simulator with OpenGL ES allowed on tvOS (as the Xcode project's
-`SDL_build_config_ios.h` builds it, which the translation follows), and
-without the OpenGL ES 1 renderer in the render drivers' list (it isn't
-translated).
+`SDL_build_config_ios.h` builds it, which the translation follows), so
+with the OpenGL ES 1 renderer, which that build has with OpenGL ES, in
+the render drivers' list (`uikit_tvos`).
 
 ## visionOS Simulator
 
@@ -1748,7 +1768,15 @@ the second window's error, the title, fullscreen, the rotations, a trip
 to the background, an OpenGL window), `android_gles.rs` (OpenGL ES
 through EGL: the attributes, the context, the swap interval, the OpenGL
 ES 2 renderer's scenes against the software renderer's, the context kept
-across a trip to the background), `android_vulkan.rs` (the Vulkan surface
+across a trip to the background), `android_gles1.rs` (the OpenGL ES 1
+renderer on a window it makes an OpenGL ES 1.1 one: the attributes, the
+GL strings and the extensions it looks for, the custom blend modes it
+takes, the scenes against the software renderer's (without render
+targets: the emulator's translator fails `GL_OES_framebuffer_object`,
+which Android doesn't report), a scene drawn while
+the application's own context is current, the context kept across a
+trip to the background, a renderer asked for linear output),
+`android_vulkan.rs` (the Vulkan surface
 of the window, the Vulkan renderer's scenes, the GPU API's swapchain and
 the GPU renderer) and `android_recreate.rs` (the activity recreated by a
 density change, which ends the process). And its input, against
@@ -1929,7 +1957,10 @@ for), and its exit status from the exit line. It installs the package
 without granting its permissions, as the runner's own. Where the Rust
 translation fixes upstream in what a reference traces, the reference is
 built with the same fix applied to upstream's source: the OpenGL ES 2
-renderer's program cache (`android_gles.rs`, as on iOS), and the Vulkan
+renderer's program cache (`android_gles.rs`, as on iOS), the OpenGL ES 1
+renderer's framebuffer object functions tried before they're taken and
+its textures' address modes set (`android_gles1.rs`, as on iOS and
+tvOS), and the Vulkan
 renderer's pre-rotated swapchain and `VK_EXT_4444_formats` formats
 (`android_vulkan.rs`), a physical audio device opened at the spec
 asked for (`android_audio.rs`, `android_audio_opensles.rs`: a stream's
@@ -1956,7 +1987,7 @@ there:
 * the offscreen driver can't draw: Android's EGL has no device platform
   (`EGL_EXT_device_enumeration`), which upstream's offscreen OpenGL ES
   needs (`SDL_EGL_InitializeOffscreen()`), and its Vulkan no
-  `VK_EXT_headless_surface`, so the OpenGL ES 2, Vulkan and GPU
+  `VK_EXT_headless_surface`, so the OpenGL ES 2 and 1, Vulkan and GPU
   renderers' checks and the GPU API's swapchain checks skip (`egl`,
   `vulkan`), as upstream's C does there; they draw on the android video
   driver's windows in the app programs above (the driver needs an app's
@@ -2037,11 +2068,14 @@ released while it is in the background (`setFrozen()`).
 The ubuntu test jobs install the packages above, start the private
 PipeWire server with `tools/ci/start-pipewire.sh` and set
 `SDL3_TEST_REQUIRE=x11,xvfb,glx,egl,vulkan,wayland,dbus,pulseaudio,pipewire,alsa,udev,hidapi,tzdata,locales,android-sdk`,
-so on Linux only the uinput test (the runner can't use `/dev/uinput`) and
-the hardware checks may skip. (`android-sdk`: the runner image's Android
-SDK, whose build-tools' `dexdump`, 35.0.0 in `SDL3_ANDROID_BUILD_TOOLS`,
-checks the DEX file sdl3 writes for its Android apps, and whose NDK's
-`jni.h` the JNI declarations are checked against, on the host.)
+so on Linux only the uinput test (the runner can't use `/dev/uinput`),
+the OpenGL ES 1 renderer's checks (`gles1`: Mesa's packages have no
+OpenGL ES 1) and the hardware checks may skip. (`android-sdk`: the runner
+image's Android SDK, whose build-tools' `dexdump`, 35.0.0 in
+`SDL3_ANDROID_BUILD_TOOLS`, checks the DEX file sdl3 writes for its
+Android apps, and whose NDK's `jni.h` the JNI declarations are checked
+against, on the host.) The OpenGL ES 1 renderer's checks then run again
+on ANGLE, requiring `gles1` (see [Linux](#linux-ubuntu-2404)).
 
 The Windows and macOS jobs install pinned GPU drivers (versions and
 checksums in `.github/workflows/ci.yml`, cached between runs). On Windows
@@ -2054,7 +2088,7 @@ once more without it, requiring `vulkan`; the Cocoa programs find ANGLE in the
 Android emulator the runner image ships. Both fail on any skip of `vulkan`
 and `egl` but the ones by design: the offscreen driver's headless-surface
 check on Windows, those render-state checks on macOS, and the OpenGL and
-OpenGL ES 2 renderers' checks on the offscreen driver, which has no EGL
+OpenGL ES 2 and 1 renderers' checks on the offscreen driver, which has no EGL
 on either. What else a hosted runner offers (audio endpoints, GameInput,
 a camera) isn't guaranteed, so nothing more is required. The
 macOS clippy job also lints the x86-64 build for Intel Macs, and the
