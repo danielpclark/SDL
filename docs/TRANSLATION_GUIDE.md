@@ -528,16 +528,22 @@ functions only the Swift code calls aren't translated.
 
 Android builds and lints, and the tests run on the Android emulator as
 spawned processes and as apps (`tools/android_run.py`: "Android emulator"
-in docs/HARDWARE_TESTING.md). Its platform layer is begun: the JNI layer,
-the app's start and lifecycle, the event pump's Android parts, the log,
-the small backends: the filesystem paths, the assets and
-`content://` files, the locale, URLs, the battery, toasts and permissions,
-and the video driver: its window, its surface, OpenGL ES through EGL and
-Vulkan, its touch, pinch, mouse and pen input, and its keyboard, text
-input and screen keyboard (below), the audio drivers (AAudio and
-OpenSL ES, with the audio manager), the joystick and haptic drivers
-(with the controller manager), the sensor and camera drivers, and
-HIDAPI's backend (with the HID device manager).
+in docs/HARDWARE_TESTING.md). Its platform layer is done, as upstream's
+CMake build has it on Android ([What is built](#what-is-built-1)): the
+JNI layer and upstream's Java (translated to Rust, its classes a DEX file
+written in Rust: there is no Java in the repository), the app's start
+and lifecycle, the event pump's Android parts, the log, the small
+backends: the filesystem paths, the assets and `content://` files, the
+locale, URLs, the battery, toasts and permissions, and the video driver:
+its window, its surface, OpenGL ES through EGL and Vulkan, its touch,
+pinch, mouse and pen input, and its keyboard, text input and screen
+keyboard, the clipboard, message boxes and file dialogs (below), the
+audio drivers (AAudio and OpenSL ES, with the audio manager), the
+joystick and haptic drivers (with the controller manager), the sensor
+and camera drivers, and HIDAPI's backend (with the HID device manager).
+Each is traced against upstream's C on the emulator; what the emulator
+can't exercise is listed in docs/HARDWARE_TESTING.md ("What the emulator
+doesn't cover").
 
 A test that reads its package's files does so at run time, through
 `CARGO_MANIFEST_DIR` (falling back on `env!("CARGO_MANIFEST_DIR")`), which
@@ -593,7 +599,9 @@ device; the same for `CARGO_TARGET_TMPDIR` and `CARGO_BIN_EXE_NAME`.
   (`SDLActivity$1`): they are two classes of the DEX file carrying a Rust
   closure, `SDLNativeRunnable` (a `Runnable`, run once) and
   `SDLNativeListener` (the invocation handler of a
-  `java.lang.reflect.Proxy` of the interface): `java::anonymous`.
+  `java.lang.reflect.Proxy` of the interface): `java::anonymous`. Those
+  that extend an abstract class are classes of their own (see [JNI and
+  DEX conventions](#jni-and-dex-conventions)).
 * An instance field upstream's constructor initializes
   (`SDLActivity.commandHandler`) is set at the start of `onCreate()`
   instead (the constructors have no code of their own here). An app's
@@ -635,6 +643,97 @@ device; the same for `CARGO_TARGET_TMPDIR` and `CARGO_BIN_EXE_NAME`.
 * The log's default output writes to Android's log too
   (`__android_log_write()` of liblog, the tag `SDL/CATEGORY`), then to
   stderr, as upstream's does.
+
+### JNI and DEX conventions
+
+* The DEX writer (`core/android/dex.rs`) writes format 035 (every
+  Android version reads it) from the class table: the identifier lists
+  in the format's orders, a class after its superclass and interfaces,
+  the SHA-1 and Adler-32. The only bytecode is the constructors'
+  (`invoke-direct` of the superclass's) and `SDLActivity`'s static
+  initializer (`System.loadLibrary("main")`): no debug information,
+  annotation or source file. `classes_dex.rs` is generated and checked in;
+  the host test `classes_dex_is_current` fails when it isn't current, and
+  `SDL3_ANDROID_WRITE_DEX=1` writes it again. The writer's output is
+  checked on the host by reading it back and by `dexdump` (the `android-sdk`
+  capability), and in CI by ART's verifier on the emulator (`cmd package
+  compile -m verify -f`).
+* The class table (`core/android/classes.rs`) declares the classes the
+  framework has to find in the app (the manifest's activity, the views,
+  handlers, listeners and receivers it instantiates or calls back), with
+  upstream's names, superclasses and interfaces, and their members in
+  upstream's order: the fields JNI reads or writes, the constructors, and
+  the methods outside code calls. Everything else of upstream's Java is
+  Rust (`core/android/java/`, a module per file); a Java class nothing
+  outside the translation sees isn't in the table (`SDLJoystickHandler`,
+  `SDLHapticHandler` and its `_API26` and `_API31` subclasses are one
+  Rust handler; `HIDDevice` is a Rust trait, `SDLFileDialogState` a Rust
+  struct).
+* Natives: every framework callback (an override, an interface's method)
+  and every one of upstream's `native` methods is `native` in the DEX
+  file, its entry naming the Rust function (`native!`), whose type the
+  descriptor is checked against at compile time. `JNI_OnLoad()` registers
+  them all (`RegisterNatives()`), upstream's `register_methods()` of its
+  tables (`SDLActivity_tab`, `SDLInputConnection_tab`,
+  `SDLAudioManager_tab`, `SDLControllerManager_tab`,
+  `HIDDeviceManager_tab`) and the callbacks with them. An override calls
+  the superclass's method with `CallNonvirtual*Method()` where upstream
+  calls `super`.
+* Static methods declared native: upstream's C calls the static methods
+  of `SDLAudioManager`, `SDLControllerManager` and `HIDDeviceManager`
+  through JNI. Here they are Rust, called as Rust, but the DEX classes
+  declare them native too, implemented by the same Rust functions, so
+  that Java can still call them (the tests do, through JNI, as upstream's
+  C would).
+* An anonymous class can't keep its compiler's name (`SDLActivity$1`).
+  One that implements an interface is a proxy
+  (`java.lang.reflect.Proxy`, its invocation handler the DEX class
+  `SDLNativeListener` with a Rust closure: `java::anonymous::listener()`),
+  or, a `Runnable`, the DEX class `SDLNativeRunnable` (run once). One that
+  extends an abstract framework class, which a proxy can't, is a DEX class
+  of its own name with native overrides: `SDLAudioDeviceCallback`
+  (upstream's `SDLAudioManager$1`, an `AudioDeviceCallback`),
+  `HIDDeviceManagerUsbReceiver` and `HIDDeviceManagerBluetoothReceiver`
+  (`HIDDeviceManager$1` and `$2`, `BroadcastReceiver`s). Upstream's own
+  subclass of one, `HIDDeviceBLESteamController` (a
+  `BluetoothGattCallback`), keeps its name, its constructor the
+  superclass's and the rest of upstream's in Rust.
+* Naming: the classes, fields, natives and signatures are upstream's
+  (they're what the framework, `JNI_OnLoad()` and an app's manifest name);
+  the deviations are the classes above, each a `Note` where it's declared.
+  Rust names follow the Java ones in snake case (`nativeRunMain()` is
+  `native_run_main()`).
+* Markers, as elsewhere (see [Two layers](#two-layers)): `Note`
+  where the translation must differ from upstream's Java or C (a
+  constructor's code run after the object is made, the methods an app's
+  subclass would override fixed, strings read as UTF-16 where upstream
+  reads Modified UTF-8), `Note (upstream)` where upstream's behaviour is
+  kept, or where it would crash and the translation can't (a null
+  `JNIEnv` in a program with no Java VM gives an error or nothing), and
+  `FIXME (upstream)` for an upstream bug, fixed or kept as the comment
+  says; a fix that changes a trace is applied to the C reference's
+  source too (docs/HARDWARE_TESTING.md lists them).
+* Asynchronous callbacks: the framework calls back on its own threads,
+  some time after the call that caused it (the clipboard's listener, the
+  camera manager's availability callbacks, the input device listener,
+  the permission dialog's answer, a surface turning to landscape). A
+  callback can be late or lost, and the two are told apart: a late one
+  is waited for with a deadline, by pumping until the state is reached
+  (never a fixed sleep); a lost one never comes (upstream's clipboard
+  handler removes its listener while it sets the clip, so the update of
+  SDL's own change is lost in about one run of ten: `FIXME (upstream)`),
+  and the test, after its deadline, does what the system would have done
+  and says so on stderr. A callback still running when its subsystem
+  quits is waited for (the camera driver's availability callbacks hold a
+  lock its `deinitialize()` takes: a `Note`, upstream has the same
+  window).
+* Timing-dependent traces: what depends on the emulator's timing (the
+  callbacks' counts, the events around a permission dialog,
+  `LOW_MEMORY`, a swipe's moves, a hot-plugged DualSense's lights and
+  sensors, which pump sees a resume) is left out of the trace (on stderr
+  instead) or compared as a set (a new window's events), and a step whose
+  upstream C trace itself differs between runs isn't traced that way (a
+  blocking background trip with the screen keyboard shown).
 
 ### The video driver
 
@@ -865,9 +964,7 @@ device; the same for `CARGO_TARGET_TMPDIR` and `CARGO_BIN_EXE_NAME`.
 
 ### What is built
 
-As upstream's CMake build for Android, except where Android's own backend
-isn't translated yet, where the dummy one (or none, as upstream without
-it) stands in:
+As upstream's CMake build for Android:
 
 | | Upstream | Here |
 |---|---|---|
@@ -876,7 +973,7 @@ it) stands in:
 | Vulkan | `libvulkan.so` | the same (the offscreen driver's: `FIXME (upstream)`, which tries `libvulkan.so.1`) |
 | renderers | OpenGL ES 2, OpenGL ES, Vulkan, GPU, software | the same (the OpenGL ES 1 renderer on EGL's `EGL_OPENGL_ES_BIT` contexts, client version 1, `libGLESv1_CM.so`; the ndk-build's `SDL_build_config_android.h` leaves it out) |
 | audio | AAudio, OpenSL ES, disk, dummy | the same |
-| joysticks | android, HIDAPI (off by default), virtual | android, HIDAPI with no HID backend (the Android one: later), virtual |
+| joysticks | android, HIDAPI (off by default), virtual | the same (HIDAPI's backend the Android one, `hid.cpp`, with the HID device manager) |
 | haptic | android, HIDAPI | the same |
 | power, locale, URL, filesystem paths, assets | Android's | the same |
 | dialog | Android's | the same |
