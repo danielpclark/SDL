@@ -77,7 +77,7 @@ platform: iOS
 init video and audio: ok
 video driver: uikit; audio driver: coreaudio
 video drivers: uikit, offscreen, dummy
-render drivers: metal, opengles2, vulkan, gpu, software
+render drivers: metal, opengles2, opengles, vulkan, gpu, software
 camera drivers: dummy
 events: KEYBOARD_ADDED, AUDIO_DEVICE_ADDED, AUDIO_DEVICE_ADDED
 application state: 0
@@ -821,14 +821,11 @@ quit
                     .collect()
             )
         ));
-        // (without upstream's OpenGL ES 1 renderer, which isn't translated
-        // yet: its C program leaves it out)
         t(format!(
             "render drivers: {}",
             list(
                 (0..sdl3::render::num_render_drivers())
                     .filter_map(|i| sdl3::render::render_driver(i).ok())
-                    .filter(|&name| name != "opengles")
                     .map(String::from)
                     .collect()
             )
