@@ -62,7 +62,7 @@ MIDI, MP3 and game music by default (`sdl3-mixer-timidity`,
 `sdl3-mixer-fluidsynth`, `sdl3-mixer-mpg123`, `sdl3-mixer-gme`). The
 README's License section lists them, with a note on what the LGPL asks
 of a program that links them statically (as Cargo links every crate),
-and of an app on iOS, tvOS and visionOS.
+and of an app on iOS, tvOS and visionOS, and on Android (below).
 
 ## If you want a different license later
 
@@ -111,10 +111,49 @@ table's slot order, a constant's value), the facts a program needs to
 call it, not the header's expression (its comments, its macros, its
 arrangement). Android's are of this kind: the JNI function tables
 (`sdl3/src/core/android/jni.rs`, whose slot order is checked against the
-NDK's `jni.h`) and the NDK's C interfaces (`ndk.rs`, `<android/log.h>`
-so far) are declared from the NDK's headers, which are under the Apache
-License 2.0 (`jni.h` is libnativehelper's, in AOSP). No NDK code is
-translated or linked in: an app links the NDK's system libraries
-(`liblog`, `libandroid`, ...) as upstream's does, through the NDK's
-stubs, and its DEX file is written by `sdl3/src/core/android/dex.rs` from
-declarations of upstream's own Java classes.
+NDK's `jni.h`) and the NDK's C interfaces upstream includes are declared
+from the NDK's headers: `<android/log.h>`, `<android/asset_manager.h>`,
+`<android/native_window.h>`, `<android/looper.h>` and `<android/sensor.h>`
+(`sdl3/src/core/android/ndk.rs`), `<aaudio/AAudio.h>`
+(`audio/drivers/aaudio/sys.rs`), the OpenSL ES headers
+(`audio/drivers/opensles/sys.rs`), the camera2 and media NDK's
+(`camera/android/sys.rs`), and `AHardwareBuffer_describe()` of
+`<android/hardware_buffer.h>` (the Vulkan renderer). The NDK's headers
+are AOSP's, under the Apache License 2.0 (`jni.h` is libnativehelper's),
+but the OpenSL ES ones, which are the Khronos Group's.
+
+## Android apps
+
+What an Android build of this repository contains, as facts about the
+code (how a license applies to an app is not described here):
+
+* **No Java.** Upstream's Java (android-project's `org.libsdl.app`) is
+  translated to Rust (`sdl3/src/core/android/java/`), as its C is. The
+  classes the Android framework instantiates are declared in
+  `sdl3/src/core/android/classes.rs`, with upstream's names and method
+  signatures, and written as a DEX file by `sdl3/src/core/android/dex.rs`
+  (kept generated in `classes_dex.rs`, in the library's
+  `.sdl3_android_dex` section): their methods are native, implemented in
+  Rust; the only bytecode is the constructors' calls of their
+  superclasses' and `SDLActivity`'s static initializer's
+  `System.loadLibrary("main")`.
+* **The NDK.** Its headers are used for declarations only (above), and
+  it is the linker's toolchain (`tools/android_link.py` runs its clang):
+  nothing is compiled with it, and no NDK code is translated. A program
+  links the
+  device's system libraries through the NDK's stubs: the C library
+  (`libc`, `libm`, `libdl`), and, as upstream links them, `liblog`,
+  `libandroid` and `libOpenSLES`; the others (EGL, OpenGL ES, Vulkan,
+  AAudio, the camera and media NDK) are loaded at run time, as upstream
+  loads them. Linked statically is only what the NDK's clang adds to
+  every program it links for Android: the C runtime's start and end
+  objects, and LLVM's runtime libraries (the unwinder, `libunwind`, which
+  Rust's standard library needs, and compiler-rt's builtins).
+* **One library.** An app's code is its `libmain.so`, the program and
+  every crate it uses, sdl3 among them, linked into it statically, as
+  Cargo links every crate (there is no `libSDL3.so`). So are the LGPL
+  crates of `sdl3-mixer`'s default features
+  (`sdl3-mixer-timidity`, `sdl3-mixer-fluidsynth`, `sdl3-mixer-mpg123`,
+  `sdl3-mixer-gme`) when the program uses them: they are part of
+  `libmain.so`, not separate shared libraries. The README's License
+  section has what that means for relinking and installing.
