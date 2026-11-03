@@ -344,7 +344,10 @@ first-boot setup, are on top until then, and an app launched meanwhile
 may lose the front to them). Before each app is launched, an app of
 another package that has the input focus (a previous program's: Chrome,
 after an SDL_OpenURL(), brings its first-run screen back over later
-apps) is stopped and the launcher brought back. An app that never connected to the runner,
+apps) is stopped and the launcher brought back, and the display is
+waited for to be back in its natural orientation (a previous app that
+turned to landscape leaves it turning back a while after it ends). An app
+that never connected to the runner,
 and whose process is gone 30 s after its launch, is launched once more
 (nothing of the program has run: connecting is the first thing it
 does), with its lines of the device's log and `am start`'s answer
@@ -2732,6 +2735,40 @@ def clear_foreground(serial, package):
     note(f"the launcher {home or '(none)'} didn't get the focus back in 10 s: going on")
 
 
+def display_rotation(serial):
+    """The rotation of the device's display 0 (0 to 3, in quarter turns
+    from its natural orientation), from `dumpsys display`'s DisplayInfo;
+    None when it can't be read."""
+    result = adb_shell(serial, "dumpsys display 2>&1 | grep -m1 -oE 'displayId 0[^}]*rotation [0-3]'", check=False, timeout=60)
+    match = re.search(r"rotation ([0-3])", result.stdout)
+    return int(match.group(1)) if match else None
+
+
+def wait_for_natural_rotation(serial, package):
+    """Before an app is launched: the display back in its natural
+    orientation (for up to 10 s), then half a second more. An app that
+    turned the activity to landscape (a window wider than tall) leaves the
+    display turning back for the launcher a while after it ends, and an
+    app launched meanwhile would lay its first frames out on a landscape
+    display, or with the insets of the turn."""
+    rotation = display_rotation(serial)
+    if rotation is None:
+        if VERBOSE:
+            note("the display's rotation can't be read (dumpsys display): not waited for")
+        return
+    if rotation == 0:
+        return
+    note(f"the display is turned (rotation {rotation}): waiting for its natural orientation before {package} is launched")
+    end = time.monotonic() + 10
+    while time.monotonic() < end:
+        time.sleep(0.25)
+        rotation = display_rotation(serial)
+        if rotation in (0, None):
+            time.sleep(0.5)
+            return
+    note(f"the display is still turned (rotation {rotation}) after 10 s: going on")
+
+
 def launch_command(package, data=None):
     """`am start -W` of the app's activity: as a launcher's icon launches it,
     or, with DATA, as another app's "Open with" does (ACTION_VIEW of the
@@ -2763,6 +2800,7 @@ def run_app(serial, package, listeners, data=None, devices=()):
     for stream in streams:
         selector.register(stream.listener, selectors.EVENT_READ, (stream, "accept"))
     clear_foreground(serial, package)
+    wait_for_natural_rotation(serial, package)
     start = time.monotonic()
     result = adb_shell(serial, launch_command(package, data), check=False, timeout=300)
     launched = result.returncode == 0 and "Error" not in result.stdout + result.stderr
@@ -2958,6 +2996,7 @@ def run_logcat_app(serial, package, timeout, requests):
     try:
         start = time.monotonic()
         clear_foreground(serial, package)
+        wait_for_natural_rotation(serial, package)
         result = adb_shell(serial, launch_command(package, launch_data()), check=False, timeout=300)
         if result.returncode != 0 or "Error" in result.stdout + result.stderr:
             raise Failure(f"am start failed ({result.returncode}): {(result.stderr or result.stdout).strip()}")
