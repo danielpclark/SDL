@@ -1600,10 +1600,12 @@ Two more words shape its package: `assets=DIR`, the files of DIR
 (`assets/...`, with Gradle's time for them, 1981-01-01 01:01:02), and
 `permissions=NAME,...`, the permissions its manifest asks for
 (`android.permission.NAME` for a NAME without a dot), none granted (the
-runner's `permission` request grants one); and one its launch:
+runner's `permission` request grants one); and two its launch:
+`data=URI`, launched as another app's "Open with" launches it
+(`ACTION_VIEW` of the URI; `SDL3_ANDROID_LAUNCH_DATA` for any app), and
 `devices=NAME,...`, devices plugged in before the app is launched and
 unplugged once it ends (`dualsense`, as the `dualsense add` request's;
-`SDL3_ANDROID_LAUNCH_DEVICES` for `--run-apk`'s apps). The runner packages it, with
+`SDL3_ANDROID_LAUNCH_DEVICES` for any app, as `--run-apk`'s). The runner packages it, with
 no Gradle (`tools/android_run.py --apk PROGRAM OUT.apk` writes the package
 alone), with the SDK's build-tools
 (35.0.0 by default, `SDL3_ANDROID_BUILD_TOOLS`) and a platform's
@@ -1673,51 +1675,8 @@ a run when the device's log shows that ART didn't verify the app's classes
 one (a debuggable app's install has none: CI's android job verifies the
 package with `adb shell cmd package compile -m verify -f PACKAGE`, which
 runs dex2oat's `verify` filter, as ART does). An app can ask the
-runner for what only the host can do (`sdl3-android-runner: request WHAT
-[ARGUMENTS]`, `android_support::request()`): `background` (the HOME key),
-`foreground` (the activity launched again), `back` (the BACK key), `input
-ARGUMENTS`, `am ARGUMENTS`, `cmd ARGUMENTS`, `trim-memory LEVEL` (`am
-send-trim-memory`), `night yes|no|auto` (`cmd uimode night`), `locale
-[TAGS]` (`cmd locale set-app-locales`), `logcat TAGS [--grep REGEX]` (the
-app's lines of the device's log), `power ARGUMENTS` (`adb emu power`: the
-emulator's battery), `sensor set NAME VALUES` (`adb emu sensor set`: an
-emulated sensor's values, which it reports from then on, put back as they
-were, `sensor get`, when the run ends), `permission grant|revoke NAME` (`pm grant|revoke`;
-revoking a granted permission ends the app's process, as Android does),
-`permission-dialog allow|deny` (the system's permission dialog's button,
-found in `uiautomator dump`'s view tree, then tapped), `toast` (whether a
-toast of the app's is shown: `dumpsys notification`'s toast queue or
-`dumpsys window`), `top-activity app|other` (the package on top, once it
-is the app's or another's), `rotate 0|1|2|3` (the display's rotation:
-`settings put system user_rotation` with the auto-rotation off),
-`density DPI|reset` (`wm density`, which recreates the activity),
-`ime-with-hard-keyboard yes|no` (whether the input method shows its
-keyboard while there's a hardware keyboard: `settings put secure
-show_ime_with_hard_keyboard`), `ime [shown|hidden]` (`dumpsys
-input_method`'s `mInputShown`, once it is as asked, within 5 s),
-`ui-tap [--long] [--in PACKAGE|app|top] TEXT` (a tap, or a long press, on
-the view of that text, description or resource ID in `uiautomator
-dump`'s view tree, once there is one), `ui-dump [PACKAGE|app|top] [--id
-ID] [--class NAME] [--all]` (the views of a package, their texts, places
-and states), `ui-colors TEXT` (the two most frequent colors of a view's
-place in a screen capture, once it's still), `back-to-app` (BACK while
-another app's activity is on top, until the app's is: never on the app
-itself), `files reset NAME...|list` (a directory of the shared storage's
-Download, `sdl3_dialog`, made with those files, or listed), `view
-URI` (`ACTION_VIEW` of the URI, to the running activity), `gamepad
-add|key|abs|vibrating|remove` (a gamepad made by the device's `uinput`
-command, `uinput -` run as the shell user and kept running: plugged in,
-its buttons and axes as evdev events, whether the input reader has it
-vibrating, unplugged), `dualsense add|sensors|vibrating|remove` (a
-DualSense made by the device's `hid` command, which the kernel's
-hid-playstation driver serves: its sensors' input reports, and on removal
-the lightbar and motors its output reports set) and `vibrations` (the
-app's recent vibrations of the system's vibrator), the rotation, the
-density, the input method's setting and the files put back as they were,
-and the gamepads unplugged, when the run ends; the runner answers each on the app's stdout
-socket when it's done (`sdl3-android-runner: reply LINE` for the log's lines,
-then `sdl3-android-runner: done`), which `request()` returns. An app's
-process the system thinks cached is frozen about ten seconds after it
+runner for what only the host can do ([below](#the-runners-requests)).
+An app's process the system thinks cached is frozen about ten seconds after it
 leaves the foreground, so a program waits in the background no longer
 than that; so is one none of whose activities is left (once BACK
 finishes the activity, `main` goes on): the runner checks for that every
@@ -1730,7 +1689,78 @@ whose app is frozen at two checks in a row, rather than wait for its
 waits for the app's process to end (up to a minute), and fails the run if
 it doesn't.
 
-The app programs so far: `sdl3/tests/android_runner.rs` (the runner's
+### The runner's requests
+
+An app asks with a line `sdl3-android-runner: request WHAT [ARGUMENTS]`
+(`android_support::request()`; ARGUMENTS are shell words), and the
+runner answers on the app's stdout socket once it's done
+(`sdl3-android-runner: reply LINE` for each line of the answer, then
+`sdl3-android-runner: done`), which `request()` returns:
+
+| Request | What the runner does |
+|---|---|
+| `background` | the HOME key |
+| `foreground` | the app's activity launched again (the same process) |
+| `back` | the BACK key |
+| `input ARGUMENTS`, `am ARGUMENTS`, `cmd ARGUMENTS` | `adb shell input`, `am`, `cmd` with those arguments |
+| `trim-memory [LEVEL]` | `am send-trim-memory` (`RUNNING_LOW` by default) |
+| `night yes\|no\|auto` | `cmd uimode night`: the system's dark mode |
+| `locale [TAGS]` | `cmd locale set-app-locales`: the app's own locales (none: the system's) |
+| `logcat TAGS [--grep REGEX]` | the app's lines of the device's log with those tags (those REGEX matches) |
+| `power ARGUMENTS` | `adb emu power`: the emulator's battery |
+| `sensor set NAME VALUES` | `adb emu sensor set`: an emulated sensor's values, which it reports from then on |
+| `permission grant\|revoke NAME` | `pm grant\|revoke` (revoking a granted permission ends the app's process, as Android does) |
+| `permission-dialog allow\|deny` | the system's permission dialog's button, found in `uiautomator dump`'s view tree, tapped |
+| `toast` | whether a toast of the app's is shown (`dumpsys notification`'s toast queue, or `dumpsys window`) |
+| `top-activity app\|other` | the package on top, once it is the app's or another's |
+| `rotate 0\|1\|2\|3` | the display's rotation (`settings put system user_rotation`, with the auto-rotation off) |
+| `density DPI\|reset` | `wm density`, which recreates the activity |
+| `ime-with-hard-keyboard yes\|no` | whether the input method shows its keyboard while there's a hardware keyboard (`settings put secure show_ime_with_hard_keyboard`) |
+| `ime [shown\|hidden]` | `dumpsys input_method`'s `mInputShown`, once it is as asked (within 5 s) |
+| `ui-tap [--long] [--in PACKAGE\|app\|top] TEXT` | a tap, or a long press, on the view of that text, description or resource ID in `uiautomator dump`'s view tree, once there is one |
+| `ui-dump [PACKAGE\|app\|top] [--id ID] [--class NAME] [--all] [--no-bounds]` | a package's views, their texts, places and states |
+| `ui-colors TEXT` | the two most frequent colors of a view's place in a screen capture, once it's still |
+| `back-to-app` | BACK while another app's activity is on top, until the app's is (never on the app itself) |
+| `files reset NAME...\|list` | a directory of the shared storage's Download, `sdl3_dialog`, made with those files, or listed |
+| `view URI` | `ACTION_VIEW` of the URI, to the running activity (another app's "Open with" while it runs) |
+| `gamepad add [NAME]`, `gamepad key\|abs CODE VALUE...`, `gamepad vibrating yes\|no`, `gamepad remove` | a USB gamepad (1209:5d3a: eleven buttons, six axes, a hat, `FF_RUMBLE`) made by the device's `uinput -`, run as the shell user and kept running: plugged in, its evdev events, whether the input reader has it vibrating, unplugged |
+| `dualsense add`, `dualsense sensors GX GY GZ AX AY AZ`, `dualsense vibrating yes\|no`, `dualsense remove` | a DualSense (054c:0ce6) made by the device's `hid -` (a uhid device), which the kernel's hid-playstation driver serves: plugged in, its sensors' input report, whether it's vibrating, and on removal the lightbar color and the motors' values its output reports set |
+| `vibrations` | the app's recent vibrations of the system's vibrator (`dumpsys vibrator_manager`): their usage, how each ended, the effect played |
+
+The sensors' values, the rotation, the density, the input method's
+setting and the files are put back as they were, and the gamepads
+unplugged, when the run ends.
+
+### The app programs
+
+Every program `sdl3/tests/android_*.rs` but `android_spawned` is an app
+(the words its `.sdl3_runner` section holds), and every one but
+`android_runner`, `android_spawned` and `android_jni` traces what it does
+against upstream's C (see [The C references](#the-c-references)):
+
+| Program | Words | What it covers |
+|---|---|---|
+| `android_runner` | `app` | the runner's app mode (`android_spawned`, spawned, is its twin) |
+| `android_jni` | `app` | the JNI layer's checks that need an app's Java VM |
+| `android_main` | `app` | an app's main and lifecycle, the log, SDL_system.h's functions, the back button |
+| `android_backends` | `app assets=tests/android_assets permissions=READ_CONTACTS,READ_CALENDAR` | the filesystem paths, the assets, `content://` files, the storages, the locale, the battery, a toast, URLs, permissions |
+| `android_video` | `app` | the display, the window, fullscreen, the rotations, a trip to the background, an OpenGL window |
+| `android_gles` | `app` | OpenGL ES through EGL, the OpenGL ES 2 renderer |
+| `android_gles1` | `app` | the OpenGL ES 1 renderer |
+| `android_vulkan` | `app` | the Vulkan surface and renderer, the GPU API's swapchain, the GPU renderer |
+| `android_recreate` | `app` | the activity recreated by a density change |
+| `android_input` | `app` | touch, the pinch, the mouse, the pen, cursors, the relative mode |
+| `android_keyboard` | `app` | keys, text input, the screen keyboard |
+| `android_clipboard` | `app` | the clipboard |
+| `android_messagebox` | `app` | message boxes, the assertion's box |
+| `android_dialog` | `app data=file:///sdcard/Download/sdl3_dialog/dropped.txt` | "Open with"'s drop, the file dialogs |
+| `android_audio`, `android_audio_opensles` | `app permissions=RECORD_AUDIO` | AAudio, OpenSL ES (the same program, `android_audio_app/`) |
+| `android_joystick` | `app devices=dualsense` | the joystick and haptic drivers |
+| `android_sensor` | `app` | the sensor driver |
+| `android_camera` | `app permissions=CAMERA` | the camera driver |
+| `android_hidapi` | `app devices=dualsense permissions=BLUETOOTH_CONNECT` | HIDAPI's backend and the HID device manager (a device check with `SDL3_HIDAPI_DEVICE=1`: [below](#a-usb-or-bluetooth-le-controller-hidapi)) |
+
+What each checks: `sdl3/tests/android_runner.rs` (the runner's
 app mode: the process, the SDL thread, `main`'s arguments, the
 variables, the arguments, both streams, the exit status;
 `android_spawned.rs` is its spawned twin) and `android_jni.rs`, which runs
@@ -1761,8 +1791,9 @@ the file operations on both, a `content://` file of `MediaStore`'s, the
 title storage on the assets and the user storage on the pref path, a
 toast, URLs (with the activity that answers), and permissions
 (`pm grant` and `revoke`, a request granted at once, two answered through
-the system's dialog, one the manifest doesn't ask for). The video
-driver's, against upstream's C too: `android_video.rs` (the display, its
+the system's dialog, one the manifest doesn't ask for).
+
+The video driver's, against upstream's C too: `android_video.rs` (the display, its
 modes, orientations and content scale, the window and its properties,
 the second window's error, the title, fullscreen, the rotations, a trip
 to the background, an OpenGL window), `android_gles.rs` (OpenGL ES
@@ -1779,8 +1810,9 @@ trip to the background, a renderer asked for linear output),
 `android_vulkan.rs` (the Vulkan surface
 of the window, the Vulkan renderer's scenes, the GPU API's swapchain and
 the GPU renderer) and `android_recreate.rs` (the activity recreated by a
-density change, which ends the process). And its input, against
-upstream's C too: `android_input.rs`, with real input (the runner's
+density change, which ends the process).
+
+And its input, against upstream's C too: `android_input.rs`, with real input (the runner's
 `input` requests: `adb shell input`'s tap and swipe, the mouse's tap and
 wheel, the stylus's tap) and, for what `input` can't make (it has one
 pointer, the mouse's primary button or none, no pressure, hovering,
@@ -1795,7 +1827,9 @@ pointer, the stylus's hovering, pressure, button and eraser); the touch
 devices and mice, `SDL_HINT_TOUCH_MOUSE_EVENTS` and
 `SDL_HINT_MOUSE_TOUCH_EVENTS` on and off, the cursors (the surface's
 pointer icon, `View.getPointerIcon()`) and the relative mode (the pointer
-captured, `View.hasPointerCapture()`). And `android_keyboard.rs`: real
+captured, `View.hasPointerCapture()`).
+
+And `android_keyboard.rs`: real
 keys (the runner's `input keyevent`, `keycombination` and `text`, which
 reach the focused view through the framework: the surface, or the text
 edit once text input has started; BACK with the back button's trap on,
@@ -1811,8 +1845,9 @@ an input method does (`commitText()`, `setComposingText()`,
 the text edit's input connection, its `onCreateInputConnection()`'s,
 called on SDL's thread), with `SDL_HINT_RETURN_KEY_HIDES_IME` off and on;
 and the text input properties' input types (the `EditorInfo` the text
-edit fills). And the video driver's clipboard, message boxes and file
-dialogs, against upstream's C too: `android_clipboard.rs` (text set,
+edit fills).
+
+And the video driver's clipboard, message boxes and file dialogs, against upstream's C too: `android_clipboard.rs` (text set,
 read and tested through SDL, the app's own data in another MIME type,
 each with its `CLIPBOARD_UPDATE` events and the system's clip as the
 `ClipboardManager` has it; and the system's clip changed from outside
@@ -1828,8 +1863,9 @@ default assertion handler's box) and `android_dialog.rs` (launched as
 another app's "Open with" launches it, the program's word `data=URI`:
 the drop, lost upstream as it comes before `SDL_main`; then each file
 dialog answered in the documents' picker by real taps on the files and
-buttons the runner finds in its view tree, or BACK, its cancel path). And
-the audio drivers, against upstream's C too: `android_audio.rs` (AAudio,
+buttons the runner finds in its view tree, or BACK, its cancel path).
+
+And the audio drivers, against upstream's C too: `android_audio.rs` (AAudio,
 the default) and `android_audio_opensles.rs` (OpenSL ES, asked for with
 `SDL_AUDIO_DRIVER`), the same program (`android_audio_app/`), in an app
 whose manifest asks for `RECORD_AUDIO` (the word
@@ -1851,8 +1887,9 @@ pump pauses the devices: AAudio's both, OpenSL ES's player only), then
 with the pump not blocking (nothing paused). Without a Java VM, the
 library's tests open both drivers' playback devices and play a stream
 through them in a spawned program, where recording fails (the
-permission's request needs the app). And the joystick and haptic
-drivers, against upstream's C too: `android_joystick.rs`, the joysticks
+permission's request needs the app).
+
+And the joystick and haptic drivers, against upstream's C too: `android_joystick.rs`, the joysticks
 there are at the start (the emulator's keyboard, `qwerty2`, whose d-pad
 makes it one: upstream's C counts it too), the system's vibrator as the
 haptic device (its simple rumble and a left/right effect, and what the
@@ -1886,8 +1923,9 @@ joystick handler keeps what it found then, as upstream's does. The
 library's tests
 (`joystick/android/tests.rs`, `haptic/android/tests.rs`) check the drivers
 in a spawned program, the devices added and moved as the Java handlers'
-natives would. And the sensor and camera drivers, against upstream's C
-too: `android_sensor.rs`, the sensor manager's sensors (the emulator's,
+natives would.
+
+And the sensor and camera drivers, against upstream's C too: `android_sensor.rs`, the sensor manager's sensors (the emulator's,
 with Android's software ones) and their types, the accelerometer, the
 gyroscope and the light sensor opened and their values set by the
 runner's `sensor set` (the first event with those values, all six of its
@@ -1913,8 +1951,9 @@ many failed. The library's tests (`sensor/android/tests.rs`,
 `camera/android/tests.rs`) check both drivers in a spawned program,
 where the sensor manager needs no Java VM (an accelerometer at rest
 reports gravity) and the cameras are listed but can't be opened (the
-permission's request needs the app). And HIDAPI's backend with the HID
-device manager, against upstream's C too: `android_hidapi.rs` (whose
+permission's request needs the app).
+
+And HIDAPI's backend with the HID device manager, against upstream's C too: `android_hidapi.rs` (whose
 manifest asks for `BLUETOOTH_CONNECT`, which the runner grants first,
 and which runs with the DualSense plugged in), the HID library started
 with `SDL_HINT_JOYSTICK_HIDAPI_STEAM` (the manager's USB part, and its
@@ -1943,6 +1982,8 @@ feature report's copy, the open handshake, the interfaces the manager
 takes, the Steam Controller's names and its characteristics' report IDs
 in a spawned program.
 
+### The C references
+
 The expected traces of the app programs are upstream's C SDL's: the same
 program in C, as upstream's android-project's app (built with Gradle,
 CMake and the NDK, outside the repository), run on the same emulator with
@@ -1970,6 +2011,20 @@ past the metadata entry's data). The camera's reference's manifest asks
 for `CAMERA` (upstream's android-project has it commented out), the
 HIDAPI one's for `BLUETOOTH_CONNECT` (commented out too), which runs with
 the DualSense plugged in (`SDL3_ANDROID_LAUNCH_DEVICES=dualsense`).
+
+The C programs and their builds aren't in the repository, which holds no
+C or Java: each was built as upstream's android-project's app (its
+`SDL_main` the C program, its manifest's permissions those the Rust
+program's words ask for) with Gradle, CMake building upstream's SDL and
+the program (`./gradlew` with `-PBUILD_WITH_CMAKE`), patched as above,
+and run by `--run-apk` on the same emulator as the Rust programs, in a
+diagnostic branch's CI job; this repository's CI doesn't build or run
+them. Their output is the expected trace each Rust program holds. To
+make one again: the same build, then `--run-apk` on the package Gradle
+makes, with `SDL3_ANDROID_LAUNCH_DEVICES` and `SDL3_ANDROID_LAUNCH_DATA`
+for the Rust program's `devices=` and `data=` words.
+
+### Spawned programs
 
 What runs where, in spawned programs: everything pure (the satellites'
 decoders, the converters, the parsers), the file operations, threads,
@@ -2017,6 +2072,54 @@ execs on Android; each test alone, or all with `--test-threads=1`, passes,
 running the arm64 or the x86-64 `shadercross`), so CI doesn't run it
 translated.
 
+### What the emulator doesn't cover
+
+The app programs run on one virtual device: API 35, x86-64 (arm64
+through the ARM translation), SwiftShader's GPU, the emulated cameras
+and sensors. What it can't make is translated but not exercised:
+
+* the 32-bit ABIs (the API 35 image runs no 32-bit programs: CI lints
+  and checks them only), and other API levels' paths (the haptic
+  handler's before API 31, `SDLHapticHandler` and `_API26`; the motion
+  listeners' before API 29; the clipboard's before API 28; the SDL
+  thread's start in `onResume()` before API 24; Bluetooth's permissions
+  before API 31);
+* real input beyond `adb shell input`'s one pointer: several fingers, the
+  pinch, pressure, hovering, the eraser, the captured pointer and the
+  input method's calls are stand-ins dispatched to the views, and the
+  clipboard's changes from outside SDL the program's own
+  `ClipboardManager` calls;
+* audio devices but the defaults: upstream's
+  `ALLOW_MULTIPLE_ANDROID_AUDIO_DEVICES` is 0, so the hotplug path isn't
+  reached, and AAudio's lost device (its error callback and the stream's
+  rebuild) can't be made; OpenSL ES's recorder isn't paused in the
+  background (as upstream's);
+* controllers but a uinput gamepad and a uhid DualSense: real
+  controllers' quirks, the Nintendo controllers' sensor axis order and the
+  Joy-Cons' mappings (and their hint), a device plugged in while Android
+  is still naming it (handled for the DualSense plugged in before the
+  launch only); a hot-plugged DualSense's lights and sensors depend on
+  whether Android has added them when it announces the device, so they
+  aren't traced;
+* HIDAPI's USB part (no USB host or devices: the permission's dialog, the
+  attach and detach broadcasts, transfers, the input thread, `setFrozen()`
+  with a device) and its Bluetooth part (nothing bonded: GATT, the ACL
+  broadcasts, reconnecting): the backend is traced through the manager's
+  natives, called as its Java calls them;
+* cameras but the emulator's two: their hotplug, `onDisconnected` and
+  `onError`, LEGACY cameras, rotations other than the portrait one, a
+  trip to the background with a camera open;
+* the OpenGL ES 1 renderer's render targets (the emulator's translator
+  fails `GL_OES_framebuffer_object`);
+* the screen keyboard through a blocking trip to the background (upstream's
+  C trace differs between runs there; the keyboard's restore is checked
+  through a rotation).
+
+Seen on a freshly booted emulator: `cargo test -p sdl3 --lib` run first
+can end in a segmentation fault in a binder thread (`RefBase::decStrong`
+on null in `joinThreadPool`), not yet understood; the default order of
+`--workspace` passes.
+
 ### Android device
 
 The runner runs programs on a device as on the emulator: one that adb
@@ -2061,7 +2164,19 @@ emulator hasn't is checked only by hand: a device unplugged while open
 of the enumeration), a Steam Controller connecting and disconnecting
 (the ACL broadcasts), feature reports answered over USB (class requests)
 and Bluetooth (the report characteristic), and the app's controllers
-released while it is in the background (`setFrozen()`).
+released while it is in the background (`setFrozen()`). This check
+hasn't been run on a device yet.
+
+#### What else needs a device
+
+Nothing else has a device check yet. What a device has and the emulator
+hasn't (its own cameras, sensors and vibrators, audio devices, input
+methods, real controllers, Bluetooth) runs through the same drivers,
+but the app programs' expected traces are the emulator's, so on a device
+they fail where it differs, and a check of its own is still to be
+written for each. The 32-bit ABIs need a device (or an image) with a
+32-bit ABI, and the paths of other API levels a device or image of that
+level.
 
 ## CI
 
@@ -2075,7 +2190,9 @@ image's Android SDK, whose build-tools' `dexdump`, 35.0.0 in
 `SDL3_ANDROID_BUILD_TOOLS`, checks the DEX file sdl3 writes for its
 Android apps, and whose NDK's `jni.h` the JNI declarations are checked
 against, on the host.) The OpenGL ES 1 renderer's checks then run again
-on ANGLE, requiring `gles1` (see [Linux](#linux-ubuntu-2404)).
+on ANGLE (Chrome for Testing's headless shell, pinned and checked against
+its SHA-256, its download retried as the emulator's are), requiring
+`gles1` (see [Linux](#linux-ubuntu-2404)).
 
 The Windows and macOS jobs install pinned GPU drivers (versions and
 checksums in `.github/workflows/ci.yml`, cached between runs). On Windows
@@ -2125,12 +2242,15 @@ The `android` job runs the tests on the Android emulator as
 opens `/dev/kvm` to the runner's user). The emulator (build 16428233,
 37.2.12.0) and the system image (API 35 Google APIs x86-64, revision 9)
 come from the SDK repository's archives, checked against their SHA-256
-(sdkmanager would install only the newest ones), with `libpulse0` from
+(sdkmanager would install only the newest ones) and each downloaded with
+up to five retries, with `libpulse0` from
 apt, and the NDK r29 the runner image has, in `SDL3_ANDROID_NDK` (the
 image's `ANDROID_NDK_ROOT` is r27). Nothing of the emulator is cached:
 the image and a booted device's snapshot would take 4 GB of the
 repository's 10 GB of cache to save about 40 s, and the emulator boots
-cold while the programs build (`tools/android_run.py --boot`). The job
+cold while the programs build (`tools/android_run.py --boot`). The
+runner image's toolchains the job doesn't use are removed first: the
+virtual device's data partition takes 14.4 GB of the disk. The job
 runs `cargo test --workspace --target x86_64-linux-android` (the app
 programs as apps, packaged with the runner image's build-tools 35.0.0 and
 android-35 platform), then the app mode once more, with arguments and a
