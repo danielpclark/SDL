@@ -2736,37 +2736,40 @@ def clear_foreground(serial, package):
 
 
 def display_rotation(serial):
-    """The rotation of the device's display 0 (0 to 3, in quarter turns
-    from its natural orientation), from `dumpsys display`'s DisplayInfo;
-    None when it can't be read."""
-    result = adb_shell(serial, "dumpsys display 2>&1 | grep -m1 -oE 'displayId 0[^}]*rotation [0-3]'", check=False, timeout=60)
-    match = re.search(r"rotation ([0-3])", result.stdout)
-    return int(match.group(1)) if match else None
+    """The rotation of the device's display (0 to 3, in quarter turns from
+    its natural orientation: `dumpsys window`'s DisplayRotation
+    `mRotation`), and whether a turn is still under way (an
+    `AsyncRotationController` listed); (None, False) when it can't be
+    read."""
+    result = adb_shell(serial, "dumpsys window 2>&1 | grep -E '^ *mRotation=[0-3]|AsyncRotationController'", check=False, timeout=60)
+    match = re.search(r"mRotation=([0-3])", result.stdout)
+    turning = "AsyncRotationController" in result.stdout
+    return (int(match.group(1)) if match else None, turning)
 
 
 def wait_for_natural_rotation(serial, package):
     """Before an app is launched: the display back in its natural
-    orientation (for up to 10 s), then half a second more. An app that
-    turned the activity to landscape (a window wider than tall) leaves the
-    display turning back for the launcher a while after it ends, and an
-    app launched meanwhile would lay its first frames out on a landscape
-    display, or with the insets of the turn."""
-    rotation = display_rotation(serial)
+    orientation, with no turn under way (for up to 10 s), then half a
+    second more. An app that turned the activity to landscape (a window
+    wider than tall) leaves the display turning back for the launcher a
+    while after it ends, and an app launched meanwhile would lay its first
+    frames out on a landscape display, or with the insets of the turn."""
+    rotation, turning = display_rotation(serial)
     if rotation is None:
         if VERBOSE:
-            note("the display's rotation can't be read (dumpsys display): not waited for")
+            note("the display's rotation can't be read (dumpsys window): not waited for")
         return
-    if rotation == 0:
+    if rotation == 0 and not turning:
         return
-    note(f"the display is turned (rotation {rotation}): waiting for its natural orientation before {package} is launched")
+    note(f"the display is turned (rotation {rotation}{', turning' if turning else ''}): waiting for its natural orientation before {package} is launched")
     end = time.monotonic() + 10
     while time.monotonic() < end:
         time.sleep(0.25)
-        rotation = display_rotation(serial)
-        if rotation in (0, None):
+        rotation, turning = display_rotation(serial)
+        if rotation in (0, None) and not turning:
             time.sleep(0.5)
             return
-    note(f"the display is still turned (rotation {rotation}) after 10 s: going on")
+    note(f"the display is still turned (rotation {rotation}{', turning' if turning else ''}) after 10 s: going on")
 
 
 def launch_command(package, data=None):
