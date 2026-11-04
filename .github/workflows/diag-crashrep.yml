@@ -1,0 +1,22 @@
+name: diag-crashrep
+# Throwaway: tools/ci/macos-crash-reports.sh on a real runner's reports.
+on:
+  push:
+    branches: ["claude/diag-crashrep"]
+permissions:
+  contents: read
+jobs:
+  crash:
+    runs-on: macos-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - name: Crash two processes
+        run: |
+          ls -la ~/Library/Logs/DiagnosticReports /Library/Logs/DiagnosticReports || true
+          python3 -c 'import ctypes; ctypes.string_at(0)' || echo "segv exit $?"
+          python3 -c 'import os; os.abort()' || echo "abort exit $?"
+      - name: Print the crash reports
+        run: |
+          tools/ci/macos-crash-reports.sh
+          ls -la ~/Library/Logs/DiagnosticReports /Library/Logs/DiagnosticReports || true
