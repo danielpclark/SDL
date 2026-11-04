@@ -1,0 +1,153 @@
+# Throwaway diag workflow (never merged): CI's kmsdrm job, unchanged, on
+# the other card layout simulated first.
+name: kmsdrm-layout
+
+on:
+  push:
+    branches: ['claude/diag-kmsdrm-layout*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  RUST_TOOLCHAIN: "1.99"
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
+  RUST_BACKTRACE: 1
+  # MoltenVK's release, pinned, for the macOS job (its MoltenVK-macos.tar)
+  # and the Simulator jobs (its MoltenVK-all.tar, the only archive of the
+  # release with the Simulators' frameworks)
+  MOLTENVK_VERSION: v1.4.2
+  MOLTENVK_ALL_SHA256: 562a15a29bc358446a56a4091c5f7e08f604184187c1d34f712148b61ef17276
+
+jobs:
+  kmsdrm:
+    name: test (KMS/DRM on vkms, as root on tty3)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    env:
+      RUST_TEST_NOCAPTURE: 1
+      SDL_ASSERT: abort
+      SDL3_CONSOLE_TIMEOUT: 300
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: kmsdrm
+      # libdrm, libgbm, EGL and Mesa's DRM drivers (kms_swrast, llvmpipe),
+      # the Vulkan loader and Mesa's Vulkan drivers (lavapipe)
+      - name: Install the test environment
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libdrm2 libgbm1 libegl1 libegl-mesa0 libgl1 libgles2 \
+            libgl1-mesa-dri libudev1 libvulkan1 mesa-vulkan-drivers
+      - name: Simulate the other card layout (diag)
+        shell: bash
+        run: |
+          ls -l /dev/dri
+          ls /sys/class/drm
+          sudo rmmod hyperv_drm || echo "(no hyperv_drm to remove)"
+          sudo modprobe vgem
+          for i in $(seq 1 100); do [ -e /dev/dri/card0 ] && break; sleep 0.1; done
+          ls -l /dev/dri
+          ls /sys/class/drm
+      - name: Load vkms
+        shell: bash
+        run: |
+          # The vkms card: the one whose DRM driver (the first word of its
+          # debugfs dri/N/name) is vkms, SDL_KMSDRM_DEVICE_INDEX for the
+          # steps after. (Its sysfs device is a faux device, whose driver
+          # link is faux_driver's; the runner and the programs ask the card
+          # itself, DRM_IOCTL_VERSION.)
+          sudo mount -t debugfs none /sys/kernel/debug 2> /dev/null || true
+          sudo modprobe vkms enable_cursor=1 enable_overlay=1
+          card=""
+          for i in $(seq 1 100); do
+            for dev in /sys/class/drm/card[0-9]*; do
+              n="${dev##*/card}"
+              case "$n" in *-*) continue ;; esac
+              if [ "$(sudo cat "/sys/kernel/debug/dri/$n/name" 2> /dev/null | cut -d ' ' -f 1)" = vkms ]; then
+                card="$n"
+                break 2
+              fi
+            done
+            sleep 0.1
+          done
+          ls -l /dev/dri
+          for dev in /sys/class/drm/card[0-9]*; do
+            n="${dev##*/card}"
+            case "$n" in *-*) continue ;; esac
+            echo "card$n: $(sudo cat "/sys/kernel/debug/dri/$n/name" 2> /dev/null || echo '?'), $(readlink -f "$dev/device")"
+          done
+          grep -H . /sys/class/drm/card*-*/status || true
+          test -n "$card"
+          test -e "/dev/dri/card$card"
+          sudo test -d "/sys/kernel/debug/dri/$card/crtc-0/crc"
+          echo "the vkms card: card$card"
+          echo "SDL_KMSDRM_DEVICE_INDEX=$card" >> "$GITHUB_ENV"
+      # As in the test job: /dev/uinput, and the event nodes of the tests'
+      # devices (named "SDL..."), opened to everyone (the programs run as
+      # root anyway).
+      - name: Enable uinput
+        run: |
+          printf '%s\n' 'KERNEL=="uinput", SUBSYSTEM=="misc", MODE="0666", OPTIONS+="static_node=uinput"' \
+            'SUBSYSTEM=="input", KERNEL=="event*|js*", ATTRS{name}=="SDL*", MODE="0666"' |
+            sudo tee /etc/udev/rules.d/99-sdl3-uinput.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=uinput
+          sudo udevadm settle
+          ls -l /dev/uinput
+      - name: cargo test the KMS/DRM programs on tty3, as root
+        shell: bash
+        run: |
+          # (cargo as the runner user, the programs as root: each starts
+          # itself under the runner; the skip log made by the runner user,
+          # for the steps after, root appending to it)
+          : > "$SDL3_TEST_SKIP_LOG"
+          cargo test -p sdl3 --test kmsdrm_video --test kmsdrm_gles --test kmsdrm_cursor \
+            --test kmsdrm_input --test kmsdrm_vulkan --no-run --message-format=json > "$RUNNER_TEMP/kmsdrm.json"
+          for program in kmsdrm_video kmsdrm_gles kmsdrm_cursor kmsdrm_input kmsdrm_vulkan; do
+            exe="$(python3 -c 'import json, sys; [print(m["executable"]) for m in map(json.loads, open(sys.argv[1])) if m.get("reason") == "compiler-artifact" and m.get("executable") and m["target"]["name"] == sys.argv[2]]' "$RUNNER_TEMP/kmsdrm.json" "$program")"
+            test -n "$exe"
+            echo "== $program"
+            sudo env SDL3_TEST_REQUIRE="$SDL3_TEST_REQUIRE" SDL_ASSERT="$SDL_ASSERT" \
+              SDL_KMSDRM_DEVICE_INDEX="$SDL_KMSDRM_DEVICE_INDEX" SDL3_CONSOLE_TIMEOUT="$SDL3_CONSOLE_TIMEOUT" \
+              SDL3_TEST_SKIP_LOG="$SDL3_TEST_SKIP_LOG" RUST_BACKTRACE=1 "$exe" > "$RUNNER_TEMP/$program.log" 2>&1 || {
+              grep -av '^trace: \|^sdl3-console-runner: ' "$RUNNER_TEMP/$program.log" | tail -80
+              exit 1
+            }
+            grep -a "^$program: \|^rust: \|^note: " "$RUNNER_TEMP/$program.log" || true
+          done
+        env:
+          SDL3_TEST_REQUIRE: kmsdrm,vt,uinput,egl
+          SDL3_TEST_SKIP_LOG: ${{ runner.temp }}/skips.tsv
+      - name: List the skipped checks
+        if: always()
+        shell: bash
+        env:
+          SDL3_TEST_SKIP_LOG: ${{ runner.temp }}/skips.tsv
+        run: tools/ci/list-skips.sh "$SDL3_TEST_SKIP_LOG" "KMS/DRM on vkms"
+      # The skip by design: Vulkan surfaces on the card (kmsdrm_vulkan's
+      # surface, swapchain and renderers drawing on it), which lavapipe
+      # can't make (it enumerates no displays on vkms, and upstream's
+      # surface takes an integrated or discrete GPU only): kmsdrm_hardware's
+      # check. Any other skip fails the job.
+      - name: Check the skips
+        if: always()
+        shell: bash
+        env:
+          SDL3_TEST_SKIP_LOG: ${{ runner.temp }}/skips.tsv
+        run: |
+          [ -e "$SDL3_TEST_SKIP_LOG" ] || touch "$SDL3_TEST_SKIP_LOG"
+          awk -F '\t' '
+            $1 == "vulkan" && $2 == "kmsdrm_vulkan" && index($3, "by design: no display plane surface on this card ") == 1 { next }
+            { print }' "$SDL3_TEST_SKIP_LOG" > "$RUNNER_TEMP/unexpected.tsv"
+          if [ -s "$RUNNER_TEMP/unexpected.tsv" ]; then
+            cat "$RUNNER_TEMP/unexpected.tsv"
+            echo "::error::checks skipped other than kmsdrm_vulkan's Vulkan surfaces, by design (above)"
+            exit 1
+          fi
