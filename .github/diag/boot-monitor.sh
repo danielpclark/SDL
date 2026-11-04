@@ -27,7 +27,10 @@ for i in $(seq 1 "$n"); do
     dumpsys window displays 2>&1 | grep -m1 -oE "DisplayCutout\{[^}]*\}" | cut -c1-200
     wm size | tr "\n" " "; echo
   ' 2>&1 | tr -d '\r')
-  up=$(timeout 10 "$ADB" -s "$S" shell cut -d' ' -f1 /proc/uptime 2>/dev/null | tr -d '\r')
+  up=$(timeout 10 "$ADB" -s "$S" shell 'cut -d " " -f1 /proc/uptime' 2>/dev/null | tr -d '\r')
+  if [ "$i" = 1 ]; then
+    timeout 30 "$ADB" -s "$S" shell 'for n in global secure system; do settings list $n | sed "s/^/$n /"; done; getprop' > "/tmp/diag-$label-first.txt" 2>&1
+  fi
   if [ "$s" = "$prev" ]; then
     echo "[$label] $(date -u +%T) +$(since)s up=$up unchanged"
   else
@@ -45,8 +48,11 @@ if [ -z "$prev" ] || [ "$label" = settle ]; then
   echo "[$label] all the navbar/cutout overlays:"
   timeout 30 "$ADB" -s "$S" shell 'cmd overlay list 2>&1 | grep -iE "navbar|cutout"' | sed 's/^/    /' || true
 fi
-echo "[$label] the log's overlay changes:"
-timeout 30 "$ADB" -s "$S" shell 'logcat -d -b all -v time 2>/dev/null | grep -iE "cutout|navbar|NavigationMode|setEnabled|enable-exclusive|OverlayManager" | head -40' | cut -c1-220 | sed 's/^/    /' || true
+timeout 30 "$ADB" -s "$S" shell 'for n in global secure system; do settings list $n | sed "s/^/$n /"; done; getprop' > "/tmp/diag-$label-last.txt" 2>&1
+echo "[$label] the settings and properties changed since the first sample:"
+diff "/tmp/diag-$label-first.txt" "/tmp/diag-$label-last.txt" | grep -E '^[<>]' | cut -c1-200 | head -60 | sed 's/^/    /'
+echo "[$label] the log's cutout, rotation and setup lines:"
+timeout 30 "$ADB" -s "$S" shell 'logcat -d -b all -v time 2>/dev/null | grep -iE "cutout|accelerometer_rotation|user_rotation|sdksetup|DisplayDeviceConfig|LocalDisplayAdapter|DisplayDeviceInfo|emulator|BOOT_COMPLETED|FallbackHome|Displayed " | grep -v idmap2d | head -150' | cut -c1-240 | sed 's/^/    /' || true
 LOG="/tmp/sdl3-android-run-$(id -u)/$S/emulator.log"
 echo "[$label] the emulator's log ($LOG), its adb/overlay/cutout lines:"
-{ grep -iE "cutout|overlay|adb|shell|boot|navig" "$LOG" || true; } | cut -c1-220 | head -40 | sed 's/^/    /'
+{ grep -vE "^INFO +\|   androidboot" "$LOG" || true; } | cut -c1-220 | head -120 | sed 's/^/    /'
