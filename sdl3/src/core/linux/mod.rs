@@ -27,6 +27,8 @@ pub(crate) mod ime;
 #[cfg(target_os = "linux")]
 pub(crate) mod input;
 #[cfg(target_os = "linux")]
+pub(crate) mod kd;
+#[cfg(target_os = "linux")]
 pub(crate) mod pipewire;
 pub(crate) mod progressbar;
 pub(crate) mod system_theme;
