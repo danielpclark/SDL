@@ -431,11 +431,12 @@ program's cursor starts at).
 The expected traces are upstream's C SDL's, from the programs' C twins
 (on a diag branch only, never committed: upstream at ea7a2da built with
 CMake, `-DSDL_UNIX_CONSOLE_BUILD=ON -DSDL_KMSDRM=ON -DSDL_KMSDRM_SHARED=ON
--DSDL_VULKAN=ON`, patched with the one `Note (upstream)` fix these paths
-reach: the Vulkan renderer releases its reference to the Vulkan loader as
-it is destroyed, which upstream never does, so in `kmsdrm_vulkan` the
-loader would stay loaded at the end), run by the same runner on the same CI runner,
-kernel and Mesa, ten times each beside the translation's: identical
+-DSDL_VULKAN=ON`, patched with the two `Note (upstream)` fixes these
+paths reach, without which the Vulkan loader would stay loaded at the end
+of `kmsdrm_vulkan`: the Vulkan renderer releases its reference to the
+loader as it is destroyed, and the GPU API's Vulkan backend the one it
+takes for its entry points, which upstream never does), run by the same
+runner on the same CI runner, kernel and Mesa, ten times each beside the translation's: identical
 traces. The CRCs and pixels depend on the kernel's vkms and on Mesa's
 llvmpipe: a new runner image may change them (the preamble then says
 which versions the reference was made with).

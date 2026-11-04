@@ -41,9 +41,13 @@
 //! (upstream built with CMake at ea7a2da, `SDL_KMSDRM=ON`,
 //! `SDL_KMSDRM_SHARED=ON`, `SDL_VULKAN=ON`, run by the same runner on the
 //! same CI runner, kernel and Mesa), patched as the translation fixes
-//! upstream's Vulkan renderer (`Note (upstream)` in `render::vulkan`): its
-//! reference to the loader is released when it is destroyed, which
-//! upstream never does (the loader would stay loaded at the end). Without the runner, it runs itself
+//! upstream's references to the loader (the loader would stay loaded at
+//! the end): the Vulkan renderer's is released when it is destroyed,
+//! which upstream never does (`Note (upstream)` in `render::vulkan`), and
+//! the GPU API's Vulkan backend releases the one it takes for its entry
+//! points, which upstream never does either, one more with each
+//! PrepareDriver and CreateDevice (`Note (upstream)` in `gpu::vulkan`'s
+//! `load_entry_points()`). Without the runner, it runs itself
 //! under it as root when the capabilities are there (`kmsdrm`, `egl`,
 //! `vt`), and skips otherwise, unless `SDL3_TEST_REQUIRE` asks for them;
 //! without a Vulkan loader with `VK_KHR_display`, it skips (`vulkan`).
