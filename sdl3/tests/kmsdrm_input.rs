@@ -338,6 +338,12 @@ versions: (the reference's)
         i.mouse_state();
         i.t.ask("drm state");
 
+        // (the cursor's position is the CRTC's, kept after the program: the
+        // runs start with it at the origin)
+        mouse::warp_mouse_in_window(Some(window.id()), 0.0, 0.0);
+        i.pump();
+        i.t.ask("drm state");
+
         i.t.line("-- removed");
         for name in [KEYBOARD, MOUSE] {
             i.t.ask(&format!("uinput remove '{name}'"));

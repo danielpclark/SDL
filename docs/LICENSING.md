@@ -121,6 +121,23 @@ are data, which upstream made with its own `DUMP_KEYMAP` and
 kernel's is translated; the kernel's interfaces the reader uses are
 declarations (below).
 
+## libdrm, libgbm and `drm_fourcc.h` (the KMS/DRM driver)
+
+The KMS/DRM video driver loads libdrm and libgbm at run time, as
+upstream's `SDL_KMSDRM_SHARED` build does (nothing is linked), and
+declares what it uses of their headers by hand
+(`sdl3/src/video/drivers/kmsdrm/sys.rs`: the structures of `xf86drm.h`
+and `xf86drmMode.h`, `gbm.h`'s handles and flags, `drm_fourcc.h`'s format
+codes; the function types in `dyn.rs`, as upstream's `SDL_kmsdrmsym.h`
+lists them). libdrm, Mesa's libgbm and `drm_fourcc.h` are under the MIT
+license; the values they carry from the kernel's `drm.h` and `drm_mode.h`
+(the ioctl structures' layouts, capability and property constants) are
+the kernel's user-space API, under its syscall note, as below. What the
+declarations carry over is interface facts (layouts, names, values),
+checked against a C program built with the headers, not the headers'
+expression. `tools/linux_console_run.py` (stdlib Python) declares the few
+DRM ioctls it uses to read the card the same way.
+
 ## System headers declared by hand
 
 The platform layers declare the system interfaces they call by hand, as

@@ -20,7 +20,9 @@
 //!   position, hidden and shown, the relative mode (the evdev reader's:
 //!   the cursor hidden while it's on), a system cursor (which the driver
 //!   can't make), the cursor destroyed (the default one again);
-//! * the window destroyed, and SDL quit.
+//! * the cursor back at the origin (where the CRTC keeps it after the
+//!   program: the next run starts with it there), the window destroyed,
+//!   and SDL quit.
 //!
 //! The expected trace is upstream's C SDL's, from the same program in C
 //! (upstream built with CMake at ea7a2da, `SDL_KMSDRM=ON`,
@@ -242,6 +244,11 @@ versions: (the reference's)
         }
         mouse_events(&mut t, &window);
         cursor(&mut t);
+        // (the cursor's position is the CRTC's, kept after the program: the
+        // runs start with it at the origin)
+        mouse::warp_mouse_in_window(Some(window.id()), 0.0, 0.0);
+        mouse_events(&mut t, &window);
+        t.ask("drm state");
         drop(context);
         window.destroy();
         t.line("window destroyed");

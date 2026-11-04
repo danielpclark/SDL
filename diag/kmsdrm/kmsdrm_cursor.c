@@ -139,6 +139,9 @@ int main(void)
     }
     mouse_events();
     cursor();
+    SDL_WarpMouseInWindow(the_window, 0.0f, 0.0f);
+    mouse_events();
+    ask("drm state");
     SDL_GL_DestroyContext(context);
     SDL_DestroyWindow(the_window);
     line("window destroyed");

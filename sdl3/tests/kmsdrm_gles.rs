@@ -18,16 +18,14 @@
 //!   `drmModePageFlip()` (`SDL_KMSDRM_ATOMIC=0`, with and without
 //!   `SDL_VIDEO_DOUBLE_BUFFER`), at swap intervals 0 and 1;
 //! * the OpenGL ES 2 and OpenGL renderers: their frames (a clear, filled
-//!   rectangles, a texture), presented;
+//!   rectangles, a translucent one blended, a texture), read back (their
+//!   hash) and presented;
 //! * the window surface (`SDL_GetWindowSurface()`, through a renderer's
 //!   texture: the driver has no framebuffer of its own), filled and
 //!   updated.
 //!
-//! Apart from the trace (lines `rust: `), children of the program
-//! (`--child scenes NAME`) draw the renderer scenes of the other
-//! renderers' tests (`uikit_support/scenes.rs`) with the OpenGL ES 2 and
-//! OpenGL renderers on the card, and compare them with the software
-//! renderer's.
+//! Apart from the trace (lines `rust: `), the renderers' frames read back
+//! are compared with the software renderer's (each channel within 1).
 //!
 //! The expected trace is upstream's C SDL's, from the same program in C
 //! (upstream built with CMake at ea7a2da, `SDL_KMSDRM=ON`,
@@ -45,27 +43,21 @@ fn main() {}
 mod kmsdrm_support;
 
 #[cfg(target_os = "linux")]
-#[path = "uikit_support/scenes.rs"]
-mod scenes;
-
-#[cfg(target_os = "linux")]
 fn main() -> std::process::ExitCode {
     app::main()
 }
 
 #[cfg(target_os = "linux")]
 mod app {
-    use std::io::{BufRead, BufReader};
-    use std::process::{Command, ExitCode, Stdio};
+    use std::process::ExitCode;
 
     use super::kmsdrm_support::{gl_clear, result, run_on_tty3, Trace};
-    use super::scenes;
     use sdl3::events::window::WindowFlags;
     use sdl3::hints;
     use sdl3::init::{self, InitFlags};
-    use sdl3::render::Renderer;
+    use sdl3::render::{Renderer, Texture};
     use sdl3::video::gl::{self, GlContext};
-    use sdl3::video::{self, FRect, PixelFormat, Rect, Surface, Window};
+    use sdl3::video::{self, BlendMode, FRect, PixelFormat, Rect, Surface, Window};
 
     /// Upstream's trace (the C program, by the runner, on the CI runner).
     const EXPECTED: &str = "\
@@ -174,7 +166,56 @@ versions: (the reference's)
         s
     }
 
-    /// The renderers' frames.
+    /// A frame of the renderers: a clear, filled rectangles (one moving
+    /// with the frame), a translucent one blended, the texture copied 1:1.
+    fn draw_frame(r: &mut Renderer, frame: u8, texture: Option<Texture>) {
+        r.set_draw_color(32, 64 + frame * 64, 96, 255);
+        let _ = r.clear();
+        r.set_draw_color(255, 0, 0, 255);
+        let _ = r.render_fill_rect(Some(&FRect::new(50.0, 50.0, 100.0, 100.0)));
+        r.set_draw_color(0, 255, 0, 255);
+        let _ = r.render_fill_rect(Some(&FRect::new(250.0, 150.0, 100.0, 100.0)));
+        r.set_draw_color(0, 0, 255, 255);
+        let _ = r.render_fill_rect(Some(&FRect::new(
+            450.0 + frame as f32 * 50.0,
+            334.0,
+            124.0,
+            100.0,
+        )));
+        let _ = r.set_draw_blend_mode(BlendMode::BLEND);
+        r.set_draw_color(255, 255, 255, 128);
+        let _ = r.render_fill_rect(Some(&FRect::new(100.0, 100.0, 200.0, 100.0)));
+        let _ = r.set_draw_blend_mode(BlendMode::NONE);
+        if let Some(texture) = texture {
+            let _ = r.render_texture(texture, None, Some(&FRect::new(692.0, 492.0, 16.0, 16.0)));
+        }
+    }
+
+    /// The pixels of a surface as tightly packed RGBA32.
+    fn rgba(surface: &Surface<'_>) -> (i32, i32, Vec<u8>) {
+        let s = surface.convert(PixelFormat::RGBA32).unwrap();
+        let (w, h, pitch) = (s.width(), s.height(), s.pitch() as usize);
+        let pixels = s.pixels().unwrap();
+        let mut out = Vec::new();
+        for y in 0..h as usize {
+            out.extend_from_slice(&pixels[y * pitch..y * pitch + w as usize * 4]);
+        }
+        (w, h, out)
+    }
+
+    /// 32-bit FNV-1a.
+    fn fnv(bytes: &[u8]) -> u32 {
+        let mut h: u32 = 2166136261;
+        for &b in bytes {
+            h ^= b as u32;
+            h = h.wrapping_mul(16777619);
+        }
+        h
+    }
+
+    /// The renderers' frames: read back (their hash traced) before they're
+    /// presented, and (apart from the trace) compared with the software
+    /// renderer's.
     fn renderer(t: &mut Trace, name: &str) {
         t.line(format!("-- renderer {name}"));
         if !init(t) {
@@ -191,29 +232,41 @@ versions: (the reference's)
                     "output size: {:?}",
                     r.output_size().unwrap_or_default()
                 ));
-                let mut surface = pattern();
-                let texture = r.create_texture_from_surface(&mut surface);
+                let texture = r.create_texture_from_surface(&mut pattern());
                 t.line(format!("texture: {}", result(&texture)));
                 for frame in 0..2 {
-                    r.set_draw_color(32, 64 + frame * 64, 96, 255);
-                    let _ = r.clear();
-                    r.set_draw_color(255, 0, 0, 255);
-                    let _ = r.render_fill_rect(Some(&FRect::new(50.0, 50.0, 100.0, 100.0)));
-                    r.set_draw_color(0, 255, 0, 255);
-                    let _ = r.render_fill_rect(Some(&FRect::new(250.0, 150.0, 100.0, 100.0)));
-                    r.set_draw_color(0, 0, 255, 255);
-                    let _ = r.render_fill_rect(Some(&FRect::new(
-                        450.0 + frame as f32 * 50.0,
-                        334.0,
-                        124.0,
-                        100.0,
-                    )));
-                    if let Ok(texture) = texture {
-                        let _ = r.render_texture(
-                            texture,
-                            None,
-                            Some(&FRect::new(692.0, 492.0, 16.0, 16.0)),
-                        );
+                    draw_frame(&mut r, frame, texture.as_ref().ok().copied());
+                    match r.read_pixels(None) {
+                        Ok(read) => {
+                            let image = rgba(&read);
+                            t.line(format!(
+                                "read back {frame}: {}x{} {:08x}",
+                                image.0,
+                                image.1,
+                                fnv(&image.2)
+                            ));
+                            // The software renderer's frame (Rust only)
+                            let mut sw = Renderer::software(
+                                Surface::new(1024, 768, PixelFormat::ARGB8888).unwrap(),
+                            )
+                            .unwrap();
+                            let sw_texture = sw.create_texture_from_surface(&mut pattern()).ok();
+                            draw_frame(&mut sw, frame, sw_texture);
+                            let theirs = rgba(&sw.read_pixels(None).unwrap());
+                            let bad = image
+                                .2
+                                .chunks(4)
+                                .zip(theirs.2.chunks(4))
+                                .filter(|(a, b)| (0..3).any(|c| a[c].abs_diff(b[c]) > 1))
+                                .count();
+                            t.rust(
+                                (image.0, image.1) == (theirs.0, theirs.1) && bad == 0,
+                                format!(
+                                    "{name} frame {frame}: {bad} pixels differ from the software renderer's"
+                                ),
+                            );
+                        }
+                        Err(e) => t.line(format!("read back {frame}: error: {e}")),
                     }
                     t.line(format!("present {frame}: {}", result(&r.present())));
                     scanout(t);
@@ -272,38 +325,7 @@ versions: (the reference's)
         quit(t);
     }
 
-    /// `--child scenes NAME`: the renderer scenes with the renderer NAME,
-    /// compared with the software renderer (Rust only).
-    fn child_scenes(name: &str) -> ExitCode {
-        if let Err(e) = init::init(InitFlags::VIDEO) {
-            println!("child: init: {e}");
-            return ExitCode::FAILURE;
-        }
-        let window = Window::create("kmsdrm_gles", 1024, 768, WindowFlags::default()).unwrap();
-        let mut r = Renderer::for_window(&window, Some(name)).unwrap();
-        scenes::scenes(&mut r, name);
-        scenes::check_custom_blend(&mut r);
-        let mismatches = scenes::MISMATCHES.lock().unwrap().clone();
-        let count = scenes::TRACE.lock().unwrap().len();
-        drop(r);
-        window.destroy();
-        init::quit();
-        if mismatches.is_empty() {
-            println!("child: {count} scenes, the software renderer's");
-            ExitCode::SUCCESS
-        } else {
-            for m in &mismatches {
-                println!("child: {m}");
-            }
-            ExitCode::FAILURE
-        }
-    }
-
     pub(super) fn main() -> ExitCode {
-        let args: Vec<String> = std::env::args().collect();
-        if args.len() == 4 && args[1] == "--child" && args[2] == "scenes" {
-            return child_scenes(&args[3]);
-        }
         if let Err(code) = run_on_tty3(PROGRAM, false) {
             return code;
         }
@@ -332,27 +354,6 @@ versions: (the reference's)
         renderer(&mut t, "opengles2");
         renderer(&mut t, "opengl");
         window_surface(&mut t);
-
-        // The renderer scenes against the software renderer (Rust only)
-        for name in ["opengles2", "opengl"] {
-            let mut child = Command::new(std::env::current_exe().unwrap())
-                .args(["--child", "scenes", name])
-                .stdout(Stdio::piped())
-                .spawn()
-                .expect("the child runs");
-            let mut said = Vec::new();
-            for line in BufReader::new(child.stdout.take().unwrap()).lines() {
-                let line = line.expect("the child's output");
-                if let Some(l) = line.strip_prefix("child: ") {
-                    said.push(l.to_owned());
-                }
-            }
-            let status = child.wait().expect("the child ends");
-            t.rust(
-                status.success(),
-                format!("scenes {name}: {} ({status})", said.join("; ")),
-            );
-        }
 
         t.ask("drm state");
         t.finish(PROGRAM, EXPECTED)

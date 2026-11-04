@@ -94,7 +94,9 @@ static void renderer(const char *name)
             line("texture: %s", result(texture != NULL));
             for (int frame = 0; frame < 2; frame++) {
                 SDL_FRect a = { 50, 50, 100, 100 }, b = { 250, 150, 100, 100 },
-                         c = { 450.0f + frame * 50.0f, 334, 124, 100 }, t = { 692, 492, 16, 16 };
+                         c = { 450.0f + frame * 50.0f, 334, 124, 100 }, d = { 100, 100, 200, 100 },
+                         t = { 692, 492, 16, 16 };
+                SDL_Surface *read;
                 SDL_SetRenderDrawColor(r, 32, (Uint8)(64 + frame * 64), 96, 255);
                 SDL_RenderClear(r);
                 SDL_SetRenderDrawColor(r, 255, 0, 0, 255);
@@ -103,8 +105,29 @@ static void renderer(const char *name)
                 SDL_RenderFillRect(r, &b);
                 SDL_SetRenderDrawColor(r, 0, 0, 255, 255);
                 SDL_RenderFillRect(r, &c);
+                SDL_SetRenderDrawBlendMode(r, SDL_BLENDMODE_BLEND);
+                SDL_SetRenderDrawColor(r, 255, 255, 255, 128);
+                SDL_RenderFillRect(r, &d);
+                SDL_SetRenderDrawBlendMode(r, SDL_BLENDMODE_NONE);
                 if (texture) {
                     SDL_RenderTexture(r, texture, NULL, &t);
+                }
+                read = SDL_RenderReadPixels(r, NULL);
+                if (read) {
+                    SDL_Surface *rgba = SDL_ConvertSurface(read, SDL_PIXELFORMAT_RGBA32);
+                    Uint32 h = 2166136261u;
+                    for (int y = 0; y < rgba->h; y++) {
+                        const Uint8 *row = (const Uint8 *)rgba->pixels + y * rgba->pitch;
+                        for (int i = 0; i < rgba->w * 4; i++) {
+                            h ^= row[i];
+                            h *= 16777619u;
+                        }
+                    }
+                    line("read back %d: %dx%d %08x", frame, rgba->w, rgba->h, h);
+                    SDL_DestroySurface(rgba);
+                    SDL_DestroySurface(read);
+                } else {
+                    line("read back %d: error: %s", frame, SDL_GetError());
                 }
                 line("present %d: %s", frame, result(SDL_RenderPresent(r)));
                 scanout();

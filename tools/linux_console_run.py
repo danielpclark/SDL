@@ -117,6 +117,10 @@ second client; debugfs mounted):
               got)
   drm master release
               those cards closed: `drm: master released`
+With SDL_KMSDRM_DEVICE_INDEX set (as root), the card is opened and closed
+once before the program: a client's last close makes the kernel's fbdev
+emulation set its mode again, as it does after every program, so every
+run starts from the same scanout.
 The answer is written to the program's stdin (with --vt, the reply pipe)
 once the request is done: its lines (`sdl3-console-runner: reply LINE`),
 then `sdl3-console-runner: done`. The program's children may ask too
@@ -729,6 +733,15 @@ def main():
         args = args[2:]
     timeout = float(os.environ.get("SDL3_CONSOLE_TIMEOUT", "300"))
     env = dict(os.environ, SDL3_CONSOLE_RUNNER=os.path.abspath(__file__))
+    if "SDL_KMSDRM_DEVICE_INDEX" in os.environ and os.geteuid() == 0:
+        # The card opened and closed once: the last client's close makes the
+        # kernel's fbdev emulation set its own mode again, as after every
+        # program (and request), so the first run starts from the scanout
+        # the later ones do
+        try:
+            Card().close()
+        except OSError as e:
+            print(f"linux_console_run.py: the DRM card: {e}", file=sys.stderr)
     if console is None:
         proc = subprocess.Popen(args, stdin=subprocess.PIPE, stdout=subprocess.PIPE, env=env,
                                 start_new_session=True)

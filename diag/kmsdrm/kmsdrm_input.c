@@ -255,6 +255,10 @@ int main(void)
     mouse_state();
     ask("drm state");
 
+    SDL_WarpMouseInWindow(window, 0.0f, 0.0f);
+    pump();
+    ask("drm state");
+
     line("-- removed");
     ask("uinput remove '" KEYBOARD "'");
     ask("uinput remove '" MOUSE "'");
