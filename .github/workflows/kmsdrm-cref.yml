@@ -1,0 +1,143 @@
+# Throwaway diag workflow (claude/diag-kmsdrm-vulkan* only, never merged):
+# upstream's C SDL at ea7a2da (KMS/DRM, shared libdrm/libgbm, Vulkan)
+# and this translation running the kmsdrm_* programs as root on tty3, on a
+# vkms card, on the same runner, RUNS times each; their traces compared.
+# The C twins are diag/kmsdrm/*.c (on the diag branch only).
+name: kmsdrm-cref
+
+on:
+  push:
+    branches: ['claude/diag-kmsdrm-vulkan*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
+  RUST_BACKTRACE: 1
+  RUNS: 1
+  PROGRAMS: kmsdrm_vulkan
+  SDL3_CONSOLE_TIMEOUT: 240
+  SDL_KMSDRM_DEVICE_INDEX: 0
+
+jobs:
+  cref:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 80
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.99"
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: kmsdrm-cref
+      - name: Install
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q libdrm-dev libgbm-dev libegl-dev libgles-dev libgl-dev libudev-dev \
+            ninja-build libdrm2 libgbm1 libegl1 libegl-mesa0 libgl1 libgles2 libgl1-mesa-dri \
+            libvulkan-dev libvulkan1 mesa-vulkan-drivers gdb > /dev/null
+      - name: Load vkms, enable uinput
+        shell: bash
+        run: |
+          sudo modprobe vkms enable_cursor=1 enable_overlay=1
+          for i in $(seq 1 100); do [ -e /dev/dri/card0 ] && break; sleep 0.1; done
+          ls -l /dev/dri
+          readlink -f /sys/class/drm/card0/device /sys/class/drm/card1/device || true
+          grep -H . /sys/class/drm/card*-*/status || true
+          sudo ls /sys/kernel/debug/dri/0 | head -30 || true
+          printf '%s\n' 'KERNEL=="uinput", SUBSYSTEM=="misc", MODE="0666", OPTIONS+="static_node=uinput"' \
+            'SUBSYSTEM=="input", KERNEL=="event*|js*", ATTRS{name}=="SDL*", MODE="0666"' | sudo tee /etc/udev/rules.d/99-sdl3-uinput.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=uinput
+          sudo udevadm settle
+          mkdir -p "$RUNNER_TEMP/out"
+          { uname -a; cat /proc/cmdline; ls /sys/class/graphics; cat /proc/fb; dpkg-query -W libgbm1 libdrm2 libegl-mesa0; } > "$RUNNER_TEMP/out/probe.txt" 2>&1 || true
+      - name: Build upstream and the C twins
+        run: |
+          git clone -q --filter=blob:none https://github.com/libsdl-org/SDL "$RUNNER_TEMP/upstream"
+          git -C "$RUNNER_TEMP/upstream" checkout -q ea7a2da
+          git -C "$RUNNER_TEMP/upstream" log --oneline -1
+          if [ -d diag/kmsdrm/patches ]; then for f in diag/kmsdrm/patches/*.py; do python3 "$f" "$RUNNER_TEMP/upstream"; done; fi
+          git -C "$RUNNER_TEMP/upstream" diff --stat
+          cmake -S "$RUNNER_TEMP/upstream" -B "$RUNNER_TEMP/build" -G Ninja -DCMAKE_BUILD_TYPE=Debug \
+            -DSDL_UNIX_CONSOLE_BUILD=ON -DSDL_KMSDRM=ON -DSDL_KMSDRM_SHARED=ON -DSDL_VULKAN=ON \
+            -DSDL_SHARED=ON -DSDL_STATIC=OFF -DSDL_TEST_LIBRARY=OFF -DSDL_TESTS=OFF -DSDL_EXAMPLES=OFF > "$RUNNER_TEMP/cmake.log" 2>&1 || { tail -80 "$RUNNER_TEMP/cmake.log"; exit 1; }
+          grep -i 'kmsdrm\|egl\|opengl' "$RUNNER_TEMP/cmake.log" | head -20 || true
+          cmake --build "$RUNNER_TEMP/build" > "$RUNNER_TEMP/build.log" 2>&1 || { tail -60 "$RUNNER_TEMP/build.log"; exit 1; }
+          for p in $PROGRAMS; do
+            gcc -g -Wall -o "$RUNNER_TEMP/${p}_c" "diag/kmsdrm/$p.c" -Idiag/kmsdrm -I"$RUNNER_TEMP/upstream/include" -L"$RUNNER_TEMP/build" -lSDL3
+          done
+      - name: Vulkan probe (system Mesa)
+        shell: bash
+        run: |
+          set +e
+          gcc -g -Wall -o "$RUNNER_TEMP/vkprobe" diag/kmsdrm/vkprobe.c $(pkg-config --cflags libdrm) -lvulkan -ldrm
+          ls /usr/share/vulkan/icd.d/ > "$RUNNER_TEMP/out/vkprobe.txt"
+          dpkg-query -W mesa-vulkan-drivers libvulkan1 >> "$RUNNER_TEMP/out/vkprobe.txt"
+          sudo "$RUNNER_TEMP/vkprobe" /dev/dri/card0 >> "$RUNNER_TEMP/out/vkprobe.txt" 2>&1
+          echo "status $?" >> "$RUNNER_TEMP/out/vkprobe.txt"
+          VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/lvp_icd.x86_64.json sudo -E "$RUNNER_TEMP/vkprobe" /dev/dri/card0 >> "$RUNNER_TEMP/out/vkprobe.txt" 2>&1
+          exit 0
+      - name: Build the Rust programs
+        shell: bash
+        run: |
+          args=""; for p in $PROGRAMS; do args="$args --test $p"; done
+          cargo test -p sdl3 $args --no-run --message-format=json > "$RUNNER_TEMP/build.json"
+          for p in $PROGRAMS; do
+            python3 -c 'import json,sys; [print(m["executable"]) for m in map(json.loads, open(sys.argv[1])) if m.get("reason") == "compiler-artifact" and m.get("executable") and m["target"]["name"] == sys.argv[2]]' "$RUNNER_TEMP/build.json" "$p" > "$RUNNER_TEMP/${p}_rust"
+          done
+      - name: Run C and Rust
+        shell: bash
+        run: |
+          set +e
+          O="$RUNNER_TEMP/out"
+          for i in $(seq 1 "$RUNS"); do
+            for p in $PROGRAMS; do
+              timeout 400 sudo env SDL3_CONSOLE_TIMEOUT="$SDL3_CONSOLE_TIMEOUT" SDL_KMSDRM_DEVICE_INDEX=0 SDL_VIDEO_DRIVER=kmsdrm \
+                LD_LIBRARY_PATH="$RUNNER_TEMP/build" python3 tools/linux_console_run.py --vt 3 "$RUNNER_TEMP/${p}_c" > "$O/$p.c$i.log" 2> "$O/$p.c$i.err"
+              echo "$p c$i status $?" | tee -a "$O/status.txt"
+              grep -a '^trace: ' "$O/$p.c$i.log" > "$O/$p.c$i.txt"
+              timeout 400 sudo env SDL3_CONSOLE_TIMEOUT="$SDL3_CONSOLE_TIMEOUT" SDL_KMSDRM_DEVICE_INDEX=0 \
+                SDL3_TEST_REQUIRE=kmsdrm,vt,uinput,egl RUST_BACKTRACE=1 "$(cat "$RUNNER_TEMP/${p}_rust")" > "$O/$p.r$i.log" 2> "$O/$p.r$i.err"
+              echo "$p r$i status $?"
+              grep -a '^trace: ' "$O/$p.r$i.log" > "$O/$p.r$i.txt"
+            done
+          done
+          md5sum "$O"/*.txt
+          # (a C program that crashes, under gdb)
+          for p in $PROGRAMS; do
+            if ! grep -q "^$p c1 status 0" "$O/status.txt"; then
+              timeout 400 sudo env SDL3_CONSOLE_TIMEOUT="$SDL3_CONSOLE_TIMEOUT" SDL_KMSDRM_DEVICE_INDEX=0 SDL_VIDEO_DRIVER=kmsdrm \
+                LD_LIBRARY_PATH="$RUNNER_TEMP/build" python3 tools/linux_console_run.py --vt 3 \
+                gdb -q -batch -ex run -ex bt -ex 'info registers rip' "$RUNNER_TEMP/${p}_c" > "$O/$p.gdb.log" 2>&1
+            fi
+          done
+          exit 0
+      - name: Findings (last)
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          O="$RUNNER_TEMP/out"
+          cat "$O/probe.txt"
+          echo "=================== vkprobe"; cat "$O/vkprobe.txt"
+          for p in $PROGRAMS; do
+            echo "=================== $p"
+            echo "== C stderr (1)"; grep -av 'MESA-LOADER' "$O/$p.c1.err" | head -30; grep -a 'diag:' "$O/$p.c1.log" | head
+            echo "== Rust stderr (1)"; grep -av 'MESA-LOADER' "$O/$p.r1.err" | head -30
+            echo "== C runs differing from c1:"; for i in $(seq 2 "$RUNS"); do cmp -s "$O/$p.c1.txt" "$O/$p.c$i.txt" || { echo "c$i"; diff "$O/$p.c1.txt" "$O/$p.c$i.txt" | head -20; }; done
+            echo "== Rust runs differing from r1:"; for i in $(seq 2 "$RUNS"); do cmp -s "$O/$p.r1.txt" "$O/$p.r$i.txt" || { echo "r$i"; diff "$O/$p.r1.txt" "$O/$p.r$i.txt" | head -20; }; done
+            echo "== the Rust program's verdict"; grep -a "^$p: \|^rust: " "$O/$p.r1.log" | head -20; grep -ac "the trace is upstream's" "$O"/$p.r*.log
+            echo "== diff c1 r1 (without the preamble)"; diff -a <(tail -n +2 "$O/$p.c1.txt") <(tail -n +2 "$O/$p.r1.txt") | head -80 && echo "(the same)"
+          done
+          for f in "$O"/*.gdb.log; do [ -f "$f" ] && { echo "=================== $f"; grep -av '^trace: \|^sdl3-console-runner: \|^\[New Thread\|^\[Thread' "$f" | tail -40; }; done
+          echo "=================== Rust trace of kmsdrm_vulkan"; sed 's/^trace: /|/' "$O/kmsdrm_vulkan.r1.txt"
+          for p in $PROGRAMS; do
+            echo "=================== C trace of $p"
+            sed 's/^trace: /|/' "$O/$p.c1.txt"
+          done
+
