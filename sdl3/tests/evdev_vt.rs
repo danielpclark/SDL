@@ -76,6 +76,8 @@ mod app {
 ";
 
     const PREFIX: &str = "sdl3-console-runner: ";
+    /// `K_COMPOSE` of `<linux/keyboard.h>`
+    const K_COMPOSE: u16 = 0x020e;
     const KEYBOARD: &str = "SDL3 evdev vt keyboard";
     /// The console the runner starts the program on
     const VT: &str = "3";
@@ -306,7 +308,7 @@ mod app {
                 tap("KEY_KPDOT"),
                 tap("KEY_NUMLOCK")
             ));
-            self.keys(&held("KEY_RIGHTALT", &["KEY_E", "KEY_8", "KEY_Q"]));
+            self.keys(&held("KEY_RIGHTALT", &["KEY_E", "KEY_8", "KEY_102ND"]));
             self.keys(&format!(
                 "EV_KEY KEY_RIGHTALT 1 EV_SYN SYN_REPORT 0 {} EV_KEY KEY_RIGHTALT 0 EV_SYN SYN_REPORT 0",
                 held("KEY_LEFTSHIFT", &["KEY_A"])
@@ -518,6 +520,7 @@ mod app {
     fn stack_overflow() -> Result<(), String> {
         let output = Command::new(std::env::current_exe().unwrap())
             .args(["--child", "stack-overflow"])
+            .stdout(Stdio::inherit())
             .stderr(Stdio::piped())
             .output()
             .expect("the child runs");
@@ -598,6 +601,12 @@ mod app {
         };
         t.ask("vt active");
         t.ask("vt modes");
+        // Two keys of the keymap (all the consoles', put back by the
+        // runner): Compose on the Compose key (the runner's keymap has it on
+        // none), whose sequences come from the console's accent table, and
+        // a Unicode keysym, the euro sign (U+20AC), on AltGr+102nd
+        t.ask(&format!("vt setkey 0 127 {K_COMPOSE:#06x}"));
+        t.ask(&format!("vt setkey 2 86 {:#06x}", 0x20ac ^ 0xf000));
 
         t.line("-- init".into());
         let Some(window) = t.init() else {

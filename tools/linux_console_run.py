@@ -80,6 +80,12 @@ With --vt N only:
               `vt: restored mode OLD to VTMODE`, or `vt: nothing to
               restore`
   vt flush    ttyN's input thrown away (TCIFLUSH): `vt: flushed`
+  vt setkey TABLE KEY VALUE
+              an entry of the console keymap (KDSKBENT; numbers: VALUE as
+              KDGKBENT gives it, a Unicode keysym U+X as X ^ 0xf000, set
+              while ttyN is in K_UNICODE), put back once the program has
+              ended (the keymap is all the consoles'): `vt: key TABLE KEY
+              set to VALUE`
 The answer is written to the program's stdin (with --vt, the reply pipe)
 once the request is done: its lines (`sdl3-console-runner: reply LINE`),
 then `sdl3-console-runner: done`. The program's children may ask too
@@ -134,6 +140,9 @@ BUS_USB = 0x03
 
 # <linux/kd.h>, <linux/vt.h>
 KDGKBMODE, KDSKBMODE = 0x4B44, 0x4B45
+KDGKBENT, KDSKBENT = 0x4B46, 0x4B47
+# struct kbentry: unsigned char kb_table, kb_index; unsigned short kb_value
+KBENTRY = struct.Struct("@BBH")
 KB_MODES = {0: "K_RAW", 1: "K_XLATE", 2: "K_MEDIUMRAW", 3: "K_UNICODE", 4: "K_OFF"}
 VT_GETMODE, VT_SETMODE, VT_GETSTATE, VT_ACTIVATE = 0x5601, 0x5602, 0x5603, 0x5606
 VT_MODES = {0: "VT_AUTO", 1: "VT_PROCESS", 2: "VT_ACKACQ"}
@@ -146,7 +155,8 @@ VT_STAT = struct.Struct("@HHH")
 CODES = {
     "EV_SYN": 0x00, "EV_KEY": 0x01, "EV_REL": 0x02, "EV_ABS": 0x03, "EV_MSC": 0x04, "EV_REP": 0x14,
     "SYN_REPORT": 0, "SYN_CONFIG": 1, "SYN_MT_REPORT": 2, "SYN_DROPPED": 3,
-    "KEY_ESC": 1, "KEY_1": 2, "KEY_2": 3, "KEY_0": 11, "KEY_MINUS": 12, "KEY_BACKSPACE": 14, "KEY_TAB": 15,
+    "KEY_ESC": 1, "KEY_1": 2, "KEY_2": 3, "KEY_3": 4, "KEY_4": 5, "KEY_5": 6, "KEY_6": 7,
+    "KEY_7": 8, "KEY_8": 9, "KEY_9": 10, "KEY_0": 11, "KEY_MINUS": 12, "KEY_BACKSPACE": 14, "KEY_TAB": 15,
     "KEY_Q": 16, "KEY_W": 17, "KEY_E": 18, "KEY_R": 19, "KEY_T": 20, "KEY_Y": 21, "KEY_U": 22, "KEY_I": 23,
     "KEY_O": 24, "KEY_P": 25, "KEY_ENTER": 28, "KEY_LEFTCTRL": 29, "KEY_A": 30, "KEY_S": 31, "KEY_D": 32,
     "KEY_F": 33, "KEY_G": 34, "KEY_H": 35, "KEY_J": 36, "KEY_K": 37, "KEY_L": 38, "KEY_SEMICOLON": 39,
@@ -275,6 +285,8 @@ class Console:
         self.kb_mode = self.keyboard_mode()
         self.vt_mode = self.mode()
         self.active_before = self.active()
+        # The keymap's entries set, as they were: (table, key) -> value
+        self.keys_before = {}
 
     def keyboard_mode(self):
         buf = bytearray(4)
@@ -336,6 +348,14 @@ class Console:
         if what == "flush" and len(words) == 2:
             termios.tcflush(self.fd, termios.TCIFLUSH)
             return ["vt: flushed"]
+        if what == "setkey" and len(words) == 5:
+            table, key, value = (int(w, 0) for w in words[2:])
+            if (table, key) not in self.keys_before:
+                buf = bytearray(KBENTRY.pack(table, key, 0))
+                fcntl.ioctl(self.fd, KDGKBENT, buf)
+                self.keys_before[(table, key)] = KBENTRY.unpack(buf)[2]
+            fcntl.ioctl(self.fd, KDSKBENT, KBENTRY.pack(table, key, value))
+            return [f"vt: key {table} {key} set to {value:#06x}"]
         raise RequestError(f"unknown request {shlex.join(words)!r}")
 
     def finish(self):
@@ -348,8 +368,12 @@ class Console:
         self.fd = os.open(self.path, os.O_RDWR | os.O_NOCTTY | os.O_CLOEXEC)
         restored = self.restore()
         for what, old, new in restored:
-            print(f"linux_console_run.py: {self.path}: the program left the {what} mode {old}, not {new} "
-                  "as it was: restored", file=sys.stderr)
+            what = "VT mode" if what == "mode" else "keyboard mode"
+            print(f"linux_console_run.py: {self.path}: the program left the {what} {old}, not {new} as it "
+                  "was: restored", file=sys.stderr)
+        # (K_UNICODE again, for the Unicode keysyms)
+        for (table, key), value in self.keys_before.items():
+            fcntl.ioctl(self.fd, KDSKBENT, KBENTRY.pack(table, key, value))
         termios.tcflush(self.fd, termios.TCIFLUSH)
         if self.active() != self.active_before:
             self.switch(self.active_before)

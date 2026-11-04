@@ -17,7 +17,7 @@ env:
   CARGO_TERM_COLOR: always
   CARGO_INCREMENTAL: 0
   RUST_BACKTRACE: 1
-  RUNS: 1
+  RUNS: 2
   SDL3_CONSOLE_TIMEOUT: 60
 
 jobs:
@@ -108,6 +108,63 @@ jobs:
                  "        return;\n    }\n\n    // Reraise signal.\n")
           assert s.count(old) == 1
           open(p, "w").write(s.replace(old, new))
+          PY
+          # The fix of the keysyms of a muted console (Note (upstream) in
+          # evdev_kbd.rs): the keymaps read before it's muted
+          python3 - "$RUNNER_TEMP/upstream/src/core/linux/SDL_evdev_kbd.c" <<'PY'
+          import sys
+          p = sys.argv[1]
+          s = open(p).read()
+
+
+          def rep(old, new, count=1):
+              global s
+              assert s.count(old) == count, old
+              s = s.replace(old, new)
+
+
+          rep("ioctl(state->console_fd, KDGKBENT, &kbe) == 0", "kbd_get_kbentry(state, &kbe) == 0", 2)
+          rep("    int old_kbd_mode;\n", "    int old_kbd_mode;\n    bool muted_keymap_loaded;\n"
+              "    unsigned char muted_keymap_ok[MAX_NR_KEYMAPS][NR_KEYS];\n"
+              "    unsigned short muted_keymap[MAX_NR_KEYMAPS][NR_KEYS];\n")
+          rep("void SDL_EVDEV_kbd_set_muted(SDL_EVDEV_keyboard_state *state, bool muted)\n{\n    if (!state) {", """static void kbd_load_muted_keymap(SDL_EVDEV_keyboard_state *state)
+          {
+              for (int t = 0; t < MAX_NR_KEYMAPS; ++t) {
+                  if (!state->key_maps[t]) {
+                      continue;
+                  }
+                  for (int i = 0; i < NR_KEYS; ++i) {
+                      struct kbentry kbe;
+                      kbe.kb_table = t;
+                      kbe.kb_index = i;
+                      kbe.kb_value = 0;
+                      state->muted_keymap_ok[t][i] = ioctl(state->console_fd, KDGKBENT, &kbe) == 0;
+                      state->muted_keymap[t][i] = kbe.kb_value;
+                  }
+              }
+              state->muted_keymap_loaded = true;
+          }
+
+          static int kbd_get_kbentry(SDL_EVDEV_keyboard_state *state, struct kbentry *kbe)
+          {
+              if (state->muted_keymap_loaded) {
+                  if (!state->muted_keymap_ok[kbe->kb_table][kbe->kb_index]) {
+                      return -1;
+                  }
+                  kbe->kb_value = state->muted_keymap[kbe->kb_table][kbe->kb_index];
+                  return 0;
+              }
+              return ioctl(state->console_fd, KDGKBENT, kbe);
+          }
+
+          void SDL_EVDEV_kbd_set_muted(SDL_EVDEV_keyboard_state *state, bool muted)\n{\n    if (!state) {""")
+          rep("            ioctl(state->console_fd, KDSKBMODE, K_OFF);\n",
+              "            if (state->console_fd >= 0) {\n                kbd_load_muted_keymap(state);\n            }\n"
+              "            ioctl(state->console_fd, KDSKBMODE, K_OFF);\n")
+          rep("        kbd_unregister_emerg_cleanup();\n\n        // Restore the original keyboard mode\n",
+              "        kbd_unregister_emerg_cleanup();\n        state->muted_keymap_loaded = false;\n\n"
+              "        // Restore the original keyboard mode\n")
+          open(p, "w").write(s)
           PY
           git -C "$RUNNER_TEMP/upstream" diff
           cmake --build "$RUNNER_TEMP/build" > "$RUNNER_TEMP/build2.log" 2>&1 || { tail -60 "$RUNNER_TEMP/build2.log"; exit 1; }
@@ -322,7 +379,7 @@ jobs:
               b[0] = 0; tap(b, "KEY_KP7"); tap(b, "KEY_NUMLOCK"); tap(b, "KEY_KP7"); tap(b, "KEY_KPDOT"); tap(b, "KEY_NUMLOCK");
               keys(b);
               {
-                  const char *k[] = { "KEY_E", "KEY_8", "KEY_Q" };
+                  const char *k[] = { "KEY_E", "KEY_8", "KEY_102ND" };
                   b[0] = 0; held(b, "KEY_RIGHTALT", k, 3); keys(b);
               }
               {
@@ -504,6 +561,8 @@ jobs:
 
               ask("vt active");
               ask("vt modes");
+              ask("vt setkey 0 127 0x020e");
+              ask("vt setkey 2 86 0xd0ac");
 
               line("-- init");
               window = init();
