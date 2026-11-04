@@ -87,4 +87,29 @@ tail -5 "$O/xrprobe-noservice.log"
 echo "== no runtime"
 XR_RUNTIME_JSON=/nonexistent.json timeout 60 "$O/xrprobe" > "$O/xrprobe-noruntime.log" 2>&1; echo "exit $?"
 tail -5 "$O/xrprobe-noruntime.log"
+
+echo "== SUMMARY"
+echo "-- versions"
+dpkg-query -W -f '${Package} ${Version}\n' monado-service libopenxr1-monado libopenxr-loader1 libopenxr-dev openxr-layer-corevalidation vulkan-validationlayers mesa-vulkan-drivers libvulkan1 2>&1
+echo "-- manifests"
+find /usr/share/openxr /etc/openxr /etc/xdg/openxr /usr/share/vulkan/explicit_layer.d -name '*.json' 2>/dev/null
+readlink -f /etc/xdg/openxr/1/active_runtime.json
+echo "-- XR loader's layer search (xrprobe layer, XR_LOADER_DEBUG=all)"
+{ grep -iE "api_layers|explicit|implicit|layer.*json|core_validation" "$O/xrprobe-layer.log" || true; } | sort | uniq -c | head -20
+{ grep -E "^layer:|xrCreateInstance" "$O/xrprobe-layer.log" || true; } | head
+echo "-- Vulkan layers"
+{ vulkaninfo --summary 2>/dev/null | grep -iE "VK_LAYER" || true; } | head
+echo "-- sdlxr: validation messages"
+{ grep -oE "VUID-[A-Za-z0-9_-]+" "$O/sdlxr.log" || true; } | sort | uniq -c
+{ grep -iE "validation|error" "$O/sdlxr.log" || true; } | grep -v VUID | cut -c1-250 | sort | uniq -c | head -20
+{ grep -E "VUID" "$O/sdlxr.log" || true; } | cut -c1-400 | sort -u | head -8
+echo "-- sdlxr: XR loader messages"
+{ grep -E "OpenXR-Loader" "$O/sdlxr.log" || true; } | cut -c1-250 | sort | uniq -c
+echo "-- sdlxr: the destroys"
+{ grep -E "Destroy|SDL_Destroy|xrDestroy|frames|^ok" "$O/sdlxr.log" || true; }
+echo "-- cube: validation messages"
+{ grep -oE "VUID-[A-Za-z0-9_-]+" "$O/cube.log" || true; } | sort | uniq -c
+{ grep -E "OpenXR-Loader|api layer" "$O/cube.log" || true; } | cut -c1-250 | sort | uniq -c
+echo "-- monado banner"
+{ grep -iE "null compositor|Simulated|llvmpipe" "$O/monado-sdl.log" || true; } | cut -c1-200 | head -5
 exit 0
