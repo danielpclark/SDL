@@ -96,6 +96,7 @@ doesn't have, and print what they find (so run them with `--nocapture`):
 | `camera::coremedia::tests::hardware_capture_from_the_first_camera` | macOS | the camera check through AVFoundation (an iPhone's cameras: [below](#the-camera-on-an-iphone)) |
 | `joystick::darwin::tests::hardware_joysticks_per_driver` | macOS | lists the controllers the HIDAPI, IOKit and MFi (GameController) drivers see, together and each alone. Zero controllers is fine |
 | `joystick::darwin::tests::hardware_controller_input` | macOS | the interactive controller check of Windows', through the default macOS drivers. Run it on its own |
+| `kmsdrm_hardware`'s `hardware_vulkan_surface_swapchain_and_renderers` (`cargo test -p sdl3 --test kmsdrm_hardware -- --ignored`, as root) | Linux | Vulkan on the KMS/DRM driver with a GPU's driver (anv, radv: `VK_KHR_display` with the card's displays), run on tty3 by `tools/linux_console_run.py --vt 3` (see [KMS/DRM](#kmsdrm-on-vkms-as-root-on-tty3)): lists the Vulkan devices and the displays and planes each enumerates; a Vulkan window of the display's desktop mode, its surface on a display plane (its extent must be the window's), the GPU API's swapchain on it (three frames cleared and presented, each texture the window's size), then the Vulkan and GPU renderers on it, whose frames read back must be the software renderer's (each channel within 1). Without a Vulkan loader, or with no integrated or discrete GPU among the devices (lavapipe alone), it skips (`vulkan`) |
 | `joystick::apple::tests::hardware_mfi_controllers` | macOS | what GameController reports through the MFi driver alone: names, GUIDs, the generated gamepad mapping, SF Symbols names, sensors, LED, battery and rumble. GameController discovers controllers on the main run loop, which a test thread doesn't run, so only the ones it already knew when the driver started are listed |
 
 On iOS devices the hardware checks are programs of their own (an
@@ -377,7 +378,25 @@ card for them, as a second client without DRM master:
   tty3 (the driver's release callback, from the reader's poll: surfaces
   destroyed, DRM master dropped, which the runner sees free) and back
   (master taken again, the surfaces made again with a resize event, the
-  mode set again on the next swap), keys again.
+  mode set again on the next swap), keys again;
+* `kmsdrm_vulkan`: Vulkan on the driver, as far as Mesa's lavapipe
+  reaches on vkms: the instance extensions (`VK_KHR_surface`,
+  `VK_KHR_display`), the loader loaded (counted, another path refused),
+  the physical devices (their types) and the displays and planes they
+  enumerate, a Vulkan window (no OpenGL flag, no GBM or EGL surface: the
+  console's scanout stays), its surface failing as upstream's does, and
+  on an instance without `VK_KHR_display`, the driver's Vulkan mode
+  (fullscreen and a new size change no mode; an OpenGL window made in it
+  has no GBM, so its context fails; destroying it leaves Vulkan mode,
+  though the Vulkan window stays, as upstream's), an OpenGL window after
+  it, and the Vulkan and GPU renderers on a Vulkan window failing with the
+  surface. lavapipe offers `VK_KHR_display` but enumerates no displays and
+  no planes on vkms, and it is a CPU device, which upstream's surface
+  refuses before it looks for displays (it takes the first integrated or
+  discrete GPU): after the trace the program skips the rest, a surface, a
+  swapchain and the renderers drawing on it (`vulkan`, by design), which
+  `kmsdrm_hardware`'s Vulkan check does on a GPU (see
+  [Hardware checks](#hardware-checks-cargo-test----ignored)).
 
 ```sh
 # as root, with tty3 free (no getty on it), uinput, and vkms loaded (the
@@ -412,8 +431,10 @@ program's cursor starts at).
 The expected traces are upstream's C SDL's, from the programs' C twins
 (on a diag branch only, never committed: upstream at ea7a2da built with
 CMake, `-DSDL_UNIX_CONSOLE_BUILD=ON -DSDL_KMSDRM=ON -DSDL_KMSDRM_SHARED=ON
--DSDL_VULKAN=OFF`, unpatched: the translation's `Note (upstream)` fixes
-don't change these paths), run by the same runner on the same CI runner,
+-DSDL_VULKAN=ON`, patched with the one `Note (upstream)` fix these paths
+reach: the Vulkan renderer releases its reference to the Vulkan loader as
+it is destroyed, which upstream never does, so in `kmsdrm_vulkan` the
+loader would stay loaded at the end), run by the same runner on the same CI runner,
 kernel and Mesa, ten times each beside the translation's: identical
 traces. The CRCs and pixels depend on the kernel's vkms and on Mesa's
 llvmpipe: a new runner image may change them (the preamble then says
@@ -426,15 +447,17 @@ on Azure's, whose Hyper-V card is card1, and card1 on others, after the
 firmware framebuffer's simpledrm card0), which keeps the programs off
 the VM's own display, opens uinput with
 the test job's udev rules, builds the programs as the runner user and runs
-them as root with `SDL3_TEST_REQUIRE=kmsdrm,vt,uinput,egl`.
+them as root with `SDL3_TEST_REQUIRE=kmsdrm,vt,uinput,egl`, with the
+Vulkan loader and Mesa's Vulkan drivers installed. Its one expected skip
+is `kmsdrm_vulkan`'s Vulkan surfaces, by design; any other fails the job.
 
 Not covered on CI (hardware checks, to come with the multi-display
 work): real GPUs and their drivers (the fenced path's GPU fences, real
 page-flip timing, `DRM_CAP_ASYNC_PAGE_FLIP`, framebuffer modifiers other
 than linear, other cursor sizes), real connectors' modes, VRR
 (`vrr_capable`), panel orientation (whose property upstream reads from the
-CRTC's ID: always 0, `FIXME (upstream)` in `video.rs`), several displays,
-Vulkan (not translated yet).
+CRTC's ID: always 0, `FIXME (upstream)` in `video.rs`), several displays.
+Vulkan surfaces need a GPU's Vulkan driver: `kmsdrm_hardware`'s check.
 
 ## Windows 11
 
