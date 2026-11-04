@@ -35,7 +35,8 @@ Every skip names one *capability* (the list is `CAPABILITIES` in
 | `alsa` | Linux | libasound and its configuration (the tests use its `file` and `null` PCMs, no sound card) |
 | `udev` | Linux | libudev and a working udev (netlink) |
 | `uinput` | Linux | a writable `/dev/uinput`, and read access to the event nodes of the devices made there (the evdev joystick driver's check, and the console input reader's `evdev_input`: see [Linux console input](#linux-console-input-evdev)) |
-| `vt` | Linux | a virtual console as the program's controlling terminal: root, and a free console, `/dev/tty3`, which `tools/linux_console_run.py --vt 3` starts the program on (the console input reader's `evdev_vt`: see [Linux virtual console](#linux-virtual-console-evdev-on-tty3)) |
+| `vt` | Linux | a virtual console as the program's controlling terminal: root, and a free console, `/dev/tty3`, which `tools/linux_console_run.py --vt 3` starts the program on (the console input reader's `evdev_vt`, and the KMS/DRM driver's programs: see [Linux virtual console](#linux-virtual-console-evdev-on-tty3)) |
+| `kmsdrm` | Linux | a DRM card with a connected connector, DRM master (root), and libdrm (`libdrm.so.2`) and libgbm (`libgbm.so.1`): for the KMS/DRM driver's `kmsdrm_*` programs, a vkms card (`modprobe vkms`; `SDL_KMSDRM_DEVICE_INDEX`, or the first vkms card), whose modes, CRCs and pixels their traces are (see [KMS/DRM](#kmsdrm-on-vkms-as-root-on-tty3)) |
 | `hidapi` | Linux, Windows, macOS, iOS, tvOS, Android | the HID backend: hidraw with libudev, `hid.dll`, IOKit's HID manager, CoreBluetooth's Steam Controllers (iOS and tvOS: never missing, no devices without Bluetooth), or the app's HID device manager (Android: never missing, no devices outside an app or on the emulator) |
 | `ipv6` | any | IPv6 sockets that can resolve and bind to the loopback address `::1` (`sdl3-net`'s IPv6 tests; containers often have IPv4 only) |
 | `tzdata` | Linux | the time zone database in `/usr/share/zoneinfo` (the local time tests set `TZ`) |
@@ -319,10 +320,111 @@ runner and tty3, ten times each beside the translation's: identical
 traces.
 
 Not covered: other console keymaps (dead keys, AltGr, other layouts),
-keymaps changed while SDL runs, the VT switch callbacks (the KMS/DRM
-driver's), an external `kill -SEGV` (Rust std's SIGSEGV handler, which
+keymaps changed while SDL runs (the VT switch callbacks, the KMS/DRM
+driver's, are `kmsdrm_input`'s: see [KMS/DRM](#kmsdrm-on-vkms-as-root-on-tty3)), an external `kill -SEGV` (Rust std's SIGSEGV handler, which
 SDL's hands the signal to, ignores the first one that isn't a fault: the
 process goes on, its console unmuted).
+
+## KMS/DRM (on vkms, as root on tty3)
+
+The KMS/DRM video driver (`video::drivers::kmsdrm`, upstream's
+`video/kmsdrm/`) is tested by four programs (`harness = false`), each
+running as root on tty3 through `tools/linux_console_run.py --vt 3` (as
+`evdev_vt`, above: the console keyboard is the driver's input), on a vkms
+card (the kernel's virtual KMS driver, with its cursor and overlay planes:
+`modprobe vkms enable_cursor=1 enable_overlay=1`; without
+`enable_writeback=1`, whose writeback connector reports itself connected,
+a second display), with `SDL_VIDEO_DRIVER=kmsdrm`. The runner reads the
+card for them, as a second client without DRM master:
+
+| Request | What the runner answers |
+|---|---|
+| `drm state` | the first CRTC's mode (and whether it's on), and each plane with a framebuffer: its type, the framebuffer's size and format, its source and CRTC rectangles (the atomic properties) |
+| `drm crc` | the CRC vkms computes of every composed frame (debugfs `dri/N/crtc-0/crc/data`, the cursor plane included), once three in a row are the same; `none` when the CRTC is off |
+| `drm pixels X Y ...` | pixels of the primary plane's framebuffer (its GEM buffer mapped with `MAP_DUMB`: Mesa's kms_swrast allocates dumb buffers) |
+| `drm master` | whether another client holds the card's DRM master |
+| `drm master hold`, `drm master release` | every card's DRM master taken by the runner, and given back |
+| `drm versions` | the kernel's, Mesa's (libgbm1's package) and libdrm's versions: the first line of each trace, the reference's preamble (not compared; printed when the trace differs) |
+
+* `kmsdrm_video`: the display (its name, bounds, desktop and current
+  modes, content scale, orientations, the panel orientation property, the
+  fullscreen modes and the closest ones to some sizes), a window (its
+  flags, size, the driver's properties, its events), frames swapped and
+  the modes set (the closest to the window's size, then fullscreen with a
+  mode of 800x600, then out of it, then a new size), the window destroyed
+  and SDL quit (the CRTC then), and without DRM master (the runner holds
+  every card's): no card without `SDL_KMSDRM_DEVICE_INDEX`, and with it
+  and `SDL_KMSDRM_REQUIRE_DRM_MASTER=0`, the first swap failing to set the
+  mode;
+* `kmsdrm_gles`: frames swapped by each swap path, with their CRCs and
+  pixels: the fenced atomic commits (the default: vkms's EGL has
+  `EGL_ANDROID_native_fence_sync`), the blocking ones
+  (`SDL_VIDEO_DOUBLE_BUFFER=1`), the legacy page flips
+  (`SDL_KMSDRM_ATOMIC=0`, with and without `SDL_VIDEO_DOUBLE_BUFFER`), at
+  swap intervals 0 and 1; the OpenGL ES 2 and OpenGL renderers' frames;
+  the window surface (through a renderer's texture); and, apart from the
+  trace, children drawing the renderer scenes of the other renderers'
+  tests with both renderers, compared with the software renderer's;
+* `kmsdrm_cursor`: the mouse's entry points before the first window (not
+  the driver's yet), the default cursor, warps in the window and global
+  (the motion events, the cursor plane moving), a color cursor with a hot
+  spot (`drmModeSetCursor2()`), hidden and shown, the relative mode (the
+  evdev reader's, which hides the cursor), a system cursor (none: the
+  driver has none), the cursor destroyed;
+* `kmsdrm_input`: a uinput keyboard and mouse through the driver (by
+  name: as root the reader opens the machine's devices too), keys and
+  text, motion and buttons with the cursor following, a switch away from
+  tty3 (the driver's release callback, from the reader's poll: surfaces
+  destroyed, DRM master dropped, which the runner sees free) and back
+  (master taken again, the surfaces made again with a resize event, the
+  mode set again on the next swap), keys again.
+
+```sh
+# as root, with tty3 free (no getty on it), uinput, and vkms loaded (the
+# programs use the first vkms card, or SDL_KMSDRM_DEVICE_INDEX); the display
+# switches to tty3 during the runs, and the machine's keyboards are muted
+sudo modprobe vkms enable_cursor=1 enable_overlay=1
+cargo test -p sdl3 --test kmsdrm_video --no-run   # prints the program's path
+sudo env SDL3_TEST_REQUIRE=kmsdrm,vt,uinput,egl target/debug/deps/kmsdrm_video-<hash>
+```
+
+A program starts itself under the runner as root when the capabilities
+are there (`kmsdrm`, `egl`, `vt`, and `uinput` for `kmsdrm_input`), and
+skips otherwise. Each program ends with SDL quit: the runner fails a run
+that leaves tty3's modes changed. A page flip that never comes would hang
+upstream's wait for it (`poll()` without a timeout), as here: the runner
+stops a program after `SDL3_CONSOLE_TIMEOUT` seconds, which fails the run.
+What the card keeps from one program to the next is made the same for
+every run: the runner opens and closes the card before the program (a
+client's last close makes the kernel's fbdev emulation set its mode
+again, as it does after each program: a freshly loaded vkms's CRTC would
+otherwise start off), and the programs that move the cursor put it back
+at the origin (the CRTC keeps the cursor's position, which the next
+program's cursor starts at).
+
+The expected traces are upstream's C SDL's, from the programs' C twins
+(on a diag branch only, never committed: upstream at ea7a2da built with
+CMake, `-DSDL_UNIX_CONSOLE_BUILD=ON -DSDL_KMSDRM=ON -DSDL_KMSDRM_SHARED=ON
+-DSDL_VULKAN=OFF`, unpatched: the translation's `Note (upstream)` fixes
+don't change these paths), run by the same runner on the same CI runner,
+kernel and Mesa, ten times each beside the translation's: identical
+traces. The CRCs and pixels depend on the kernel's vkms and on Mesa's
+llvmpipe: a new runner image may change them (the preamble then says
+which versions the reference was made with).
+
+CI: the `kmsdrm` job (pinned `ubuntu-24.04`, whose Azure kernel ships
+vkms) loads vkms (card0; the runner's own Hyper-V card is card1, so
+`SDL_KMSDRM_DEVICE_INDEX=0` keeps the programs off it), opens uinput with
+the test job's udev rules, builds the programs as the runner user and runs
+them as root with `SDL3_TEST_REQUIRE=kmsdrm,vt,uinput,egl`.
+
+Not covered on CI (hardware checks, to come with the multi-display
+work): real GPUs and their drivers (the fenced path's GPU fences, real
+page-flip timing, `DRM_CAP_ASYNC_PAGE_FLIP`, framebuffer modifiers other
+than linear, other cursor sizes), real connectors' modes, VRR
+(`vrr_capable`), panel orientation (whose property upstream reads from the
+CRTC's ID: always 0, `FIXME (upstream)` in `video.rs`), several displays,
+Vulkan (not translated yet).
 
 ## Windows 11
 
