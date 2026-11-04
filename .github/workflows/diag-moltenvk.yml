@@ -11,7 +11,7 @@ permissions:
   contents: read
 
 env:
-  RUST_TOOLCHAIN: "1.99"
+  RUST_TOOLCHAIN: "1.87"
   CARGO_TERM_COLOR: always
   CARGO_INCREMENTAL: 0
   RUST_BACKTRACE: 1
@@ -27,7 +27,7 @@ jobs:
       fail-fast: false
       matrix:
         filter: ["all"]
-        shard: [1, 2]
+        shard: [1, 2, 3]
     runs-on: macos-latest
     timeout-minutes: 90
     steps:
@@ -37,7 +37,7 @@ jobs:
           toolchain: ${{ env.RUST_TOOLCHAIN }}
       - uses: Swatinem/rust-cache@v2
         with:
-          key: pinned
+          key: "1.87"
       - name: Install the GPU drivers (macOS)
         run: |
           C="$RUNNER_TEMP/gpu-cache"
