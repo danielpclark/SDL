@@ -45,24 +45,31 @@ int main(int argc, char **argv)
     printf("open(%s, O_RDONLY) = %d %s\n", argv[1], fd, fd < 0 ? strerror(errno) : "");
     if (fd < 0) return 1;
     char kbtype = 0;
-    printf("KDGKBTYPE -> %d type %d (KB_101=%d)\n", ioctl(fd, KDGKBTYPE, &kbtype), kbtype, KB_101);
+    int r0 = ioctl(fd, KDGKBTYPE, &kbtype);
+    printf("KDGKBTYPE -> %d type %d (KB_101=%d)\n", r0, kbtype, KB_101);
     int mode = -1;
-    printf("KDGKBMODE -> %d mode %d\n", ioctl(fd, KDGKBMODE, &mode), mode);
+    r0 = ioctl(fd, KDGKBMODE, &mode);
+    printf("KDGKBMODE -> %d mode %d\n", r0, mode);
     char shift[sizeof(long)] = { TIOCL_GETSHIFTSTATE, 0 };
-    printf("TIOCLINUX(GETSHIFTSTATE) -> %d state %d\n", ioctl(fd, TIOCLINUX, shift), shift[0]);
+    r0 = ioctl(fd, TIOCLINUX, shift);
+    printf("TIOCLINUX(GETSHIFTSTATE) -> %d state %d\n", r0, shift[0]);
     char led = 0;
-    printf("KDGKBLED -> %d flags 0x%x\n", ioctl(fd, KDGKBLED, &led), led);
+    r0 = ioctl(fd, KDGKBLED, &led);
+    printf("KDGKBLED -> %d flags 0x%x\n", r0, led);
     for (int t = 0; t < 2; t++) {
         struct kbentry e = { .kb_table = t, .kb_index = 30 };
         int r = ioctl(fd, KDGKBENT, &e);
         printf("KDGKBENT(table %d, key 30) -> %d value 0x%04x\n", t, r, e.kb_value);
     }
     static struct kbdiacrs acc;
-    printf("KDGKBDIACR -> %d count %u\n", ioctl(fd, KDGKBDIACR, &acc), acc.kb_cnt);
+    r0 = ioctl(fd, KDGKBDIACR, &acc);
+    printf("KDGKBDIACR -> %d count %u first %02x %02x %02x\n", r0, acc.kb_cnt, acc.kbdiacr[0].diacr, acc.kbdiacr[0].base, acc.kbdiacr[0].result);
     struct vt_stat st = { 0 };
-    printf("VT_GETSTATE -> %d active %d\n", ioctl(fd, VT_GETSTATE, &st), st.v_active);
+    r0 = ioctl(fd, VT_GETSTATE, &st);
+    printf("VT_GETSTATE -> %d active %d\n", r0, st.v_active);
     struct vt_mode vm = { 0 };
-    printf("VT_GETMODE -> %d mode %d\n", ioctl(fd, VT_GETMODE, &vm), vm.mode);
+    r0 = ioctl(fd, VT_GETMODE, &vm);
+    printf("VT_GETMODE -> %d mode %d\n", r0, vm.mode);
     int r = ioctl(fd, KDSKBMODE, K_UNICODE);
     printf("KDSKBMODE(K_UNICODE) -> %d %s\n", r, r ? strerror(errno) : "");
     r = ioctl(fd, KDSKBMODE, K_OFF);

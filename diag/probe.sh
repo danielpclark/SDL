@@ -78,7 +78,7 @@ fi
 
 sec kmscube
 kmscube --help 2>&1 | head -30
-(timeout 25 kmscube -D "$CARD" -c 120 > "$B/kmscube.log" 2>&1; echo "kmscube status $?" >> "$B/kmscube.log") &
+(timeout 25 kmscube -D "$CARD" -c 120 -v 1024x768 > "$B/kmscube.log" 2>&1; echo "kmscube status $?" >> "$B/kmscube.log") &
 KP=$!
 sleep 4
 if [ -n "$DBG" ]; then
@@ -118,7 +118,8 @@ if [ -d /sys/kernel/config/vkms ]; then
   echo 1 > "$V/enabled"; echo "enable: $?"
   sleep 1
   ls -l /dev/dri; dmesg | tail -5
-  for c in /dev/dri/card*; do [ "$c" != "$CARD" ] && modetest -D "$c" -c 2>&1 | grep -E 'connected|^[0-9]' | head -10; done
+  modetest -D /dev/dri/card2 -c 2>&1 | grep -aE 'connected' || true
+  modetest -D /dev/dri/card2 -p 2>&1 | grep -aE '^[0-9]+' | head -10 || true
   echo 0 > "$V/enabled"
 fi
 
