@@ -208,7 +208,15 @@ pub(super) fn prepare_driver(_video: &dyn VideoDriver, props: &Properties) -> bo
         return false;
     }
 
-    // (HAVE_GPU_OPENXR: OpenXR is not translated.)
+    // (HAVE_GPU_OPENXR: the OpenXR path, the check of the runtime's
+    // XR_KHR_D3D12_enable, isn't translated yet: a device with OpenXR isn't
+    // made, as on Metal.)
+    if props
+        .get_bool(super::super::PROP_GPU_DEVICE_CREATE_XR_ENABLE_BOOLEAN)
+        .unwrap_or(false)
+    {
+        return false;
+    }
 
     true
 }

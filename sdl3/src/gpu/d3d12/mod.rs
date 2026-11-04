@@ -139,6 +139,7 @@ fn d3d12_create_device(
     Ok(BackendDevice {
         driver: Box::new(renderer),
         shader_formats,
+        xr: None,
     })
 }
 
