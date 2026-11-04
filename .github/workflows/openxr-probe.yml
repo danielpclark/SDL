@@ -34,7 +34,7 @@ jobs:
           git -C "$RUNNER_TEMP/upstream" log --oneline -1
           cmake -S "$RUNNER_TEMP/upstream" -B "$RUNNER_TEMP/upstream/build" -G Ninja -DCMAKE_BUILD_TYPE=Debug \
             -DSDL_SHARED=ON -DSDL_STATIC=OFF -DSDL_TESTS=ON -DSDL_EXAMPLES=OFF -DSDL_X11=OFF -DSDL_WAYLAND=OFF \
-            -DSDL_OFFSCREEN=ON -DSDL_VULKAN=ON -DSDL_GPU_OPENXR=ON > "$RUNNER_TEMP/cmake.log" 2>&1 || { tail -60 "$RUNNER_TEMP/cmake.log"; exit 1; }
+            -DSDL_UNIX_CONSOLE_BUILD=ON -DSDL_OFFSCREEN=ON -DSDL_VULKAN=ON -DSDL_GPU_OPENXR=ON > "$RUNNER_TEMP/cmake.log" 2>&1 || { tail -60 "$RUNNER_TEMP/cmake.log"; exit 1; }
           grep -iE "openxr|vulkan|offscreen" "$RUNNER_TEMP/cmake.log" | head -20 || true
           cmake --build "$RUNNER_TEMP/upstream/build" --target SDL3-shared testgpu_spinning_cube_xr > "$RUNNER_TEMP/build.log" 2>&1 || { tail -60 "$RUNNER_TEMP/build.log"; exit 1; }
           grep -n HAVE_GPU_OPENXR "$RUNNER_TEMP/upstream/build/include-config-debug/build_config/SDL_build_config.h" || grep -rn "HAVE_GPU_OPENXR" "$RUNNER_TEMP/upstream/build" --include=SDL_build_config.h | head -3
@@ -95,7 +95,7 @@ jobs:
           DIGEST="$(grep -E 'openxr_loader_windows-[0-9.]+\.zip ' "$W/assets.txt" | awk '{print $3}' | head -1)"
           echo "URL=$URL DIGEST=$DIGEST"
           curl -fsSL --retry 5 --retry-delay 10 --retry-all-errors -o "$W/dl/loader.zip" "$URL"
-          SHA="$(sha256sum "$W/dl/loader.zip" | awk '{print $1}')"
+          SHA="$(sha256sum < "$W/dl/loader.zip" | awk '{print $1}')"
           echo "sha256 $SHA"
           if [ "sha256:$SHA" = "$DIGEST" ]; then echo "the publisher's digest matches"; else echo "DIGEST: none or different ($DIGEST)"; fi
           mkdir -p "$W/zip"
@@ -118,12 +118,15 @@ jobs:
           cmake -S "$W/sdk" -B "$W/sdk/build" -D DYNAMIC_LOADER=ON -D BUILD_TESTS=OFF > "$W/cmake.log" 2>&1 || { tail -50 "$W/cmake.log"; exit 1; }
           cmake --build "$W/sdk/build" --config Release --target openxr_loader --parallel > "$W/build.log" 2>&1 || { tail -80 "$W/build.log"; exit 1; }
           find "$W/sdk/build" -name 'openxr_loader*.dll' | head
+      - name: Upstream's headers
+        run: |
+          git clone -q --filter=blob:none https://github.com/libsdl-org/SDL "$RUNNER_TEMP/xr/upstream"
+          git -C "$RUNNER_TEMP/xr/upstream" checkout -q "$UPSTREAM_COMMIT"
+          git -C "$RUNNER_TEMP/xr/upstream" log --oneline -1
       - name: Layouts, DXGI and the loader probe (mingw-w64)
         shell: msys2 {0}
         run: |
           W="$(cygpath -u "$RUNNER_TEMP")/xr"
-          git clone -q --filter=blob:none --no-checkout https://github.com/libsdl-org/SDL "$W/upstream"
-          git -C "$W/upstream" checkout -q "$UPSTREAM_COMMIT" -- src/video/khronos
           K="$W/upstream/src/video/khronos"
           gcc --version | head -1
           gcc -o "$W/layout.exe" -I"$K" diag/layout.c
@@ -234,9 +237,7 @@ jobs:
           git -C "$RUNNER_TEMP/upstream" checkout -q "$UPSTREAM_COMMIT" -- src/video/khronos
           CC="$SDL3_ANDROID_NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/x86_64-linux-android35-clang"
           "$CC" -o "$RUNNER_TEMP/layout" -I"$RUNNER_TEMP/upstream/src/video/khronos" diag/layout.c
-          ADB="$ANDROID_HOME/platform-tools/adb"
-          "$ADB" push "$RUNNER_TEMP/layout" /data/local/tmp/layout > /dev/null
-          "$ADB" shell /data/local/tmp/layout | tee "$RUNNER_TEMP/layout-android.txt" | grep -i android
+          tools/android_run.py "$RUNNER_TEMP/layout" | tee "$RUNNER_TEMP/layout-android.txt" | grep -i android
       - name: The loader in an app, without a runtime
         env:
           SDL3_ANDROID_EXTRA_LIBS: ${{ env.XR_SO }}
