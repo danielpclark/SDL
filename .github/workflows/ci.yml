@@ -425,9 +425,13 @@ jobs:
   # depend on the kernel, Mesa and libdrm: their versions are the
   # references' preamble). vkms is loaded with its cursor and overlay
   # planes, without its writeback connector (which reports itself
-  # connected, a second display); it's card0, the runner's Hyper-V card
-  # card1, so SDL_KMSDRM_DEVICE_INDEX=0 keeps the programs off the VM's
-  # own display. A frame that never flips would hang in upstream's
+  # connected, a second display). Its card's index depends on the runner:
+  # card0 on Azure's (whose Hyper-V card is card1), card1 on others (after
+  # the firmware framebuffer's simpledrm card0), so the job finds the card
+  # whose DRM driver is vkms and sets SDL_KMSDRM_DEVICE_INDEX to it, which
+  # keeps the programs off the VM's own display (and the traces name
+  # neither the card's index nor its connector's number, which varies the
+  # same way). A frame that never flips would hang in upstream's
   # page-flip wait (poll() without a timeout): each program is stopped
   # after SDL3_CONSOLE_TIMEOUT seconds (the runner fails the run then),
   # and the job has its own timeout.
@@ -439,7 +443,6 @@ jobs:
     env:
       RUST_TEST_NOCAPTURE: 1
       SDL_ASSERT: abort
-      SDL_KMSDRM_DEVICE_INDEX: 0
       SDL3_CONSOLE_TIMEOUT: 300
     steps:
       - uses: actions/checkout@v5
@@ -458,16 +461,37 @@ jobs:
       - name: Load vkms
         shell: bash
         run: |
+          # The vkms card: the one whose DRM driver (the first word of its
+          # debugfs dri/N/name) is vkms, SDL_KMSDRM_DEVICE_INDEX for the
+          # steps after. (Its sysfs device is a faux device, whose driver
+          # link is faux_driver's; the runner and the programs ask the card
+          # itself, DRM_IOCTL_VERSION.)
+          sudo mount -t debugfs none /sys/kernel/debug 2> /dev/null || true
           sudo modprobe vkms enable_cursor=1 enable_overlay=1
+          card=""
           for i in $(seq 1 100); do
-            [ -e /dev/dri/card0 ] && break
+            for dev in /sys/class/drm/card[0-9]*; do
+              n="${dev##*/card}"
+              case "$n" in *-*) continue ;; esac
+              if [ "$(sudo cat "/sys/kernel/debug/dri/$n/name" 2> /dev/null | cut -d ' ' -f 1)" = vkms ]; then
+                card="$n"
+                break 2
+              fi
+            done
             sleep 0.1
           done
           ls -l /dev/dri
-          test "$(basename "$(readlink -f /sys/class/drm/card0/device)")" = vkms
-          grep -H . /sys/class/drm/card0-*/status || true
-          sudo mount -t debugfs none /sys/kernel/debug 2> /dev/null || true
-          sudo test -d /sys/kernel/debug/dri/0
+          for dev in /sys/class/drm/card[0-9]*; do
+            n="${dev##*/card}"
+            case "$n" in *-*) continue ;; esac
+            echo "card$n: $(sudo cat "/sys/kernel/debug/dri/$n/name" 2> /dev/null || echo '?'), $(readlink -f "$dev/device")"
+          done
+          grep -H . /sys/class/drm/card*-*/status || true
+          test -n "$card"
+          test -e "/dev/dri/card$card"
+          sudo test -d "/sys/kernel/debug/dri/$card/crtc-0/crc"
+          echo "the vkms card: card$card"
+          echo "SDL_KMSDRM_DEVICE_INDEX=$card" >> "$GITHUB_ENV"
       # As in the test job: /dev/uinput, and the event nodes of the tests'
       # devices (named "SDL..."), opened to everyone (the programs run as
       # root anyway).
