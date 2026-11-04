@@ -201,8 +201,31 @@ extern "C" fn kbd_cleanup_signal_action(
     // Restore keyboard.
     kbd_cleanup();
 
+    // Note (upstream): a fault the kernel signaled (SIGSEGV, SIGBUS, SIGILL
+    // or SIGFPE with a positive si_code) isn't raised again: returning runs
+    // the faulting instruction again, so the restored handler gets the
+    // fault's own siginfo and context. Upstream raises it, which gives that
+    // handler raise()'s (SI_TKILL, no fault address): Rust std's
+    // SIGSEGV/SIGBUS handler, which tells a stack overflow by the fault's
+    // address, then reports none (the process dies of the SIGSEGV), and a
+    // crash reporter installed before SDL sees this handler's stack.
+    if is_fault(signum, info) {
+        return;
+    }
+
     // Reraise signal.
     reraise_signal(signum);
+}
+
+/// Whether the signal is a fault the kernel signaled, which the faulting
+/// instruction, run again, signals again.
+fn is_fault(signum: c_int, info: *const libc::siginfo_t) -> bool {
+    matches!(
+        signum,
+        libc::SIGSEGV | libc::SIGBUS | libc::SIGILL | libc::SIGFPE
+    ) && !info.is_null()
+        // SAFETY: the kernel's siginfo for this signal.
+        && unsafe { (*info).si_code } > 0
 }
 
 /// `&kbd_cleanup_signal_action` as a `sa_sigaction`.
