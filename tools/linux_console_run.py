@@ -87,9 +87,12 @@ With --vt N only:
               ended (the keymap is all the consoles'): `vt: key TABLE KEY
               set to VALUE`
 As root, for the KMS/DRM driver's programs (on the card
-/dev/dri/cardN, N the variable SDL_KMSDRM_DEVICE_INDEX, 0 by default; a
-descriptor of the card opened for each request, without DRM master, as a
-second client; debugfs mounted):
+/dev/dri/cardN, N the variable SDL_KMSDRM_DEVICE_INDEX, by default the
+first card whose DRM driver is vkms: a card's index depends on the
+machine's other cards, vkms's card0 on some runners, card1 after the
+firmware framebuffer's simpledrm card0 on others; a descriptor of the card
+opened for each request, without DRM master, as a second client; debugfs
+mounted):
   drm state   what the card scans out: its first CRTC's mode, and the
               planes that have a framebuffer (their type, the
               framebuffer's size and format, their source and CRTC
@@ -113,8 +116,10 @@ second client; debugfs mounted):
   drm master hold
               every card opened (/dev/dri/card*) and made this script's
               DRM master, kept until `drm master release` or the end:
-              `drm: master held of cardN ...` (the cards whose master it
-              got)
+              `drm: master held of every card`, or `drm: master held of
+              cardN ... but not of cardM ...` (which cards a machine has
+              varies, so they're named only when one's master can't be
+              had)
   drm master release
               those cards closed: `drm: master released`
 With SDL_KMSDRM_DEVICE_INDEX set (as root), the card is opened and closed
@@ -135,6 +140,7 @@ MODE="0666"` opens the ones of these devices only). --vt needs root, and
 util-linux's setsid.
 """
 import ctypes
+import errno
 import fcntl
 import mmap
 import os
@@ -190,6 +196,7 @@ VT_MODE = struct.Struct("@bbhhh")
 VT_STAT = struct.Struct("@HHH")
 
 # <drm/drm.h>, <drm/drm_mode.h> (64-bit layouts)
+DRM_IOCTL_VERSION = ioc(IOC_READ | IOC_WRITE, "d", 0x00, 64)  # struct drm_version
 DRM_IOCTL_SET_MASTER = ioc(IOC_NONE, "d", 0x1E, 0)
 DRM_IOCTL_DROP_MASTER = ioc(IOC_NONE, "d", 0x1F, 0)
 DRM_IOCTL_GEM_CLOSE = ioc(IOC_WRITE, "d", 0x09, 8)  # struct drm_gem_close
@@ -205,6 +212,10 @@ DRM_IOCTL_MODE_GETFB2 = ioc(IOC_READ | IOC_WRITE, "d", 0xCE, 104)  # struct drm_
 DRM_CLIENT_CAP_UNIVERSAL_PLANES, DRM_CLIENT_CAP_ATOMIC = 2, 3
 DRM_MODE_OBJECT_PLANE = 0xEEEEEEEE
 DRM_PLANE_TYPES = {0: "overlay", 1: "primary", 2: "cursor"}
+# struct drm_version: int version_major, version_minor,
+# version_patchlevel; size_t name_len; char *name; size_t date_len; char
+# *date; size_t desc_len; char *desc
+VERSION = struct.Struct("@iiiQQQQQQ")
 # struct drm_mode_modeinfo
 MODEINFO = "IHHHHHHHHHHIII32s"
 # struct drm_mode_crtc: __u64 set_connectors_ptr; __u32 count_connectors,
@@ -463,13 +474,43 @@ def signed(value):
     return value - (1 << 64) if value >= 1 << 63 else value
 
 
+def drm_driver(index):
+    """The name of the DRM driver of /dev/dri/cardINDEX (DRM_IOCTL_VERSION's:
+    `vkms` for every vkms device, whatever its own name), or None."""
+    try:
+        fd = os.open(f"/dev/dri/card{index}", os.O_RDONLY | os.O_CLOEXEC)
+    except OSError:
+        return None
+    try:
+        name = ctypes.create_string_buffer(64)
+        buf = bytearray(VERSION.pack(0, 0, 0, len(name), ctypes.addressof(name), 0, 0, 0, 0))
+        fcntl.ioctl(fd, DRM_IOCTL_VERSION, buf)
+        return name.raw[:min(VERSION.unpack(buf)[3], len(name))].decode(errors="replace")
+    except OSError:
+        return None
+    finally:
+        os.close(fd)
+
+
+def vkms_card():
+    """The index of the first card (/dev/dri/cardN, by N) whose DRM driver is
+    vkms: SDL_KMSDRM_DEVICE_INDEX's default."""
+    cards = sorted(int(name[4:]) for name in os.listdir("/dev/dri")
+                   if name.startswith("card") and name[4:].isdigit())
+    for index in cards:
+        if drm_driver(index) == "vkms":
+            return index
+    raise OSError(errno.ENODEV, "no vkms card (modprobe vkms)")
+
+
 class Card:
     """A descriptor of the DRM card the KMS/DRM driver uses, opened for a
     request (as a second client: without DRM master, which the first open
     of a card without a master gets, dropped at once)."""
 
     def __init__(self):
-        self.index = int(os.environ.get("SDL_KMSDRM_DEVICE_INDEX", "0") or "0")
+        index = os.environ.get("SDL_KMSDRM_DEVICE_INDEX", "")
+        self.index = int(index) if index else vkms_card()
         self.path = f"/dev/dri/card{self.index}"
         self.fd = os.open(self.path, os.O_RDWR | os.O_CLOEXEC)
         try:
@@ -621,7 +662,7 @@ class Runner:
     def drm(self, words):
         what = shlex.join(words[1:])
         if what == "master hold":
-            held = []
+            held, not_held = [], []
             for name in sorted(os.listdir("/dev/dri")):
                 if not name.startswith("card"):
                     continue
@@ -631,8 +672,12 @@ class Runner:
                     fcntl.ioctl(fd, DRM_IOCTL_SET_MASTER)
                     held.append(name)
                 except OSError:
-                    pass
-            return [f"drm: master held of {' '.join(held) or 'no card'}"]
+                    not_held.append(name)
+            # (which cards there are, and their numbers, vary by machine:
+            # the answer names them only when one's master can't be had)
+            if not not_held:
+                return ["drm: master held of every card"]
+            return [f"drm: master held of {' '.join(held) or 'no card'} but not of {' '.join(not_held)}"]
         if what == "versions":
             def package(name):
                 r = subprocess.run(["dpkg-query", "-W", "-f", "${Version}", name], capture_output=True,

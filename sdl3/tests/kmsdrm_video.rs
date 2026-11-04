@@ -8,13 +8,16 @@
 //! KMS/DRM driver (`SDL_VIDEO_DRIVER=kmsdrm`) and a vkms card, tracing:
 //!
 //! * the display of the connected connector: its name (the connector's
-//!   type and number), bounds, desktop and current modes (their refresh
+//!   type and number, the number masked: `kmsdrm_support::connector_name`),
+//!   bounds, desktop and current modes (their refresh
 //!   rates from the mode's clock and totals), content scale,
 //!   orientations and panel orientation (vkms has none: 0), and its
 //!   fullscreen modes (the connector's), with the closest ones to a few
 //!   sizes;
 //! * a window: its flags (OpenGL, which the driver adds), size, the
-//!   driver's properties, its events (the resize to the mode chosen, the
+//!   driver's properties (the device index traced as
+//!   `SDL_KMSDRM_DEVICE_INDEX`'s when it's that: the card's index varies by
+//!   machine), its events (the resize to the mode chosen, the
 //!   move to the display's origin, the focus), then frames swapped
 //!   (`glClear()`), each traced as what the card scans out (the runner's
 //!   `drm state`, `drm crc` and `drm pixels`): the mode set on the first
@@ -54,7 +57,9 @@ fn main() -> std::process::ExitCode {
 mod app {
     use std::process::ExitCode;
 
-    use super::kmsdrm_support::{gl_clear, mode_line, result, run_on_tty3, Trace};
+    use super::kmsdrm_support::{
+        card, connector_name, gl_clear, mode_line, result, run_on_tty3, Trace,
+    };
     use sdl3::events::window::WindowFlags;
     use sdl3::events::{self, Event};
     use sdl3::hints;
@@ -70,7 +75,7 @@ drm: plane primary fb 1024x768 XR24 src 0,0 1024x768 crtc 0,0 1024x768
 -- init
 init: ok (kmsdrm)
 displays: 1
-display 0: \"Virtual-2\" bounds 0,0 1024x768 usable 0,0 1024x768 (primary)
+display 0: \"Virtual-#1\" bounds 0,0 1024x768 usable 0,0 1024x768 (primary)
 desktop mode: 1024x768@60.00 (65000000/1083264) density 1.00 SDL_PIXELFORMAT_ARGB8888
 current mode: 1024x768@60.00 (65000000/1083264) density 1.00 SDL_PIXELFORMAT_ARGB8888
 content scale 1.00, orientation natural 1 current 1, panel orientation Some(0)
@@ -117,7 +122,7 @@ closest to 5000x5000: error: Couldn't find any matching video modes
 -- window
 window: ok
 window: flags 0x602 size 640x480 pixels 640x480 fullscreen mode none
-properties: device index Some(0), drm fd set true, gbm device set true
+properties: device index Some(SDL_KMSDRM_DEVICE_INDEX), drm fd set true, gbm device set true
 window event 0x207 640 480
 window event 0x20c 0 0
 window event 0x20e 0 0
@@ -203,11 +208,11 @@ drm: crtc 1024x768 (1024x768) on
 drm: plane primary fb 1024x768 XR24 src 0,0 1024x768 crtc 0,0 1024x768
 drm: master free
 -- without DRM master
-drm: master held of card0 card1
+drm: master held of every card
 init: kmsdrm not available
 init: ok (kmsdrm)
 displays: 1
-display 0: \"Virtual-2\" bounds 0,0 1024x768 usable 0,0 1024x768 (primary)
+display 0: \"Virtual-#1\" bounds 0,0 1024x768 usable 0,0 1024x768 (primary)
 desktop mode: 1024x768@60.00 (65000000/1083264) density 1.00 SDL_PIXELFORMAT_ARGB8888
 current mode: 1024x768@60.00 (65000000/1083264) density 1.00 SDL_PIXELFORMAT_ARGB8888
 content scale 1.00, orientation natural 1 current 1, panel orientation Some(0)
@@ -334,7 +339,7 @@ drm: plane primary fb 1024x768 XR24 src 0,0 1024x768 crtc 0,0 1024x768
             let usable = video::display_usable_bounds(id).unwrap_or_default();
             t.line(format!(
                 "display {i}: {:?} bounds {},{} {}x{} usable {},{} {}x{}{}",
-                video::display_name(id).unwrap_or_default(),
+                connector_name(card(), &video::display_name(id).unwrap_or_default()),
                 bounds.x,
                 bounds.y,
                 bounds.w,
@@ -429,9 +434,15 @@ drm: plane primary fb 1024x768 XR24 src 0,0 1024x768 crtc 0,0 1024x768
         };
         window_state(&mut t, &window);
         let props = window.properties().unwrap();
+        // (the card's index, which varies by machine, named as the
+        // variable's when it's that)
+        let index = props.get_number("SDL.window.kmsdrm.dev_index");
         t.line(format!(
-            "properties: device index {:?}, drm fd set {}, gbm device set {}",
-            props.get_number("SDL.window.kmsdrm.dev_index"),
+            "properties: device index {}, drm fd set {}, gbm device set {}",
+            match index {
+                Some(i) if i == i64::from(card()) => "Some(SDL_KMSDRM_DEVICE_INDEX)".to_owned(),
+                other => format!("{other:?}"),
+            },
             props
                 .get_number("SDL.window.kmsdrm.drm_fd")
                 .is_some_and(|fd| fd >= 0),
