@@ -9,25 +9,31 @@
 //! configfs (`vkms add`: two pipelines, each a primary and a cursor plane,
 //! a CRTC, an encoder and a connected connector), tracing:
 //!
-//! * the device's card, connectors and CRTCs (as the kernel's fbdev
-//!   emulation sets them);
+//! * the device's connectors and CRTCs (as the kernel's fbdev emulation
+//!   sets them);
 //! * its displays (a display per connected connector): their names,
 //!   bounds, desktop modes, which is primary; then sorted by
-//!   `SDL_VIDEO_DISPLAY_PRIORITY` (one name first; names in another order,
-//!   one of them no display's);
+//!   `SDL_VIDEO_DISPLAY_PRIORITY` (the second connector's name first;
+//!   names in another order, one of them no display's);
 //! * with the legacy page flips (`SDL_KMSDRM_ATOMIC=0`), a window on each
 //!   display (`SDL_WINDOWPOS_UNDEFINED_DISPLAY()`): its display, flags,
 //!   size and events, a context, frames of one color swapped on each, and
 //!   each CRTC's scanout then (the runner's `drm state`, `drm crc` and
 //!   `drm pixels` of that CRTC);
 //! * with the atomic commits (the default), a window on the first display,
-//!   its frames, and both CRTCs then. A window on another display than the
-//!   first window's isn't made: upstream sets up the display plane of the
-//!   first window's display only (`KMSDRM_GBMInit()`), so an atomic
-//!   commit for another display's window dereferences its NULL plane
-//!   (`drm_atomic_set_plane_props()`; here, `Note (upstream)`, nothing is
-//!   added for it);
+//!   then one on the second display alone, their frames, and both CRTCs
+//!   then. Windows on both displays aren't made: upstream sets up the
+//!   display plane of the first window's display only (`KMSDRM_GBMInit()`),
+//!   so an atomic commit for another display's window dereferences its
+//!   NULL plane (`drm_atomic_set_plane_props()`: the C program crashes
+//!   there; here, `Note (upstream)`, nothing is added for it);
 //! * the device removed.
+//!
+//! The device's card index and its connectors' numbers depend on the
+//! machine's other cards: the trace names neither (`drm card` answers as
+//! "the device's card", connectors as `kmsdrm_support::connector_name`
+//! masks them). Every hint is set again before each init: `SDL_Quit()`
+//! resets them all.
 //!
 //! The expected trace is upstream's C SDL's, from the same program in C
 //! (upstream built with CMake at ea7a2da, run by the same runner on the
@@ -53,7 +59,9 @@ fn main() -> std::process::ExitCode {
 mod app {
     use std::process::ExitCode;
 
-    use super::kmsdrm_support::{gl_clear, mode_line, request, result, run_on_tty3, skip, Trace};
+    use super::kmsdrm_support::{
+        connector_name, gl_clear, mode_line, request, result, run_on_tty3, skip, Trace,
+    };
     use sdl3::events::{self, Event};
     use sdl3::hints;
     use sdl3::init::{self, InitFlags};
@@ -93,14 +101,14 @@ versions: (to be made)
         }
     }
 
-    fn displays(t: &mut Trace) {
+    fn displays(t: &mut Trace, card: u32) {
         let ids = video::displays().unwrap_or_default();
         t.line(format!("displays: {}", ids.len()));
         for (i, &id) in ids.iter().enumerate() {
             let bounds = video::display_bounds(id).unwrap_or_default();
             t.line(format!(
                 "display {i}: {:?} bounds {},{} {}x{}{}, {} fullscreen modes",
-                video::display_name(id).unwrap_or_default(),
+                connector_name(card, &video::display_name(id).unwrap_or_default()),
                 bounds.x,
                 bounds.y,
                 bounds.w,
@@ -141,10 +149,21 @@ versions: (to be made)
         t.line("quit");
     }
 
+    /// The runner's `drm card CARD CRTC`, traced without the card's index.
+    fn drm_card(t: &mut Trace, card: u32, crtc: usize) {
+        for line in request(&format!("drm card {card} {crtc}")) {
+            if line == format!("drm: card {card} crtc {crtc}") {
+                t.line(format!("drm: the device's card, crtc {crtc}"));
+            } else {
+                t.line(line);
+            }
+        }
+    }
+
     /// Each CRTC's scanout.
-    fn scanouts(t: &mut Trace, card: &str, crc: bool) {
+    fn scanouts(t: &mut Trace, card: u32, crc: bool) {
         for crtc in 0..2 {
-            t.ask(&format!("drm card {card} {crtc}"));
+            drm_card(t, card, crtc);
             t.ask("drm state");
             if crc {
                 t.ask("drm crc");
@@ -153,11 +172,12 @@ versions: (to be made)
         }
     }
 
-    /// Windows on the displays, a frame of one color each, swapped.
-    fn windows(t: &mut Trace, card: &str, count: usize) {
+    /// Windows on the displays (by their indices), a frame of one color
+    /// each, swapped.
+    fn windows(t: &mut Trace, card: u32, on: &[usize]) {
         let ids = video::displays().unwrap_or_default();
         let mut windows = Vec::new();
-        for (i, &id) in ids.iter().take(count).enumerate() {
+        for (i, &id) in on.iter().filter_map(|&d| ids.get(d)).enumerate() {
             let window = Window::builder()
                 .title(format!("kmsdrm_displays {i}"))
                 .position(
@@ -240,61 +260,100 @@ versions: (to be made)
 
         t.line("-- a vkms device of two pipelines");
         let added = request("vkms add multi 2");
-        for line in &added {
-            t.line(line.clone());
-        }
         // (`vkms: added NAME cardK CONNECTOR...`)
-        let Some(card) = added
-            .first()
-            .and_then(|l| l.split(' ').nth(3))
+        let words: Vec<&str> = added.first().map_or(Vec::new(), |l| l.split(' ').collect());
+        let card: Option<u32> = words
+            .get(3)
             .and_then(|c| c.strip_prefix("card"))
-            .map(str::to_owned)
-        else {
+            .and_then(|c| c.parse().ok());
+        let (Some(card), [_, _, _, _, connectors @ ..]) = (card, words.as_slice()) else {
+            for line in &added {
+                t.line(line.clone());
+            }
             return t.finish(PROGRAM, EXPECTED);
         };
-        scanouts(&mut t, &card, false);
-        // (over the variable the runner's environment sets)
-        hints::set_with_priority(
-            hints::KMSDRM_DEVICE_INDEX,
-            Some(&card),
-            hints::Priority::Override,
-        )
-        .unwrap();
+        let connectors: Vec<String> = connectors.iter().map(|&c| c.to_owned()).collect();
+        let masked = |names: &str| {
+            names
+                .split(',')
+                .map(|n| {
+                    if connectors.iter().any(|c| c == n) {
+                        connector_name(card, n)
+                    } else {
+                        n.to_owned()
+                    }
+                })
+                .collect::<Vec<_>>()
+                .join(",")
+        };
+        t.line(format!(
+            "vkms: added {}, connectors {}",
+            words[2],
+            masked(&connectors.join(","))
+        ));
+        scanouts(&mut t, card, false);
+        // The device's card, over the variable the runner's environment
+        // sets (again before each init: SDL_Quit() resets every hint)
+        let card_hint = || {
+            hints::set_with_priority(
+                hints::KMSDRM_DEVICE_INDEX,
+                Some(&card.to_string()),
+                hints::Priority::Override,
+            )
+            .unwrap();
+        };
 
         t.line("-- displays");
+        card_hint();
         if init(&mut t) {
-            displays(&mut t);
+            displays(&mut t, card);
             quit(&mut t);
         }
-        for priority in [
-            "Virtual-4",
-            "nosuch,Virtual-4,Virtual-3",
-            "Virtual-3,Virtual-4",
-        ] {
-            t.line(format!("-- SDL_VIDEO_DISPLAY_PRIORITY={priority}"));
-            hints::set(hints::VIDEO_DISPLAY_PRIORITY, priority).unwrap();
-            if init(&mut t) {
-                displays(&mut t);
-                quit(&mut t);
+        if let [first, second] = connectors.as_slice() {
+            for priority in [
+                second.clone(),
+                format!("nosuch,{second},{first}"),
+                format!("{first},{second}"),
+            ] {
+                t.line(format!(
+                    "-- SDL_VIDEO_DISPLAY_PRIORITY={}",
+                    masked(&priority)
+                ));
+                card_hint();
+                hints::set(hints::VIDEO_DISPLAY_PRIORITY, &priority).unwrap();
+                if init(&mut t) {
+                    displays(&mut t, card);
+                    quit(&mut t);
+                }
+                hints::reset(hints::VIDEO_DISPLAY_PRIORITY);
             }
-            hints::reset(hints::VIDEO_DISPLAY_PRIORITY);
         }
 
         t.line("-- a window on each display (legacy, SDL_KMSDRM_ATOMIC=0)");
+        card_hint();
         hints::set(hints::KMSDRM_ATOMIC, "0").unwrap();
         if init(&mut t) {
-            windows(&mut t, &card, 2);
+            windows(&mut t, card, &[0, 1]);
             quit(&mut t);
         }
         hints::reset(hints::KMSDRM_ATOMIC);
-        scanouts(&mut t, &card, false);
+        scanouts(&mut t, card, false);
 
         t.line("-- a window on the first display (atomic)");
+        card_hint();
         if init(&mut t) {
-            windows(&mut t, &card, 1);
+            windows(&mut t, card, &[0]);
             quit(&mut t);
         }
-        scanouts(&mut t, &card, false);
+        scanouts(&mut t, card, false);
+
+        t.line("-- a window on the second display alone (atomic)");
+        card_hint();
+        if init(&mut t) {
+            windows(&mut t, card, &[1]);
+            quit(&mut t);
+        }
+        scanouts(&mut t, card, false);
 
         hints::reset(hints::KMSDRM_DEVICE_INDEX);
         t.ask("drm card");

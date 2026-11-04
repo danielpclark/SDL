@@ -701,10 +701,12 @@ class Card:
             # (clock, hdisplay, ..., vrefresh, flags, type, name)
             preferred = [m for m in infos if m[13] & DRM_MODE_TYPE_PREFERRED] or infos[:1]
             mode = f"{preferred[0][1]}x{preferred[0][6]}@{preferred[0][11]}" if preferred else "none"
-            ctype = DRM_CONNECTOR_TYPES[c[5]] if c[5] < len(DRM_CONNECTOR_TYPES) else str(c[5])
-            status = {1: "connected", 2: "disconnected"}.get(c[7], "unknown")
+            # (count_modes, count_props, count_encoders, encoder_id,
+            # connector_id, connector_type, connector_type_id, connection)
+            ctype = DRM_CONNECTOR_TYPES[c[9]] if c[9] < len(DRM_CONNECTOR_TYPES) else str(c[9])
+            status = {1: "connected", 2: "disconnected"}.get(c[11], "unknown")
             props = self.props(connector_id, DRM_MODE_OBJECT_CONNECTOR)
-            lines.append(f"drm: connector {ctype}-{c[6]} {status}, {count} modes, preferred {mode}, "
+            lines.append(f"drm: connector {ctype}-{c[10]} {status}, {count} modes, preferred {mode}, "
                          f"vrr_capable {props.get('vrr_capable', 'none')}, "
                          f"panel orientation {props.get('panel orientation', 'none')}")
         crtc_props = self.props(list(crtcs)[self.crtc_index], DRM_MODE_OBJECT_CRTC)
