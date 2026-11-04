@@ -421,3 +421,10 @@ harness = false
 [[test]]
 name = "android_hidapi"
 harness = false
+
+# The console input reader (the dummy video driver's evdev variant) on uinput
+# devices (a keyboard, a mouse, a tablet, a multitouch screen, hotplug) that
+# tools/linux_console_run.py makes, against upstream's C.
+[[test]]
+name = "evdev_input"
+harness = false
