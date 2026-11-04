@@ -25,6 +25,9 @@
 
 #![allow(dead_code)] // (each program uses some of it)
 
+pub mod scene;
+pub mod vk;
+
 use std::ffi::c_int;
 use std::io::{BufRead, BufReader, Write};
 use std::os::fd::FromRawFd;
@@ -272,6 +275,95 @@ pub fn run_on_tty3(program: &str, uinput: bool) -> Result<(), ExitCode> {
         .status()
         .expect("python3 runs tools/linux_console_run.py");
     Err(ExitCode::from(status.code().unwrap_or(1) as u8))
+}
+
+/// The cards with a connected connector (their indices, in order).
+fn connected_cards() -> Vec<u32> {
+    let mut cards: Vec<u32> = std::fs::read_dir("/sys/class/drm")
+        .map(|d| {
+            d.filter_map(|e| e.ok())
+                .filter_map(|e| {
+                    let name = e.file_name().to_string_lossy().into_owned();
+                    let (card, _connector) = name.strip_prefix("card")?.split_once('-')?;
+                    let connected = std::fs::read_to_string(e.path().join("status"))
+                        .is_ok_and(|s| s.trim() == "connected");
+                    connected.then(|| card.parse().ok()).flatten()
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+    cards.sort();
+    cards.dedup();
+    cards
+}
+
+/// For `kmsdrm_hardware`'s checks (libtest tests, `#[ignore]`d): `None`
+/// under the runner (do the check); else, after checking for root, a
+/// card with a connected connector (`SDL_KMSDRM_DEVICE_INDEX`'s, or the
+/// first such card, which the runner then reads and the driver uses),
+/// libdrm, libgbm and tty3, the exit status of this test alone run as
+/// root on tty3 by the runner (`Some(0)` when it skips here).
+pub fn run_hardware_check(test: &str) -> Option<i32> {
+    if std::env::var_os("SDL3_CONSOLE_RUNNER").is_some() {
+        assert!(
+            std::env::var_os("SDL3_CONSOLE_VT").is_some() && on_a_vt(),
+            "the controlling terminal isn't a virtual console (linux_console_run.py --vt)"
+        );
+        return None;
+    }
+    // (one runner, one console, at a time)
+    static ONE: Mutex<()> = Mutex::new(());
+    let _one = ONE.lock().unwrap_or_else(|e| e.into_inner());
+    let skip = |capability: &str, reason: &str| {
+        skip(test, capability, reason);
+        Some(0)
+    };
+    // SAFETY: geteuid has no preconditions.
+    if unsafe { libc::geteuid() } != 0 {
+        return skip(
+            "kmsdrm",
+            "not root (the check runs on tty3 as root, for DRM master)",
+        );
+    }
+    let cards = connected_cards();
+    let card = match std::env::var("SDL_KMSDRM_DEVICE_INDEX") {
+        Ok(index) => index.parse().ok().filter(|c| cards.contains(c)),
+        Err(_) => cards.first().copied(),
+    };
+    let Some(card) = card else {
+        return skip("kmsdrm", "no card with a connected connector");
+    };
+    for lib in [c"libdrm.so.2", c"libgbm.so.1"] {
+        if !loadable(lib) {
+            return skip(
+                "kmsdrm",
+                &format!("{} can't be loaded", lib.to_string_lossy()),
+            );
+        }
+    }
+    let tty = format!("/dev/tty{VT}");
+    if let Err(e) = std::fs::File::open(&tty) {
+        return skip("vt", &format!("{tty}: {e}"));
+    }
+    let manifest = std::env::var("CARGO_MANIFEST_DIR")
+        .unwrap_or_else(|_| env!("CARGO_MANIFEST_DIR").to_owned());
+    let runner = std::path::Path::new(&manifest).join("../tools/linux_console_run.py");
+    let status = Command::new("python3")
+        .arg(runner)
+        .args(["--vt", VT])
+        .arg(std::env::current_exe().unwrap())
+        .args([
+            test,
+            "--exact",
+            "--ignored",
+            "--nocapture",
+            "--test-threads=1",
+        ])
+        .env("SDL_KMSDRM_DEVICE_INDEX", card.to_string())
+        .env("SDL_VIDEO_DRIVER", "kmsdrm")
+        .status()
+        .expect("python3 runs tools/linux_console_run.py");
+    Some(status.code().unwrap_or(1))
 }
 
 /// Whether the controlling terminal is a virtual console (as the

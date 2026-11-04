@@ -443,7 +443,8 @@ harness = false
 # (kmsdrm_video); its swap paths, the OpenGL (ES) renderers and window
 # surfaces (kmsdrm_gles); its cursor and warps (kmsdrm_cursor); the console
 # input reader through it, with a VT switch away and back (kmsdrm_input);
-# against upstream's C.
+# Vulkan on it, as far as lavapipe reaches (kmsdrm_vulkan); against
+# upstream's C.
 [[test]]
 name = "kmsdrm_video"
 harness = false
@@ -458,4 +459,8 @@ harness = false
 
 [[test]]
 name = "kmsdrm_input"
+harness = false
+
+[[test]]
+name = "kmsdrm_vulkan"
 harness = false
