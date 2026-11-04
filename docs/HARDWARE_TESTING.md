@@ -329,7 +329,7 @@ process goes on, its console unmuted).
 ## KMS/DRM (on vkms, as root on tty3)
 
 The KMS/DRM video driver (`video::drivers::kmsdrm`, upstream's
-`video/kmsdrm/`) is tested by four programs (`harness = false`), each
+`video/kmsdrm/`) is tested by five programs (`harness = false`), each
 running as root on tty3 through `tools/linux_console_run.py --vt 3` (as
 `evdev_vt`, above: the console keyboard is the driver's input), on a vkms
 card (the kernel's virtual KMS driver, with its cursor and overlay planes:
