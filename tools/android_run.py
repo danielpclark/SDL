@@ -338,13 +338,18 @@ this script's that hasn't booted, as a hung one, is killed; an adb that
 doesn't answer meanwhile is waited out), then, once per boot (the boot's
 ID kept on the device), for it to be ready for apps (up to five
 minutes): the package manager answering, the image's first-boot setup
-over (it is the home activity until it has set the device up and turned
-itself off), the home activity (the launcher) having the input focus,
-and the display's cutout, when it has one, in its insets, which all
-come about 10 s after `sys.boot_completed` on an idle machine (the
-Settings app's FallbackHome, then the first-boot setup, are on top until
-then, and an app launched meanwhile may lose the front to them, or lay
-out without the cutout). Before each app is launched, an app of
+over (it is the home activity until it has provisioned the device and
+turned itself off), the home activity (the launcher) having the input
+focus, and the display's cutout, when it has one, in its insets, which
+all come about 10 s after `sys.boot_completed` on an idle machine, up
+to a minute while the programs build (the Settings app's FallbackHome,
+then the first-boot setup, are on top until then, and an app launched
+meanwhile may lose the front to them, or lay out without the cutout);
+then, on an emulator, auto-rotation is turned on when the boot left it
+off (system_server's own write of accelerometer_rotation 0, as the
+first-boot setup ends, may come after the emulator's 1: the rotation
+then stays locked, and a landscape-only app makes its rotation the
+user's for every later app). Before each app is launched, an app of
 another package that has the input focus (a previous program's: Chrome,
 after an SDL_OpenURL(), brings its first-run screen back over later
 apps) is stopped and the launcher brought back, and the display is
@@ -985,17 +990,18 @@ def wait_until_ready(serial):
     """Wait for the device to be ready for an app (readiness()), once per
     boot: the boot's ID (/proc/sys/kernel/random/boot_id) is written to
     the device's READY_MARK when it is (or READY_TIMEOUT seconds have
-    gone), and a program finding it there doesn't check again. Right
-    after `sys.boot_completed` the boot isn't over for apps: the Settings
-    app's FallbackHome ("Android is starting...") is on top, then the
-    Google APIs image's first-boot setup (com.google.android.googlesdksetup,
-    the home activity until it is done), which sets the device up (its
-    settings, as auto-rotation) and turns itself off, the display's cutout
-    coming into its insets as it ends (a status bar 65 px taller), and the
-    launcher gets the input focus. That takes 10 s or so after the boot on
-    an idle machine, longer while the programs build; an app launched
-    meanwhile may lose the front to them, or lay out without the cutout
-    (dialogs higher up)."""
+    gone), and a program finding it there doesn't check again; then the
+    auto-rotation is checked (restore_auto_rotation()). Right after
+    `sys.boot_completed` the boot isn't over for apps: the Settings app's
+    FallbackHome ("Android is starting...") is on top, then the Google
+    APIs image's first-boot setup (com.google.android.googlesdksetup, the
+    home activity until it is done), which provisions the device and
+    turns itself off, the display's cutout coming into the insets as it
+    ends (the status bar from 63 px to 128 px), and then the launcher gets
+    the input focus. That takes 10 s or so after the boot on an idle
+    machine, up to a minute while the programs build; an app launched
+    meanwhile may lose the front to them, lay out without the cutout, or
+    be in front when the rotation's settings change."""
     try:
         result = adb_shell(serial, f"cat /proc/sys/kernel/random/boot_id; cat {READY_MARK} 2>/dev/null", check=False, timeout=30)
         words = result.stdout.split()
@@ -1020,8 +1026,57 @@ def wait_until_ready(serial):
             note(f"{serial} still isn't ready after {READY_TIMEOUT} s ({', '.join(missing)}): going on")
         else:
             note(f"{serial} is ready for apps ({time.monotonic() - start:.0f} s later)")
+    restore_auto_rotation(serial)
     if boot:
-        adb_shell(serial, f"mkdir -p {DEVICE_ROOT} && echo {boot} > {READY_MARK}", check=False, timeout=30)
+        try:
+            adb_shell(serial, f"mkdir -p {DEVICE_ROOT} && echo {boot} > {READY_MARK}", check=False, timeout=30)
+        except Timeout as e:
+            note(f"{e}: the device's readiness not kept")
+
+
+def restore_auto_rotation(serial):
+    """On an emulator, once the boot is over (wait_until_ready()):
+    auto-rotation back on, when the boot left it off. The emulator turns
+    it on (`settings put system accelerometer_rotation 1`, by adb, as
+    com.android.shell) a few seconds after it has seen the boot complete,
+    but system_server writes the setting itself during the boot (1 before
+    `sys.boot_completed`, then 0, at the latest as the first-boot setup
+    ends), and when the emulator's 1 comes first, as on a loaded machine,
+    where the setup ends later, the rotation stays locked for the whole
+    boot. Then a landscape-only app (SENSOR_LANDSCAPE, as SDL's activity
+    is for a window wider than tall that can't be resized) turns the
+    display, the next activity of no fixed orientation on top of it (the
+    file picker over android_dialog's) makes that rotation the user's
+    (user_rotation 1), and every later app whose orientation follows the
+    user's starts in landscape. (Upstream's traces were captured with
+    auto-rotation on, user_rotation 0.)"""
+    script = (
+        "getprop ro.boot.qemu; getprop ro.kernel.qemu; "
+        "settings get system accelerometer_rotation; settings get system user_rotation"
+    )
+    try:
+        lines = adb_shell(serial, script, check=False, timeout=30).stdout.replace("\r", "").split("\n")
+    except Timeout as e:
+        note(f"{e}: the auto-rotation not checked")
+        return
+    lines = (lines + ["", "", "", ""])[:4]
+    if "1" not in (lines[0].strip(), lines[1].strip()):
+        return
+    accelerometer, user = lines[2].strip(), lines[3].strip()
+    if accelerometer == "1" and user in ("0", "null"):
+        return
+    note(
+        f"{serial}'s auto-rotation is off after the boot (accelerometer_rotation {accelerometer}, user_rotation {user}): "
+        "turning it on, as the emulator does after its boot (system_server's own write may come after the emulator's)"
+    )
+    adb_shell(serial, "settings put system user_rotation 0; settings put system accelerometer_rotation 1", check=False, timeout=30)
+    end = time.monotonic() + 10
+    while time.monotonic() < end:
+        result = adb_shell(serial, "dumpsys window 2>&1 | grep -m1 -oE 'mUserRotationMode=[A-Z_]+'", check=False, timeout=30)
+        if "USER_ROTATION_FREE" in result.stdout:
+            return
+        time.sleep(0.5)
+    note(f"{serial}'s window manager still has the rotation locked 10 s later: going on")
 
 
 def wait_for_boot(serial):

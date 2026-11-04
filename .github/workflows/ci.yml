@@ -880,7 +880,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        mode: [load-a, load-b, load-c, load-d, load-e, load-f]
+        mode: [load-a, load-b, load-c, load-d, load-e, load-f, idle-a, idle-b]
     env:
       # The emulator's build (37.2.12.0) and the API 35 Google APIs x86-64
       # system image's revision (Android 15), as the SDK repository has
@@ -971,7 +971,9 @@ jobs:
         run: |
           setsid nohup bash .github/diag/boot-monitor.sh boot1 90 10 > "$RUNNER_TEMP/diag-boot1.log" 2>&1 < /dev/null &
           setsid nohup bash .github/diag/logcat-watch.sh > "$RUNNER_TEMP/diag-logcat.log" 2>&1 < /dev/null &
-          setsid nohup bash .github/diag/load-until-boot.sh > "$RUNNER_TEMP/diag-load.log" 2>&1 < /dev/null &
+          case "${{ matrix.mode }}" in
+            load-*) setsid nohup bash .github/diag/load-until-boot.sh > "$RUNNER_TEMP/diag-load.log" 2>&1 < /dev/null & ;;
+          esac
           setsid nohup bash .github/diag/writer-watch.sh > "$RUNNER_TEMP/diag-writers.log" 2>&1 < /dev/null &
       - name: Build the tests
         env:
