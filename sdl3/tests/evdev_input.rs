@@ -62,6 +62,216 @@ mod app {
 
     /// Upstream's trace (the C program, by the runner, on the CI runner).
     const EXPECTED: &str = "\
+uinput: added SDL3 evdev keyboard
+uinput: added SDL3 evdev mouse
+uinput: added SDL3 evdev tablet
+uinput: added SDL3 evdev touchscreen
+init: ok (evdev)
+keyboard added: SDL3 evdev keyboard
+mouse added: SDL3 evdev mouse
+mouse added: SDL3 evdev tablet
+touch device: SDL3 evdev touchscreen (direct)
+-- keyboard
+key down A key A raw 30 mod 0x0000 repeat 0 window from SDL3 evdev keyboard
+text \"a\" window
+key up A key A raw 30 mod 0x0000 repeat 0 window from SDL3 evdev keyboard
+key down Left Shift key Left Shift raw 42 mod 0x0001 repeat 0 window from SDL3 evdev keyboard
+key down A key A raw 30 mod 0x0001 repeat 0 window from SDL3 evdev keyboard
+text \"A\" window
+key up A key A raw 30 mod 0x0001 repeat 0 window from SDL3 evdev keyboard
+key down 1 key 1 raw 2 mod 0x0001 repeat 0 window from SDL3 evdev keyboard
+text \"!\" window
+key up 1 key 1 raw 2 mod 0x0001 repeat 0 window from SDL3 evdev keyboard
+key up Left Shift key Left Shift raw 42 mod 0x0000 repeat 0 window from SDL3 evdev keyboard
+key down B key B raw 48 mod 0x0000 repeat 0 window from SDL3 evdev keyboard
+text \"b\" window
+key down B key B raw 48 mod 0x0000 repeat 1 window from SDL3 evdev keyboard
+text \"b\" window
+key down B key B raw 48 mod 0x0000 repeat 1 window from SDL3 evdev keyboard
+text \"b\" window
+key up B key B raw 48 mod 0x0000 repeat 0 window from SDL3 evdev keyboard
+key down Keypad 7 key Keypad 7 raw 71 mod 0x0000 repeat 0 window from SDL3 evdev keyboard
+key up Keypad 7 key Keypad 7 raw 71 mod 0x0000 repeat 0 window from SDL3 evdev keyboard
+key down Numlock key Numlock raw 69 mod 0x1000 repeat 0 window from SDL3 evdev keyboard
+key up Numlock key Numlock raw 69 mod 0x1000 repeat 0 window from SDL3 evdev keyboard
+key down Keypad 7 key Keypad 7 raw 71 mod 0x1000 repeat 0 window from SDL3 evdev keyboard
+text \"7\" window
+key up Keypad 7 key Keypad 7 raw 71 mod 0x1000 repeat 0 window from SDL3 evdev keyboard
+key down Keypad Enter key Keypad Enter raw 96 mod 0x1000 repeat 0 window from SDL3 evdev keyboard
+key up Keypad Enter key Keypad Enter raw 96 mod 0x1000 repeat 0 window from SDL3 evdev keyboard
+key down Numlock key Numlock raw 69 mod 0x0000 repeat 0 window from SDL3 evdev keyboard
+key up Numlock key Numlock raw 69 mod 0x0000 repeat 0 window from SDL3 evdev keyboard
+key down CapsLock key CapsLock raw 58 mod 0x2000 repeat 0 window from SDL3 evdev keyboard
+key up CapsLock key CapsLock raw 58 mod 0x2000 repeat 0 window from SDL3 evdev keyboard
+key down A key A raw 30 mod 0x2000 repeat 0 window from SDL3 evdev keyboard
+text \"a\" window
+key up A key A raw 30 mod 0x2000 repeat 0 window from SDL3 evdev keyboard
+key down CapsLock key CapsLock raw 58 mod 0x0000 repeat 0 window from SDL3 evdev keyboard
+key up CapsLock key CapsLock raw 58 mod 0x0000 repeat 0 window from SDL3 evdev keyboard
+key down Left Ctrl key Left Ctrl raw 29 mod 0x0040 repeat 0 window from SDL3 evdev keyboard
+key down C key C raw 46 mod 0x0040 repeat 0 window from SDL3 evdev keyboard
+key up C key C raw 46 mod 0x0040 repeat 0 window from SDL3 evdev keyboard
+key up Left Ctrl key Left Ctrl raw 29 mod 0x0000 repeat 0 window from SDL3 evdev keyboard
+key down Space key Space raw 57 mod 0x0000 repeat 0 window from SDL3 evdev keyboard
+text \" \" window
+key up Space key Space raw 57 mod 0x0000 repeat 0 window from SDL3 evdev keyboard
+key down  key  raw 766 mod 0x0000 repeat 0 window from SDL3 evdev keyboard
+key up  key  raw 766 mod 0x0000 repeat 0 window from SDL3 evdev keyboard
+-- mouse
+motion global at (10.0000, 5.0000) rel (10.0000, 5.0000) state 0x0 window
+motion global at (6.0000, 5.0000) rel (-4.0000, 0.0000) state 0x0 window
+motion global at (6.0000, 7.0000) rel (0.0000, 2.0000) state 0x0 window
+button down 1 global at (6.0000, 7.0000) window
+button up 1 global at (6.0000, 7.0000) window
+button down 3 global at (6.0000, 7.0000) window
+button up 3 global at (6.0000, 7.0000) window
+button down 2 global at (6.0000, 7.0000) window
+button up 2 global at (6.0000, 7.0000) window
+button down 4 global at (6.0000, 7.0000) window
+button up 4 global at (6.0000, 7.0000) window
+button down 5 global at (6.0000, 7.0000) window
+button up 5 global at (6.0000, 7.0000) window
+button down 6 global at (6.0000, 7.0000) window
+button up 6 global at (6.0000, 7.0000) window
+button down 7 global at (6.0000, 7.0000) window
+button up 7 global at (6.0000, 7.0000) window
+button down 8 global at (6.0000, 7.0000) window
+button up 8 global at (6.0000, 7.0000) window
+wheel global (0.0000, 1.0000) integer (0, 1) direction 0 at (6.0000, 7.0000) window
+wheel global (-0.5000, 0.0000) integer (0, 0) direction 0 at (6.0000, 7.0000) window
+wheel global (0.0000, 0.2500) integer (0, 0) direction 0 at (6.0000, 7.0000) window
+relative mode: ok
+motion SDL3 evdev mouse at (9.0000, 5.0000) rel (3.0000, -2.0000) state 0x0 window
+button down 1 SDL3 evdev mouse at (9.0000, 5.0000) window
+button up 1 SDL3 evdev mouse at (9.0000, 5.0000) window
+relative mode off: ok
+-- tablet
+motion global at (512.0156, 192.0059) rel (503.0156, 187.0059) state 0x0 window
+motion global at (1000.0305, 192.0059) rel (488.0149, 0.0000) state 0x0 window
+button down 1 global at (1000.0305, 192.0059) window
+button up 1 global at (1000.0305, 192.0059) window
+-- touchscreen
+motion touch at (102.4000, 153.6000) rel (0.0000, 0.0000) state 0x0 window
+button down 1 touch at (102.4000, 153.6000) window
+finger down 101 on SDL3 evdev touchscreen at (0.1000, 0.2000) delta (0.0000, 0.0000) pressure 0.5020 window
+finger down 102 on SDL3 evdev touchscreen at (0.9000, 0.8000) delta (0.0000, 0.0000) pressure 1.0000 window
+motion touch at (153.6000, 153.6000) rel (51.2000, 0.0000) state 0x1 window
+finger motion 101 on SDL3 evdev touchscreen at (0.1500, 0.2000) delta (0.0500, 0.0000) pressure 0.5020 window
+button up 1 touch at (153.6000, 153.6000) window
+finger up 101 on SDL3 evdev touchscreen at (0.1500, 0.2000) delta (0.0000, 0.0000) pressure 0.5020 window
+finger up 102 on SDL3 evdev touchscreen at (0.9000, 0.8000) delta (0.0000, 0.0000) pressure 1.0000 window
+motion touch at (716.8000, 460.8000) rel (0.0000, 0.0000) state 0x0 window
+button down 1 touch at (716.8000, 460.8000) window
+finger down 201 on SDL3 evdev touchscreen at (0.7000, 0.6000) delta (0.0000, 0.0000) pressure 0.7843 window
+motion touch at (567.2960, 460.8000) rel (-149.5040, 0.0000) state 0x1 window
+finger motion 201 on SDL3 evdev touchscreen at (0.5540, 0.6000) delta (-0.1460, 0.0000) pressure 0.7843 window
+motion touch at (568.3200, 460.8000) rel (1.0240, 0.0000) state 0x1 window
+finger motion 201 on SDL3 evdev touchscreen at (0.5550, 0.6000) delta (0.0010, 0.0000) pressure 0.7843 window
+motion touch at (569.3440, 460.8000) rel (1.0240, 0.0000) state 0x1 window
+finger motion 201 on SDL3 evdev touchscreen at (0.5560, 0.6000) delta (0.0010, 0.0000) pressure 0.7843 window
+motion touch at (570.3680, 460.8000) rel (1.0240, 0.0000) state 0x1 window
+finger motion 201 on SDL3 evdev touchscreen at (0.5570, 0.6000) delta (0.0010, 0.0000) pressure 0.7843 window
+motion touch at (571.3920, 460.8000) rel (1.0240, 0.0000) state 0x1 window
+finger motion 201 on SDL3 evdev touchscreen at (0.5580, 0.6000) delta (0.0010, 0.0000) pressure 0.7843 window
+motion touch at (572.4160, 460.8000) rel (1.0240, 0.0000) state 0x1 window
+finger motion 201 on SDL3 evdev touchscreen at (0.5590, 0.6000) delta (0.0010, 0.0000) pressure 0.7843 window
+motion touch at (573.4400, 460.8000) rel (1.0240, 0.0000) state 0x1 window
+finger motion 201 on SDL3 evdev touchscreen at (0.5600, 0.6000) delta (0.0010, 0.0000) pressure 0.7843 window
+motion touch at (574.4640, 460.8000) rel (1.0240, 0.0000) state 0x1 window
+finger motion 201 on SDL3 evdev touchscreen at (0.5610, 0.6000) delta (0.0010, 0.0000) pressure 0.7843 window
+motion touch at (575.4880, 460.8000) rel (1.0240, 0.0000) state 0x1 window
+finger motion 201 on SDL3 evdev touchscreen at (0.5620, 0.6000) delta (0.0010, 0.0000) pressure 0.7843 window
+motion touch at (576.5120, 460.8000) rel (1.0240, 0.0000) state 0x1 window
+finger motion 201 on SDL3 evdev touchscreen at (0.5630, 0.6000) delta (0.0010, 0.0000) pressure 0.7843 window
+motion touch at (577.5360, 460.8000) rel (1.0240, 0.0000) state 0x1 window
+finger motion 201 on SDL3 evdev touchscreen at (0.5640, 0.6000) delta (0.0010, 0.0000) pressure 0.7843 window
+motion touch at (578.5600, 460.8000) rel (1.0240, 0.0000) state 0x1 window
+finger motion 201 on SDL3 evdev touchscreen at (0.5650, 0.6000) delta (0.0010, 0.0000) pressure 0.7843 window
+motion touch at (579.5840, 460.8000) rel (1.0240, 0.0000) state 0x1 window
+finger motion 201 on SDL3 evdev touchscreen at (0.5660, 0.6000) delta (0.0010, 0.0000) pressure 0.7843 window
+motion touch at (580.6080, 460.8000) rel (1.0240, 0.0000) state 0x1 window
+finger motion 201 on SDL3 evdev touchscreen at (0.5670, 0.6000) delta (0.0010, 0.0000) pressure 0.7843 window
+motion touch at (581.6320, 460.8000) rel (1.0240, 0.0000) state 0x1 window
+finger motion 201 on SDL3 evdev touchscreen at (0.5680, 0.6000) delta (0.0010, 0.0000) pressure 0.7843 window
+motion touch at (582.6560, 460.8000) rel (1.0240, 0.0000) state 0x1 window
+finger motion 201 on SDL3 evdev touchscreen at (0.5690, 0.6000) delta (0.0010, 0.0000) pressure 0.7843 window
+motion touch at (583.6800, 460.8000) rel (1.0240, 0.0000) state 0x1 window
+finger motion 201 on SDL3 evdev touchscreen at (0.5700, 0.6000) delta (0.0010, 0.0000) pressure 0.7843 window
+motion touch at (584.7040, 460.8000) rel (1.0240, 0.0000) state 0x1 window
+finger motion 201 on SDL3 evdev touchscreen at (0.5710, 0.6000) delta (0.0010, 0.0000) pressure 0.7843 window
+motion touch at (585.7280, 460.8000) rel (1.0240, 0.0000) state 0x1 window
+finger motion 201 on SDL3 evdev touchscreen at (0.5720, 0.6000) delta (0.0010, 0.0000) pressure 0.7843 window
+motion touch at (586.7520, 460.8000) rel (1.0240, 0.0000) state 0x1 window
+finger motion 201 on SDL3 evdev touchscreen at (0.5730, 0.6000) delta (0.0010, 0.0000) pressure 0.7843 window
+motion touch at (587.7760, 460.8000) rel (1.0240, 0.0000) state 0x1 window
+finger motion 201 on SDL3 evdev touchscreen at (0.5740, 0.6000) delta (0.0010, 0.0000) pressure 0.7843 window
+motion touch at (588.8000, 460.8000) rel (1.0240, 0.0000) state 0x1 window
+finger motion 201 on SDL3 evdev touchscreen at (0.5750, 0.6000) delta (0.0010, 0.0000) pressure 0.7843 window
+motion touch at (589.8240, 460.8000) rel (1.0240, 0.0000) state 0x1 window
+finger motion 201 on SDL3 evdev touchscreen at (0.5760, 0.6000) delta (0.0010, 0.0000) pressure 0.7843 window
+motion touch at (590.8480, 460.8000) rel (1.0240, 0.0000) state 0x1 window
+finger motion 201 on SDL3 evdev touchscreen at (0.5770, 0.6000) delta (0.0010, 0.0000) pressure 0.7843 window
+motion touch at (591.8720, 460.8000) rel (1.0240, 0.0000) state 0x1 window
+finger motion 201 on SDL3 evdev touchscreen at (0.5780, 0.6000) delta (0.0010, 0.0000) pressure 0.7843 window
+motion touch at (592.8960, 460.8000) rel (1.0240, 0.0000) state 0x1 window
+finger motion 201 on SDL3 evdev touchscreen at (0.5790, 0.6000) delta (0.0010, 0.0000) pressure 0.7843 window
+motion touch at (593.9200, 460.8000) rel (1.0240, 0.0000) state 0x1 window
+finger motion 201 on SDL3 evdev touchscreen at (0.5800, 0.6000) delta (0.0010, 0.0000) pressure 0.7843 window
+motion touch at (594.9440, 460.8000) rel (1.0240, 0.0000) state 0x1 window
+finger motion 201 on SDL3 evdev touchscreen at (0.5810, 0.6000) delta (0.0010, 0.0000) pressure 0.7843 window
+motion touch at (595.9680, 460.8000) rel (1.0240, 0.0000) state 0x1 window
+finger motion 201 on SDL3 evdev touchscreen at (0.5820, 0.6000) delta (0.0010, 0.0000) pressure 0.7843 window
+motion touch at (596.9920, 460.8000) rel (1.0240, 0.0000) state 0x1 window
+finger motion 201 on SDL3 evdev touchscreen at (0.5830, 0.6000) delta (0.0010, 0.0000) pressure 0.7843 window
+motion touch at (598.0160, 460.8000) rel (1.0240, 0.0000) state 0x1 window
+finger motion 201 on SDL3 evdev touchscreen at (0.5840, 0.6000) delta (0.0010, 0.0000) pressure 0.7843 window
+motion touch at (599.0400, 460.8000) rel (1.0240, 0.0000) state 0x1 window
+finger motion 201 on SDL3 evdev touchscreen at (0.5850, 0.6000) delta (0.0010, 0.0000) pressure 0.7843 window
+motion touch at (600.0640, 460.8000) rel (1.0240, 0.0000) state 0x1 window
+finger motion 201 on SDL3 evdev touchscreen at (0.5860, 0.6000) delta (0.0010, 0.0000) pressure 0.7843 window
+motion touch at (601.0880, 460.8000) rel (1.0240, 0.0000) state 0x1 window
+finger motion 201 on SDL3 evdev touchscreen at (0.5870, 0.6000) delta (0.0010, 0.0000) pressure 0.7843 window
+motion touch at (602.1120, 460.8000) rel (1.0240, 0.0000) state 0x1 window
+finger motion 201 on SDL3 evdev touchscreen at (0.5880, 0.6000) delta (0.0010, 0.0000) pressure 0.7843 window
+motion touch at (603.1360, 460.8000) rel (1.0240, 0.0000) state 0x1 window
+finger motion 201 on SDL3 evdev touchscreen at (0.5890, 0.6000) delta (0.0010, 0.0000) pressure 0.7843 window
+motion touch at (604.1600, 460.8000) rel (1.0240, 0.0000) state 0x1 window
+finger motion 201 on SDL3 evdev touchscreen at (0.5900, 0.6000) delta (0.0010, 0.0000) pressure 0.7843 window
+motion touch at (605.1840, 460.8000) rel (1.0240, 0.0000) state 0x1 window
+finger motion 201 on SDL3 evdev touchscreen at (0.5910, 0.6000) delta (0.0010, 0.0000) pressure 0.7843 window
+motion touch at (606.2080, 460.8000) rel (1.0240, 0.0000) state 0x1 window
+finger motion 201 on SDL3 evdev touchscreen at (0.5920, 0.6000) delta (0.0010, 0.0000) pressure 0.7843 window
+motion touch at (607.2320, 460.8000) rel (1.0240, 0.0000) state 0x1 window
+finger motion 201 on SDL3 evdev touchscreen at (0.5930, 0.6000) delta (0.0010, 0.0000) pressure 0.7843 window
+motion touch at (608.2560, 460.8000) rel (1.0240, 0.0000) state 0x1 window
+finger motion 201 on SDL3 evdev touchscreen at (0.5940, 0.6000) delta (0.0010, 0.0000) pressure 0.7843 window
+motion touch at (609.2800, 460.8000) rel (1.0240, 0.0000) state 0x1 window
+finger motion 201 on SDL3 evdev touchscreen at (0.5950, 0.6000) delta (0.0010, 0.0000) pressure 0.7843 window
+motion touch at (610.3040, 460.8000) rel (1.0240, 0.0000) state 0x1 window
+finger motion 201 on SDL3 evdev touchscreen at (0.5960, 0.6000) delta (0.0010, 0.0000) pressure 0.7843 window
+motion touch at (611.3280, 460.8000) rel (1.0240, 0.0000) state 0x1 window
+finger motion 201 on SDL3 evdev touchscreen at (0.5970, 0.6000) delta (0.0010, 0.0000) pressure 0.7843 window
+motion touch at (612.3520, 460.8000) rel (1.0240, 0.0000) state 0x1 window
+finger motion 201 on SDL3 evdev touchscreen at (0.5980, 0.6000) delta (0.0010, 0.0000) pressure 0.7843 window
+motion touch at (613.3760, 460.8000) rel (1.0240, 0.0000) state 0x1 window
+finger motion 201 on SDL3 evdev touchscreen at (0.5990, 0.6000) delta (0.0010, 0.0000) pressure 0.7843 window
+motion touch at (614.4000, 460.8000) rel (1.0240, 0.0000) state 0x1 window
+finger motion 201 on SDL3 evdev touchscreen at (0.6000, 0.6000) delta (0.0010, 0.0000) pressure 0.7843 window
+motion touch at (716.8000, 460.8000) rel (102.4000, 0.0000) state 0x1 window
+finger motion 201 on SDL3 evdev touchscreen at (0.7000, 0.6000) delta (0.1000, 0.0000) pressure 0.7843 window
+button up 1 touch at (716.8000, 460.8000) window
+finger up 201 on SDL3 evdev touchscreen at (0.7000, 0.6000) delta (0.0000, 0.0000) pressure 0.7843 window
+-- hotplug
+uinput: added SDL3 evdev keyboard 2
+keyboard added: SDL3 evdev keyboard 2
+uinput: removed SDL3 evdev keyboard 2
+key down Z key Z raw 44 mod 0x0000 repeat 0 window from SDL3 evdev keyboard 2
+text \"z\" window
+key up Z key Z raw 44 mod 0x0000 repeat 0 window from SDL3 evdev keyboard 2
+keyboard removed: SDL3 evdev keyboard 2
+uinput: removed SDL3 evdev tablet
+mouse removed: SDL3 evdev tablet
+quit
 ";
 
     const PREFIX: &str = "sdl3-console-runner: ";

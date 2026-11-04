@@ -308,6 +308,11 @@ fn udev_callback(udev_event: UdevDeviceEvent, udev_class: DeviceClass, dev_path:
                     return;
                 }
 
+                // FIXME (upstream): a mouse's mousedev node
+                // (/dev/input/mouseN) comes here too, with its device's
+                // properties, and is opened and read as an evdev node (its
+                // PS/2 packets taken for input_events), as an extra mouse
+                // without a name; it's root's only, as the event nodes are.
                 device_added(this, dev_path, udev_class);
             }
             UdevDeviceEvent::Removed => {
