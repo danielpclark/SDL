@@ -264,6 +264,10 @@ pub(crate) mod test_support {
             "a virtual console as the controlling terminal (tty3, as root, through tools/linux_console_run.py --vt)",
         ),
         (
+            "kmsdrm",
+            "a DRM card with a connected connector (vkms for the traced tests), DRM master (root), libdrm and libgbm",
+        ),
+        (
             "hidapi",
             "the HID backend: hidraw/libudev, hid.dll, IOKit, CoreBluetooth, or Android's HID device manager",
         ),

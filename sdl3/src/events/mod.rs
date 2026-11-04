@@ -24,6 +24,9 @@ use std::time::Duration;
     not(target_os = "emscripten")
 ))]
 pub(crate) mod im_ks_to_ucs;
+// (the KMS/DRM driver's)
+#[cfg(target_os = "linux")]
+pub(crate) mod default_cursor;
 pub mod keyboard;
 #[cfg(all(
     unix,
