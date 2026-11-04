@@ -391,7 +391,7 @@ jobs:
                   keys(b);
               }
               {
-                  const char *k[] = { "KEY_C" };
+                  const char *k[] = { "KEY_B" };
                   b[0] = 0; held(b, "KEY_LEFTCTRL", k, 1); keys(b);
               }
               {
@@ -562,7 +562,7 @@ jobs:
               ask("vt active");
               ask("vt modes");
               ask("vt setkey 0 127 0x020e");
-              ask("vt setkey 2 86 0xd0ac");
+              ask("vt setkey 0 86 0xd0ac");
 
               line("-- init");
               window = init();

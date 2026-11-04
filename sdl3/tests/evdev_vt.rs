@@ -313,7 +313,9 @@ mod app {
                 "EV_KEY KEY_RIGHTALT 1 EV_SYN SYN_REPORT 0 {} EV_KEY KEY_RIGHTALT 0 EV_SYN SYN_REPORT 0",
                 held("KEY_LEFTSHIFT", &["KEY_A"])
             ));
-            self.keys(&held("KEY_LEFTCTRL", &["KEY_C"]));
+            // (not Control+C: on a console that isn't muted, tty3's line
+            // discipline would make it a SIGINT of the program)
+            self.keys(&held("KEY_LEFTCTRL", &["KEY_B"]));
             self.keys(&held("KEY_LEFTALT", &["KEY_A"]));
             self.keys(&format!(
                 "{} {} {} {}",
@@ -604,9 +606,9 @@ mod app {
         // Two keys of the keymap (all the consoles', put back by the
         // runner): Compose on the Compose key (the runner's keymap has it on
         // none), whose sequences come from the console's accent table, and
-        // a Unicode keysym, the euro sign (U+20AC), on AltGr+102nd
+        // a Unicode keysym, the euro sign (U+20AC), on 102nd (unshifted)
         t.ask(&format!("vt setkey 0 127 {K_COMPOSE:#06x}"));
-        t.ask(&format!("vt setkey 2 86 {:#06x}", 0x20ac ^ 0xf000));
+        t.ask(&format!("vt setkey 0 86 {:#06x}", 0x20ac ^ 0xf000));
 
         t.line("-- init".into());
         let Some(window) = t.init() else {
