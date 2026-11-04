@@ -559,6 +559,55 @@ jobs:
             exit 1
           fi
 
+  # The GPU API's OpenXR functions on the Vulkan backend
+  # (sdl3/tests/gpu_openxr.rs), against Monado's null compositor on
+  # lavapipe: the program starts Monado's service for its scenarios itself,
+  # as the runner user, each in a private runtime directory. In a job of its
+  # own for Monado's dependencies (OpenCV, GDAL: ~36 MB), and pinned to
+  # ubuntu-24.04, whose Monado, OpenXR loader, layers and Mesa the trace is
+  # made on (its preamble: their versions).
+  openxr:
+    name: test (OpenXR on Monado's null compositor)
+    if: ${{ !inputs.ios_only && !inputs.tvos_only && !inputs.visionos_only && !inputs.android_only }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    env:
+      RUST_TEST_NOCAPTURE: 1
+      SDL_ASSERT: abort
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: openxr
+      # The Vulkan loader, lavapipe and the Khronos validation layer;
+      # Monado's service and runtime, the OpenXR loader and its core
+      # validation layer (Ubuntu's, BSL-1.0 and Apache-2.0: loaded at run
+      # time, never linked)
+      - name: Install the test environment
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y mesa-vulkan-drivers libvulkan1 vulkan-validationlayers \
+            monado-service libopenxr1-monado libopenxr-loader1 openxr-layer-corevalidation
+      - name: cargo test gpu_openxr
+        run: cargo test -p sdl3 --test gpu_openxr
+        env:
+          SDL3_TEST_REQUIRE: openxr
+          SDL3_TEST_SKIP_LOG: ${{ runner.temp }}/skips.tsv
+      - name: cargo test --release gpu_openxr
+        run: cargo test -p sdl3 --test gpu_openxr --release
+        env:
+          SDL3_TEST_REQUIRE: openxr
+          SDL3_TEST_SKIP_LOG: ${{ runner.temp }}/skips.tsv
+      - name: List the skipped checks
+        if: always()
+        shell: bash
+        env:
+          SDL3_TEST_SKIP_LOG: ${{ runner.temp }}/skips.tsv
+        run: tools/ci/list-skips.sh "$SDL3_TEST_SKIP_LOG" "OpenXR on Monado"
+
   # The test programs built for Emscripten, run under node and in headless
   # Chrome (tools/emscripten_run.py, the runner in .cargo/config.toml): see
   # "Emscripten" in docs/HARDWARE_TESTING.md. (Linted on the Linux clippy
