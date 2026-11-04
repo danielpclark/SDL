@@ -972,6 +972,7 @@ jobs:
           setsid nohup bash .github/diag/boot-monitor.sh boot1 90 10 > "$RUNNER_TEMP/diag-boot1.log" 2>&1 < /dev/null &
           setsid nohup bash .github/diag/logcat-watch.sh > "$RUNNER_TEMP/diag-logcat.log" 2>&1 < /dev/null &
           setsid nohup bash .github/diag/load-until-boot.sh > "$RUNNER_TEMP/diag-load.log" 2>&1 < /dev/null &
+          setsid nohup bash .github/diag/writer-watch.sh > "$RUNNER_TEMP/diag-writers.log" 2>&1 < /dev/null &
       - name: Build the tests
         env:
           TEST_ARGS: ${{ inputs.android_test_args }}
