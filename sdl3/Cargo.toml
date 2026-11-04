@@ -436,3 +436,26 @@ harness = false
 [[test]]
 name = "evdev_vt"
 harness = false
+
+# The KMS/DRM video driver on a vkms card, as root on tty3 (through
+# tools/linux_console_run.py --vt 3, which reads the card's state, CRCs and
+# pixels for it): its displays, modes and windows, and without DRM master
+# (kmsdrm_video); its swap paths, the OpenGL (ES) renderers and window
+# surfaces (kmsdrm_gles); its cursor and warps (kmsdrm_cursor); the console
+# input reader through it, with a VT switch away and back (kmsdrm_input);
+# against upstream's C.
+[[test]]
+name = "kmsdrm_video"
+harness = false
+
+[[test]]
+name = "kmsdrm_gles"
+harness = false
+
+[[test]]
+name = "kmsdrm_cursor"
+harness = false
+
+[[test]]
+name = "kmsdrm_input"
+harness = false
