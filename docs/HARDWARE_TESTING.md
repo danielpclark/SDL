@@ -34,7 +34,7 @@ Every skip names one *capability* (the list is `CAPABILITIES` in
 | `pipewire` | Linux | libpipewire and a running PipeWire server with a session manager and at least one sink |
 | `alsa` | Linux | libasound and its configuration (the tests use its `file` and `null` PCMs, no sound card) |
 | `udev` | Linux | libudev and a working udev (netlink) |
-| `uinput` | Linux | a writable `/dev/uinput`, and read access to the event node it creates |
+| `uinput` | Linux | a writable `/dev/uinput`, and read access to the event nodes of the devices made there (the evdev joystick driver's check, and the console input reader's `evdev_input`: see [Linux console input](#linux-console-input-evdev)) |
 | `hidapi` | Linux, Windows, macOS, iOS, tvOS, Android | the HID backend: hidraw with libudev, `hid.dll`, IOKit's HID manager, CoreBluetooth's Steam Controllers (iOS and tvOS: never missing, no devices without Bluetooth), or the app's HID device manager (Android: never missing, no devices outside an app or on the emulator) |
 | `ipv6` | any | IPv6 sockets that can resolve and bind to the loopback address `::1` (`sdl3-net`'s IPv6 tests; containers often have IPv4 only) |
 | `tzdata` | Linux | the time zone database in `/usr/share/zoneinfo` (the local time tests set `TZ`) |
@@ -158,11 +158,82 @@ SDL3_TEST_REQUIRE=gles1,egl SDL_VIDEO_DRIVER=x11 SDL_VIDEO_FORCE_EGL=1 SDL_OPENG
   xvfb-run -a cargo test -p sdl3 --lib render::opengles::
 ```
 
-The uinput joystick test needs `/dev/uinput` (`sudo modprobe uinput`) to be
-writable and the event device it creates to be readable: run it as root, or
-add a udev rule such as
-`KERNEL=="uinput", MODE="0660", GROUP="input"` and be in the `input` group;
+The uinput tests (the joystick driver's, and `evdev_input`, below) need
+`/dev/uinput` (`sudo modprobe uinput` where it's a module) to be writable
+and the event nodes of the devices they make to be readable: run them as
+root, or add udev rules such as CI's, which open `/dev/uinput` and the
+nodes of the tests' devices (all named `SDL...`), not the machine's own:
+
+```sh
+printf '%s\n' 'KERNEL=="uinput", SUBSYSTEM=="misc", MODE="0666", OPTIONS+="static_node=uinput"' \
+  'SUBSYSTEM=="input", KERNEL=="event*|js*", ATTRS{name}=="SDL*", MODE="0666"' |
+  sudo tee /etc/udev/rules.d/99-sdl3-uinput.rules
+sudo udevadm control --reload-rules && sudo udevadm trigger --name-match=uinput
+```
+
 then require `uinput` too.
+
+## Linux console input (evdev)
+
+The console input reader (`core::linux::evdev`, with the console keyboard
+`core::linux::evdev_kbd`: upstream's `SDL_evdev.c` and `SDL_evdev_kbd.c`,
+the input of the KMS/DRM driver) is tested by unit tests that need
+nothing (the console keyboard's tables against upstream's headers, its key
+handlers on the built-in keymaps without a console, the reader's device
+list on nodes that aren't input devices, and its keys, mice and touch
+slots on events written into a pipe), and by `sdl3/tests/evdev_input.rs`
+(`harness = false`), which reads uinput devices on the dummy video
+driver's `evdev` variant (`SDL_VIDEO_DRIVER=evdev`, which upstream has for
+this: the dummy driver with the reader): a keyboard, a mouse with
+high-resolution wheels (and the relative mode), an absolute pointer, a
+four-slot multitouch screen (with the reader's buffer overflowed, so that
+it reads the slots back after `SYN_DROPPED`), and hotplug (a keyboard
+added and removed, the pointer removed). Its expected trace is upstream's
+C SDL's, from the same program in C on the same CI runner (below).
+
+```sh
+# with the udev rules above (or as root):
+SDL3_TEST_REQUIRE=uinput cargo test -p sdl3 --test evdev_input
+```
+
+The program runs itself under `tools/linux_console_run.py` (stdlib
+Python), which makes the devices it asks for and runs it without a
+controlling terminal, so that the console keyboard finds no console and
+uses its built-in keymaps (on a virtual console, `KDGKBENT` gives the
+console's keymap, which differs from machine to machine; that's for the
+virtual console tests). Without a writable `/dev/uinput` it skips
+(`uinput`). Its requests (`sdl3-console-runner: request ...` on its
+stdout, answered on its stdin):
+
+| Request | What the runner does |
+|---|---|
+| `uinput add NAME keyboard\|mouse\|tablet\|touchscreen` | a uinput device (USB, 1209:5d3b) of that kind: the keys 1 to 248 and 0x2fe; `BTN_LEFT` to `BTN_TASK` with `REL_X`, `REL_Y`, both wheels and their high-resolution events; an absolute pointer (`ABS_X`, `ABS_Y` 0 to 32767, three buttons); a direct multitouch screen of 4 slots (0 to 1000, pressure 0 to 255), once udev has classified its node (within 10 s): `uinput: added NAME`, or `uinput: unreadable NAME NODE (...)` when the program couldn't open it |
+| `uinput events NAME TYPE CODE VALUE...` | the device's events (`<linux/input-event-codes.h>` names or numbers) in one write: the kernel has them in the reader's buffers when the answer comes |
+| `uinput remove NAME` | the device destroyed, once udev's database hasn't it |
+
+Every device left is destroyed when the program ends; it is killed after
+`SDL3_CONSOLE_TIMEOUT` seconds (300). A request's events are all read by
+the program's next pump (uinput hands them to the reader's buffers
+before it answers), so each step of the trace is one pump, with no
+timing in it; the hotplug events come through udev's monitor and are
+waited for by name (within 10 s, else a `timeout:` line fails the trace).
+
+The C reference: upstream at ea7a2da built with CMake as a console build
+(`-DSDL_UNIX_CONSOLE_BUILD=ON`, with libudev-dev), and the program's C
+twin (on a diag branch only, never committed) run by the same runner,
+`tools/linux_console_run.py ./evdev_input_c`, ten times each beside the
+translation's, on the CI runner (Ubuntu 24.04, kernel 7.0): the traces
+are identical run to run and to each other's.
+
+Not covered: the console itself (keysyms through `KDGKBENT`, the muted
+keyboard, `VT_PROCESS` switching, the restore on a fatal signal), which
+needs a virtual console and root (the next phase's tests, on tty3 of the
+runner); single-touch screens, whose finger 0 upstream asserts against
+(see the reader's `FIXME (upstream)`); touchpads (classified by the
+capability guess, udev's properties not naming them for SDL, and read as
+touchscreens); the mice's mousedev nodes (`/dev/input/mouseN`), which
+upstream also opens and reads as evdev nodes (another `FIXME
+(upstream)`), but only as root; non-US console keymaps.
 
 ## Windows 11
 
@@ -2182,8 +2253,9 @@ level.
 
 The ubuntu test jobs install the packages above, start the private
 PipeWire server with `tools/ci/start-pipewire.sh` and set
-`SDL3_TEST_REQUIRE=x11,xvfb,glx,egl,vulkan,wayland,dbus,pulseaudio,pipewire,alsa,udev,hidapi,tzdata,locales,android-sdk`,
-so on Linux only the uinput test (the runner can't use `/dev/uinput`),
+`SDL3_TEST_REQUIRE=x11,xvfb,glx,egl,vulkan,wayland,dbus,pulseaudio,pipewire,alsa,udev,uinput,hidapi,tzdata,locales,android-sdk`,
+with the udev rules [above](#linux-ubuntu-2404) for uinput (`/dev/uinput`
+is root's only on the runner, built into its kernel), so on Linux only
 the OpenGL ES 1 renderer's checks (`gles1`: Mesa's packages have no
 OpenGL ES 1) and the hardware checks may skip. (`android-sdk`: the runner
 image's Android SDK, whose build-tools' `dexdump`, 35.0.0 in
