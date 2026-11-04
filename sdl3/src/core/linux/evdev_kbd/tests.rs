@@ -549,3 +549,109 @@ fn vt_switch_signals_without_a_console() {
     };
     assert_eq!(current, libc::SIG_DFL);
 }
+
+/// What `the_emergency_restore_hands_faults_on` runs in a child (this test
+/// binary again, with this variable set).
+const FAULT_CHILD: &str = "SDL3_TEST_EVDEV_KBD_FAULT";
+
+/// The handler installed before SDL's in the `chained` child: whether the
+/// keyboard was restored first, and whether the SIGSEGV it gets is the
+/// fault's own; then the default action (the fault, made again by the
+/// return, ends the child).
+extern "C" fn previous_segv_handler(sig: c_int, info: *mut libc::siginfo_t, _context: *mut c_void) {
+    // SAFETY: the kernel's siginfo; write and sigaction are
+    // async-signal-safe.
+    unsafe {
+        let restored = !KBD_CLEANUP_STATE.active.load(Ordering::SeqCst);
+        let own = (*info).si_code == 1 /* SEGV_MAPERR */ && (*info).si_addr().addr() == 16;
+        let line: &[u8] = match (restored, own) {
+            (true, true) => b"previous handler: restored, the fault's own siginfo\n",
+            (true, false) => b"previous handler: restored, another siginfo\n",
+            (false, _) => b"previous handler: not restored\n",
+        };
+        libc::write(2, line.as_ptr().cast(), line.len());
+        let mut action: libc::sigaction = std::mem::zeroed();
+        action.sa_sigaction = libc::SIG_DFL;
+        libc::sigaction(sig, &action, std::ptr::null_mut());
+    }
+}
+
+/// A recursion that overflows the stack.
+fn recurse(depth: u64) -> u64 {
+    let frame = std::hint::black_box([depth; 512]);
+    if frame[0] == u64::MAX {
+        return 0;
+    }
+    recurse(frame[1] + 1) + frame[2]
+}
+
+/// The emergency restore's handler, with the console muted, hands a fault
+/// on to the handler it replaced with the fault's own siginfo (`Note
+/// (upstream)` in `kbd_cleanup_signal_action()`): a handler of the
+/// program's sees the faulting address, after the restore; Rust std's tells
+/// a stack overflow (and aborts, through SDL's handler of SIGABRT); a
+/// SIGABRT is raised again, as upstream. In children (this test binary
+/// again), as the faults end them.
+#[test]
+fn the_emergency_restore_hands_faults_on() {
+    let name = format!(
+        "{}::the_emergency_restore_hands_faults_on",
+        module_path!().split_once("::").unwrap().1
+    );
+    if let Ok(what) = std::env::var(FAULT_CHILD) {
+        if what == "chained" {
+            // SAFETY: the handler is async-signal-safe and doesn't unwind.
+            unsafe {
+                let mut action: libc::sigaction = std::mem::zeroed();
+                action.sa_sigaction = previous_segv_handler
+                    as extern "C" fn(c_int, *mut libc::siginfo_t, *mut c_void)
+                    as libc::sighandler_t;
+                action.sa_flags = libc::SA_SIGINFO;
+                libc::sigaction(libc::SIGSEGV, &action, std::ptr::null_mut());
+            }
+        }
+        let mut kbd = without_console();
+        kbd.set_muted(true);
+        assert!(KBD_CLEANUP_STATE.active.load(Ordering::SeqCst));
+        match what.as_str() {
+            // SAFETY: the fault is the point.
+            "chained" | "segv" => unsafe {
+                std::ptr::without_provenance_mut::<u8>(16).write_volatile(1);
+            },
+            "stack-overflow" => {
+                std::hint::black_box(recurse(0));
+            }
+            "abort" => std::process::abort(),
+            _ => unreachable!("{what}"),
+        }
+        unreachable!("the child {what} is still running");
+    }
+
+    let exe = std::env::current_exe().unwrap();
+    for (what, signal, stderr_has) in [
+        (
+            "chained",
+            libc::SIGSEGV,
+            "previous handler: restored, the fault's own siginfo\n",
+        ),
+        ("segv", libc::SIGSEGV, ""),
+        ("stack-overflow", libc::SIGABRT, "has overflowed its stack"),
+        ("abort", libc::SIGABRT, ""),
+    ] {
+        use std::os::unix::process::ExitStatusExt;
+        let output = std::process::Command::new(&exe)
+            .args([name.as_str(), "--exact", "--nocapture", "--test-threads=1"])
+            .env(FAULT_CHILD, what)
+            .env_remove("SDL_NO_SIGNAL_HANDLERS")
+            .output()
+            .unwrap();
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        assert_eq!(
+            output.status.signal(),
+            Some(signal),
+            "{what}: {:?}, stderr {stderr:?}",
+            output.status
+        );
+        assert!(stderr.contains(stderr_has), "{what}: stderr {stderr:?}");
+    }
+}
