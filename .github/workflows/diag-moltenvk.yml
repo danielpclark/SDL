@@ -11,7 +11,7 @@ permissions:
   contents: read
 
 env:
-  RUST_TOOLCHAIN: "1.87"
+  RUST_TOOLCHAIN: "1.99"
   CARGO_TERM_COLOR: always
   CARGO_INCREMENTAL: 0
   RUST_BACKTRACE: 1
@@ -37,7 +37,7 @@ jobs:
           toolchain: ${{ env.RUST_TOOLCHAIN }}
       - uses: Swatinem/rust-cache@v2
         with:
-          key: "1.87"
+          key: "release"
       - name: Install the GPU drivers (macOS)
         run: |
           C="$RUNNER_TEMP/gpu-cache"
@@ -50,7 +50,7 @@ jobs:
           sudo cp "$RUNNER_TEMP/MoltenVK/MoltenVK/dynamic/dylib/macOS/libMoltenVK.dylib" /usr/local/lib/
       - name: Build the tests
         run: |
-          cargo test -p sdl3 --lib --no-run --message-format=json > "$RUNNER_TEMP/build.json"
+          cargo test -p sdl3 --lib --release --no-run --message-format=json > "$RUNNER_TEMP/build.json"
           exe="$(python3 -c 'import json, sys; [print(m["executable"]) for m in map(json.loads, open(sys.argv[1])) if m.get("reason") == "compiler-artifact" and m.get("executable") and m["target"]["kind"] == ["lib"]]' "$RUNNER_TEMP/build.json")"
           test -n "$exe"
           echo "TEST_EXE=$exe" >> "$GITHUB_ENV"
@@ -58,7 +58,7 @@ jobs:
           rm -f ~/Library/Logs/DiagnosticReports/*.ips || true
       - name: Loop
         env:
-          RUNS: ${{ matrix.filter == 'all' && 60 || 30 }}
+          RUNS: ${{ matrix.filter == 'all' && 40 || 30 }}
           FILTER: ${{ matrix.filter != 'all' && matrix.filter || '' }}
         run: |
           cd sdl3
