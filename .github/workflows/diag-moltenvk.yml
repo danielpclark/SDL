@@ -58,8 +58,9 @@ jobs:
           rm -f ~/Library/Logs/DiagnosticReports/*.ips || true
       - name: Loop
         env:
-          RUNS: ${{ matrix.filter == 'all' && 100 || 30 }}
+          RUNS: ${{ matrix.filter == 'all' && 60 || 30 }}
           FILTER: ${{ matrix.filter != 'all' && matrix.filter || '' }}
+        shell: bash
         run: |
           cd sdl3
           crashes=0
@@ -73,8 +74,10 @@ jobs:
             exe="$RUNNER_TEMP/bin/sdl3-run$i-$RANDOM"
             cp "$TEST_EXE" "$exe"
             set +e
-            "$exe" $FILTER > "$RUNNER_TEMP/run.log" 2>&1
-            status=$?
+            # (into the job's log, as under cargo test in CI: the runner's
+            # pipe, whose writes can block, not a file)
+            "$exe" $FILTER 2>&1 | tee "$RUNNER_TEMP/run.log"
+            status=${PIPESTATUS[0]}
             set -e
             echo "run $i: exit $status ($(( $(date +%s) - start ))s) $(grep -E '^(running [0-9]+ tests|test result:)' "$RUNNER_TEMP/run.log" | tr '\n' ' ')"
             if [ "$i" -eq 1 ]; then head -5 "$RUNNER_TEMP/run.log"; fi
