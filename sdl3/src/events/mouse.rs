@@ -459,6 +459,11 @@ pub(crate) struct Mouse {
     mouse_names: Vec<(MouseID, String)>,
     initialized: bool,
     hint_callbacks: Vec<hints::Callback>,
+
+    /// `mouse->SetRelativeMouseMode` when a backend other than the video
+    /// driver sets it (the console input reader's), which takes the place
+    /// of the video driver's.
+    pub(crate) set_relative_mouse_mode_hook: Option<fn(bool) -> Result<()>>,
 }
 
 impl Mouse {
@@ -514,6 +519,7 @@ impl Mouse {
             mouse_names: Vec::new(),
             initialized: false,
             hint_callbacks: Vec::new(),
+            set_relative_mouse_mode_hook: None,
         }
     }
 }
@@ -1871,12 +1877,18 @@ pub fn set_relative_mouse_mode(enabled: bool) -> Result<()> {
     }
 
     // Set the relative mode
-    let Some(video) =
-        video().filter(|v| v.supports_mouse_feature(MouseFeature::SetRelativeMouseMode))
-    else {
-        return Err(Error::unsupported());
-    };
-    video.set_relative_mouse_mode(enabled)?;
+    let video = video();
+    if let Some(hook) = with_mouse(|mouse| mouse.set_relative_mouse_mode_hook) {
+        hook(enabled)?;
+    } else {
+        match video
+            .as_ref()
+            .filter(|v| v.supports_mouse_feature(MouseFeature::SetRelativeMouseMode))
+        {
+            Some(video) => video.set_relative_mouse_mode(enabled)?,
+            None => return Err(Error::unsupported()),
+        }
+    }
 
     with_mouse(|mouse| mouse.relative_mode = enabled);
 
@@ -1890,7 +1902,9 @@ pub fn set_relative_mouse_mode(enabled: bool) -> Result<()> {
     }
 
     if let Some(focus) = focus_window {
-        video.update_window_grab(focus);
+        if let Some(video) = &video {
+            video.update_window_grab(focus);
+        }
 
         // Put the cursor back to where the application expects it
         if !enabled {
