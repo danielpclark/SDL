@@ -1,0 +1,606 @@
+# Throwaway diag workflow (claude/diag-openxr-cref only, never merged): the
+# gpu_openxr trace (sdl3/tests/gpu_openxr.rs) against upstream's C SDL at
+# ea7a2da on Monado's null compositor and lavapipe, run by the same harness
+# (--run-c). Upstream unpatched (B7's validation errors, B12's crash: shown,
+# not compared), then patched as the Rust fixes B7 and B12, which must give
+# the Rust's trace (5 runs, and a release one). The C twin and the patcher
+# are in this file (no C file is committed). Plus ci.yml's openxr job as is.
+name: openxr-cref
+
+on:
+  push:
+    branches: [claude/diag-openxr-cref]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  RUST_TOOLCHAIN: "1.99"
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
+  RUST_BACKTRACE: 1
+  UPSTREAM_COMMIT: ea7a2da
+
+jobs:
+  cref:
+    name: cref (C and Rust traces)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: openxr-cref
+      - name: Install
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y mesa-vulkan-drivers libvulkan1 vulkan-validationlayers \
+            monado-service libopenxr1-monado libopenxr-loader1 openxr-layer-corevalidation ninja-build
+      - name: Build upstream at ea7a2da, unpatched and patched (B7, B12)
+        run: |
+          U="$RUNNER_TEMP/upstream"
+          git clone -q --filter=blob:none https://github.com/libsdl-org/SDL "$U"
+          git -C "$U" checkout -q "$UPSTREAM_COMMIT"
+          git -C "$U" log --oneline -1
+          cat > "$RUNNER_TEMP/cpatch.py" <<'PY'
+          import sys
+          # usage: cpatch.py SDL_gpu_vulkan.c b7|b12 ... : the fixes the Rust makes, in upstream's C
+          p = sys.argv[1]
+          s = open(p).read()
+          for fix in sys.argv[2:]:
+              if fix == 'b7':
+                  old = """        texture->aspectFlags = VK_IMAGE_ASPECT_COLOR_BIT;
+
+                  texture->subresourceCount = createInfo.arraySize * createInfo.mipCount;"""
+                  new = """        texture->aspectFlags = VK_IMAGE_ASPECT_COLOR_BIT;
+                  texture->levelCount = createInfo.mipCount;
+                  texture->layerCount = createInfo.arraySize;
+
+                  texture->subresourceCount = createInfo.arraySize * createInfo.mipCount;"""
+                  assert s.count(old) == 1
+                  s = s.replace(old, new)
+                  old = """        container->textures[0] = container->activeTexture;
+                  container->debugName = NULL;
+              }
+
+              *textures = (SDL_GPUTexture **)textureContainers;"""
+                  new = """        container->textures[0] = container->activeTexture;
+                  container->debugName = NULL;
+                  texture->container = container;
+                  texture->containerIndex = 0;
+              }
+
+              *textures = (SDL_GPUTexture **)textureContainers;"""
+                  assert s.count(old) == 1
+                  s = s.replace(old, new)
+              elif fix == 'b12':
+                  check = """    if (!renderer->xr) {
+                  SDL_SetError("The GPU device was not created with OpenXR enabled");
+                  return %s;
+              }
+          """
+                  for fn, ret in [("VULKAN_DestroyXRSwapchain", "XR_ERROR_FUNCTION_UNSUPPORTED"),
+                                  ("VULKAN_GetXRSwapchainFormats", "NULL"),
+                                  ("VULKAN_CreateXRSwapchain", "XR_ERROR_FUNCTION_UNSUPPORTED"),
+                                  ("VULKAN_CreateXRSession", "XR_ERROR_FUNCTION_UNSUPPORTED")]:
+                      i = s.index("static ", s.index(fn + "(") - 40)
+                      j = s.index("VulkanRenderer *renderer = (VulkanRenderer *)driverData;\n", i)
+                      j += len("VulkanRenderer *renderer = (VulkanRenderer *)driverData;\n")
+                      s = s[:j] + "\n" + (check % ret) + s[j:]
+              else:
+                  raise SystemExit("unknown fix " + fix)
+          open(p, 'w').write(s)
+
+          PY
+          build() {
+            cmake -S "$U" -B "$1" -G Ninja -DCMAKE_BUILD_TYPE=Release -DSDL_SHARED=ON -DSDL_STATIC=OFF \
+              -DSDL_TEST_LIBRARY=OFF -DSDL_TESTS=OFF -DSDL_EXAMPLES=OFF -DSDL_UNIX_CONSOLE_BUILD=ON \
+              -DSDL_OFFSCREEN=ON -DSDL_VULKAN=ON -DSDL_GPU_OPENXR=ON -DSDL_X11=OFF -DSDL_WAYLAND=OFF \
+              > "$1.cmake.log" 2>&1 || { tail -60 "$1.cmake.log"; exit 1; }
+            cmake --build "$1" > "$1.build.log" 2>&1 || { tail -60 "$1.build.log"; exit 1; }
+          }
+          build "$RUNNER_TEMP/build-u"
+          python3 "$RUNNER_TEMP/cpatch.py" "$U/src/gpu/vulkan/SDL_gpu_vulkan.c" b7 b12
+          git -C "$U" diff --stat
+          git -C "$U" diff
+          build "$RUNNER_TEMP/build-p"
+      - name: Build the C twin
+        run: |
+          U="$RUNNER_TEMP/upstream"
+          cat > "$RUNNER_TEMP/gpu_openxr.c" <<'C'
+          /* diag only (never committed to a PR branch): the C twin of
+           * sdl3/tests/gpu_openxr.rs's scenarios, on upstream SDL at ea7a2da: the
+           * same calls, the same lines (run by the Rust harness with --run-c). */
+          #include <SDL3/SDL.h>
+          #include <stdio.h>
+          #include <stdlib.h>
+          #include <string.h>
+          #include <vulkan/vulkan.h>
+          #define XR_USE_GRAPHICS_API_VULKAN 1
+          #include <openxr/openxr.h>
+          #include <openxr/openxr_platform.h>
+          #include <SDL3/SDL_openxr.h>
+
+          #define TR(...) do { printf("xrtrace: " __VA_ARGS__); printf("\n"); fflush(stdout); } while (0)
+
+          static void SDLCALL log_out(void *u, int category, SDL_LogPriority priority, const char *message)
+          {
+              (void)u;
+              if (category == SDL_LOG_CATEGORY_GPU) {
+                  TR("log %d: %s", (int)priority, message);
+              }
+          }
+
+          static SDL_PropertiesID xr_props(bool debug, XrInstance *inst, XrSystemId *sys)
+          {
+              SDL_PropertiesID props = SDL_CreateProperties();
+              SDL_SetBooleanProperty(props, SDL_PROP_GPU_DEVICE_CREATE_SHADERS_SPIRV_BOOLEAN, true);
+              SDL_SetBooleanProperty(props, SDL_PROP_GPU_DEVICE_CREATE_DEBUGMODE_BOOLEAN, debug);
+              SDL_SetBooleanProperty(props, SDL_PROP_GPU_DEVICE_CREATE_VERBOSE_BOOLEAN, false);
+              SDL_SetBooleanProperty(props, SDL_PROP_GPU_DEVICE_CREATE_XR_ENABLE_BOOLEAN, true);
+              SDL_SetPointerProperty(props, SDL_PROP_GPU_DEVICE_CREATE_XR_INSTANCE_POINTER, inst);
+              SDL_SetPointerProperty(props, SDL_PROP_GPU_DEVICE_CREATE_XR_SYSTEM_ID_POINTER, sys);
+              return props;
+          }
+
+          static void no_xr(void)
+          {
+              SDL_PropertiesID props = SDL_CreateProperties();
+              SDL_SetBooleanProperty(props, SDL_PROP_GPU_DEVICE_CREATE_SHADERS_SPIRV_BOOLEAN, true);
+              SDL_SetBooleanProperty(props, SDL_PROP_GPU_DEVICE_CREATE_DEBUGMODE_BOOLEAN, false);
+              SDL_SetBooleanProperty(props, SDL_PROP_GPU_DEVICE_CREATE_VERBOSE_BOOLEAN, false);
+              SDL_GPUDevice *d = SDL_CreateGPUDeviceWithProperties(props);
+              SDL_DestroyProperties(props);
+              if (!d) {
+                  TR("device: error: %s", SDL_GetError());
+                  return;
+              }
+              TR("device: ok (%s)", SDL_GetGPUDeviceDriver(d));
+
+              XrSessionCreateInfo sci = { XR_TYPE_SESSION_CREATE_INFO };
+              XrSession s = XR_NULL_HANDLE;
+              SDL_ClearError();
+              XrResult r = SDL_CreateGPUXRSession(d, &sci, &s);
+              if (r == XR_SUCCESS) TR("session: ok");
+              else TR("session: error %d: %s", (int)r, SDL_GetError());
+
+              int n = -1;
+              SDL_ClearError();
+              SDL_GPUTextureFormat *f = SDL_GetGPUXRSwapchainFormats(d, (XrSession)(uintptr_t)1, &n);
+              if (f) TR("formats: %d", n);
+              else TR("formats: error: %s", SDL_GetError());
+              SDL_free(f);
+
+              XrSwapchainCreateInfo c = { XR_TYPE_SWAPCHAIN_CREATE_INFO };
+              c.usageFlags = XR_SWAPCHAIN_USAGE_COLOR_ATTACHMENT_BIT;
+              c.sampleCount = 1; c.width = 16; c.height = 16; c.faceCount = 1; c.arraySize = 1; c.mipCount = 1;
+              XrSwapchain sc = XR_NULL_HANDLE;
+              SDL_GPUTexture **t = NULL;
+              SDL_ClearError();
+              r = SDL_CreateGPUXRSwapchain(d, (XrSession)(uintptr_t)1, &c, SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM, &sc, &t);
+              if (r == XR_SUCCESS) TR("swapchain: ok");
+              else TR("swapchain: error %d: %s", (int)r, SDL_GetError());
+
+              /* (not in the trace: the Rust API has no swapchain to destroy here) */
+              SDL_GPUTexture *none[1] = { NULL };
+              SDL_ClearError();
+              r = SDL_DestroyGPUXRSwapchain(d, (XrSwapchain)(uintptr_t)1, none);
+              printf("c: destroy swapchain: %d: %s\n", (int)r, SDL_GetError());
+
+              SDL_DestroyGPUDevice(d);
+              TR("device destroyed");
+          }
+
+          static void no_service(void)
+          {
+              XrInstance inst = XR_NULL_HANDLE;
+              XrSystemId sys = XR_NULL_SYSTEM_ID;
+              SDL_PropertiesID props = xr_props(true, &inst, &sys);
+              TR("supports xr: %s", SDL_GPUSupportsProperties(props) ? "true" : "false");
+              SDL_GPUDevice *d = SDL_CreateGPUDeviceWithProperties(props);
+              if (d) TR("device: ok");
+              else TR("device: error: %s", SDL_GetError());
+              if (d) SDL_DestroyGPUDevice(d);
+              SDL_DestroyProperties(props);
+          }
+
+          static SDL_FColor clear_color(int swapchain, int layer, int frame)
+          {
+              float f = (float)frame / 4.0f;
+              SDL_FColor c;
+              if (swapchain == 0) { c.r = 1.0f; c.g = 0.5f; c.b = f; c.a = 1.0f; }
+              else if (layer == 0) { c.r = 1.0f; c.g = 0.0f; c.b = f; c.a = 1.0f; }
+              else { c.r = 0.0f; c.g = 1.0f; c.b = f; c.a = 0.75f; }
+              return c;
+          }
+
+          static const char *pixel(const Uint8 *p)
+          {
+              static char buf[8][32];
+              static int i = 0;
+              i = (i + 1) % 8;
+              SDL_snprintf(buf[i], sizeof(buf[i]), "%u,%u,%u,%u", p[0], p[1], p[2], p[3]);
+              return buf[i];
+          }
+
+          #define TRACED_FRAMES 4
+
+          static void main_scenario(void)
+          {
+              XrInstance inst = XR_NULL_HANDLE;
+              XrSystemId sys = XR_NULL_SYSTEM_ID;
+
+              SDL_PropertiesID p = xr_props(true, &inst, &sys);
+              TR("supports xr: %s", SDL_GPUSupportsProperties(p) ? "true" : "false");
+              SDL_DestroyProperties(p);
+
+              p = xr_props(false, &inst, &sys);
+              SDL_SetNumberProperty(p, SDL_PROP_GPU_DEVICE_CREATE_XR_FORM_FACTOR_NUMBER, 2);
+              SDL_GPUDevice *hh = SDL_CreateGPUDeviceWithProperties(p);
+              if (hh) { TR("handheld: ok"); SDL_DestroyGPUDevice(hh); }
+              else TR("handheld: error: %s", SDL_GetError());
+              SDL_DestroyProperties(p);
+
+              p = xr_props(false, &inst, &sys);
+              const char *unknown[] = { "XR_SDL3_test_unknown" };
+              SDL_SetNumberProperty(p, SDL_PROP_GPU_DEVICE_CREATE_XR_EXTENSION_COUNT_NUMBER, 1);
+              SDL_SetPointerProperty(p, SDL_PROP_GPU_DEVICE_CREATE_XR_EXTENSION_NAMES_POINTER, (void *)unknown);
+              SDL_ClearError();
+              SDL_GPUDevice *uk = SDL_CreateGPUDeviceWithProperties(p);
+              if (uk) { TR("unknown extension: ok"); SDL_DestroyGPUDevice(uk); }
+              else { TR("unknown extension: failed"); printf("c: unknown extension: '%s'\n", SDL_GetError()); }
+              SDL_DestroyProperties(p);
+
+              inst = XR_NULL_HANDLE; sys = XR_NULL_SYSTEM_ID;
+              p = xr_props(true, &inst, &sys);
+              const char *exts[] = { "XR_EXT_debug_utils" };
+              const char *layers[] = { "XR_APILAYER_LUNARG_core_validation" };
+              SDL_SetNumberProperty(p, SDL_PROP_GPU_DEVICE_CREATE_XR_EXTENSION_COUNT_NUMBER, 1);
+              SDL_SetPointerProperty(p, SDL_PROP_GPU_DEVICE_CREATE_XR_EXTENSION_NAMES_POINTER, (void *)exts);
+              SDL_SetNumberProperty(p, SDL_PROP_GPU_DEVICE_CREATE_XR_LAYER_COUNT_NUMBER, 1);
+              SDL_SetPointerProperty(p, SDL_PROP_GPU_DEVICE_CREATE_XR_LAYER_NAMES_POINTER, (void *)layers);
+              SDL_SetStringProperty(p, SDL_PROP_GPU_DEVICE_CREATE_XR_APPLICATION_NAME_STRING, "gpu_openxr");
+              SDL_SetNumberProperty(p, SDL_PROP_GPU_DEVICE_CREATE_XR_APPLICATION_VERSION_NUMBER, 3);
+              SDL_SetStringProperty(p, SDL_PROP_GPU_DEVICE_CREATE_XR_ENGINE_NAME_STRING, "gpu_openxr_engine");
+              SDL_SetNumberProperty(p, SDL_PROP_GPU_DEVICE_CREATE_XR_ENGINE_VERSION_NUMBER, 5);
+              SDL_GPUDevice *dev = SDL_CreateGPUDeviceWithProperties(p);
+              SDL_DestroyProperties(p);
+              if (!dev) { TR("device: error: %s", SDL_GetError()); return; }
+              TR("device: ok (%s)", SDL_GetGPUDeviceDriver(dev));
+              TR("instance: %s, system: %s", inst ? "non-null" : "null", sys ? "non-null" : "null");
+              {
+                  const char *name = SDL_GetStringProperty(SDL_GetGPUDeviceProperties(dev), SDL_PROP_GPU_DEVICE_NAME_STRING, "");
+                  char first[64];
+                  size_t n = strcspn(name, " \t\n");
+                  if (n >= sizeof(first)) n = sizeof(first) - 1;
+                  memcpy(first, name, n); first[n] = 0;
+                  TR("device name: %s", first);
+              }
+
+              PFN_xrGetInstanceProcAddr gipa = (PFN_xrGetInstanceProcAddr)SDL_OpenXR_GetXrGetInstanceProcAddr();
+              if (!gipa) { TR("xrGetInstanceProcAddr: error: %s", SDL_GetError()); return; }
+              TR("xrGetInstanceProcAddr: ok");
+              {
+                  PFN_xrVoidFunction f = NULL;
+                  XrResult r = gipa(inst, "xrCreateDebugUtilsMessengerEXT", &f);
+                  TR("xrCreateDebugUtilsMessengerEXT: %d", (int)r);
+              }
+          #define LOADI(name) PFN_##name name = NULL; if (gipa(inst, #name, (PFN_xrVoidFunction *)&name) != XR_SUCCESS || !name) { printf("c: no %s\n", #name); abort(); }
+              LOADI(xrPollEvent); LOADI(xrBeginSession); LOADI(xrEndSession); LOADI(xrRequestExitSession);
+              LOADI(xrDestroySession); LOADI(xrWaitFrame); LOADI(xrBeginFrame); LOADI(xrEndFrame);
+              LOADI(xrLocateViews); LOADI(xrAcquireSwapchainImage); LOADI(xrWaitSwapchainImage);
+              LOADI(xrReleaseSwapchainImage); LOADI(xrCreateReferenceSpace); LOADI(xrDestroySpace);
+              LOADI(xrDestroyInstance); LOADI(xrEnumerateSwapchainImages);
+
+              XrSessionCreateInfo sci = { XR_TYPE_SESSION_CREATE_INFO };
+              XrSession session = XR_NULL_HANDLE;
+              SDL_ClearError();
+              XrResult r = SDL_CreateGPUXRSession(dev, &sci, &session);
+              if (r != XR_SUCCESS) { TR("session: error %d: %s", (int)r, SDL_GetError()); return; }
+              TR("session: ok");
+
+              {
+                  int nf = -1;
+                  SDL_GPUTextureFormat *fmts = SDL_GetGPUXRSwapchainFormats(dev, session, &nf);
+                  if (!fmts) TR("formats: error: %s", SDL_GetError());
+                  else {
+                      char line[1024] = "";
+                      for (int i = 0; i < nf; i++) {
+                          char one[16];
+                          SDL_snprintf(one, sizeof(one), i ? " %d" : "%d", (int)fmts[i]);
+                          SDL_strlcat(line, one, sizeof(line));
+                      }
+                      TR("formats: %s", line);
+                  }
+                  SDL_free(fmts);
+              }
+
+              const char *names[3] = { "one layer", "two layers", "no color attachment" };
+              const Uint32 sizes[3] = { 64, 32, 16 };
+              const Uint32 nlayers[3] = { 1, 2, 1 };
+              const XrSwapchainUsageFlags usages[3] = {
+                  XR_SWAPCHAIN_USAGE_COLOR_ATTACHMENT_BIT | XR_SWAPCHAIN_USAGE_TRANSFER_SRC_BIT,
+                  XR_SWAPCHAIN_USAGE_COLOR_ATTACHMENT_BIT | XR_SWAPCHAIN_USAGE_TRANSFER_SRC_BIT,
+                  XR_SWAPCHAIN_USAGE_SAMPLED_BIT | XR_SWAPCHAIN_USAGE_TRANSFER_SRC_BIT,
+              };
+              XrSwapchain sc[3];
+              SDL_GPUTexture **tex[3];
+              for (int k = 0; k < 3; k++) {
+                  XrSwapchainCreateInfo c = { XR_TYPE_SWAPCHAIN_CREATE_INFO };
+                  c.usageFlags = usages[k];
+                  c.sampleCount = 1; c.width = sizes[k]; c.height = sizes[k]; c.faceCount = 1; c.arraySize = nlayers[k]; c.mipCount = 1;
+                  SDL_ClearError();
+                  r = SDL_CreateGPUXRSwapchain(dev, session, &c, SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM, &sc[k], &tex[k]);
+                  if (r != XR_SUCCESS) { TR("swapchain %s: error %d: %s", names[k], (int)r, SDL_GetError()); return; }
+                  Uint32 n = 0;
+                  xrEnumerateSwapchainImages(sc[k], 0, &n, NULL);
+                  TR("swapchain %s: ok, %u images", names[k], n);
+              }
+
+              XrReferenceSpaceCreateInfo rsci = { XR_TYPE_REFERENCE_SPACE_CREATE_INFO };
+              rsci.referenceSpaceType = XR_REFERENCE_SPACE_TYPE_LOCAL;
+              rsci.poseInReferenceSpace.orientation.w = 1;
+              XrSpace space = XR_NULL_HANDLE;
+              TR("reference space: %d", (int)xrCreateReferenceSpace(session, &rsci, &space));
+
+              const Uint32 one = 64 * 64 * 4, two = 32 * 32 * 4;
+              SDL_GPUTransferBufferCreateInfo tbi = { SDL_GPU_TRANSFERBUFFERUSAGE_DOWNLOAD, one + 2 * two, 0 };
+              SDL_GPUTransferBuffer *tb = SDL_CreateGPUTransferBuffer(dev, &tbi);
+
+              bool running = false, exit_requested = false, done = false;
+              int state = 0;
+              Uint32 traced = 0;
+              for (int iter = 0; iter < 3000 && !done; iter++) {
+                  for (;;) {
+                      XrEventDataBuffer ev = { XR_TYPE_EVENT_DATA_BUFFER };
+                      if (xrPollEvent(inst, &ev) != XR_SUCCESS) break;
+                      if (ev.type != XR_TYPE_EVENT_DATA_SESSION_STATE_CHANGED) continue;
+                      state = (int)((XrEventDataSessionStateChanged *)&ev)->state;
+                      TR("state %d", state);
+                      if (state == XR_SESSION_STATE_READY) {
+                          XrSessionBeginInfo sbi = { XR_TYPE_SESSION_BEGIN_INFO };
+                          sbi.primaryViewConfigurationType = XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO;
+                          r = xrBeginSession(session, &sbi);
+                          TR("begin session: %d", (int)r);
+                          running = r == XR_SUCCESS;
+                      } else if (state == XR_SESSION_STATE_STOPPING) {
+                          TR("end session: %d", (int)xrEndSession(session));
+                          running = false;
+                      } else if (state == XR_SESSION_STATE_EXITING || state == XR_SESSION_STATE_LOSS_PENDING) {
+                          done = true;
+                      }
+                  }
+                  if (!running) { SDL_Delay(5); continue; }
+
+                  XrFrameWaitInfo fwi = { XR_TYPE_FRAME_WAIT_INFO };
+                  XrFrameState fs = { XR_TYPE_FRAME_STATE };
+                  if (xrWaitFrame(session, &fwi, &fs) != XR_SUCCESS) { printf("c: xrWaitFrame\n"); abort(); }
+                  XrFrameBeginInfo fbi = { XR_TYPE_FRAME_BEGIN_INFO };
+                  if (XR_FAILED(xrBeginFrame(session, &fbi))) { printf("c: xrBeginFrame\n"); abort(); }
+                  XrViewLocateInfo vli = { XR_TYPE_VIEW_LOCATE_INFO };
+                  vli.viewConfigurationType = XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO;
+                  vli.displayTime = fs.predictedDisplayTime;
+                  vli.space = space;
+                  XrViewState vs = { XR_TYPE_VIEW_STATE };
+                  XrView views[2] = { { XR_TYPE_VIEW }, { XR_TYPE_VIEW } };
+                  Uint32 nv = 0;
+                  xrLocateViews(session, &vli, &vs, 2, &nv, views);
+
+                  bool traced_frame = state == XR_SESSION_STATE_FOCUSED && traced < TRACED_FRAMES;
+                  Uint32 frame = traced_frame ? traced : 0;
+
+                  Uint32 idx[2];
+                  for (int k = 0; k < 2; k++) {
+                      XrSwapchainImageAcquireInfo ai = { XR_TYPE_SWAPCHAIN_IMAGE_ACQUIRE_INFO };
+                      XrSwapchainImageWaitInfo wi = { XR_TYPE_SWAPCHAIN_IMAGE_WAIT_INFO };
+                      wi.timeout = XR_INFINITE_DURATION;
+                      if (xrAcquireSwapchainImage(sc[k], &ai, &idx[k]) != XR_SUCCESS) { printf("c: acquire\n"); abort(); }
+                      if (xrWaitSwapchainImage(sc[k], &wi) != XR_SUCCESS) { printf("c: wait\n"); abort(); }
+                  }
+
+                  SDL_GPUCommandBuffer *cb = SDL_AcquireGPUCommandBuffer(dev);
+                  for (int k = 0; k < 2; k++) {
+                      for (Uint32 layer = 0; layer < nlayers[k]; layer++) {
+                          SDL_GPUColorTargetInfo ct;
+                          SDL_zero(ct);
+                          ct.texture = tex[k][idx[k]];
+                          ct.layer_or_depth_plane = layer;
+                          ct.clear_color = clear_color(k, (int)layer, (int)frame);
+                          ct.load_op = SDL_GPU_LOADOP_CLEAR;
+                          ct.store_op = SDL_GPU_STOREOP_STORE;
+                          SDL_GPURenderPass *rp = SDL_BeginGPURenderPass(cb, &ct, 1, NULL);
+                          if (rp) SDL_EndGPURenderPass(rp);
+                          else TR("render pass %d %u: error: %s", k, layer, SDL_GetError());
+                      }
+                  }
+                  {
+                      SDL_GPUCopyPass *cp = SDL_BeginGPUCopyPass(cb);
+                      const int rk[3] = { 0, 1, 1 };
+                      const Uint32 rl[3] = { 0, 0, 1 }, ro[3] = { 0, one, one + two }, rs[3] = { 64, 32, 32 };
+                      for (int q = 0; q < 3; q++) {
+                          SDL_GPUTextureRegion reg;
+                          SDL_zero(reg);
+                          reg.texture = tex[rk[q]][idx[rk[q]]];
+                          reg.layer = rl[q]; reg.w = rs[q]; reg.h = rs[q]; reg.d = 1;
+                          SDL_GPUTextureTransferInfo ti;
+                          SDL_zero(ti);
+                          ti.transfer_buffer = tb; ti.offset = ro[q];
+                          SDL_DownloadFromGPUTexture(cp, &reg, &ti);
+                      }
+                      SDL_EndGPUCopyPass(cp);
+                  }
+                  SDL_GPUFence *fence = SDL_SubmitGPUCommandBufferAndAcquireFence(cb);
+                  SDL_WaitForGPUFences(dev, true, &fence, 1);
+                  SDL_ReleaseGPUFence(dev, fence);
+                  if (traced_frame) {
+                      Uint8 *m = SDL_MapGPUTransferBuffer(dev, tb, false);
+                      TR("frame %u: one layer %s %s; two layers %s %s, %s %s", frame,
+                         pixel(m), pixel(m + one - 4), pixel(m + one), pixel(m + one + two - 4),
+                         pixel(m + one + two), pixel(m + one + two + two - 4));
+                      SDL_UnmapGPUTransferBuffer(dev, tb);
+                  }
+
+                  for (int k = 0; k < 2; k++) {
+                      XrSwapchainImageReleaseInfo ri = { XR_TYPE_SWAPCHAIN_IMAGE_RELEASE_INFO };
+                      if (xrReleaseSwapchainImage(sc[k], &ri) != XR_SUCCESS) { printf("c: release\n"); abort(); }
+                  }
+
+                  XrCompositionLayerProjectionView pv[2];
+                  for (int e = 0; e < 2; e++) {
+                      memset(&pv[e], 0, sizeof(pv[e]));
+                      pv[e].type = XR_TYPE_COMPOSITION_LAYER_PROJECTION_VIEW;
+                      pv[e].pose = views[e].pose;
+                      pv[e].fov = views[e].fov;
+                      pv[e].subImage.swapchain = sc[1];
+                      pv[e].subImage.imageRect.extent.width = 32;
+                      pv[e].subImage.imageRect.extent.height = 32;
+                      pv[e].subImage.imageArrayIndex = (Uint32)e;
+                  }
+                  XrCompositionLayerProjection layer = { XR_TYPE_COMPOSITION_LAYER_PROJECTION };
+                  layer.space = space; layer.viewCount = 2; layer.views = pv;
+                  const XrCompositionLayerBaseHeader *lp = (const XrCompositionLayerBaseHeader *)&layer;
+                  XrFrameEndInfo fei = { XR_TYPE_FRAME_END_INFO };
+                  fei.displayTime = fs.predictedDisplayTime;
+                  fei.environmentBlendMode = XR_ENVIRONMENT_BLEND_MODE_OPAQUE;
+                  fei.layerCount = fs.shouldRender ? 1 : 0;
+                  fei.layers = &lp;
+                  if (xrEndFrame(session, &fei) != XR_SUCCESS) { printf("c: xrEndFrame\n"); abort(); }
+
+                  if (traced_frame) {
+                      traced++;
+                      if (traced == TRACED_FRAMES && !exit_requested) {
+                          TR("request exit: %d", (int)xrRequestExitSession(session));
+                          exit_requested = true;
+                      }
+                  }
+              }
+              TR("session done: %s", done ? "true" : "false");
+
+              for (int k = 0; k < 3; k++) {
+                  SDL_ClearError();
+                  r = SDL_DestroyGPUXRSwapchain(dev, sc[k], tex[k]);
+                  if (r == XR_SUCCESS) TR("destroy swapchain %s: ok", names[k]);
+                  else TR("destroy swapchain %s: error %d: %s", names[k], (int)r, SDL_GetError());
+              }
+              SDL_ReleaseGPUTransferBuffer(dev, tb);
+              TR("destroy space: %d", (int)xrDestroySpace(space));
+              TR("destroy session: %d", (int)xrDestroySession(session));
+              SDL_DestroyGPUDevice(dev);
+              TR("device destroyed");
+              TR("destroy instance: %d", (int)xrDestroyInstance(inst));
+          }
+
+          int main(int argc, char **argv)
+          {
+              (void)argc; (void)argv;
+              const char *scenario = SDL_getenv("SDL3_GPU_OPENXR_SCENARIO");
+              if (!scenario) { printf("c: no scenario\n"); return 2; }
+              SDL_SetLogOutputFunction(log_out, NULL);
+              SDL_SetLogPriority(SDL_LOG_CATEGORY_GPU, SDL_LOG_PRIORITY_VERBOSE);
+              if (!SDL_Init(SDL_INIT_VIDEO)) { TR("init: error: %s", SDL_GetError()); return 1; }
+              TR("init: ok (%s)", SDL_GetCurrentVideoDriver());
+              if (!strcmp(scenario, "no-xr")) no_xr();
+              else if (!strcmp(scenario, "no-runtime") || !strcmp(scenario, "no-service")) no_service();
+              else if (!strcmp(scenario, "main")) main_scenario();
+              else { printf("c: unknown scenario %s\n", scenario); return 2; }
+              SDL_Quit();
+              TR("quit");
+              return 0;
+          }
+
+          C
+          for v in u p; do
+            B="$RUNNER_TEMP/build-$v"
+            gcc -O1 -Wall -I"$U/include" -I"$B/include-revision" -I"$B/include-config-release" \
+              -I"$U/src/video/khronos" "$RUNNER_TEMP/gpu_openxr.c" -L"$B" -lSDL3 -Wl,-rpath,"$B" \
+              -o "$RUNNER_TEMP/cref-$v"
+          done
+      - name: The traces, C (unpatched, patched) and Rust (5 runs, release)
+        env:
+          SDL3_TEST_REQUIRE: openxr
+        run: |
+          cargo test -p sdl3 --test gpu_openxr --no-run --message-format=json > "$RUNNER_TEMP/build.json"
+          exe="$(python3 -c 'import json, sys; [print(m["executable"]) for m in map(json.loads, open(sys.argv[1])) if m.get("reason") == "compiler-artifact" and m.get("executable") and m["target"]["name"] == "gpu_openxr"]' "$RUNNER_TEMP/build.json")"
+          test -n "$exe"
+          traces() { { grep -a "^trace: " "$1" || true; } | sed 1d; }
+          for v in u p; do
+            "$exe" --run-c "$RUNNER_TEMP/cref-$v" > "$RUNNER_TEMP/c-$v.log" 2>&1 || { tail -80 "$RUNNER_TEMP/c-$v.log"; exit 1; }
+            echo "== C ($v)"
+            { grep -av "^[a-z-]*: the child's" "$RUNNER_TEMP/c-$v.log" || true; } | { grep -a "^trace: \|validation: \|^c: " || true; } | cut -c1-300
+            traces "$RUNNER_TEMP/c-$v.log" > "$RUNNER_TEMP/c-$v.txt"
+          done
+          echo "== upstream unpatched vs patched"
+          diff -u "$RUNNER_TEMP/c-u.txt" "$RUNNER_TEMP/c-p.txt" || true
+          test "$(wc -l < "$RUNNER_TEMP/c-p.txt")" -gt 60
+          for i in 1 2 3 4 5; do
+            "$exe" > "$RUNNER_TEMP/rust.log" 2>&1 || { echo "run $i failed"; grep -av "^trace: " "$RUNNER_TEMP/rust.log" | tail -80; exit 1; }
+            traces "$RUNNER_TEMP/rust.log" > "$RUNNER_TEMP/rust.txt"
+            if ! diff -u "$RUNNER_TEMP/c-p.txt" "$RUNNER_TEMP/rust.txt"; then
+              echo "::error::the Rust trace (run $i) differs from upstream's patched C"
+              exit 1
+            fi
+            echo "run $i: $(wc -l < "$RUNNER_TEMP/rust.txt") lines, identical; $(grep -a "^gpu_openxr: " "$RUNNER_TEMP/rust.log")"
+          done
+          echo "== the preamble"
+          grep -a "^trace: versions" "$RUNNER_TEMP/c-p.log" "$RUNNER_TEMP/rust.log"
+          cargo test -p sdl3 --test gpu_openxr --release > "$RUNNER_TEMP/rust-release.log" 2>&1 || { grep -av "^trace: " "$RUNNER_TEMP/rust-release.log" | tail -80; exit 1; }
+          traces "$RUNNER_TEMP/rust-release.log" > "$RUNNER_TEMP/rust-release.txt"
+          diff -u "$RUNNER_TEMP/c-p.txt" "$RUNNER_TEMP/rust-release.txt"
+          echo "release: identical"
+
+  # ci.yml's job, as is
+  # The GPU API's OpenXR functions on the Vulkan backend
+  # (sdl3/tests/gpu_openxr.rs), against Monado's null compositor on
+  # lavapipe: the program starts Monado's service for its scenarios itself,
+  # as the runner user, each in a private runtime directory. In a job of its
+  # own for Monado's dependencies (OpenCV, GDAL: ~36 MB), and pinned to
+  # ubuntu-24.04, whose Monado, OpenXR loader, layers and Mesa the trace is
+  # made on (its preamble: their versions).
+  ci-openxr:
+    name: test (OpenXR on Monado's null compositor)
+    if: true
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    env:
+      RUST_TEST_NOCAPTURE: 1
+      SDL_ASSERT: abort
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: openxr
+      # The Vulkan loader, lavapipe and the Khronos validation layer;
+      # Monado's service and runtime, the OpenXR loader and its core
+      # validation layer (Ubuntu's, BSL-1.0 and Apache-2.0: loaded at run
+      # time, never linked)
+      - name: Install the test environment
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y mesa-vulkan-drivers libvulkan1 vulkan-validationlayers \
+            monado-service libopenxr1-monado libopenxr-loader1 openxr-layer-corevalidation
+      - name: cargo test gpu_openxr
+        run: cargo test -p sdl3 --test gpu_openxr
+        env:
+          SDL3_TEST_REQUIRE: openxr
+          SDL3_TEST_SKIP_LOG: ${{ runner.temp }}/skips.tsv
+      - name: cargo test --release gpu_openxr
+        run: cargo test -p sdl3 --test gpu_openxr --release
+        env:
+          SDL3_TEST_REQUIRE: openxr
+          SDL3_TEST_SKIP_LOG: ${{ runner.temp }}/skips.tsv
+      - name: List the skipped checks
+        if: always()
+        shell: bash
+        env:
+          SDL3_TEST_SKIP_LOG: ${{ runner.temp }}/skips.tsv
+        run: tools/ci/list-skips.sh "$SDL3_TEST_SKIP_LOG" "OpenXR on Monado"
