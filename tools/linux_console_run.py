@@ -122,6 +122,33 @@ mounted):
               had)
   drm master release
               those cards closed: `drm: master released`
+  drm card K [C]
+              the card /dev/dri/cardK (and its CRTC C, 0 by default: the
+              Cth of its resources' list) for the requests that follow
+              (state, crc, pixels, master), in place of
+              SDL_KMSDRM_DEVICE_INDEX's first CRTC: `drm: card K crtc C`
+  drm card    SDL_KMSDRM_DEVICE_INDEX's card and first CRTC again: `drm:
+              card default`
+  drm info    what the hardware checks look at: the card's capabilities
+              (`drm: cap NAME V`: DUMB_BUFFER, ASYNC_PAGE_FLIP,
+              CURSOR_WIDTH, CURSOR_HEIGHT, ADDFB2_MODIFIERS,
+              ATOMIC_ASYNC_PAGE_FLIP), its connectors (`drm: connector
+              NAME STATUS, N modes, preferred WxH@HZ, vrr_capable V, panel
+              orientation V`; NAME as the driver names displays, TYPE-ID),
+              the CRTC's VRR_ENABLED (`drm: crtc VRR_ENABLED V`), and the
+              planes with a framebuffer (`drm: plane TYPE fb WxH FOURCC
+              modifier 0xM`, or `none` without one)
+  vkms add NAME N
+              a vkms device made through configfs (mounted on
+              /sys/kernel/config if it isn't), NAME, of N pipelines, each a
+              primary and a cursor plane, a CRTC, an encoder and a
+              connected connector; enabled, once its card's node and its
+              connectors are there (within 10 s): `vkms: added NAME cardK
+              CONNECTOR...` (the connectors' names: Virtual-M, numbered
+              across the machine's cards)
+  vkms remove NAME
+              the device disabled and its configfs directories removed,
+              once its card is gone (within 10 s): `vkms: removed NAME`
 With SDL_KMSDRM_DEVICE_INDEX set (as root), the card is opened and closed
 once before the program: a client's last close makes the kernel's fbdev
 emulation set its mode again, as it does after every program, so every
@@ -130,7 +157,8 @@ The answer is written to the program's stdin (with --vt, the reply pipe)
 once the request is done: its lines (`sdl3-console-runner: reply LINE`),
 then `sdl3-console-runner: done`. The program's children may ask too
 (their stdout and the reply pipe inherited), one process at a time. A request this script can't act on fails the run (its reply is
-`error: WHY`). Every device left is destroyed once the program ends.
+`error: WHY`). Every device left (uinput's, vkms's) is destroyed once the
+program ends.
 
 This needs a writable /dev/uinput (on Ubuntu: root's only; a udev rule
 `KERNEL=="uinput", MODE="0666"` opens it), and the devices' event nodes
@@ -211,6 +239,19 @@ DRM_IOCTL_MODE_OBJ_GETPROPERTIES = ioc(IOC_READ | IOC_WRITE, "d", 0xB9, 32)  # s
 DRM_IOCTL_MODE_GETFB2 = ioc(IOC_READ | IOC_WRITE, "d", 0xCE, 104)  # struct drm_mode_fb_cmd2
 DRM_CLIENT_CAP_UNIVERSAL_PLANES, DRM_CLIENT_CAP_ATOMIC = 2, 3
 DRM_MODE_OBJECT_PLANE = 0xEEEEEEEE
+DRM_MODE_OBJECT_CRTC = 0xCCCCCCCC
+DRM_MODE_OBJECT_CONNECTOR = 0xC0C0C0C0
+DRM_IOCTL_GET_CAP = ioc(IOC_READ | IOC_WRITE, "d", 0x0C, 16)  # struct drm_get_cap
+DRM_IOCTL_MODE_GETCONNECTOR = ioc(IOC_READ | IOC_WRITE, "d", 0xA7, 80)  # struct drm_mode_get_connector
+# <drm/drm.h>'s DRM_CAP_*
+DRM_CAPS = (("DUMB_BUFFER", 0x1), ("ASYNC_PAGE_FLIP", 0x7), ("CURSOR_WIDTH", 0x8), ("CURSOR_HEIGHT", 0x9),
+            ("ADDFB2_MODIFIERS", 0x10), ("ATOMIC_ASYNC_PAGE_FLIP", 0x15))
+# <drm/drm_mode.h>'s DRM_MODE_CONNECTOR_*, as libdrm's drmModeGetConnectorTypeName() names them
+DRM_CONNECTOR_TYPES = ["Unknown", "VGA", "DVI-I", "DVI-D", "DVI-A", "Composite", "SVIDEO", "LVDS",
+                       "Component", "DIN", "DP", "HDMI-A", "HDMI-B", "TV", "eDP", "Virtual", "DSI", "DPI",
+                       "Writeback", "SPI", "USB"]
+DRM_MODE_FB_MODIFIERS = 2
+DRM_MODE_TYPE_PREFERRED = 1 << 3
 DRM_PLANE_TYPES = {0: "overlay", 1: "primary", 2: "cursor"}
 # struct drm_version: int version_major, version_minor,
 # version_patchlevel; size_t name_len; char *name; size_t date_len; char
@@ -235,6 +276,13 @@ GET_PROPERTY = struct.Struct("@QQII32sII")
 FB_CMD2 = struct.Struct("@IIIII4I4I4I4x4Q")
 # struct drm_mode_map_dumb
 MAP_DUMB = struct.Struct("@IIQ")
+# struct drm_get_cap
+GET_CAP = struct.Struct("@QQ")
+# struct drm_mode_get_connector: __u64 encoders_ptr, modes_ptr, props_ptr,
+# prop_values_ptr; __u32 count_modes, count_props, count_encoders,
+# encoder_id, connector_id, connector_type, connector_type_id, connection,
+# mm_width, mm_height, subpixel, pad
+GET_CONNECTOR = struct.Struct("@QQQQIIIIIIIIIIII")
 
 # <linux/input-event-codes.h>: the names the requests may use
 CODES = {
@@ -508,9 +556,12 @@ class Card:
     request (as a second client: without DRM master, which the first open
     of a card without a master gets, dropped at once)."""
 
-    def __init__(self):
-        index = os.environ.get("SDL_KMSDRM_DEVICE_INDEX", "")
-        self.index = int(index) if index else vkms_card()
+    def __init__(self, index=None, crtc_index=0):
+        if index is None:
+            index = os.environ.get("SDL_KMSDRM_DEVICE_INDEX", "")
+            index = int(index) if index else vkms_card()
+        self.index = index
+        self.crtc_index = crtc_index
         self.path = f"/dev/dri/card{self.index}"
         self.fd = os.open(self.path, os.O_RDWR | os.O_CLOEXEC)
         try:
@@ -581,7 +632,8 @@ class Card:
     def state(self):
         lines = []
         crtcs = self.crtcs()
-        crtc = self.crtc(crtcs[0])
+        first = crtcs[self.crtc_index]
+        crtc = self.crtc(first)
         mode = crtc[8:]
         name = mode[14].split(b"\0")[0].decode()
         lines.append(f"drm: crtc {mode[1]}x{mode[6]} ({name}) {'on' if crtc[7] else 'off'}")
@@ -595,14 +647,14 @@ class Card:
                          f"{props.get('SRC_W', 0) >> 16}x{props.get('SRC_H', 0) >> 16} "
                          f"crtc {signed(props.get('CRTC_X', 0))},{signed(props.get('CRTC_Y', 0))} "
                          f"{props.get('CRTC_W', 0)}x{props.get('CRTC_H', 0)}"
-                         + ("" if crtc_id == crtcs[0] else f" (crtc {crtc_id})"))
+                         + ("" if crtc_id == first else f" (crtc {crtcs.index(crtc_id) if crtc_id in crtcs else crtc_id})"))
         if not on:
             lines.append("drm: no planes on")
         return lines
 
     def pixels(self, points):
         crtcs = self.crtcs()
-        primary = [p for p in self.planes() if p[3].get("type") == 1 and p[2] and p[1] == crtcs[0]]
+        primary = [p for p in self.planes() if p[3].get("type") == 1 and p[2] and p[1] == crtcs[self.crtc_index]]
         if not primary:
             return ["drm: no primary plane on"]
         fb = self.fb(primary[0][2])
@@ -622,8 +674,55 @@ class Card:
             self.close_handles(fb)
         return lines
 
+    def info(self):
+        lines = []
+        for name, cap in DRM_CAPS:
+            try:
+                value = self.ioctl(DRM_IOCTL_GET_CAP, GET_CAP, cap, 0)[1]
+                lines.append(f"drm: cap {name} {value}")
+            except OSError as e:
+                lines.append(f"drm: cap {name} error {e.errno}")
+        r = self.ioctl(DRM_IOCTL_MODE_GETRESOURCES, CARD_RES, *([0] * 12))
+        fbs, fbp = self.array(ctypes.c_uint32, r[4])
+        crtcs, crtcp = self.array(ctypes.c_uint32, r[5])
+        conns, connp = self.array(ctypes.c_uint32, r[6])
+        encs, encp = self.array(ctypes.c_uint32, r[7])
+        self.ioctl(DRM_IOCTL_MODE_GETRESOURCES, CARD_RES, fbp, crtcp, connp, encp, r[4], r[5], r[6], r[7],
+                   0, 0, 0, 0)
+        size = struct.calcsize("@" + MODEINFO)
+        for connector_id in list(conns)[:r[6]]:
+            c = self.ioctl(DRM_IOCTL_MODE_GETCONNECTOR, GET_CONNECTOR, *([0] * 8 + [connector_id] + [0] * 7))
+            count = c[4]
+            modes = (ctypes.c_char * (size * max(count, 1)))()
+            c = self.ioctl(DRM_IOCTL_MODE_GETCONNECTOR, GET_CONNECTOR, 0, ctypes.addressof(modes), 0, 0,
+                           count, 0, 0, 0, connector_id, 0, 0, 0, 0, 0, 0, 0)
+            count = min(count, c[4])
+            infos = [struct.unpack_from("@" + MODEINFO, modes, size * i) for i in range(count)]
+            # (clock, hdisplay, ..., vrefresh, flags, type, name)
+            preferred = [m for m in infos if m[13] & DRM_MODE_TYPE_PREFERRED] or infos[:1]
+            mode = f"{preferred[0][1]}x{preferred[0][6]}@{preferred[0][11]}" if preferred else "none"
+            # (count_modes, count_props, count_encoders, encoder_id,
+            # connector_id, connector_type, connector_type_id, connection)
+            ctype = DRM_CONNECTOR_TYPES[c[9]] if c[9] < len(DRM_CONNECTOR_TYPES) else str(c[9])
+            status = {1: "connected", 2: "disconnected"}.get(c[11], "unknown")
+            props = self.props(connector_id, DRM_MODE_OBJECT_CONNECTOR)
+            lines.append(f"drm: connector {ctype}-{c[10]} {status}, {count} modes, preferred {mode}, "
+                         f"vrr_capable {props.get('vrr_capable', 'none')}, "
+                         f"panel orientation {props.get('panel orientation', 'none')}")
+        crtc_props = self.props(list(crtcs)[self.crtc_index], DRM_MODE_OBJECT_CRTC)
+        lines.append(f"drm: crtc VRR_ENABLED {crtc_props.get('VRR_ENABLED', 'none')}")
+        for plane_id, crtc_id, fb_id, props in self.planes():
+            if not fb_id:
+                continue
+            fb = self.fb(fb_id)
+            self.close_handles(fb)
+            ptype = DRM_PLANE_TYPES.get(props.get("type"), props.get("type"))
+            modifier = f"0x{fb[17]:x}" if fb[4] & DRM_MODE_FB_MODIFIERS else "none"
+            lines.append(f"drm: plane {ptype} fb {fb[1]}x{fb[2]} {fourcc(fb[3])} modifier {modifier}")
+        return lines
+
     def crc(self):
-        base = f"/sys/kernel/debug/dri/{self.minor}/crtc-0/crc"
+        base = f"/sys/kernel/debug/dri/{self.minor}/crtc-{self.crtc_index}/crc"
         with open(f"{base}/control", "w") as f:
             f.write("auto")
         fd = os.open(f"{base}/data", os.O_RDONLY | os.O_NONBLOCK | os.O_CLOEXEC)
@@ -652,12 +751,138 @@ class Card:
             os.close(fd)
 
 
+VKMS_CONFIGFS = "/sys/kernel/config/vkms"
+
+
+class Vkms:
+    """A vkms device made through configfs: N pipelines of a primary and a
+    cursor plane, a CRTC, an encoder and a connected connector each."""
+
+    def __init__(self, name, count):
+        if not os.path.isdir(VKMS_CONFIGFS):
+            if not os.path.ismount("/sys/kernel/config"):
+                subprocess.run(["mount", "-t", "configfs", "none", "/sys/kernel/config"], check=False)
+            if not os.path.isdir(VKMS_CONFIGFS):
+                raise RequestError(f"no {VKMS_CONFIGFS} (modprobe vkms; a kernel with vkms's configfs)")
+        self.name = name
+        self.path = f"{VKMS_CONFIGFS}/{name}"
+        self.count = count
+        self.links = []
+        self.dirs = []
+        os.mkdir(self.path)
+        try:
+            for i in range(count):
+                for kind, item in (("crtcs", f"crtc{i}"), ("encoders", f"encoder{i}"),
+                                   ("connectors", f"connector{i}")):
+                    self.mkdir(f"{kind}/{item}")
+                for plane, ptype in ((f"primary{i}", 1), (f"cursor{i}", 2)):
+                    self.mkdir(f"planes/{plane}")
+                    self.write(f"planes/{plane}/type", ptype)
+                    self.link(f"crtcs/crtc{i}", f"planes/{plane}/possible_crtcs/crtc{i}")
+                self.link(f"crtcs/crtc{i}", f"encoders/encoder{i}/possible_crtcs/crtc{i}")
+                self.link(f"encoders/encoder{i}", f"connectors/connector{i}/possible_encoders/encoder{i}")
+                self.write(f"connectors/connector{i}/status", 1)
+            self.write("enabled", 1)
+            self.card = None
+            drm = f"/sys/devices/faux/{name}/drm"
+            end = time.monotonic() + 10.0
+            while time.monotonic() < end:
+                cards = [c for c in (os.listdir(drm) if os.path.isdir(drm) else []) if c.startswith("card")]
+                if cards and os.path.exists(f"/dev/dri/{cards[0]}"):
+                    connectors = sorted(c[len(cards[0]) + 1:] for c in os.listdir(f"{drm}/{cards[0]}")
+                                        if c.startswith(cards[0] + "-"))
+                    if len(connectors) == count:
+                        self.card = cards[0]
+                        self.connectors = sorted(connectors, key=lambda c: (len(c), c))
+                        break
+                time.sleep(0.05)
+            if self.card is None:
+                raise RequestError(f"vkms {name}: no card with {count} connectors after 10 s")
+            # (the card opened and closed: the kernel's fbdev emulation sets
+            # its mode on every CRTC at a client's last close, as for the
+            # card the programs use, so every run starts from that scanout)
+            index = int(self.card[len("card"):])
+            Card(index).close()
+            end = time.monotonic() + 10.0
+            while True:
+                card = Card(index)
+                try:
+                    on = all(card.crtc(c)[7] for c in card.crtcs())
+                finally:
+                    card.close()
+                if on:
+                    break
+                if time.monotonic() >= end:
+                    raise RequestError(f"vkms {name}: its CRTCs aren't all on after 10 s")
+                time.sleep(0.05)
+        except BaseException:
+            self.destroy()
+            raise
+
+    def mkdir(self, rel):
+        os.mkdir(f"{self.path}/{rel}")
+        self.dirs.append(f"{self.path}/{rel}")
+
+    def link(self, target, rel):
+        os.symlink(f"{self.path}/{target}", f"{self.path}/{rel}")
+        self.links.append(f"{self.path}/{rel}")
+
+    def write(self, rel, value):
+        with open(f"{self.path}/{rel}", "w") as f:
+            f.write(f"{value}\n")
+
+    def destroy(self):
+        try:
+            with open(f"{self.path}/enabled") as f:
+                enabled = f.read().strip() == "1"
+            if enabled:
+                self.write("enabled", 0)
+        except OSError:
+            pass
+        for link in reversed(self.links):
+            os.unlink(link)
+        self.links.clear()
+        for d in reversed(self.dirs):
+            os.rmdir(d)
+        self.dirs.clear()
+        os.rmdir(self.path)
+        # (the card's node goes once the device is gone)
+        card = getattr(self, "card", None)
+        end = time.monotonic() + 10.0
+        while card and os.path.exists(f"/dev/dri/{card}") and time.monotonic() < end:
+            time.sleep(0.05)
+
+
 class Runner:
     def __init__(self, console=None):
         self.devices = {}
         self.console = console
         # The cards held by `drm master hold`
         self.masters = []
+        # The vkms devices of `vkms add`
+        self.vkms = {}
+        # The card and CRTC of `drm card` (None: SDL_KMSDRM_DEVICE_INDEX's)
+        self.card = None
+        self.crtc_index = 0
+
+    def new_card(self):
+        return Card(self.card, self.crtc_index)
+
+    def vkms_request(self, words):
+        if len(words) == 4 and words[1] == "add":
+            name, count = words[2], int(words[3])
+            if name in self.vkms:
+                raise RequestError(f"vkms {name} exists")
+            device = Vkms(name, count)
+            self.vkms[name] = device
+            return [f"vkms: added {name} {device.card} {' '.join(device.connectors)}"]
+        if len(words) == 3 and words[1] == "remove":
+            device = self.vkms.pop(words[2], None)
+            if device is None:
+                raise RequestError(f"no vkms {words[2]}")
+            device.destroy()
+            return [f"vkms: removed {words[2]}"]
+        raise RequestError(f"unknown request {shlex.join(words)!r}")
 
     def drm(self, words):
         what = shlex.join(words[1:])
@@ -685,9 +910,17 @@ class Runner:
                 return r.stdout if r.returncode == 0 else "unknown"
             return [f"versions: kernel {os.uname().release}, Mesa {package('libgbm1')}, "
                     f"libdrm {package('libdrm2')}"]
+        if len(words) == 2 and words[1] == "card":
+            self.card = None
+            self.crtc_index = 0
+            return ["drm: card default"]
+        if len(words) in (3, 4) and words[1] == "card":
+            self.card = int(words[2])
+            self.crtc_index = int(words[3]) if len(words) == 4 else 0
+            return [f"drm: card {self.card} crtc {self.crtc_index}"]
         if what == "master":
             # (a descriptor that gets DRM master: none else has it)
-            card = Card()
+            card = self.new_card()
             try:
                 fcntl.ioctl(card.fd, DRM_IOCTL_SET_MASTER)
                 fcntl.ioctl(card.fd, DRM_IOCTL_DROP_MASTER)
@@ -701,12 +934,14 @@ class Runner:
                 os.close(fd)
             self.masters.clear()
             return ["drm: master released"]
-        card = Card()
+        card = self.new_card()
         try:
             if what == "state":
                 return card.state()
             if what == "crc":
                 return card.crc()
+            if what == "info":
+                return card.info()
             if len(words) >= 4 and words[1] == "pixels" and len(words) % 2 == 0:
                 values = [int(w, 0) for w in words[2:]]
                 return card.pixels(list(zip(values[::2], values[1::2])))
@@ -721,6 +956,8 @@ class Runner:
             return self.console.request(words)
         if words and words[0] == "drm":
             return self.drm(words)
+        if words and words[0] == "vkms":
+            return self.vkms_request(words)
         if len(words) < 3 or words[0] != "uinput":
             raise RequestError(f"unknown request {shlex.join(words)!r}")
         what, name = words[1], words[2]
@@ -762,6 +999,12 @@ class Runner:
             except (OSError, RequestError) as e:
                 print(f"linux_console_run.py: {device.name}: {e}", file=sys.stderr)
         self.devices.clear()
+        for device in self.vkms.values():
+            try:
+                device.destroy()
+            except OSError as e:
+                print(f"linux_console_run.py: vkms {device.name}: {e}", file=sys.stderr)
+        self.vkms.clear()
 
 
 def main():
