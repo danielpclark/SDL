@@ -831,7 +831,10 @@ impl KmsdrmVideo {
             PlaneSel::Cursor => dispdata.cursor_plane.as_deref(),
         };
         // Note (upstream): a display without the plane (setup_plane()
-        // failed) dereferences NULL there; nothing is added here.
+        // failed, or another display than the first window's, whose plane
+        // alone KMSDRM_GBMInit() sets up: a window on a second display
+        // with the atomic commits) dereferences NULL there; nothing is
+        // added here.
         let Some(plane) = plane.filter(|p| !p.plane.is_null()) else {
             return;
         };
