@@ -2199,15 +2199,24 @@ pub(super) fn prepare_driver(video: &dyn VideoDriver, props: &Properties) -> boo
 }
 
 impl VulkanRenderer {
-    /// The OpenXR instance's functions (`renderer->xr`).
+    /// The OpenXR instance's functions (`renderer->xr`), or the error of a
+    /// device made without OpenXR.
     ///
-    /// FIXME (upstream): the OpenXR entry points use `renderer->xr`, which
+    /// Note (upstream): the OpenXR entry points use `renderer->xr`, which
     /// is NULL on a device made without OpenXR, so C dereferences NULL
-    /// there (SIGSEGV); here it panics.
-    fn xr_pfns(&self) -> &XrInstancePfns {
+    /// there (SIGSEGV); here they fail with `XR_ERROR_FUNCTION_UNSUPPORTED`
+    /// (the formats with no list), as the backends without OpenXR do.
+    fn xr_pfns(&self) -> Result<&XrInstancePfns> {
         self.xr
             .as_ref()
-            .expect("the GPU device was made without OpenXR")
+            .ok_or_else(|| Error::new("The GPU device was not created with OpenXR enabled"))
+    }
+
+    /// [`VulkanRenderer::xr_pfns`] for the entry points that return an
+    /// `XrResult`.
+    fn xr_pfns_or_unsupported(&self) -> std::result::Result<&XrInstancePfns, XrError> {
+        self.xr_pfns()
+            .map_err(|e| XrError::new(XrResult::ERROR_FUNCTION_UNSUPPORTED, e))
     }
 
     /// Destroy an OpenXR swapchain and the textures of its images.
@@ -2224,7 +2233,7 @@ impl VulkanRenderer {
         swapchain: XrSwapchain,
         swapchain_images: &[BackendObject],
     ) -> std::result::Result<(), XrError> {
-        let xr = self.xr_pfns();
+        let xr = self.xr_pfns_or_unsupported()?;
 
         let _ = self.wait_internal();
 
@@ -2277,7 +2286,7 @@ impl VulkanRenderer {
         &self,
         session: XrSession,
     ) -> Result<Vec<TextureFormat>> {
-        let xr = self.xr_pfns();
+        let xr = self.xr_pfns()?;
 
         let mut num_supported_formats: u32 = 0;
         // SAFETY: the instance's function, a count query.
@@ -2351,7 +2360,7 @@ impl VulkanRenderer {
         old_create_info: &XrSwapchainCreateInfo,
         format: TextureFormat,
     ) -> std::result::Result<(XrSwapchain, Vec<(BackendObject, TextureCreateInfo)>), XrError> {
-        let xr = self.xr_pfns();
+        let xr = self.xr_pfns_or_unsupported()?;
 
         let mut create_info = *old_create_info;
         create_info.format = i64::from(sdl_to_vk_texture_format(format));
@@ -2517,7 +2526,7 @@ impl VulkanRenderer {
         &self,
         createinfo: &XrSessionCreateInfo,
     ) -> std::result::Result<XrSession, XrError> {
-        let xr = self.xr_pfns();
+        let xr = self.xr_pfns_or_unsupported()?;
 
         // Copy out the existing next ptr so that we can append it to the end of the chain we create
         let current_next_ptr = createinfo.next;

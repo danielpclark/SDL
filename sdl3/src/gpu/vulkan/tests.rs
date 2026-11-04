@@ -3419,3 +3419,73 @@ fn swapchain_frames(driver: &str) {
     drop(device);
     window.destroy();
 }
+
+/// The OpenXR entry points of a device made without OpenXR fail with an
+/// error (upstream's dereference the missing `renderer->xr` and crash: see
+/// `VulkanRenderer::xr_pfns`), and leave a texture given to the swapchain's
+/// destruction alone.
+#[test]
+fn xr_entry_points_without_openxr() {
+    use crate::gpu::xr::sys::{
+        XrSessionCreateInfo, XrSwapchainCreateInfo, XR_TYPE_SESSION_CREATE_INFO,
+        XR_TYPE_SWAPCHAIN_CREATE_INFO,
+    };
+    use crate::gpu::xr::XrResult;
+
+    let _l = crate::test_support::test_lock();
+    let _v = Video::init();
+    let Some(r) = renderer() else {
+        return;
+    };
+    assert!(r.xr.is_none());
+    assert_eq!(r.xr_instance, 0);
+    let message = "The GPU device was not created with OpenXR enabled";
+    let check = |e: crate::gpu::XrError| {
+        assert_eq!(e.result(), XrResult::ERROR_FUNCTION_UNSUPPORTED);
+        assert_eq!(e.error().map(|e| e.message()), Some(message));
+    };
+
+    let session_info = XrSessionCreateInfo {
+        ty: XR_TYPE_SESSION_CREATE_INFO,
+        ..Default::default()
+    };
+    check(r.create_xr_session(&session_info).unwrap_err());
+    assert_eq!(
+        r.get_xr_swapchain_formats(1).unwrap_err().message(),
+        message
+    );
+    let swapchain_info = XrSwapchainCreateInfo {
+        ty: XR_TYPE_SWAPCHAIN_CREATE_INFO,
+        usage_flags: crate::gpu::xr::sys::XR_SWAPCHAIN_USAGE_COLOR_ATTACHMENT_BIT,
+        sample_count: 1,
+        width: 16,
+        height: 16,
+        face_count: 1,
+        array_size: 1,
+        mip_count: 1,
+        ..Default::default()
+    };
+    check(
+        r.create_xr_swapchain(1, &swapchain_info, TextureFormat::R8G8B8A8_UNORM)
+            .unwrap_err(),
+    );
+    check(r.destroy_xr_swapchain(1, &[]).unwrap_err());
+
+    let texture = r
+        .create_texture(&texture_info(
+            TextureType::Texture2D,
+            TextureFormat::R8G8B8A8_UNORM,
+            TextureUsageFlags::COLOR_TARGET,
+            1,
+            1,
+        ))
+        .unwrap();
+    check(
+        r.destroy_xr_swapchain(1, std::slice::from_ref(&texture))
+            .unwrap_err(),
+    );
+    let container = object::<TextureContainer>(&texture);
+    assert!(!container.externally_managed);
+    assert_eq!(lock(&container.state).textures.len(), 1);
+    r.release_texture(&texture);
+}
