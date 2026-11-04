@@ -318,7 +318,7 @@ jobs:
           cargo test -p sdl3 --test evdev_vt --no-run --message-format=json > "$RUNNER_TEMP/evdev_vt.json"
           exe="$(python3 -c 'import json, sys; [print(m["executable"]) for m in map(json.loads, open(sys.argv[1])) if m.get("reason") == "compiler-artifact" and m.get("executable") and m["target"]["name"] == "evdev_vt"]' "$RUNNER_TEMP/evdev_vt.json")"
           test -n "$exe"
-          sudo env SDL3_TEST_REQUIRE="$SDL3_TEST_REQUIRE" SDL_ASSERT="$SDL_ASSERT" RUST_BACKTRACE=1 "$exe"
+          for i in $(seq 1 10); do echo "== run $i"; sudo env SDL3_TEST_REQUIRE="$SDL3_TEST_REQUIRE" SDL_ASSERT="$SDL_ASSERT" RUST_BACKTRACE=1 "$exe" > "$RUNNER_TEMP/evdev_vt.log" 2>&1 || { tail -60 "$RUNNER_TEMP/evdev_vt.log"; exit 1; }; grep -a "evdev_vt:" "$RUNNER_TEMP/evdev_vt.log" || true; done
         env:
           SDL3_TEST_REQUIRE: vt,uinput
       # The OpenGL ES 1 renderer's checks, which skip in the run above on
@@ -370,7 +370,7 @@ jobs:
           cargo test -p sdl3 --test evdev_vt --no-run --message-format=json --release > "$RUNNER_TEMP/evdev_vt.json"
           exe="$(python3 -c 'import json, sys; [print(m["executable"]) for m in map(json.loads, open(sys.argv[1])) if m.get("reason") == "compiler-artifact" and m.get("executable") and m["target"]["name"] == "evdev_vt"]' "$RUNNER_TEMP/evdev_vt.json")"
           test -n "$exe"
-          sudo env SDL3_TEST_REQUIRE="$SDL3_TEST_REQUIRE" SDL_ASSERT="$SDL_ASSERT" RUST_BACKTRACE=1 "$exe"
+          for i in $(seq 1 10); do echo "== run $i"; sudo env SDL3_TEST_REQUIRE="$SDL3_TEST_REQUIRE" SDL_ASSERT="$SDL_ASSERT" RUST_BACKTRACE=1 "$exe" > "$RUNNER_TEMP/evdev_vt.log" 2>&1 || { tail -60 "$RUNNER_TEMP/evdev_vt.log"; exit 1; }; grep -a "evdev_vt:" "$RUNNER_TEMP/evdev_vt.log" || true; done
         env:
           SDL3_TEST_REQUIRE: vt,uinput
       # The render-state test whose checks MoltenVK misdraws under the Metal

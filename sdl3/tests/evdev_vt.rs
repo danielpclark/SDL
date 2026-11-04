@@ -12,19 +12,25 @@
 //! * the console keyboard muted (`K_OFF`) while a keyboard is there (the
 //!   machine's own keyboards count too: the runner's has one), and restored
 //!   on quit, with the VT in `VT_PROCESS` while SDL runs;
-//! * keys and their text, through `KDGKBENT` from tty3's keymap (letters,
-//!   Shift, Caps Lock, the pad with Num Lock, AltGr, Control and Alt,
-//!   Compose with the console's accent table);
+//! * keys and their text, through `KDGKBENT` from tty3's keymap: letters,
+//!   Shift, Caps Lock, the pad with Num Lock, Right Alt (Alt in the CI
+//!   runner's keymap), Control and Alt, and two entries the runner sets for
+//!   the run (`vt setkey`): Compose, with the console's accent table
+//!   (`KDGKBDIACR`), and a Unicode keysym, the euro sign, which upstream
+//!   loses while the console is muted (`KDGKBENT` gives `K_HOLE` for it
+//!   then: see `Note (upstream)` at `muted_key_maps` in `evdev_kbd.rs`);
 //! * a switch away from tty3, which waits for SDL's `VT_RELDISP` from the
 //!   event pump, and back (`VT_ACKACQ`);
 //! * the keyboard unplugged, then SDL quit;
-//! * with `SDL_MUTE_CONSOLE_KEYBOARD=0`: not muted, the same keys;
+//! * with `SDL_MUTE_CONSOLE_KEYBOARD=0`: not muted, the same keys (no
+//!   Control+C among them: tty3 would make it a SIGINT);
 //! * children of this program (`--child WHAT`, tty3 their controlling
 //!   terminal too) with the console muted that end without `SDL_Quit()`:
 //!   killed by `SIGABRT` (`abort()`), `SIGSEGV` (a write to an unmapped
 //!   address) and `SIGBUS` (a read past a mapped file's end), or by
 //!   `SIGSEGV` with a handler of their own installed before SDL's
-//!   (`chained`: which SDL's hands the fault on to), or calling `exit()`:
+//!   (`chained`: which SDL's hands the fault on to, with the fault's own
+//!   siginfo), or calling `exit()`:
 //!   the keyboard mode is restored each time (the emergency handlers, and
 //!   the `atexit()` one), and the VT is left in `VT_PROCESS` for the dead
 //!   process (as upstream: the kernel gives the VT back at the next
@@ -33,9 +39,11 @@
 //! * SDL started and quit again, which leaves the modes as they were.
 //!
 //! The expected trace is upstream's C SDL's, from the same program in C
-//! (upstream built with CMake at ea7a2da, with the fix of the emergency
-//! handler marked `Note (upstream)` in `evdev_kbd.rs`, run by the same
-//! runner on the same CI runner, tty3 and keymap). The Rust program also
+//! (upstream built with CMake at ea7a2da, with the two fixes marked `Note
+//! (upstream)` in `evdev_kbd.rs` patched in: the emergency handler's, and
+//! the muted console's keymaps; run by the same runner on the same CI
+//! runner, tty3 and keymap). The children's trace lines come through this
+//! program, which passes their requests on. The Rust program also
 //! checks, apart from the trace (lines `rust: `), a child that overflows
 //! its stack: Rust std's SIGSEGV handler, which SDL's chains to, reports
 //! the overflow and aborts, and the keyboard is restored.
@@ -73,6 +81,280 @@ mod app {
 
     /// Upstream's trace (the C program, by the runner, on the CI runner).
     const EXPECTED: &str = "\
+vt: active 3
+vt: keyboard K_UNICODE mode VT_AUTO
+vt: key 0 127 set to 0x020e
+vt: key 0 86 set to 0xd0ac
+-- init
+init: ok (evdev)
+other keyboards: 1
+vt: keyboard K_OFF mode VT_PROCESS
+uinput: added SDL3 evdev vt keyboard
+keyboard added: SDL3 evdev vt keyboard
+vt: keyboard K_OFF mode VT_PROCESS
+-- keys
+key down A key A raw 30 mod 0x0000 repeat 0 window
+text \"a\" window
+key up A key A raw 30 mod 0x0000 repeat 0 window
+key down 1 key 1 raw 2 mod 0x0000 repeat 0 window
+text \"1\" window
+key up 1 key 1 raw 2 mod 0x0000 repeat 0 window
+key down Space key Space raw 57 mod 0x0000 repeat 0 window
+text \" \" window
+key up Space key Space raw 57 mod 0x0000 repeat 0 window
+key down Left Shift key Left Shift raw 42 mod 0x0001 repeat 0 window
+key down A key A raw 30 mod 0x0001 repeat 0 window
+text \"A\" window
+key up A key A raw 30 mod 0x0001 repeat 0 window
+key down 1 key 1 raw 2 mod 0x0001 repeat 0 window
+text \"!\" window
+key up 1 key 1 raw 2 mod 0x0001 repeat 0 window
+key down ' key ' raw 40 mod 0x0001 repeat 0 window
+text \"\"\" window
+key up ' key ' raw 40 mod 0x0001 repeat 0 window
+key down / key / raw 53 mod 0x0001 repeat 0 window
+text \"?\" window
+key up / key / raw 53 mod 0x0001 repeat 0 window
+key down NonUSBackslash key  raw 86 mod 0x0001 repeat 0 window
+text \">\" window
+key up NonUSBackslash key  raw 86 mod 0x0001 repeat 0 window
+key up Left Shift key Left Shift raw 42 mod 0x0000 repeat 0 window
+key down ` key ` raw 41 mod 0x0000 repeat 0 window
+text \"`\" window
+key up ` key ` raw 41 mod 0x0000 repeat 0 window
+key down \\ key \\ raw 43 mod 0x0000 repeat 0 window
+text \"\\\" window
+key up \\ key \\ raw 43 mod 0x0000 repeat 0 window
+key down NonUSBackslash key  raw 86 mod 0x0000 repeat 0 window
+text \"€\" window
+key up NonUSBackslash key  raw 86 mod 0x0000 repeat 0 window
+key down ; key ; raw 39 mod 0x0000 repeat 0 window
+text \";\" window
+key up ; key ; raw 39 mod 0x0000 repeat 0 window
+key down CapsLock key CapsLock raw 58 mod 0x2000 repeat 0 window
+key up CapsLock key CapsLock raw 58 mod 0x2000 repeat 0 window
+key down A key A raw 30 mod 0x2000 repeat 0 window
+text \"A\" window
+key up A key A raw 30 mod 0x2000 repeat 0 window
+key down Left Shift key Left Shift raw 42 mod 0x2001 repeat 0 window
+key down A key A raw 30 mod 0x2001 repeat 0 window
+text \"a\" window
+key up A key A raw 30 mod 0x2001 repeat 0 window
+key up Left Shift key Left Shift raw 42 mod 0x2000 repeat 0 window
+key down CapsLock key CapsLock raw 58 mod 0x0000 repeat 0 window
+key up CapsLock key CapsLock raw 58 mod 0x0000 repeat 0 window
+key down Keypad 7 key Keypad 7 raw 71 mod 0x0000 repeat 0 window
+key up Keypad 7 key Keypad 7 raw 71 mod 0x0000 repeat 0 window
+key down Numlock key Numlock raw 69 mod 0x1000 repeat 0 window
+key up Numlock key Numlock raw 69 mod 0x1000 repeat 0 window
+key down Keypad 7 key Keypad 7 raw 71 mod 0x1000 repeat 0 window
+text \"7\" window
+key up Keypad 7 key Keypad 7 raw 71 mod 0x1000 repeat 0 window
+key down Keypad . key Keypad . raw 83 mod 0x1000 repeat 0 window
+text \".\" window
+key up Keypad . key Keypad . raw 83 mod 0x1000 repeat 0 window
+key down Numlock key Numlock raw 69 mod 0x0000 repeat 0 window
+key up Numlock key Numlock raw 69 mod 0x0000 repeat 0 window
+key down Right Alt key Right Alt raw 100 mod 0x0200 repeat 0 window
+key down E key E raw 18 mod 0x0200 repeat 0 window
+key up E key E raw 18 mod 0x0200 repeat 0 window
+key down 8 key 8 raw 9 mod 0x0200 repeat 0 window
+text \"8\" window
+key up 8 key 8 raw 9 mod 0x0200 repeat 0 window
+key down NonUSBackslash key  raw 86 mod 0x0200 repeat 0 window
+text \"€\" window
+key up NonUSBackslash key  raw 86 mod 0x0200 repeat 0 window
+key up Right Alt key Right Alt raw 100 mod 0x0000 repeat 0 window
+key down Right Alt key Right Alt raw 100 mod 0x0200 repeat 0 window
+key down Left Shift key Left Shift raw 42 mod 0x0201 repeat 0 window
+key down A key A raw 30 mod 0x0201 repeat 0 window
+text \"a\" window
+key up A key A raw 30 mod 0x0201 repeat 0 window
+key up Left Shift key Left Shift raw 42 mod 0x0200 repeat 0 window
+key up Right Alt key Right Alt raw 100 mod 0x0000 repeat 0 window
+key down Left Ctrl key Left Ctrl raw 29 mod 0x0040 repeat 0 window
+key down B key B raw 48 mod 0x0040 repeat 0 window
+key up B key B raw 48 mod 0x0040 repeat 0 window
+key up Left Ctrl key Left Ctrl raw 29 mod 0x0000 repeat 0 window
+key down Left Alt key Left Alt raw 56 mod 0x0100 repeat 0 window
+key down A key A raw 30 mod 0x0100 repeat 0 window
+key up A key A raw 30 mod 0x0100 repeat 0 window
+key up Left Alt key Left Alt raw 56 mod 0x0000 repeat 0 window
+key down Application key Application raw 127 mod 0x0000 repeat 0 window
+key up Application key Application raw 127 mod 0x0000 repeat 0 window
+key down ' key ' raw 40 mod 0x0000 repeat 0 window
+key up ' key ' raw 40 mod 0x0000 repeat 0 window
+key down E key E raw 18 mod 0x0000 repeat 0 window
+text \"é\" window
+key up E key E raw 18 mod 0x0000 repeat 0 window
+key down B key B raw 48 mod 0x0000 repeat 0 window
+text \"b\" window
+key up B key B raw 48 mod 0x0000 repeat 0 window
+-- vt switch
+vt: activating 1
+vt: active 1
+vt: keyboard K_OFF mode VT_PROCESS
+vt: active 3
+vt: keyboard K_OFF mode VT_PROCESS
+key down Z key Z raw 44 mod 0x0000 repeat 0 window
+text \"z\" window
+key up Z key Z raw 44 mod 0x0000 repeat 0 window
+-- unplugged
+uinput: removed SDL3 evdev vt keyboard
+keyboard removed: SDL3 evdev vt keyboard
+vt: keyboard K_OFF mode VT_PROCESS
+quit
+vt: keyboard K_UNICODE mode VT_AUTO
+-- SDL_MUTE_CONSOLE_KEYBOARD=0
+uinput: added SDL3 evdev vt keyboard
+init: ok (evdev)
+keyboard added: SDL3 evdev vt keyboard
+other keyboards: 1
+vt: keyboard K_UNICODE mode VT_PROCESS
+key down A key A raw 30 mod 0x0000 repeat 0 window
+text \"a\" window
+key up A key A raw 30 mod 0x0000 repeat 0 window
+key down 1 key 1 raw 2 mod 0x0000 repeat 0 window
+text \"1\" window
+key up 1 key 1 raw 2 mod 0x0000 repeat 0 window
+key down Space key Space raw 57 mod 0x0000 repeat 0 window
+text \" \" window
+key up Space key Space raw 57 mod 0x0000 repeat 0 window
+key down Left Shift key Left Shift raw 42 mod 0x0001 repeat 0 window
+key down A key A raw 30 mod 0x0001 repeat 0 window
+text \"A\" window
+key up A key A raw 30 mod 0x0001 repeat 0 window
+key down 1 key 1 raw 2 mod 0x0001 repeat 0 window
+text \"!\" window
+key up 1 key 1 raw 2 mod 0x0001 repeat 0 window
+key down ' key ' raw 40 mod 0x0001 repeat 0 window
+text \"\"\" window
+key up ' key ' raw 40 mod 0x0001 repeat 0 window
+key down / key / raw 53 mod 0x0001 repeat 0 window
+text \"?\" window
+key up / key / raw 53 mod 0x0001 repeat 0 window
+key down NonUSBackslash key  raw 86 mod 0x0001 repeat 0 window
+text \">\" window
+key up NonUSBackslash key  raw 86 mod 0x0001 repeat 0 window
+key up Left Shift key Left Shift raw 42 mod 0x0000 repeat 0 window
+key down ` key ` raw 41 mod 0x0000 repeat 0 window
+text \"`\" window
+key up ` key ` raw 41 mod 0x0000 repeat 0 window
+key down \\ key \\ raw 43 mod 0x0000 repeat 0 window
+text \"\\\" window
+key up \\ key \\ raw 43 mod 0x0000 repeat 0 window
+key down NonUSBackslash key  raw 86 mod 0x0000 repeat 0 window
+text \"€\" window
+key up NonUSBackslash key  raw 86 mod 0x0000 repeat 0 window
+key down ; key ; raw 39 mod 0x0000 repeat 0 window
+text \";\" window
+key up ; key ; raw 39 mod 0x0000 repeat 0 window
+key down CapsLock key CapsLock raw 58 mod 0x2000 repeat 0 window
+key up CapsLock key CapsLock raw 58 mod 0x2000 repeat 0 window
+key down A key A raw 30 mod 0x2000 repeat 0 window
+text \"A\" window
+key up A key A raw 30 mod 0x2000 repeat 0 window
+key down Left Shift key Left Shift raw 42 mod 0x2001 repeat 0 window
+key down A key A raw 30 mod 0x2001 repeat 0 window
+text \"a\" window
+key up A key A raw 30 mod 0x2001 repeat 0 window
+key up Left Shift key Left Shift raw 42 mod 0x2000 repeat 0 window
+key down CapsLock key CapsLock raw 58 mod 0x0000 repeat 0 window
+key up CapsLock key CapsLock raw 58 mod 0x0000 repeat 0 window
+key down Keypad 7 key Keypad 7 raw 71 mod 0x0000 repeat 0 window
+key up Keypad 7 key Keypad 7 raw 71 mod 0x0000 repeat 0 window
+key down Numlock key Numlock raw 69 mod 0x1000 repeat 0 window
+key up Numlock key Numlock raw 69 mod 0x1000 repeat 0 window
+key down Keypad 7 key Keypad 7 raw 71 mod 0x1000 repeat 0 window
+text \"7\" window
+key up Keypad 7 key Keypad 7 raw 71 mod 0x1000 repeat 0 window
+key down Keypad . key Keypad . raw 83 mod 0x1000 repeat 0 window
+text \".\" window
+key up Keypad . key Keypad . raw 83 mod 0x1000 repeat 0 window
+key down Numlock key Numlock raw 69 mod 0x0000 repeat 0 window
+key up Numlock key Numlock raw 69 mod 0x0000 repeat 0 window
+key down Right Alt key Right Alt raw 100 mod 0x0200 repeat 0 window
+key down E key E raw 18 mod 0x0200 repeat 0 window
+key up E key E raw 18 mod 0x0200 repeat 0 window
+key down 8 key 8 raw 9 mod 0x0200 repeat 0 window
+text \"8\" window
+key up 8 key 8 raw 9 mod 0x0200 repeat 0 window
+key down NonUSBackslash key  raw 86 mod 0x0200 repeat 0 window
+text \"€\" window
+key up NonUSBackslash key  raw 86 mod 0x0200 repeat 0 window
+key up Right Alt key Right Alt raw 100 mod 0x0000 repeat 0 window
+key down Right Alt key Right Alt raw 100 mod 0x0200 repeat 0 window
+key down Left Shift key Left Shift raw 42 mod 0x0201 repeat 0 window
+key down A key A raw 30 mod 0x0201 repeat 0 window
+text \"a\" window
+key up A key A raw 30 mod 0x0201 repeat 0 window
+key up Left Shift key Left Shift raw 42 mod 0x0200 repeat 0 window
+key up Right Alt key Right Alt raw 100 mod 0x0000 repeat 0 window
+key down Left Ctrl key Left Ctrl raw 29 mod 0x0040 repeat 0 window
+key down B key B raw 48 mod 0x0040 repeat 0 window
+key up B key B raw 48 mod 0x0040 repeat 0 window
+key up Left Ctrl key Left Ctrl raw 29 mod 0x0000 repeat 0 window
+key down Left Alt key Left Alt raw 56 mod 0x0100 repeat 0 window
+key down A key A raw 30 mod 0x0100 repeat 0 window
+key up A key A raw 30 mod 0x0100 repeat 0 window
+key up Left Alt key Left Alt raw 56 mod 0x0000 repeat 0 window
+key down Application key Application raw 127 mod 0x0000 repeat 0 window
+key up Application key Application raw 127 mod 0x0000 repeat 0 window
+key down ' key ' raw 40 mod 0x0000 repeat 0 window
+key up ' key ' raw 40 mod 0x0000 repeat 0 window
+key down E key E raw 18 mod 0x0000 repeat 0 window
+text \"é\" window
+key up E key E raw 18 mod 0x0000 repeat 0 window
+key down B key B raw 48 mod 0x0000 repeat 0 window
+text \"b\" window
+key up B key B raw 48 mod 0x0000 repeat 0 window
+quit
+vt: keyboard K_UNICODE mode VT_AUTO
+vt: flushed
+-- child abort
+child: init: ok
+child: vt: keyboard K_OFF mode VT_PROCESS
+child abort: killed by SIGABRT
+vt: keyboard K_UNICODE mode VT_PROCESS
+vt: active 1
+vt: keyboard K_UNICODE mode VT_AUTO
+vt: active 3
+-- child segv
+child: init: ok
+child: vt: keyboard K_OFF mode VT_PROCESS
+child segv: killed by SIGSEGV
+vt: keyboard K_UNICODE mode VT_PROCESS
+-- child bus
+child: init: ok
+child: vt: keyboard K_OFF mode VT_PROCESS
+child bus: killed by SIGBUS
+vt: keyboard K_UNICODE mode VT_PROCESS
+-- child chained
+child: init: ok
+child: vt: keyboard K_OFF mode VT_PROCESS
+child: the previous handler: SIGSEGV at the fault's address
+child chained: killed by SIGSEGV
+vt: keyboard K_UNICODE mode VT_PROCESS
+-- child exit
+child: init: ok
+child: vt: keyboard K_OFF mode VT_PROCESS
+child exit: exited with 0
+vt: keyboard K_UNICODE mode VT_PROCESS
+-- child no-signal-handlers
+child: init: ok
+child: vt: keyboard K_OFF mode VT_PROCESS
+child no-signal-handlers: killed by SIGABRT
+vt: keyboard K_OFF mode VT_PROCESS
+vt: restored keyboard K_OFF to K_UNICODE
+vt: restored mode VT_PROCESS to VT_AUTO
+-- init and quit
+init: ok (evdev)
+keyboard added: SDL3 evdev vt keyboard
+other keyboards: 1
+vt: keyboard K_OFF mode VT_PROCESS
+quit
+vt: keyboard K_UNICODE mode VT_AUTO
+uinput: removed SDL3 evdev vt keyboard
 ";
 
     const PREFIX: &str = "sdl3-console-runner: ";
@@ -370,11 +652,26 @@ mod app {
         /// ended.
         fn child(&mut self, what: &str, env: &[(&str, &str)]) {
             self.line(format!("-- child {what}"));
-            let status = Command::new(std::env::current_exe().unwrap())
+            // (its stdout read here: its trace lines are the trace's, the
+            // rest, its requests, passed on to the runner, which answers on
+            // the reply pipe the child has)
+            let mut child = Command::new(std::env::current_exe().unwrap())
                 .args(["--child", what])
                 .envs(env.iter().copied())
-                .status()
+                .stdout(Stdio::piped())
+                .spawn()
                 .expect("the child runs");
+            for line in BufReader::new(child.stdout.take().unwrap()).lines() {
+                let line = line.expect("the child's output");
+                match line.strip_prefix("trace: ") {
+                    Some(traced) => self.line(traced.to_owned()),
+                    None => {
+                        println!("{line}");
+                        std::io::stdout().flush().unwrap();
+                    }
+                }
+            }
+            let status = child.wait().expect("the child ends");
             self.line(format!("child {what}: {}", ended(status)));
             self.ask("vt modes");
         }

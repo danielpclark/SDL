@@ -17,7 +17,7 @@ env:
   CARGO_TERM_COLOR: always
   CARGO_INCREMENTAL: 0
   RUST_BACKTRACE: 1
-  RUNS: 2
+  RUNS: 10
   SDL3_CONSOLE_TIMEOUT: 60
 
 jobs:
@@ -676,7 +676,7 @@ jobs:
           echo "== Rust runs differing from r1:"; for i in $(seq 2 "$RUNS"); do cmp -s "$O/r1.txt" "$O/r$i.txt" || { echo "r$i"; diff "$O/r1.txt" "$O/r$i.txt" | head -20; }; done
           echo "== diff unpatched c1"; diff -a "$O/u1.txt" "$O/c1.txt"
           echo "== diff c1 r1"; diff -a "$O/c1.txt" "$O/r1.txt" && echo "(the same)"
-          echo "== the Rust program's verdict"; grep -a "evdev_vt:\|^rust: " "$O/r1.log" | head -10
+          echo "== the Rust program's verdict"; grep -a "evdev_vt:\|^rust: " "$O/r1.log" | head -10; grep -ac "the trace is upstream's" "$O"/r*.log
           echo "== probe"; grep -v '^table' "$O/probe.txt" | cut -c1-1500
           echo "== unpatched C stderr"; head -20 "$O/u1.err"
           echo "== C trace"; sed 's/^trace: /|/' "$O/c1.txt"
