@@ -182,7 +182,6 @@ pub(super) struct TextureContainer {
     pub(super) state: Mutex<TextureContainerState>,
     pub(super) can_be_cycled: bool,
     /// true for XR swapchain images
-    #[allow(dead_code)] // (OpenXR isn't translated)
     pub(super) externally_managed: bool,
 }
 
