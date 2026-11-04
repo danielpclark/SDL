@@ -69,7 +69,8 @@ jobs:
             "$TEST_EXE" $FILTER > "$RUNNER_TEMP/run.log" 2>&1
             status=$?
             set -e
-            echo "run $i: exit $status ($(( $(date +%s) - start ))s)"
+            echo "run $i: exit $status ($(( $(date +%s) - start ))s) $(grep -E '^(running [0-9]+ tests|test result:)' "$RUNNER_TEMP/run.log" | tr '\n' ' ')"
+            if [ "$i" -eq 1 ]; then head -5 "$RUNNER_TEMP/run.log"; fi
             if [ "$status" -ge 128 ]; then
               crashes=$((crashes + 1))
               echo "::group::run $i output (last 60 non-extension lines)"
