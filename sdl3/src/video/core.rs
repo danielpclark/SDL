@@ -101,6 +101,8 @@ static BOOTSTRAP: &[&VideoBootStrap] = &[
     &drivers::uikit::UIKIT_BOOTSTRAP,
     #[cfg(target_os = "android")]
     &drivers::android::ANDROID_BOOTSTRAP,
+    #[cfg(target_os = "linux")]
+    &drivers::kmsdrm::KMSDRM_BOOTSTRAP,
     #[cfg(target_os = "emscripten")]
     &drivers::emscripten::EMSCRIPTEN_BOOTSTRAP,
     &drivers::offscreen::OFFSCREEN_BOOTSTRAP,
@@ -139,6 +141,8 @@ static BOOTSTRAP: &[&VideoBootStrap] = &[
     &drivers::uikit::UIKIT_BOOTSTRAP,
     #[cfg(target_os = "android")]
     &drivers::android::ANDROID_BOOTSTRAP,
+    #[cfg(target_os = "linux")]
+    &drivers::kmsdrm::KMSDRM_BOOTSTRAP,
     // (unavailable in the tests, under node)
     #[cfg(target_os = "emscripten")]
     &drivers::emscripten::EMSCRIPTEN_BOOTSTRAP,
