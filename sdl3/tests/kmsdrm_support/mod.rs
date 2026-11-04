@@ -6,7 +6,9 @@
 //! The programs (`harness = false`) run as root on the virtual console
 //! tty3, through `tools/linux_console_run.py --vt 3` (which they start
 //! themselves under), on a vkms card (`SDL_KMSDRM_DEVICE_INDEX`, or the
-//! first vkms card found), with `SDL_VIDEO_DRIVER=kmsdrm`. The runner
+//! first card whose DRM driver is vkms), with `SDL_VIDEO_DRIVER=kmsdrm`.
+//! The card's index, and its connectors' numbers, depend on the machine's
+//! other cards: the traces name neither (see [`connector_name`]). The runner
 //! answers their requests: uinput devices, the console's modes and
 //! switches, and the card's state as a second client sees it (`drm
 //! state`, `drm crc`, `drm pixels`, `drm master ...`).
@@ -81,13 +83,56 @@ fn loadable(name: &std::ffi::CStr) -> bool {
     true
 }
 
-/// The index of the vkms card: `SDL_KMSDRM_DEVICE_INDEX` (if it's one),
-/// or the first vkms card.
-fn vkms_card() -> Result<u32, String> {
-    let is_vkms = |index: u32| {
-        std::fs::canonicalize(format!("/sys/class/drm/card{index}/device"))
-            .is_ok_and(|p| p.file_name().is_some_and(|n| n == "vkms"))
+/// `struct drm_version` (`<drm/drm.h>`), for `DRM_IOCTL_VERSION`.
+#[repr(C)]
+struct DrmVersion {
+    version_major: c_int,
+    version_minor: c_int,
+    version_patchlevel: c_int,
+    name_len: usize,
+    name: *mut std::ffi::c_char,
+    date_len: usize,
+    date: *mut std::ffi::c_char,
+    desc_len: usize,
+    desc: *mut std::ffi::c_char,
+}
+
+/// The name of the DRM driver of `/dev/dri/card{index}`
+/// (`DRM_IOCTL_VERSION`'s: `vkms` for every vkms device, whatever the
+/// device's own name).
+fn drm_driver(index: u32) -> Option<String> {
+    use std::os::fd::AsRawFd;
+    let card = std::fs::File::open(format!("/dev/dri/card{index}")).ok()?;
+    let mut name = [0u8; 64];
+    let mut version = DrmVersion {
+        version_major: 0,
+        version_minor: 0,
+        version_patchlevel: 0,
+        name_len: name.len(),
+        name: name.as_mut_ptr().cast(),
+        date_len: 0,
+        date: std::ptr::null_mut(),
+        desc_len: 0,
+        desc: std::ptr::null_mut(),
     };
+    // _IOWR('d', 0x00, struct drm_version)
+    let request = (3 << 30) | (std::mem::size_of::<DrmVersion>() << 16) | ((b'd' as usize) << 8);
+    // SAFETY: DRM_IOCTL_VERSION on an open card writes the structure and at
+    // most `name_len` bytes of the name into `name`, which outlives the
+    // call (the date and description have no room: not written).
+    if unsafe { libc::ioctl(card.as_raw_fd(), request as _, &mut version) } != 0 {
+        return None;
+    }
+    let len = version.name_len.min(name.len());
+    Some(String::from_utf8_lossy(&name[..len]).into_owned())
+}
+
+/// The index of the vkms card: `SDL_KMSDRM_DEVICE_INDEX` (if it's one),
+/// or the first card whose DRM driver is vkms. (Which index that is
+/// depends on the machine: vkms is card0 on some CI runners, card1 after
+/// the firmware framebuffer's simpledrm card0 on others.)
+fn vkms_card() -> Result<u32, String> {
+    let is_vkms = |index: u32| drm_driver(index).is_some_and(|d| d == "vkms");
     if let Ok(index) = std::env::var("SDL_KMSDRM_DEVICE_INDEX") {
         let index: u32 = index
             .parse()
@@ -110,6 +155,49 @@ fn vkms_card() -> Result<u32, String> {
         .into_iter()
         .find(|&i| is_vkms(i))
         .ok_or_else(|| "no vkms card (modprobe vkms)".to_owned())
+}
+
+/// The card the programs run on: `SDL_KMSDRM_DEVICE_INDEX`'s (which the
+/// runner runs them with), or the first vkms card (the runner's default).
+pub fn card() -> u32 {
+    std::env::var("SDL_KMSDRM_DEVICE_INDEX")
+        .ok()
+        .and_then(|index| index.parse().ok())
+        .or_else(|| vkms_card().ok())
+        .unwrap_or(0)
+}
+
+/// A display's name (its connector's, `TYPE-N`) as the traces give it,
+/// `TYPE-#K`: the card's `K`th connector of that type, by number (`TYPE-#?`
+/// when `card` has no connector of that name). The kernel numbers the
+/// connectors of a type across all the machine's cards, in the order they
+/// are made, so `N` depends on the cards before the vkms card: on Azure's
+/// runners the Hyper-V card's Virtual-1 makes vkms's connector Virtual-2,
+/// on others (with no other virtual connector) it is Virtual-1. The C
+/// twins mask the names the same way.
+pub fn connector_name(card: u32, name: &str) -> String {
+    let Some((kind, number)) = name
+        .rsplit_once('-')
+        .and_then(|(kind, n)| Some((kind, n.parse::<u32>().ok()?)))
+    else {
+        return name.to_owned();
+    };
+    let prefix = format!("card{card}-{kind}-");
+    let numbers: Vec<u32> = std::fs::read_dir("/sys/class/drm")
+        .map(|d| {
+            d.filter_map(|e| {
+                let entry = e.ok()?.file_name().into_string().ok()?;
+                entry.strip_prefix(&prefix)?.parse().ok()
+            })
+            .collect()
+        })
+        .unwrap_or_default();
+    if numbers.contains(&number) {
+        let rank = numbers.iter().filter(|&&n| n < number).count() + 1;
+        format!("{kind}-#{rank}")
+    } else {
+        format!("{kind}-#?")
+    }
 }
 
 /// Check the capabilities, then run the program as root on tty3 under the

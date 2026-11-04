@@ -413,6 +413,13 @@ skips otherwise. Each program ends with SDL quit: the runner fails a run
 that leaves tty3's modes changed. A page flip that never comes would hang
 upstream's wait for it (`poll()` without a timeout), as here: the runner
 stops a program after `SDL3_CONSOLE_TIMEOUT` seconds, which fails the run.
+The traces name neither the card's index (the window's device index is
+traced as `SDL_KMSDRM_DEVICE_INDEX`'s) nor its connectors' numbers: a
+display's name, `TYPE-N`, is traced as `TYPE-#K`, the card's `K`th
+connector of the type (the kernel numbers a type's connectors across all
+of the machine's cards, so vkms's is Virtual-2 after a Hyper-V card's
+Virtual-1, and Virtual-1 without one); `drm master hold` names the cards
+only when one's master can't be had.
 What the card keeps from one program to the next is made the same for
 every run: the runner opens and closes the card before the program (a
 client's last close makes the kernel's fbdev emulation set its mode
@@ -433,9 +440,12 @@ traces. The CRCs and pixels depend on the kernel's vkms and on Mesa's
 llvmpipe: a new runner image may change them (the preamble then says
 which versions the reference was made with).
 
-CI: the `kmsdrm` job (pinned `ubuntu-24.04`, whose Azure kernel ships
-vkms) loads vkms (card0; the runner's own Hyper-V card is card1, so
-`SDL_KMSDRM_DEVICE_INDEX=0` keeps the programs off it), opens uinput with
+CI: the `kmsdrm` job (pinned `ubuntu-24.04`, whose kernels ship vkms)
+loads vkms, sets `SDL_KMSDRM_DEVICE_INDEX` to the card whose DRM driver
+is vkms (debugfs `dri/N/name`; the index differs between runners: card0
+on Azure's, whose Hyper-V card is card1, and card1 on others, after the
+firmware framebuffer's simpledrm card0), which keeps the programs off
+the VM's own display, opens uinput with
 the test job's udev rules, builds the programs as the runner user and runs
 them as root with `SDL3_TEST_REQUIRE=kmsdrm,vt,uinput,egl`, with the
 Vulkan loader and Mesa's Vulkan drivers installed. Its one expected skip
