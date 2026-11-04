@@ -5,19 +5,22 @@
 //! Linux (and other free Unix) glue shared by the backends: D-Bus and the
 //! desktop services reached through it (the system theme, taskbar
 //! progress, the IBus and Fcitx input methods), thread priorities, the
-//! kernel's input interfaces, evdev device classification and timestamps,
-//! libudev, and the libpipewire declarations the PipeWire audio and camera
-//! drivers share.
+//! kernel's input and console interfaces, evdev device classification, the
+//! console input reader (keyboards, mice and touch devices read from evdev,
+//! the console keyboard), libudev, and the libpipewire declarations the
+//! PipeWire audio and camera drivers share.
 //!
-//! Not translated yet: the console keyboard/mouse/touch reader of
-//! `SDL_evdev.c` and `SDL_evdev_kbd.c`, which come with the KMS/DRM video
-//! driver, and `SDL_ubuntu_touch.c`.
+//! Not translated yet: `SDL_ubuntu_touch.c`.
 
 pub(crate) mod dbus;
 #[cfg(target_os = "linux")]
 pub(crate) mod evdev;
 #[cfg(target_os = "linux")]
 pub(crate) mod evdev_capabilities;
+#[cfg(target_os = "linux")]
+pub(crate) mod evdev_kbd;
+#[cfg(target_os = "linux")]
+pub(crate) mod evdev_kbd_tables;
 pub(crate) mod fcitx;
 #[cfg(all(test, target_os = "linux"))]
 pub(crate) mod guess_tests;
@@ -26,6 +29,8 @@ pub(crate) mod ibus;
 pub(crate) mod ime;
 #[cfg(target_os = "linux")]
 pub(crate) mod input;
+#[cfg(target_os = "linux")]
+pub(crate) mod kd;
 #[cfg(target_os = "linux")]
 pub(crate) mod pipewire;
 pub(crate) mod progressbar;

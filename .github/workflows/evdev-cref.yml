@@ -1,0 +1,83 @@
+# Throwaway diag workflow (claude/diag-kmsdrm-evdev-cref only, never
+# merged): upstream's C SDL at ea7a2da and this translation running the
+# evdev_input program on the same runner, each 10 times; their traces
+# compared.
+name: evdev-cref
+
+on:
+  push:
+    branches: [claude/diag-kmsdrm-evdev-cref]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
+  RUST_BACKTRACE: 1
+
+jobs:
+  cref:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.99"
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: evdev-cref
+      - name: Enable uinput
+        run: |
+          printf '%s\n' 'KERNEL=="uinput", SUBSYSTEM=="misc", MODE="0666", OPTIONS+="static_node=uinput"' \
+            'SUBSYSTEM=="input", KERNEL=="event*", ATTRS{name}=="SDL*", MODE="0666"' | sudo tee /etc/udev/rules.d/99-sdl3-uinput.rules
+          sudo modprobe uinput || true
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=uinput
+          sudo udevadm settle
+          ls -l /dev/uinput
+      - name: Build upstream
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q libudev-dev ninja-build > /dev/null
+          git clone -q --filter=blob:none https://github.com/libsdl-org/SDL "$RUNNER_TEMP/upstream"
+          git -C "$RUNNER_TEMP/upstream" checkout -q ea7a2da
+          git -C "$RUNNER_TEMP/upstream" log --oneline -1
+          cmake -S "$RUNNER_TEMP/upstream" -B "$RUNNER_TEMP/build" -G Ninja -DCMAKE_BUILD_TYPE=Debug \
+            -DSDL_SHARED=ON -DSDL_STATIC=OFF -DSDL_TEST_LIBRARY=OFF -DSDL_TESTS=OFF -DSDL_EXAMPLES=OFF > "$RUNNER_TEMP/cmake.log" 2>&1 || { tail -60 "$RUNNER_TEMP/cmake.log"; exit 1; }
+          grep -iE "evdev|udev|linuxev|kd " "$RUNNER_TEMP/cmake.log" | head -20 || true
+          cmake --build "$RUNNER_TEMP/build" > "$RUNNER_TEMP/build.log" 2>&1 || { tail -60 "$RUNNER_TEMP/build.log"; exit 1; }
+          grep -E "SDL_INPUT_LINUXEV|SDL_INPUT_LINUXKD|SDL_USE_LIBUDEV" "$RUNNER_TEMP/build/include-config-debug/build_config/SDL_build_config.h" "$RUNNER_TEMP"/build/include*/SDL_build_config.h 2>/dev/null || true
+          gcc -g -Wall -o "$RUNNER_TEMP/evdev_input_c" diag/evdev_input.c -I"$RUNNER_TEMP/upstream/include" -L"$RUNNER_TEMP/build" -lSDL3
+      - name: Build the Rust program
+        run: cargo test -p sdl3 --test evdev_input --no-run
+      - name: Run C and Rust, 10 times each
+        shell: bash
+        run: |
+          set +e
+          export LD_LIBRARY_PATH="$RUNNER_TEMP/build"
+          mkdir -p "$RUNNER_TEMP/out"
+          for i in $(seq 1 10); do
+            timeout 300 python3 tools/linux_console_run.py "$RUNNER_TEMP/evdev_input_c" > "$RUNNER_TEMP/out/c$i.log" 2> "$RUNNER_TEMP/out/c$i.err"
+            echo "c$i status $?"
+            grep -a '^trace: ' "$RUNNER_TEMP/out/c$i.log" > "$RUNNER_TEMP/out/c$i.txt"
+            timeout 300 cargo test -q -p sdl3 --test evdev_input > "$RUNNER_TEMP/out/r$i.log" 2> "$RUNNER_TEMP/out/r$i.err"
+            echo "r$i status $?"
+            grep -a '^trace: ' "$RUNNER_TEMP/out/r$i.log" > "$RUNNER_TEMP/out/r$i.txt"
+          done
+          md5sum "$RUNNER_TEMP"/out/*.txt
+          exit 0
+      - name: Findings (last)
+        if: always()
+        shell: bash
+        run: |
+          O="$RUNNER_TEMP/out"
+          echo "== C stderr (1)"; head -30 "$O/c1.err" || true
+          echo "== Rust stderr (1)"; grep -v "^ *Compiling\|^ *Finished\|^ *Running" "$O/r1.err" | head -30 || true
+          echo "== C runs differing from c1:"; for i in $(seq 2 10); do cmp -s "$O/c1.txt" "$O/c$i.txt" || { echo "c$i"; diff "$O/c1.txt" "$O/c$i.txt" | head -20; }; done
+          echo "== Rust runs differing from r1:"; for i in $(seq 2 10); do cmp -s "$O/r1.txt" "$O/r$i.txt" || { echo "r$i"; diff "$O/r1.txt" "$O/r$i.txt" | head -20; }; done
+          echo "== diff c1 r1"; diff "$O/c1.txt" "$O/r1.txt" && echo "(the same)"
+          echo "== the Rust program's verdict"; grep -a "evdev_input:" "$O/r1.log" | head -5
+          echo "== C trace"; sed 's/^trace: //' "$O/c1.txt"
