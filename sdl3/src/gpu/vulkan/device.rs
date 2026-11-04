@@ -1,8 +1,9 @@
 // Rust translation of the device instantiation of
 // src/gpu/vulkan/SDL_gpu_vulkan.c from Simple DirectMedia Layer: the
 // extension and feature checks, the instance, the choice of the physical
-// device, the logical device, and VULKAN_PrepareDriver(),
-// VULKAN_CreateDevice() and VULKAN_DestroyDevice().
+// device, the logical device (each through the OpenXR runtime for a
+// device made with OpenXR), and VULKAN_PrepareDriver(), the OpenXR entry
+// points, VULKAN_CreateDevice() and VULKAN_DestroyDevice().
 // Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
 // This is an altered (translated) version of the original software; see LICENSE.txt.
 
@@ -11,22 +12,40 @@
 //! which destroys what it made, and `CreateDevice`); here the steps fill a
 //! [`PreparedVulkan`], which `CreateDevice` turns into the renderer once
 //! the logical device exists.
+//!
+//! A device made with OpenXR (`HAVE_GPU_OPENXR`, on every target, as
+//! upstream's CMake builds it) has its instance, physical device and
+//! logical device made by the runtime (`XR_KHR_vulkan_enable2`:
+//! `xrCreateVulkanInstanceKHR`, `xrGetVulkanGraphicsDevice2KHR`,
+//! `xrCreateVulkanDeviceKHR`), and the OpenXR entry points
+//! (`CreateXRSession`...) are here, between PrepareDriver and CreateDevice,
+//! where upstream has them.
 
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::ffi::{c_char, c_void, CStr, CString};
 use std::ptr::{null, null_mut};
 use std::sync::atomic::{AtomicBool, AtomicU32};
-use std::sync::{Mutex, RwLock};
+use std::sync::{Arc, Mutex, RwLock};
 
 use super::memory::MemoryAllocator;
 use super::resources::PendingDestroys;
+use super::resources::{
+    get_texture_subresource_index, TextureContainer, TextureContainerState, TextureSubresource,
+    VulkanTexture, VulkanTextureUsageMode,
+};
 use super::tables::vk_error_messages;
+use super::tables::{sdl_to_vk_texture_format, swizzle_for_sdl_format, SDL_TO_VK_TEXTURE_FORMAT};
 use super::vkfuncs::{DeviceFunctions, GlobalFunctions, InstanceFunctions};
 use super::{set_string_error, vulkan_error, VulkanRenderer};
 use crate::error::{Error, Result};
-use crate::gpu::sysgpu::UNIFORM_BUFFER_SIZE;
+use crate::gpu::sysgpu::{BackendObject, UNIFORM_BUFFER_SIZE};
+use crate::gpu::xr::gpu_openxr::{c_name as xr_name, gpu_init_openxr};
+use crate::gpu::xr::openxrdyn::{self, XrInstancePfns};
+use crate::gpu::xr::sys::*;
+use crate::gpu::xr::XrError;
 use crate::gpu::{
+    SampleCount, TextureCreateInfo, TextureFormat, TextureType, TextureUsageFlags,
     VulkanFeatureStructure, VulkanOptions, PROP_GPU_DEVICE_CREATE_DEBUGMODE_BOOLEAN,
     PROP_GPU_DEVICE_CREATE_FEATURE_ANISOTROPY_BOOLEAN,
     PROP_GPU_DEVICE_CREATE_FEATURE_CLIP_DISTANCE_BOOLEAN,
@@ -35,8 +54,10 @@ use crate::gpu::{
     PROP_GPU_DEVICE_CREATE_PREFERLOWPOWER_BOOLEAN, PROP_GPU_DEVICE_CREATE_SHADERS_SPIRV_BOOLEAN,
     PROP_GPU_DEVICE_CREATE_VERBOSE_BOOLEAN, PROP_GPU_DEVICE_CREATE_VULKAN_OPTIONS_POINTER,
     PROP_GPU_DEVICE_CREATE_VULKAN_REQUIRE_HARDWARE_ACCELERATION_BOOLEAN,
-    PROP_GPU_DEVICE_DRIVER_INFO_STRING, PROP_GPU_DEVICE_DRIVER_NAME_STRING,
-    PROP_GPU_DEVICE_DRIVER_VERSION_STRING, PROP_GPU_DEVICE_NAME_STRING,
+    PROP_GPU_DEVICE_CREATE_XR_ENABLE_BOOLEAN, PROP_GPU_DEVICE_CREATE_XR_FORM_FACTOR_NUMBER,
+    PROP_GPU_DEVICE_CREATE_XR_VERSION_NUMBER, PROP_GPU_DEVICE_DRIVER_INFO_STRING,
+    PROP_GPU_DEVICE_DRIVER_NAME_STRING, PROP_GPU_DEVICE_DRIVER_VERSION_STRING,
+    PROP_GPU_DEVICE_NAME_STRING,
 };
 use crate::log::Category;
 use crate::properties::Properties;
@@ -147,6 +168,11 @@ pub(super) struct PreparedVulkan {
     pub(super) global: GlobalFunctions,
     pub(super) instance: VkInstance,
     pub(super) inst: InstanceFunctions,
+
+    // OpenXR
+    /// a non-null instance also states this vk device was created by OpenXR
+    pub(super) xr_instance: XrInstance,
+    pub(super) xr_system_id: XrSystemId,
 
     pub(super) debug_mode: bool,
     pub(super) prefer_low_power: bool,
@@ -536,12 +562,44 @@ fn load_global_functions() -> Result<(PfnVkGetInstanceProcAddr, GlobalFunctions)
     }
 }
 
+/// `xrGetInstanceProcAddr(instance, name, &function)` with the loader's
+/// global function (upstream's `xrGetInstanceProcAddr` is the loader's
+/// `OPENXR_xrGetInstanceProcAddr`): the result, and the function.
+///
+/// # Safety
+///
+/// `F` is the function pointer type of `name`.
+unsafe fn xr_get_instance_proc_addr<F: Copy>(
+    instance: XrInstance,
+    name: &str,
+) -> (XrResult, Option<F>) {
+    // (a loader without the function: see openxrdyn::get_sym)
+    let Some(gipa) = openxrdyn::globals().xrGetInstanceProcAddr else {
+        return (XrResult::ERROR_FUNCTION_UNSUPPORTED, None);
+    };
+    // SAFETY: F is the function's type (the caller's contract).
+    let (result, function) =
+        unsafe { openxrdyn::get_instance_proc_addr::<F>(gipa, instance, name) };
+    // (a runtime that answers XR_SUCCESS with no function: upstream would
+    // call NULL; here it's a failure)
+    match function {
+        Some(f) if result == XrResult::SUCCESS => (result, Some(f)),
+        _ if result == XrResult::SUCCESS => (XrResult::ERROR_FUNCTION_UNSUPPORTED, None),
+        _ => (result, None),
+    }
+}
+
 /// Translation of `VULKAN_INTERNAL_CreateInstance()`: the instance, and
-/// the optional instance extensions it has.
+/// the optional instance extensions it has. With an OpenXR instance
+/// (`xr_instance`), the runtime makes it (`xrCreateVulkanInstanceKHR`),
+/// with the loader's `vkGetInstanceProcAddr`.
 fn create_instance(
     debug_mode: bool,
+    vk_get_instance_proc_addr: PfnVkGetInstanceProcAddr,
     global: &GlobalFunctions,
     features: &VulkanFeatures,
+    xr_instance: XrInstance,
+    xr_system_id: XrSystemId,
 ) -> Result<(VkInstance, InstanceExtensionSupport)> {
     let layer_names = [VALIDATION_LAYER_NAME.as_ptr()];
 
@@ -664,10 +722,53 @@ fn create_instance(
         pp_enabled_extension_names: extension_pointers.as_ptr(),
     };
 
-    // (HAVE_GPU_OPENXR: OpenXR is not translated.)
     let mut instance = null_mut();
-    // SAFETY: a valid create info whose strings outlive the call.
-    let vulkan_result = unsafe { (global.create_instance)(&create_info, null(), &mut instance) };
+    let vulkan_result = if xr_instance != XR_NULL_HANDLE {
+        // SAFETY: the function's type.
+        let (_, xr_create_vulkan_instance_khr) = unsafe {
+            xr_get_instance_proc_addr::<PfnXrCreateVulkanInstanceKHR>(
+                xr_instance,
+                "xrCreateVulkanInstanceKHR",
+            )
+        };
+        let Some(xr_create_vulkan_instance_khr) = xr_create_vulkan_instance_khr else {
+            crate::log::debug!(Category::Gpu, "Failed to get xrCreateVulkanInstanceKHR");
+            return Err(Error::new("Failed to get xrCreateVulkanInstanceKHR"));
+        };
+
+        let xr_create_info = XrVulkanInstanceCreateInfoKHR {
+            ty: XR_TYPE_VULKAN_INSTANCE_CREATE_INFO_KHR,
+            vulkan_create_info: (&create_info as *const VkInstanceCreateInfo).cast(),
+            system_id: xr_system_id,
+            // (SDL_Vulkan_GetVkGetInstanceProcAddr())
+            pfn_get_instance_proc_addr: Some(vk_get_instance_proc_addr),
+            ..Default::default()
+        };
+        let mut vulkan_result = VK_SUCCESS;
+        // SAFETY: the runtime's function, with a valid create info whose
+        // structures and strings outlive the call, and out-pointers.
+        let xr_result = unsafe {
+            xr_create_vulkan_instance_khr(
+                xr_instance,
+                &xr_create_info,
+                &mut instance,
+                &mut vulkan_result,
+            )
+        };
+        if xr_result != XrResult::SUCCESS {
+            crate::log::debug!(
+                Category::Gpu,
+                "Failed to create vulkan instance, reason {}, {}",
+                xr_result.0,
+                vulkan_result
+            );
+            return Err(Error::new("Failed to create vulkan instance"));
+        }
+        vulkan_result
+    } else {
+        // SAFETY: a valid create info whose strings outlive the call.
+        unsafe { (global.create_instance)(&create_info, null(), &mut instance) }
+    };
 
     if vulkan_result != VK_SUCCESS {
         return Err(vulkan_error(debug_mode, vulkan_result, "vkCreateInstance"));
@@ -1204,10 +1305,112 @@ impl PreparedVulkan {
         Some((physical_device_extensions, queue_family_index))
     }
 
-    /// Choose the physical device. Translation of
-    /// `VULKAN_INTERNAL_DeterminePhysicalDevice()`.
+    /// Choose the physical device: the OpenXR runtime's, with OpenXR.
+    /// Translation of `VULKAN_INTERNAL_DeterminePhysicalDevice()`.
     fn determine_physical_device(&mut self, features: &VulkanFeatures) -> bool {
-        // (HAVE_GPU_OPENXR: OpenXR is not translated.)
+        // When XR is enabled, let the OpenXR runtime choose the physical device
+        if self.xr_instance != XR_NULL_HANDLE {
+            // SAFETY: the function's type.
+            let (xr_result, xr_get_vulkan_graphics_device2_khr) = unsafe {
+                xr_get_instance_proc_addr::<PfnXrGetVulkanGraphicsDevice2KHR>(
+                    self.xr_instance,
+                    "xrGetVulkanGraphicsDevice2KHR",
+                )
+            };
+            let Some(xr_get_vulkan_graphics_device2_khr) = xr_get_vulkan_graphics_device2_khr
+            else {
+                crate::log::error!(
+                    Category::Gpu,
+                    "Failed to get xrGetVulkanGraphicsDevice2KHR, result: {}",
+                    xr_result.0
+                );
+                return false;
+            };
+
+            let graphics_device_get_info = XrVulkanGraphicsDeviceGetInfoKHR {
+                ty: XR_TYPE_VULKAN_GRAPHICS_DEVICE_GET_INFO_KHR,
+                system_id: self.xr_system_id,
+                vulkan_instance: self.instance,
+                ..Default::default()
+            };
+
+            // SAFETY: the runtime's function, with the info and an
+            // out-pointer.
+            let xr_result = unsafe {
+                xr_get_vulkan_graphics_device2_khr(
+                    self.xr_instance,
+                    &graphics_device_get_info,
+                    &mut self.physical_device,
+                )
+            };
+            if xr_result != XrResult::SUCCESS {
+                crate::log::error!(
+                    Category::Gpu,
+                    "xrGetVulkanGraphicsDevice2KHR failed, result: {}",
+                    xr_result.0
+                );
+                return false;
+            }
+
+            // Verify the XR-chosen device is suitable
+            let Some((xr_physical_device_extensions, queue_family_index)) =
+                self.is_device_suitable(features, self.physical_device)
+            else {
+                crate::log::error!(
+                    Category::Gpu,
+                    "The physical device chosen by the OpenXR runtime is not suitable"
+                );
+                return false;
+            };
+
+            self.supports = xr_physical_device_extensions;
+            self.queue_family_index = queue_family_index;
+        } else if !self.choose_physical_device(features) {
+            return false;
+        }
+
+        self.physical_device_properties.s_type = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
+        if self.supports.khr_driver_properties {
+            self.physical_device_driver_properties.s_type =
+                VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DRIVER_PROPERTIES;
+            self.physical_device_driver_properties.p_next = null_mut();
+
+            let mut properties = self.physical_device_properties;
+            let mut driver_properties = self.physical_device_driver_properties;
+            properties.p_next = std::ptr::from_mut(&mut driver_properties).cast();
+
+            self.get_physical_device_properties2(self.physical_device, &mut properties);
+
+            // (the chain's pointer isn't kept: the structures move)
+            properties.p_next = null_mut();
+            self.physical_device_properties = properties;
+            self.physical_device_driver_properties = driver_properties;
+        } else {
+            self.physical_device_properties.p_next = null_mut();
+
+            // SAFETY: the chosen physical device of the instance.
+            unsafe {
+                (self.inst.get_physical_device_properties)(
+                    self.physical_device,
+                    &mut self.physical_device_properties.properties,
+                )
+            };
+        }
+
+        // SAFETY: as above.
+        unsafe {
+            (self.inst.get_physical_device_memory_properties)(
+                self.physical_device,
+                &mut self.memory_properties,
+            )
+        };
+
+        true
+    }
+
+    /// Choose the best suitable device of the instance (upstream's
+    /// `else` branch of `VULKAN_INTERNAL_DeterminePhysicalDevice()`).
+    fn choose_physical_device(&mut self, features: &VulkanFeatures) -> bool {
         let mut physical_device_count = 0;
         // SAFETY: the instance, with a null array to query the count.
         let vulkan_result = unsafe {
@@ -1293,43 +1496,6 @@ impl PreparedVulkan {
         self.supports = supports;
         self.physical_device = physical_devices[suitable_index];
         self.queue_family_index = suitable_queue_family_index;
-
-        self.physical_device_properties.s_type = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
-        if self.supports.khr_driver_properties {
-            self.physical_device_driver_properties.s_type =
-                VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DRIVER_PROPERTIES;
-            self.physical_device_driver_properties.p_next = null_mut();
-
-            let mut properties = self.physical_device_properties;
-            let mut driver_properties = self.physical_device_driver_properties;
-            properties.p_next = std::ptr::from_mut(&mut driver_properties).cast();
-
-            self.get_physical_device_properties2(self.physical_device, &mut properties);
-
-            // (the chain's pointer isn't kept: the structures move)
-            properties.p_next = null_mut();
-            self.physical_device_properties = properties;
-            self.physical_device_driver_properties = driver_properties;
-        } else {
-            self.physical_device_properties.p_next = null_mut();
-
-            // SAFETY: the chosen physical device of the instance.
-            unsafe {
-                (self.inst.get_physical_device_properties)(
-                    self.physical_device,
-                    &mut self.physical_device_properties.properties,
-                )
-            };
-        }
-
-        // SAFETY: as above.
-        unsafe {
-            (self.inst.get_physical_device_memory_properties)(
-                self.physical_device,
-                &mut self.memory_properties,
-            )
-        };
-
         true
     }
 
@@ -1503,17 +1669,61 @@ impl PreparedVulkan {
             device_create_info.p_enabled_features = &features.desired_vulkan10_device_features;
         }
 
-        // (HAVE_GPU_OPENXR: OpenXR is not translated.)
         let mut logical_device = null_mut();
-        // SAFETY: a valid create info whose chain and arrays outlive the
-        // call.
-        let vulkan_result = unsafe {
-            (self.inst.create_device)(
-                self.physical_device,
-                &device_create_info,
-                null(),
-                &mut logical_device,
-            )
+        let vulkan_result = if self.xr_instance != XR_NULL_HANDLE {
+            // SAFETY: the function's type.
+            let (_, xr_create_vulkan_device_khr) = unsafe {
+                xr_get_instance_proc_addr::<PfnXrCreateVulkanDeviceKHR>(
+                    self.xr_instance,
+                    "xrCreateVulkanDeviceKHR",
+                )
+            };
+            let Some(xr_create_vulkan_device_khr) = xr_create_vulkan_device_khr else {
+                crate::log::debug!(Category::Gpu, "Failed to get xrCreateVulkanDeviceKHR");
+                return Err(Error::new("Failed to get xrCreateVulkanDeviceKHR"));
+            };
+
+            let xr_device_create_info = XrVulkanDeviceCreateInfoKHR {
+                ty: XR_TYPE_VULKAN_DEVICE_CREATE_INFO_KHR,
+                vulkan_create_info: (&device_create_info as *const VkDeviceCreateInfo).cast(),
+                system_id: self.xr_system_id,
+                vulkan_physical_device: self.physical_device,
+                // (SDL_Vulkan_GetVkGetInstanceProcAddr())
+                pfn_get_instance_proc_addr: Some(self.vk_get_instance_proc_addr),
+                ..Default::default()
+            };
+            let mut vulkan_result = VK_SUCCESS;
+            // SAFETY: the runtime's function, with a valid create info whose
+            // chain and arrays outlive the call, and out-pointers.
+            let xr_result = unsafe {
+                xr_create_vulkan_device_khr(
+                    self.xr_instance,
+                    &xr_device_create_info,
+                    &mut logical_device,
+                    &mut vulkan_result,
+                )
+            };
+            if xr_result != XrResult::SUCCESS {
+                crate::log::error!(
+                    Category::Gpu,
+                    "Failed to create OpenXR Vulkan logical device, result {}, {}",
+                    xr_result.0,
+                    vulkan_result
+                );
+                return Err(Error::new("Failed to create OpenXR Vulkan logical device"));
+            }
+            vulkan_result
+        } else {
+            // SAFETY: a valid create info whose chain and arrays outlive the
+            // call.
+            unsafe {
+                (self.inst.create_device)(
+                    self.physical_device,
+                    &device_create_info,
+                    null(),
+                    &mut logical_device,
+                )
+            }
         };
         if vulkan_result != VK_SUCCESS {
             return Err(vulkan_error(
@@ -1566,11 +1776,15 @@ impl PreparedVulkan {
 }
 
 /// The loader, the instance and the physical device, with the features to
-/// enable. Translation of `VULKAN_INTERNAL_PrepareVulkan()`.
+/// enable; through the OpenXR runtime with an OpenXR instance
+/// (`xr_instance`, the renderer's `xrInstance`). Translation of
+/// `VULKAN_INTERNAL_PrepareVulkan()`.
 fn prepare_vulkan(
     debug_mode: bool,
     prefer_low_power: bool,
     props: &Properties,
+    xr_instance: XrInstance,
+    xr_system_id: XrSystemId,
 ) -> Result<(PreparedVulkan, VulkanFeatures)> {
     let (vk_get_instance_proc_addr, global) = load_entry_points()?;
 
@@ -1603,7 +1817,14 @@ fn prepare_vulkan(
         .get_bool(PROP_GPU_DEVICE_CREATE_VULKAN_REQUIRE_HARDWARE_ACCELERATION_BOOLEAN)
         .unwrap_or(false);
 
-    let (instance, support) = match create_instance(debug_mode, &global, &features) {
+    let (instance, support) = match create_instance(
+        debug_mode,
+        vk_get_instance_proc_addr,
+        &global,
+        &features,
+        xr_instance,
+        xr_system_id,
+    ) {
         Ok(created) => created,
         Err(e) => {
             crate::log::warn!(Category::Gpu, "Vulkan: Could not create Vulkan instance");
@@ -1647,6 +1868,8 @@ fn prepare_vulkan(
         global,
         instance,
         inst,
+        xr_instance,
+        xr_system_id,
         debug_mode,
         prefer_low_power,
         require_hardware_acceleration,
@@ -1675,8 +1898,128 @@ fn prepare_vulkan(
     Ok((prepared, features))
 }
 
+/// The runtime's Vulkan extension (`XR_KHR_vulkan_enable2`), if it has it.
+/// Translation of `VULKAN_INTERNAL_SearchForOpenXrGpuExtension()`.
+fn search_for_openxr_gpu_extension() -> Option<XrExtensionProperties> {
+    // (a loader without the function: see openxrdyn::get_sym)
+    let xr_enumerate_instance_extension_properties =
+        openxrdyn::globals().xrEnumerateInstanceExtensionProperties?;
+
+    let mut extension_count: u32 = 0;
+    // SAFETY: a count query.
+    let result = unsafe {
+        xr_enumerate_instance_extension_properties(null(), 0, &mut extension_count, null_mut())
+    };
+    if result != XrResult::SUCCESS {
+        return None;
+    }
+
+    let mut extension_properties = vec![
+        XrExtensionProperties {
+            ty: XR_TYPE_EXTENSION_PROPERTIES,
+            ..Default::default()
+        };
+        extension_count as usize
+    ];
+
+    // SAFETY: an array of extension_count structures.
+    let result = unsafe {
+        xr_enumerate_instance_extension_properties(
+            null(),
+            extension_count,
+            &mut extension_count,
+            extension_properties.as_mut_ptr(),
+        )
+    };
+    if result != XrResult::SUCCESS {
+        return None;
+    }
+
+    for extension in extension_properties.iter().take(extension_count as usize) {
+        // NOTE: as generally recommended, we support KHR_vulkan_enable2 *only*
+        // see https://fredemmott.com/blog/2024/11/25/best-practices-for-openxr-api-layers.html
+        if xr_name(&extension.extension_name) == XR_KHR_VULKAN_ENABLE2_EXTENSION_NAME {
+            crate::log::info!(
+                Category::Gpu,
+                "Found {} extension",
+                XR_KHR_VULKAN_ENABLE2_EXTENSION_NAME
+            );
+
+            return Some(*extension);
+        }
+    }
+
+    None
+}
+
+/// The runtime's minimum Vulkan API version for the system (an
+/// `XrVersion`), or the failed call's result. Translation of
+/// `VULKAN_INTERNAL_GetXrMinimumVulkanApiVersion()`.
+fn get_xr_minimum_vulkan_api_version(
+    instance: XrInstance,
+    system_id: XrSystemId,
+) -> std::result::Result<XrVersion, XrResult> {
+    // SAFETY: the function's type.
+    let (xr_result, xr_get_vulkan_graphics_requirements2_khr) = unsafe {
+        xr_get_instance_proc_addr::<PfnXrGetVulkanGraphicsRequirements2KHR>(
+            instance,
+            "xrGetVulkanGraphicsRequirements2KHR",
+        )
+    };
+    let Some(xr_get_vulkan_graphics_requirements2_khr) = xr_get_vulkan_graphics_requirements2_khr
+    else {
+        crate::log::debug!(
+            Category::Gpu,
+            "Failed to get xrGetVulkanGraphicsRequirements2KHR"
+        );
+        return Err(xr_result);
+    };
+
+    let mut graphics_requirements_vulkan = XrGraphicsRequirementsVulkanKHR {
+        ty: XR_TYPE_GRAPHICS_REQUIREMENTS_VULKAN2_KHR,
+        ..Default::default()
+    };
+    // SAFETY: the runtime's function, with an out-structure.
+    let xr_result = unsafe {
+        xr_get_vulkan_graphics_requirements2_khr(
+            instance,
+            system_id,
+            &mut graphics_requirements_vulkan,
+        )
+    };
+    if xr_result != XrResult::SUCCESS {
+        crate::log::debug!(
+            Category::Gpu,
+            "Failed to get vulkan graphics requirements, got OpenXR error {}",
+            xr_result.0
+        );
+        return Err(xr_result);
+    }
+
+    Ok(graphics_requirements_vulkan.min_api_version_supported)
+}
+
+/// `XR_VERSION_MAJOR/MINOR/PATCH(version)` as a Vulkan version's parts.
+fn xr_version_parts(version: XrVersion) -> (u32, u32, u32) {
+    (
+        xr_version_major(version) as u32,
+        xr_version_minor(version) as u32,
+        xr_version_patch(version) as u32,
+    )
+}
+
 /// Whether the Vulkan backend can work. Translation of
 /// `VULKAN_PrepareDriver()`.
+///
+/// With OpenXR, a throwaway OpenXR instance (named "SDL", with the
+/// runtime's Vulkan extension only) checks the runtime's system, its Vulkan
+/// requirements, and the instance and physical device it gives.
+///
+/// Note (upstream): the errors it sets ("Failed to find a suitable OpenXR
+/// GPU extension.", "Failed to get the minimum supported Vulkan API
+/// version.") are replaced by the backend selection's ("No supported
+/// SDL_GPU backend found!") before the application can see them; here a
+/// PrepareDriver has no error to return.
 pub(super) fn prepare_driver(video: &dyn VideoDriver, props: &Properties) -> bool {
     if !props
         .get_bool(PROP_GPU_DEVICE_CREATE_SHADERS_SPIRV_BOOLEAN)
@@ -1693,15 +2036,108 @@ pub(super) fn prepare_driver(video: &dyn VideoDriver, props: &Properties) -> boo
         return false;
     }
 
-    // (HAVE_GPU_OPENXR: the OpenXR path, the throwaway instance's check of
-    // the runtime's system and Vulkan requirements, isn't translated yet:
-    // a device with OpenXR isn't made, as on Metal.)
-    if props
-        .get_bool(super::super::PROP_GPU_DEVICE_CREATE_XR_ENABLE_BOOLEAN)
-        .unwrap_or(false)
-    {
+    let mut instance_pfns: Option<XrInstancePfns> = None;
+    let mut xr_instance: XrInstance = XR_NULL_HANDLE;
+    let mut xr_system_id: XrSystemId = XR_NULL_SYSTEM_ID;
+    let xr = props
+        .get_bool(PROP_GPU_DEVICE_CREATE_XR_ENABLE_BOOLEAN)
+        .unwrap_or(false);
+
+    /* On Android/Quest, don't test XR in PrepareDriver. The Quest OpenXR runtime
+     * can't handle having its instance created and destroyed during preparation
+     * and then recreated during device creation. Just return true for XR mode
+     * and let CreateDevice do the real work. */
+    #[cfg(target_os = "android")]
+    if xr {
         crate::video::vulkan::vulkan_unload_library();
-        return false;
+        return true;
+    }
+
+    if xr {
+        if let Err(e) = openxrdyn::load_library() {
+            crate::log::warn!(
+                Category::Gpu,
+                "Vulkan: Failed to load OpenXR: {}",
+                e.message()
+            );
+            crate::video::vulkan::vulkan_unload_library();
+            return false;
+        }
+
+        let Some(gpu_extension) = search_for_openxr_gpu_extension() else {
+            // (SDL_SetError("Failed to find a suitable OpenXR GPU
+            // extension."): see the Note above)
+            crate::video::vulkan::vulkan_unload_library();
+            openxrdyn::unload_library();
+            return false;
+        };
+
+        let extension_name = gpu_extension.extension_name.as_ptr();
+        let mut application_info = XrApplicationInfo {
+            api_version: props
+                .get_number(PROP_GPU_DEVICE_CREATE_XR_VERSION_NUMBER)
+                .map(|v| v as XrVersion)
+                .unwrap_or(XR_API_VERSION_1_0),
+            ..Default::default()
+        };
+        for (d, &c) in application_info.application_name.iter_mut().zip(b"SDL") {
+            *d = c as c_char;
+        }
+        let create_info = XrInstanceCreateInfo {
+            ty: XR_TYPE_INSTANCE_CREATE_INFO,
+            application_info,
+            enabled_extension_count: 1,
+            enabled_extension_names: &extension_name,
+            ..Default::default()
+        };
+        // (a loader without the function: see openxrdyn::get_sym)
+        let xr_result = match openxrdyn::globals().xrCreateInstance {
+            // SAFETY: the create info and its array, alive for the call.
+            Some(xr_create_instance) => unsafe {
+                xr_create_instance(&create_info, &mut xr_instance)
+            },
+            None => XrResult::ERROR_FUNCTION_UNSUPPORTED,
+        };
+        if xr_result != XrResult::SUCCESS {
+            crate::log::debug!(Category::Gpu, "Failed to create OpenXR instance");
+            crate::video::vulkan::vulkan_unload_library();
+            openxrdyn::unload_library();
+            return false;
+        }
+
+        let Some(pfns) = openxrdyn::load_instance_symbols(xr_instance) else {
+            crate::log::debug!(
+                Category::Gpu,
+                "Failed to load needed OpenXR instance symbols"
+            );
+            // FIXME (upstream): the instance is left alive (without the
+            // instance's functions there's no xrDestroyInstance to call);
+            // so it is here.
+            crate::video::vulkan::vulkan_unload_library();
+            openxrdyn::unload_library();
+            return false;
+        };
+        let pfns = instance_pfns.insert(pfns);
+
+        let system_get_info = XrSystemGetInfo {
+            ty: XR_TYPE_SYSTEM_GET_INFO,
+            form_factor: props
+                .get_number(PROP_GPU_DEVICE_CREATE_XR_FORM_FACTOR_NUMBER)
+                .map(|f| f as XrFormFactor)
+                .unwrap_or(XR_FORM_FACTOR_HEAD_MOUNTED_DISPLAY),
+            ..Default::default()
+        };
+        // SAFETY: the instance's function, the info and an out-pointer.
+        let xr_result =
+            unsafe { (pfns.xrGetSystem)(xr_instance, &system_get_info, &mut xr_system_id) };
+        if xr_result != XrResult::SUCCESS {
+            crate::log::debug!(Category::Gpu, "Failed to get OpenXR system");
+            // SAFETY: the instance made above.
+            unsafe { (pfns.xrDestroyInstance)(xr_instance) };
+            crate::video::vulkan::vulkan_unload_library();
+            openxrdyn::unload_library();
+            return false;
+        }
     }
 
     // This needs to be set early for log filtering
@@ -1713,7 +2149,35 @@ pub(super) fn prepare_driver(video: &dyn VideoDriver, props: &Properties) -> boo
         .get_bool(PROP_GPU_DEVICE_CREATE_PREFERLOWPOWER_BOOLEAN)
         .unwrap_or(false);
 
-    let result = match prepare_vulkan(debug_mode, prefer_low_power, props) {
+    if let Some(pfns) = &instance_pfns {
+        match get_xr_minimum_vulkan_api_version(xr_instance, xr_system_id) {
+            Ok(minimum_vk_version_xr) => {
+                let (major, minor, patch) = xr_version_parts(minimum_vk_version_xr);
+                // FIXME (upstream): the renderer's minimumVkVersion is
+                // computed and never used (nor is CreateDevice's): the
+                // instance is made for Vulkan 1.0 (or the Vulkan options'
+                // version) whatever the runtime's minimum.
+                let _minimum_vk_version = vk_make_api_version(0, major, minor, patch);
+            }
+            Err(_) => {
+                // (SDL_SetError("Failed to get the minimum supported Vulkan
+                // API version."): see the Note above)
+                // SAFETY: the instance made above.
+                unsafe { (pfns.xrDestroyInstance)(xr_instance) };
+                crate::video::vulkan::vulkan_unload_library();
+                openxrdyn::unload_library();
+                return false;
+            }
+        }
+    }
+
+    let result = match prepare_vulkan(
+        debug_mode,
+        prefer_low_power,
+        props,
+        xr_instance,
+        xr_system_id,
+    ) {
         Ok((prepared, _)) => {
             // SAFETY: the instance just created, with nothing made from it.
             unsafe { destroy_instance(prepared.inst.destroy_instance, prepared.instance) };
@@ -1722,9 +2186,362 @@ pub(super) fn prepare_driver(video: &dyn VideoDriver, props: &Properties) -> boo
         Err(_) => false,
     };
 
+    if let Some(pfns) = instance_pfns {
+        // SAFETY: the instance made above, whose Vulkan instance is gone.
+        unsafe { (pfns.xrDestroyInstance)(xr_instance) };
+        // (SDL_free(instancePfns))
+        openxrdyn::unload_library();
+    }
+
     crate::video::vulkan::vulkan_unload_library();
 
     result
+}
+
+impl VulkanRenderer {
+    /// The OpenXR instance's functions (`renderer->xr`).
+    ///
+    /// FIXME (upstream): the OpenXR entry points use `renderer->xr`, which
+    /// is NULL on a device made without OpenXR, so C dereferences NULL
+    /// there (SIGSEGV); here it panics.
+    fn xr_pfns(&self) -> &XrInstancePfns {
+        self.xr
+            .as_ref()
+            .expect("the GPU device was made without OpenXR")
+    }
+
+    /// Destroy an OpenXR swapchain and the textures of its images.
+    /// Translation of `VULKAN_DestroyXRSwapchain()`.
+    ///
+    /// Note (upstream): a texture that isn't an OpenXR swapchain's gives
+    /// "Invalid GPU Texture handle." once the textures before it are
+    /// destroyed, and the swapchain is kept; and each container's array of
+    /// textures is never freed (here it is, with the container). An array
+    /// shorter than the swapchain's images is read past its end; here the
+    /// destruction stops at its end.
+    pub(super) fn destroy_xr_swapchain(
+        &self,
+        swapchain: XrSwapchain,
+        swapchain_images: &[BackendObject],
+    ) -> std::result::Result<(), XrError> {
+        let xr = self.xr_pfns();
+
+        let _ = self.wait_internal();
+
+        let mut swapchain_count: u32 = 0;
+        // SAFETY: the instance's function, a count query.
+        let result = unsafe {
+            (xr.xrEnumerateSwapchainImages)(swapchain, 0, &mut swapchain_count, null_mut())
+        };
+        if result != XrResult::SUCCESS {
+            return Err(XrError::from_result(result));
+        }
+
+        // We always want to destroy the swapchain images, so don't early return if xrDestroySwapchain fails for some reason
+        for image in swapchain_images.iter().take(swapchain_count as usize) {
+            let container = super::object::<TextureContainer>(image);
+
+            if !container.externally_managed {
+                return Err(XrError::new(
+                    XrResult::ERROR_HANDLE_INVALID,
+                    Error::new("Invalid GPU Texture handle."),
+                ));
+            }
+
+            let active_texture = super::lock(&container.state).active_texture.clone();
+            self.destroy_texture(&mut super::lock(&self.dispose), &active_texture);
+
+            // Free the container now that it's unused
+            // (the front end drops its handles next)
+        }
+
+        // (SDL_free(swapchainImages): the front end's)
+
+        // SAFETY: the instance's function, with the swapchain.
+        let result = unsafe { (xr.xrDestroySwapchain)(swapchain) };
+        if result.failed() {
+            return Err(XrError::from_result(result));
+        }
+        Ok(())
+    }
+
+    /// The session's swapchain formats that have a texture format, in the
+    /// runtime's order (the first texture format of each). Translation of
+    /// `VULKAN_GetXRSwapchainFormats()`.
+    ///
+    /// Note (upstream): when the runtime's call fails, C returns `NULL`
+    /// with no error set; and it frees the runtime's array twice and its
+    /// own never (harmless where `SDL_stack_alloc` is `alloca`). Here the
+    /// error says which call failed, and the arrays are owned.
+    pub(super) fn get_xr_swapchain_formats(
+        &self,
+        session: XrSession,
+    ) -> Result<Vec<TextureFormat>> {
+        let xr = self.xr_pfns();
+
+        let mut num_supported_formats: u32 = 0;
+        // SAFETY: the instance's function, a count query.
+        let result = unsafe {
+            (xr.xrEnumerateSwapchainFormats)(session, 0, &mut num_supported_formats, null_mut())
+        };
+        if result != XrResult::SUCCESS {
+            return Err(Error::new(format!(
+                "xrEnumerateSwapchainFormats failed ({result})"
+            )));
+        }
+        let mut supported_formats = vec![0i64; num_supported_formats as usize];
+        // SAFETY: an array of num_supported_formats formats.
+        let result = unsafe {
+            (xr.xrEnumerateSwapchainFormats)(
+                session,
+                num_supported_formats,
+                &mut num_supported_formats,
+                supported_formats.as_mut_ptr(),
+            )
+        };
+        if result != XrResult::SUCCESS {
+            return Err(Error::new(format!(
+                "xrEnumerateSwapchainFormats failed ({result})"
+            )));
+        }
+
+        let mut sdl_formats = Vec::with_capacity(num_supported_formats as usize);
+
+        // Iterate over all formats the runtime supports
+        for &supported_format in supported_formats
+            .iter()
+            .take(num_supported_formats as usize)
+        {
+            // Iterate over all formats we support
+            if let Some(j) = SDL_TO_VK_TEXTURE_FORMAT
+                .iter()
+                .position(|&vk_format| i64::from(vk_format) == supported_format)
+            {
+                // Add the format match we found, linearly. The output order should match the order of the runtime.
+                sdl_formats.push(TextureFormat(j as u32));
+            }
+        }
+
+        if sdl_formats.is_empty() {
+            return Err(Error::new(
+                "Failed to find a swapchain format supported by both OpenXR and SDL",
+            ));
+        }
+
+        Ok(sdl_formats)
+    }
+
+    /// Create an OpenXR swapchain in a texture format, and a texture of
+    /// each of its images (a container of one texture, never cycled, whose
+    /// `VkImage` is the runtime's). Translation of
+    /// `VULKAN_CreateXRSwapchain()`.
+    ///
+    /// FIXME (upstream): when a call after `xrCreateSwapchain` fails, the
+    /// swapchain is left alive (C also leaks the images' array and the
+    /// containers made so far, which are owned here).
+    ///
+    /// Note (upstream): the textures' usage is COLOR_TARGET whatever the
+    /// swapchain's usage flags (their render target views are made only
+    /// with `XR_SWAPCHAIN_USAGE_COLOR_ATTACHMENT_BIT`), they have no full
+    /// view (they can't be sampled), and their type is 2D whatever the
+    /// array size.
+    pub(super) fn create_xr_swapchain(
+        &self,
+        session: XrSession,
+        old_create_info: &XrSwapchainCreateInfo,
+        format: TextureFormat,
+    ) -> std::result::Result<(XrSwapchain, Vec<(BackendObject, TextureCreateInfo)>), XrError> {
+        let xr = self.xr_pfns();
+
+        let mut create_info = *old_create_info;
+        create_info.format = i64::from(sdl_to_vk_texture_format(format));
+
+        let mut swapchain: XrSwapchain = XR_NULL_HANDLE;
+        // SAFETY: the instance's function, with the create info (the
+        // application's chain is its to keep valid) and an out-pointer.
+        let result = unsafe { (xr.xrCreateSwapchain)(session, &create_info, &mut swapchain) };
+        if result != XrResult::SUCCESS {
+            return Err(XrError::from_result(result));
+        }
+
+        let mut swapchain_image_count: u32 = 0;
+        // SAFETY: the instance's function, a count query.
+        let result = unsafe {
+            (xr.xrEnumerateSwapchainImages)(swapchain, 0, &mut swapchain_image_count, null_mut())
+        };
+        if result != XrResult::SUCCESS {
+            return Err(XrError::from_result(result));
+        }
+
+        let mut swapchain_images = vec![
+            XrSwapchainImageVulkanKHR {
+                ty: XR_TYPE_SWAPCHAIN_IMAGE_VULKAN2_KHR,
+                ..Default::default()
+            };
+            swapchain_image_count as usize
+        ];
+
+        // SAFETY: an array of swapchain_image_count Vulkan images, whose
+        // header the structures begin with.
+        let result = unsafe {
+            (xr.xrEnumerateSwapchainImages)(
+                swapchain,
+                swapchain_image_count,
+                &mut swapchain_image_count,
+                swapchain_images.as_mut_ptr().cast(),
+            )
+        };
+        if result != XrResult::SUCCESS {
+            return Err(XrError::from_result(result));
+        }
+
+        let vk_format = sdl_to_vk_texture_format(format);
+        let mut texture_containers = Vec::with_capacity(swapchain_image_count as usize);
+
+        for swapchain_image in swapchain_images.iter().take(swapchain_image_count as usize) {
+            let vk_image = swapchain_image.image;
+
+            // FIXME (upstream): the texture's levelCount and layerCount are
+            // left 0, so the transition to its default usage below is a
+            // barrier over no subresources (which the validation layer
+            // reports: VUID-VkImageSubresourceRange-levelCount-01720 and
+            // -layerCount-01721); and its container isn't set.
+            let mut texture = VulkanTexture {
+                container: Mutex::new(None),
+                used_region: None,
+                image: vk_image,
+                full_view: VK_NULL_HANDLE,
+                swizzle: swizzle_for_sdl_format(format),
+                aspect_flags: VK_IMAGE_ASPECT_COLOR_BIT,
+                depth: 1,
+                level_count: 0,
+                layer_count: 0,
+                ty: TextureType::Texture2D,
+                usage: TextureUsageFlags::COLOR_TARGET,
+                subresources: Vec::new(),
+                marked_for_destroy: AtomicBool::new(false),
+                externally_managed: true,
+                reference_count: std::sync::atomic::AtomicI32::new(0),
+            };
+
+            let subresource_count = create_info.array_size * create_info.mip_count;
+            texture.subresources = (0..subresource_count)
+                .map(|_| TextureSubresource::default())
+                .collect();
+
+            for i in 0..create_info.array_size {
+                for j in 0..create_info.mip_count {
+                    let subresource_index =
+                        get_texture_subresource_index(j, i, create_info.mip_count) as usize;
+
+                    if create_info.usage_flags & XR_SWAPCHAIN_USAGE_COLOR_ATTACHMENT_BIT != 0 {
+                        match self.create_render_target_view(
+                            &texture,
+                            i,
+                            j,
+                            vk_format,
+                            texture.swizzle,
+                        ) {
+                            Ok(view) => texture.subresources[subresource_index]
+                                .render_target_views
+                                .push(view),
+                            Err(_) => {
+                                self.destroy_texture(&mut super::lock(&self.dispose), &texture);
+                                return Err(XrError::new(
+                                    XrResult::ERROR_RUNTIME_FAILURE,
+                                    Error::new("Failed to create render target view"),
+                                ));
+                            }
+                        }
+                    }
+
+                    texture.subresources[subresource_index].layer = i;
+                    texture.subresources[subresource_index].level = j;
+                }
+            }
+            let texture = Arc::new(texture);
+
+            // Transition to the default barrier state
+            // Note (upstream): C goes on with a NULL command buffer when none
+            // can be acquired, and ignores the submission's failure; both
+            // fail here.
+            let mut barrier_command_buffer = self
+                .acquire_command_buffer_internal()
+                .map_err(|e| XrError::new(XrResult::ERROR_RUNTIME_FAILURE, e))?;
+            self.texture_transition_to_default_usage(
+                &mut barrier_command_buffer,
+                VulkanTextureUsageMode::Uninitialized,
+                &texture,
+            );
+            barrier_command_buffer.track_texture(&texture);
+            self.submit_internal(barrier_command_buffer)
+                .map_err(|e| XrError::new(XrResult::ERROR_RUNTIME_FAILURE, e))?;
+
+            let info = TextureCreateInfo {
+                texture_type: TextureType::Texture2D,
+                format,
+                usage: TextureUsageFlags::COLOR_TARGET,
+                width: create_info.width,
+                height: create_info.height,
+                layer_count_or_depth: create_info.array_size,
+                num_levels: create_info.mip_count,
+                sample_count: SampleCount::One,
+                props: None,
+            };
+            let container = Arc::new(TextureContainer {
+                info: info.clone(),
+                state: Mutex::new(TextureContainerState {
+                    active_texture: texture.clone(),
+                    textures: vec![texture],
+                    debug_name: None,
+                }),
+                can_be_cycled: false,
+                externally_managed: true,
+            });
+            texture_containers.push((BackendObject(container), info));
+        }
+
+        Ok((swapchain, texture_containers))
+    }
+
+    /// Create an OpenXR session of the device's system, with the device's
+    /// graphics binding before the application's chain of structures.
+    /// Translation of `VULKAN_CreateXRSession()`.
+    pub(super) fn create_xr_session(
+        &self,
+        createinfo: &XrSessionCreateInfo,
+    ) -> std::result::Result<XrSession, XrError> {
+        let xr = self.xr_pfns();
+
+        // Copy out the existing next ptr so that we can append it to the end of the chain we create
+        let current_next_ptr = createinfo.next;
+
+        // KHR_vulkan_enable and KHR_vulkan_enable2 share this structure, so we don't need to change any logic here to handle both
+        let graphics_binding = XrGraphicsBindingVulkanKHR {
+            ty: XR_TYPE_GRAPHICS_BINDING_VULKAN_KHR,
+            instance: self.instance,
+            physical_device: self.physical_device,
+            device: self.logical_device,
+            queue_family_index: self.queue_family_index,
+            queue_index: 0, // we only ever have one queue, so hardcode queue index 0
+            next: current_next_ptr,
+        };
+
+        let mut session_create_info = *createinfo;
+        session_create_info.system_id = self.xr_system_id;
+        session_create_info.next = (&graphics_binding as *const XrGraphicsBindingVulkanKHR).cast();
+
+        let mut session: XrSession = XR_NULL_HANDLE;
+        // SAFETY: the instance's function, with the create info and its
+        // chain (the application's part is its to keep valid), and an
+        // out-pointer.
+        let result =
+            unsafe { (xr.xrCreateSession)(self.xr_instance, &session_create_info, &mut session) };
+        if result.failed() {
+            return Err(XrError::from_result(result));
+        }
+        Ok(session)
+    }
 }
 
 /// For the tests' skip reasons: what the physical devices lack of the
@@ -1737,7 +2554,15 @@ fn missing_device_features() -> Option<String> {
     crate::video::vulkan::vulkan_load_library(None).ok()?;
     let result = (|| {
         let (vk_get_instance_proc_addr, global) = load_global_functions().ok()?;
-        let (instance, _) = create_instance(false, &global, &VulkanFeatures::default()).ok()?;
+        let (instance, _) = create_instance(
+            false,
+            vk_get_instance_proc_addr,
+            &global,
+            &VulkanFeatures::default(),
+            XR_NULL_HANDLE,
+            XR_NULL_SYSTEM_ID,
+        )
+        .ok()?;
         let lookup = |name: &CStr| {
             // SAFETY: the loader's vkGetInstanceProcAddr with the live
             // instance and a NUL-terminated name.
@@ -1827,7 +2652,17 @@ pub(super) fn driver_version_string(raw_driver_ver: u32, vendor_id: u32) -> Stri
     }
 }
 
-/// Create the device. Translation of `VULKAN_CreateDevice()`.
+/// Create the device; with OpenXR, the instance and system first
+/// (`SDL_OPENXR_INTERNAL_GPUInitOpenXR()`), then the Vulkan objects
+/// through the runtime. Translation of `VULKAN_CreateDevice()`.
+///
+/// Note (upstream): upstream refuses a device made with OpenXR without
+/// its out pointers for the instance and the system; here they're the
+/// renderer's (`Device::xr_instance`, `Device::xr_system_id`). And C sets
+/// no error when the runtime has no Vulkan extension, when the instance
+/// or the system can't be had, or when the runtime's requirements can't be
+/// read (`SDL_GetError()` says what failed before); here the error says
+/// which step failed.
 pub(super) fn create_device(
     debug_mode: bool,
     prefer_low_power: bool,
@@ -1844,12 +2679,79 @@ pub(super) fn create_device(
         ));
     }
 
-    // (HAVE_GPU_OPENXR: OpenXR is not translated.)
+    let mut minimum_vk_version = VK_API_VERSION_1_0;
 
-    let (prepared, mut features) = match prepare_vulkan(debug_mode, prefer_low_power, props) {
+    let xr = props
+        .get_bool(PROP_GPU_DEVICE_CREATE_XR_ENABLE_BOOLEAN)
+        .unwrap_or(false);
+    let mut xr_init = None;
+
+    if xr {
+        if let Err(e) = openxrdyn::load_library() {
+            crate::sdl_assert!(!"This should have failed in PrepareDevice first!");
+            crate::video::vulkan::vulkan_unload_library();
+            return Err(e);
+        }
+
+        let Some(gpu_extension) = search_for_openxr_gpu_extension() else {
+            crate::log::debug!(
+                Category::Gpu,
+                "Failed to find a compatible OpenXR vulkan extension"
+            );
+            openxrdyn::unload_library();
+            crate::video::vulkan::vulkan_unload_library();
+            return Err(Error::new(
+                "Failed to find a compatible OpenXR vulkan extension",
+            ));
+        };
+
+        let Some(init) = gpu_init_openxr(debug_mode, &gpu_extension, props) else {
+            crate::log::debug!(Category::Gpu, "Failed to init OpenXR");
+            openxrdyn::unload_library();
+            crate::video::vulkan::vulkan_unload_library();
+            return Err(Error::new("Failed to init OpenXR"));
+        };
+
+        let Ok(minimum_vulkan_api_version) =
+            get_xr_minimum_vulkan_api_version(init.instance, init.system_id)
+        else {
+            crate::log::debug!(Category::Gpu, "Failed to get OpenXR graphics requirements");
+            // SAFETY: the instance GPUInitOpenXR made.
+            unsafe { (init.xr.xrDestroyInstance)(init.instance) };
+            openxrdyn::unload_library();
+            // (SDL_free(renderer->xr))
+            crate::video::vulkan::vulkan_unload_library();
+            return Err(Error::new("Failed to get OpenXR graphics requirements"));
+        };
+
+        let (major, minor, patch) = xr_version_parts(minimum_vulkan_api_version);
+        minimum_vk_version = vk_make_version(major, minor, patch);
+        xr_init = Some(init);
+    }
+
+    let (xr_instance, xr_system_id) = xr_init
+        .as_ref()
+        .map_or((XR_NULL_HANDLE, XR_NULL_SYSTEM_ID), |init| {
+            (init.instance, init.system_id)
+        });
+
+    let (prepared, mut features) = match prepare_vulkan(
+        debug_mode,
+        prefer_low_power,
+        props,
+        xr_instance,
+        xr_system_id,
+    ) {
         Ok(prepared) => prepared,
         Err(_) => {
             let e = set_string_error(debug_mode, "Failed to initialize Vulkan!");
+            if let Some(init) = &xr_init {
+                // SAFETY: the instance GPUInitOpenXR made, with no Vulkan
+                // instance of it left (prepare_vulkan destroys its own).
+                unsafe { (init.xr.xrDestroyInstance)(init.instance) };
+                openxrdyn::unload_library();
+                // (SDL_free(renderer->xr))
+            }
             crate::video::vulkan::vulkan_unload_library();
             return Err(e);
         }
@@ -1919,6 +2821,11 @@ pub(super) fn create_device(
             // SAFETY: the instance, with nothing made from it left.
             unsafe { destroy_instance(prepared.inst.destroy_instance, prepared.instance) };
             let e = set_string_error(debug_mode, "Failed to create logical device!");
+            // Note (upstream): C leaves the OpenXR instance (and the
+            // loader's reference) to the application, which has it through
+            // the out pointer; here the application never sees it, so it's
+            // destroyed (the reference is kept, as upstream keeps it).
+            destroy_unreturned_xr_instance(xr_init.as_ref());
             crate::video::vulkan::vulkan_unload_library();
             return Err(e);
         }
@@ -1944,7 +2851,10 @@ pub(super) fn create_device(
         out_of_device_local_memory_warning: AtomicBool::new(false),
         outof_bar_memory_warning: AtomicBool::new(false),
         fill_mode_only_warning: AtomicBool::new(false),
-        minimum_vk_version: VK_API_VERSION_1_0,
+        minimum_vk_version,
+        xr_instance,
+        xr_system_id,
+        xr: xr_init.as_ref().map(|init| init.xr),
         debug_mode,
         prefer_low_power,
         require_hardware_acceleration: prepared.require_hardware_acceleration,
@@ -1993,6 +2903,8 @@ pub(super) fn create_device(
             Err(e) => {
                 let mut renderer = renderer;
                 crate::gpu::sysgpu::GpuDriver::destroy(&mut renderer);
+                // (as for the logical device's failure)
+                destroy_unreturned_xr_instance(xr_init.as_ref());
                 return Err(e);
             }
         }
@@ -2001,9 +2913,26 @@ pub(super) fn create_device(
     Ok(renderer)
 }
 
+/// Destroy the OpenXR instance of a device that fails after its Vulkan
+/// instance was made (see `create_device()`'s Note (upstream)).
+fn destroy_unreturned_xr_instance(xr_init: Option<&crate::gpu::xr::gpu_openxr::GpuOpenXr>) {
+    if let Some(init) = xr_init {
+        // SAFETY: the instance GPUInitOpenXR made, whose Vulkan instance is
+        // gone.
+        unsafe { (init.xr.xrDestroyInstance)(init.instance) };
+    }
+}
+
 impl VulkanRenderer {
     /// Destroy everything the device made, the device and the instance.
     /// Translation of `VULKAN_DestroyDevice()`.
+    ///
+    /// Note (upstream): a device made with OpenXR keeps its reference to
+    /// the OpenXR loader (C never releases it, nor frees `renderer->xr`,
+    /// which is owned here), so that the application's OpenXR functions
+    /// stay valid; and its OpenXR instance is the application's to destroy
+    /// after the device (the test program's comment says the device
+    /// destroys it, which it doesn't).
     pub(super) fn destroy_device(&mut self) {
         let _ = self.wait_internal();
 
