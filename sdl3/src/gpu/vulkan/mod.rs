@@ -119,6 +119,7 @@ fn vulkan_create_device(
     Ok(BackendDevice {
         driver: Box::new(renderer),
         shader_formats: ShaderFormat::SPIRV,
+        xr: None,
     })
 }
 

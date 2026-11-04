@@ -31,6 +31,11 @@ use std::any::Any;
 use std::ptr::NonNull;
 use std::sync::Arc;
 
+use super::xr::sys::{
+    XrSessionCreateInfo as XrSessionCreateInfoSys,
+    XrSwapchainCreateInfo as XrSwapchainCreateInfoSys,
+};
+use super::xr::{XrError, XrResult};
 use super::{
     BlitInfo, BufferBinding, BufferLocation, BufferRegion, BufferUsageFlags,
     ColorTargetDescription, ColorTargetInfo, CommandBuffer, ComputePipelineCreateInfo,
@@ -715,11 +720,14 @@ pub(crate) struct BackendSwapchainTexture {
     pub(crate) height: u32,
 }
 
-/// A device a backend created: its driver and the shader formats it takes
-/// (`result->shader_formats`).
+/// A device a backend created: its driver, the shader formats it takes
+/// (`result->shader_formats`), and for a device made with OpenXR its
+/// instance and system (what upstream's backends write to the
+/// `SDL_PROP_GPU_DEVICE_CREATE_XR_*_POINTER` out pointers).
 pub(crate) struct BackendDevice {
     pub(crate) driver: Box<dyn GpuDriver>,
     pub(crate) shader_formats: ShaderFormat,
+    pub(crate) xr: Option<super::xr::XrDeviceHandles>,
 }
 
 impl std::fmt::Debug for BackendDevice {
@@ -728,6 +736,11 @@ impl std::fmt::Debug for BackendDevice {
             .field("shader_formats", &self.shader_formats)
             .finish_non_exhaustive()
     }
+}
+
+/// The error of the default OpenXR entry points (a backend without them).
+pub(crate) fn xr_unsupported() -> XrError {
+    XrError::new(XrResult::ERROR_FUNCTION_UNSUPPORTED, Error::unsupported())
 }
 
 // SDL_GPUDevice Definition
@@ -741,8 +754,10 @@ impl std::fmt::Debug for BackendDevice {
 /// upstream's backends do. Functions that return `bool` plus an error in C
 /// return a `Result`; creation functions return the new object.
 ///
-/// Not translated: the OpenXR entry points (`DestroyXRSwapchain`,
-/// `CreateXRSession`, `GetXRSwapchainFormats`, `CreateXRSwapchain`).
+/// The OpenXR entry points (`DestroyXRSwapchain`, `CreateXRSession`,
+/// `GetXRSwapchainFormats`, `CreateXRSwapchain`) have defaults that fail
+/// as unsupported (`XR_ERROR_FUNCTION_UNSUPPORTED`) for the backends that
+/// don't implement them yet; upstream's backends all assign them.
 #[allow(clippy::too_many_arguments)]
 pub(crate) trait GpuDriver: Send + Sync {
     // Device
@@ -751,6 +766,17 @@ pub(crate) trait GpuDriver: Send + Sync {
     /// it are dropped. Releases the claimed windows and the backend's own
     /// objects.
     fn destroy(&mut self);
+
+    /// `DestroyXRSwapchain`: destroy an OpenXR swapchain and the textures
+    /// of its images (`swapchain_images`, in [`GpuDriver::create_xr_swapchain`]'s
+    /// order).
+    fn destroy_xr_swapchain(
+        &self,
+        _swapchain: u64,
+        _swapchain_images: &[BackendObject],
+    ) -> std::result::Result<(), XrError> {
+        Err(xr_unsupported())
+    }
 
     /// `GetDeviceProperties`.
     fn properties(&self) -> Properties;
@@ -794,6 +820,34 @@ pub(crate) trait GpuDriver: Send + Sync {
         size: u32,
         debug_name: Option<&str>,
     ) -> Result<BackendObject>;
+
+    /// `CreateXRSession`: the session, from the application's create info
+    /// (`createinfo`, of the type, its `next` chain and flags), with the
+    /// device's system and graphics binding.
+    fn create_xr_session(
+        &self,
+        _createinfo: &XrSessionCreateInfoSys,
+    ) -> std::result::Result<u64, XrError> {
+        Err(xr_unsupported())
+    }
+
+    /// `GetXRSwapchainFormats`: the session's swapchain formats the backend
+    /// has texture formats for, in the runtime's order.
+    fn get_xr_swapchain_formats(&self, _session: u64) -> Result<Vec<TextureFormat>> {
+        Err(Error::unsupported())
+    }
+
+    /// `CreateXRSwapchain`: the swapchain, and a texture of each of its
+    /// images (the backend object and its info: upstream's containers'
+    /// headers), from the application's create info and the format.
+    fn create_xr_swapchain(
+        &self,
+        _session: u64,
+        _createinfo: &XrSwapchainCreateInfoSys,
+        _format: TextureFormat,
+    ) -> std::result::Result<(u64, Vec<(BackendObject, TextureCreateInfo)>), XrError> {
+        Err(xr_unsupported())
+    }
 
     // Debug Naming
 
