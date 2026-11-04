@@ -4,7 +4,8 @@
 
 //! The KMS/DRM video driver (`kmsdrm`): fullscreen windows on a DRM card's
 //! connectors, without a display server, drawn with OpenGL (ES) through
-//! EGL on GBM, with the console input reader (evdev) for input.
+//! EGL on GBM, or Vulkan on a display plane (`VK_KHR_display`), with the
+//! console input reader (evdev) for input.
 //!
 //! libdrm and libgbm are loaded at run time ([`kmsdrmdyn`]), as upstream's
 //! `SDL_KMSDRM_SHARED` build does; their declarations are [`sys`]'s.
@@ -16,7 +17,7 @@
 //! | `SDL_kmsdrmmouse.c`/`.h`     | [`mouse`]       |
 //! | `SDL_kmsdrmevents.c`/`.h`    | [`events`]      |
 //! | `SDL_kmsdrmdyn.c`/`.h`, `SDL_kmsdrmsym.h` | [`kmsdrmdyn`], [`sys`] |
-//! | `SDL_kmsdrmvulkan.c`/`.h`    | not translated yet (as upstream without `SDL_VIDEO_VULKAN`) |
+//! | `SDL_kmsdrmvulkan.c`/`.h`    | [`vulkan`]      |
 
 pub(crate) mod events;
 #[path = "dyn.rs"]
@@ -25,6 +26,7 @@ pub(crate) mod mouse;
 pub(crate) mod opengles;
 pub(crate) mod sys;
 pub(crate) mod video;
+pub(crate) mod vulkan;
 
 use std::ffi::c_void;
 use std::sync::Arc;
@@ -196,7 +198,57 @@ impl VideoDriver for KmsdrmVideo {
         Some(())
     }
 
-    // (no Vulkan entry points: upstream without SDL_VIDEO_VULKAN)
+    // * * * Vulkan (`KMSDRM_Vulkan_*`: upstream built with
+    // SDL_VIDEO_VULKAN; no Vulkan_GetPresentationSupport)
+
+    fn implements_vulkan_surfaces(&self) -> bool {
+        true
+    }
+
+    fn vulkan_load_library(&self, path: Option<&str>) -> Option<Result<()>> {
+        Some(vulkan::kmsdrm_vulkan_load_library(&self.vulkan, path))
+    }
+
+    fn vulkan_unload_library(&self) -> Option<()> {
+        vulkan::kmsdrm_vulkan_unload_library(&self.vulkan);
+        Some(())
+    }
+
+    fn vulkan_loader_path(&self) -> Option<Option<String>> {
+        Some(vulkan::kmsdrm_vulkan_loader_path(&self.vulkan))
+    }
+
+    fn vulkan_get_instance_proc_addr(&self) -> Option<usize> {
+        vulkan::kmsdrm_vulkan_get_instance_proc_addr(&self.vulkan)
+    }
+
+    fn vulkan_instance_extensions(&self) -> Option<Vec<&'static str>> {
+        Some(vulkan::kmsdrm_vulkan_get_instance_extensions())
+    }
+
+    fn vulkan_create_surface(
+        &self,
+        window: WindowID,
+        instance: usize,
+        allocator: usize,
+    ) -> Option<Result<u64>> {
+        Some(vulkan::kmsdrm_vulkan_create_surface(
+            &self.vulkan,
+            window,
+            instance,
+            allocator,
+        ))
+    }
+
+    fn vulkan_destroy_surface(
+        &self,
+        instance: usize,
+        surface: u64,
+        allocator: usize,
+    ) -> Option<()> {
+        vulkan::kmsdrm_vulkan_destroy_surface(&self.vulkan, instance, surface, allocator);
+        Some(())
+    }
 
     fn pump_events(&self) -> Option<()> {
         events::kmsdrm_pump_events();
