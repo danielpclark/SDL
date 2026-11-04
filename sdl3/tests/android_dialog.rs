@@ -16,7 +16,9 @@
 //!   runner makes, its `files` request), each answered in the documents'
 //!   picker (DocumentsUI) by the runner: real taps on the files and buttons
 //!   it finds in uiautomator's dump of the picker (`ui-tap`), whose dump
-//!   (`ui-dump`) also shows which files the filters let through, or BACK
+//!   (`ui-dump`, without the views' places on the screen, which are the
+//!   picker's layout and not SDL's: its window's top inset differs from one
+//!   boot to another) also shows which files the filters let through, or BACK
 //!   (`back-to-app`, the cancel path): open (a filter of one MIME type),
 //!   open several (filters of several, and `*`: a long press, then a tap,
 //!   then Select), open cancelled, a second dialog while one is shown,
@@ -77,29 +79,29 @@ window: ok
 launch: drop events: (none)
 logcat: V/SDL: Got filename: /sdcard/Download/sdl3_dialog/dropped.txt
 view: drop events: (none)
-logcat: ui: TextView \"sub\" [188,713][248,764]
-logcat: ui: TextView \"a.txt\" [196,1310][268,1361]
-logcat: ui: TextView \"b.png\" [683,1310][776,1361] disabled
-logcat: ui: TextView \"c.jpg\" [196,1933][276,1984] disabled
-logcat: ui: TextView \"notes.md\" [683,1933][838,1984] disabled
+logcat: ui: TextView \"sub\"
+logcat: ui: TextView \"a.txt\"
+logcat: ui: TextView \"b.png\" disabled
+logcat: ui: TextView \"c.jpg\" disabled
+logcat: ui: TextView \"notes.md\" disabled
 logcat: ui: tapped a.txt
 open: callback: files=[content://com.android.externalstorage.documents/document/primary%3ADownload%2Fsdl3_dialog%2Fa.txt] filter=-1 thread=SDLActivity
 open: focus events: WINDOW_FOCUS_GAINED, WINDOW_FOCUS_LOST
-logcat: ui: TextView \"sub\" [188,713][248,764]
-logcat: ui: TextView \"a.txt\" [196,1310][268,1361]
-logcat: ui: TextView \"b.png\" [683,1310][776,1361]
-logcat: ui: TextView \"c.jpg\" [196,1933][276,1984]
-logcat: ui: TextView \"notes.md\" [683,1933][838,1984]
+logcat: ui: TextView \"sub\"
+logcat: ui: TextView \"a.txt\"
+logcat: ui: TextView \"b.png\"
+logcat: ui: TextView \"c.jpg\"
+logcat: ui: TextView \"notes.md\"
 logcat: ui: long-pressed b.png
 logcat: ui: tapped c.jpg
 logcat: ui: tapped Select
 open many: callback: files=[content://com.android.externalstorage.documents/document/primary%3ADownload%2Fsdl3_dialog%2Fb.png, content://com.android.externalstorage.documents/document/primary%3ADownload%2Fsdl3_dialog%2Fc.jpg] filter=-1 thread=SDLActivity
 open many: focus events: WINDOW_FOCUS_GAINED, WINDOW_FOCUS_LOST
-logcat: ui: TextView \"sub\" [188,713][248,764]
-logcat: ui: TextView \"a.txt\" [196,1310][268,1361]
-logcat: ui: TextView \"b.png\" [683,1310][776,1361]
-logcat: ui: TextView \"c.jpg\" [196,1933][276,1984]
-logcat: ui: TextView \"notes.md\" [683,1933][838,1984]
+logcat: ui: TextView \"sub\"
+logcat: ui: TextView \"a.txt\"
+logcat: ui: TextView \"b.png\"
+logcat: ui: TextView \"c.jpg\"
+logcat: ui: TextView \"notes.md\"
 logcat: top: the app
 open cancelled: callback: files=[] filter=-1 thread=SDLActivity
 open cancelled: focus events: WINDOW_FOCUS_GAINED, WINDOW_FOCUS_LOST
@@ -108,7 +110,7 @@ second: callback: error \"Only one file dialog can be run at a time.\" filter=-1
 logcat: top: the app
 first: callback: files=[] filter=-1 thread=SDLActivity
 first: focus events: WINDOW_FOCUS_GAINED, WINDOW_FOCUS_LOST
-logcat: ui: EditText \"\" [189,2215][801,2333]
+logcat: ui: EditText \"\"
 logcat: ui: tapped Save
 save: callback: files=[content://com.android.externalstorage.documents/document/primary%3ADownload%2Fsdl3_dialog%2F(invalid).txt] filter=-1 thread=SDLActivity
 save: focus events: WINDOW_FOCUS_GAINED, WINDOW_FOCUS_LOST
@@ -117,7 +119,7 @@ logcat: file: a.txt 6
 logcat: file: b.png 6
 logcat: file: c.jpg 6
 logcat: file: notes.md 9
-logcat: ui: EditText \"suggested.txt\" [189,2215][801,2333]
+logcat: ui: EditText \"suggested.txt\"
 logcat: ui: tapped Save
 save suggested: callback: files=[content://com.android.externalstorage.documents/document/primary%3ADownload%2Fsdl3_dialog%2Fsuggested.txt] filter=-1 thread=SDLActivity
 save suggested: focus events: WINDOW_FOCUS_GAINED, WINDOW_FOCUS_LOST
@@ -131,10 +133,10 @@ logcat: top: the app
 save cancelled: callback: files=[] filter=-1 thread=SDLActivity
 save cancelled: focus events: WINDOW_FOCUS_GAINED, WINDOW_FOCUS_LOST
 persisted permissions: 0
-logcat: ui: TextView \"sdk_gphone64_x86_64\" [0,254][331,380] disabled
-logcat: ui: TextView \"Download\" [394,254][600,380] disabled
-logcat: ui: TextView \"sdl3_dialog\" [663,254][893,380] disabled
-logcat: ui: TextView \"sub\" [956,254][1080,380]
+logcat: ui: TextView \"sdk_gphone64_x86_64\" disabled
+logcat: ui: TextView \"Download\" disabled
+logcat: ui: TextView \"sdl3_dialog\" disabled
+logcat: ui: TextView \"sub\"
 logcat: ui: tapped Use this folder
 logcat: ui: Button \"CANCEL\"
 logcat: ui: Button \"ALLOW\"
@@ -344,14 +346,14 @@ main returns
         // Open, one file: a filter of one MIME type
         let text = [filter("Text", "txt")];
         dialog::show_open_file_dialog(callback, window, &text, Some(DIR_URI), false);
-        ask("ui-dump top --id android:id/title");
+        ask("ui-dump top --id android:id/title --no-bounds");
         ask("ui-tap --in top a.txt");
         answered("open");
 
         // Open, several files: filters of several MIME types (and "*")
         let images = [filter("Images", "png;jpg"), filter("All", "*")];
         dialog::show_open_file_dialog(callback, window, &images, Some(DIR_URI), true);
-        ask("ui-dump top --id android:id/title");
+        ask("ui-dump top --id android:id/title --no-bounds");
         ask("ui-tap --long --in top b.png");
         ask("ui-tap --in top c.jpg");
         ask("ui-tap --in top Select");
@@ -359,7 +361,7 @@ main returns
 
         // Open, cancelled (BACK in the picker)
         dialog::show_open_file_dialog(callback, window, &[], Some(DIR_URI), false);
-        ask("ui-dump top --id android:id/title");
+        ask("ui-dump top --id android:id/title --no-bounds");
         ask("back-to-app");
         answered("open cancelled");
 
@@ -383,14 +385,14 @@ main returns
         // slash: no name suggested)
         let folder = format!("{DIR_URI}/");
         dialog::show_save_file_dialog(callback, window, &text, Some(&folder));
-        ask("ui-dump top --class EditText");
+        ask("ui-dump top --class EditText --no-bounds");
         ask("ui-tap --in top Save");
         answered("save");
         ask("files list");
 
         // Save with a suggested name (the location's last part)
         dialog::show_save_file_dialog(callback, window, &text, Some("suggested.txt"));
-        ask("ui-dump top --class EditText");
+        ask("ui-dump top --class EditText --no-bounds");
         ask("ui-tap --in top Save");
         answered("save suggested");
         ask("files list");
@@ -404,7 +406,7 @@ main returns
         let sub = format!("{DIR_URI}%2Fsub");
         t(format!("persisted permissions: {}", persisted()));
         dialog::show_open_folder_dialog(callback, window, Some(&sub), false);
-        ask("ui-dump top --id breadcrumb_text");
+        ask("ui-dump top --id breadcrumb_text --no-bounds");
         ask("ui-tap --in top Use this folder");
         ask("ui-dump top --class Button --no-bounds");
         ask("ui-tap --in top Allow");
