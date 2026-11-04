@@ -18,6 +18,8 @@ pub(crate) mod dbus;
 pub(crate) mod evdev;
 #[cfg(target_os = "linux")]
 pub(crate) mod evdev_capabilities;
+#[cfg(target_os = "linux")]
+pub(crate) mod evdev_kbd_tables;
 pub(crate) mod fcitx;
 #[cfg(all(test, target_os = "linux"))]
 pub(crate) mod guess_tests;
