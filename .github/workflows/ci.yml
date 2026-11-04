@@ -880,7 +880,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        mode: [load-a, load-b, load-c, load-d]
+        mode: [load-a, load-b, load-c, load-d, load-e, load-f]
     env:
       # The emulator's build (37.2.12.0) and the API 35 Google APIs x86-64
       # system image's revision (Android 15), as the SDK repository has
@@ -1128,6 +1128,11 @@ jobs:
             echo "==== $(basename "$f")"
             perl -pe 's/\e\[[0-9;]*m//g' "$f" | grep -E "^ *Running .*android_|^test result: |differs|^error: |android_run.py: (waiting|emulator-|the display|.*settle|.*took more|.*has the focus)|trace: .*safe_area" | cut -c1-260 || true
           done
+          ADB="$ANDROID_HOME/platform-tools/adb"
+          echo "==== the settings' history (rotation, provisioning)"
+          timeout 60 "$ADB" shell 'dumpsys settings 2>&1 | grep -iE "accelerometer_rotation|user_rotation|device_provisioned|user_setup_complete" | head -60' | cut -c1-300 || true
+          echo "==== the emulator's log"
+          { grep -vE "^INFO +\|   androidboot|SwiftShader|VkInstance|VkDevice" "/tmp/sdl3-android-run-$(id -u)/$SDL3_ANDROID_SERIAL/emulator.log" || true; } | cut -c1-220 | head -80
       - name: Stop the emulator
         if: always()
         run: tools/android_run.py --kill
