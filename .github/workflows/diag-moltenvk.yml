@@ -27,7 +27,7 @@ jobs:
       fail-fast: false
       matrix:
         filter: ["all"]
-        shard: [1, 2, 3]
+        shard: [1]
     runs-on: macos-latest
     timeout-minutes: 90
     steps:
@@ -58,7 +58,7 @@ jobs:
           rm -f ~/Library/Logs/DiagnosticReports/*.ips || true
       - name: Loop
         env:
-          RUNS: ${{ matrix.filter == 'all' && 15 || 30 }}
+          RUNS: ${{ matrix.filter == 'all' && 60 || 30 }}
           FILTER: ${{ matrix.filter != 'all' && matrix.filter || '' }}
         run: |
           cd sdl3
