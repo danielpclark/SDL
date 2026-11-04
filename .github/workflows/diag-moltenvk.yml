@@ -86,6 +86,8 @@ jobs:
             elif [ "$status" -ne 0 ]; then
               grep -E 'panicked|FAILED|failures:' "$RUNNER_TEMP/run.log" | head -20
             fi
+            # (kept when it crashed, for the crash report's symbols)
+            if [ "$status" -lt 128 ]; then rm -f "$exe"; fi
           done
           echo "crashes: $crashes / $RUNS"
           echo "CRASHES=$crashes" >> "$GITHUB_ENV"
