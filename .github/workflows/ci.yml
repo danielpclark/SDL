@@ -304,6 +304,23 @@ jobs:
           # of skipping.
           SDL3_TEST_SKIP_LOG: ${{ runner.temp }}/skips.tsv
           SDL3_TEST_REQUIRE: ${{ runner.os == 'Linux' && env.LINUX_REQUIRE || runner.os == 'Windows' && env.WINDOWS_REQUIRE || '' }}
+      # The console input reader on a virtual console (sdl3/tests/evdev_vt.rs,
+      # which skips as `vt` in the run above, as the runner user): as root,
+      # on tty3 (the runner's free console), through
+      # tools/linux_console_run.py --vt 3, which the program starts itself
+      # under.
+      - name: cargo test evdev_vt on tty3, as root
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          # (cargo as the runner user, the program as root: it starts itself
+          # under the runner)
+          cargo test -p sdl3 --test evdev_vt --no-run --message-format=json > "$RUNNER_TEMP/evdev_vt.json"
+          exe="$(python3 -c 'import json, sys; [print(m["executable"]) for m in map(json.loads, open(sys.argv[1])) if m.get("reason") == "compiler-artifact" and m.get("executable") and m["target"]["name"] == "evdev_vt"]' "$RUNNER_TEMP/evdev_vt.json")"
+          test -n "$exe"
+          sudo env SDL3_TEST_REQUIRE="$SDL3_TEST_REQUIRE" SDL_ASSERT="$SDL_ASSERT" RUST_BACKTRACE=1 "$exe"
+        env:
+          SDL3_TEST_REQUIRE: vt,uinput
       # The OpenGL ES 1 renderer's checks, which skip in the run above on
       # Linux (Mesa's Ubuntu packages are built without OpenGL ES 1), on
       # ANGLE's OpenGL ES 1.1 over SwiftShader: the libEGL.so and
@@ -344,6 +361,18 @@ jobs:
         env:
           SDL3_TEST_SKIP_LOG: ${{ runner.temp }}/skips.tsv
           SDL3_TEST_REQUIRE: ${{ runner.os == 'Linux' && env.LINUX_REQUIRE || runner.os == 'Windows' && env.WINDOWS_REQUIRE || '' }}
+      - name: cargo test --release evdev_vt on tty3, as root
+        if: matrix.toolchain == 'pinned' && runner.os == 'Linux'
+        shell: bash
+        run: |
+          # (cargo as the runner user, the program as root: it starts itself
+          # under the runner)
+          cargo test -p sdl3 --test evdev_vt --no-run --message-format=json --release > "$RUNNER_TEMP/evdev_vt.json"
+          exe="$(python3 -c 'import json, sys; [print(m["executable"]) for m in map(json.loads, open(sys.argv[1])) if m.get("reason") == "compiler-artifact" and m.get("executable") and m["target"]["name"] == "evdev_vt"]' "$RUNNER_TEMP/evdev_vt.json")"
+          test -n "$exe"
+          sudo env SDL3_TEST_REQUIRE="$SDL3_TEST_REQUIRE" SDL_ASSERT="$SDL_ASSERT" RUST_BACKTRACE=1 "$exe"
+        env:
+          SDL3_TEST_REQUIRE: vt,uinput
       # The render-state test whose checks MoltenVK misdraws under the Metal
       # debug layer (which the Metal tests turn on in the main run's
       # process, so they skip there), without the layer: they must run.
