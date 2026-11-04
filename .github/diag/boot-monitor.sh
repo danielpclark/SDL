@@ -25,10 +25,13 @@ for i in $(seq 1 "$n"); do
     echo "device_provisioned=$(settings get global device_provisioned) user_setup_complete=$(settings get secure user_setup_complete) home=$(cmd package resolve-activity --brief -a android.intent.action.MAIN -c android.intent.category.HOME 2>&1 | tail -1)"
     echo "cutout resource: $(cmd overlay lookup android android:string/config_mainBuiltInDisplayCutout 2>&1 | head -c 60)"
     dumpsys window 2>&1 | grep -E "^ *mRotation=|mCurrentFocus=" | sed "s/^ *//" | cut -c1-160 | sort -u | head -4
+    dumpsys window 2>&1 | grep -oE "(mUserRotationMode|mUserRotation|mLastSensorRotation|mLastOrientation|mCurrentAppOrientation)=[^ ]*" | sort -u | tr "\n" " "; echo
     dumpsys window displays 2>&1 | grep -oE "InsetsSource id=[^ ]* type=[a-zA-Z]+ frame=\[[0-9,]*\]\[[0-9,]*\] visible=[a-z]+" | sed "s/id=[^ ]* //" | sort -u | head -10
     dumpsys window displays 2>&1 | grep -m1 -oE "DisplayCutout\{[^}]*\}" | cut -c1-200
     wm size | tr "\n" " "; echo
   ' 2>&1 | tr -d '\r')
+  s="$s
+host sensor: $(timeout 10 "$ADB" -s "$S" emu sensor get acceleration 2>/dev/null | tr -d '\r' | head -1 | sed -E 's/([0-9]\.[0-9])[0-9]*/\1/g')"
   up=$(timeout 10 "$ADB" -s "$S" shell 'cut -d " " -f1 /proc/uptime' 2>/dev/null | tr -d '\r')
   if [ "$i" = 1 ]; then
     timeout 30 "$ADB" -s "$S" shell 'for n in global secure system; do settings list $n | sed "s/^/$n /"; done; getprop' > "/tmp/diag-$label-first.txt" 2>&1
