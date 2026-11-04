@@ -509,7 +509,9 @@ jobs:
         shell: bash
         run: |
           # (cargo as the runner user, the programs as root: each starts
-          # itself under the runner)
+          # itself under the runner; the skip log made by the runner user,
+          # for the steps after, root appending to it)
+          : > "$SDL3_TEST_SKIP_LOG"
           cargo test -p sdl3 --test kmsdrm_video --test kmsdrm_gles --test kmsdrm_cursor \
             --test kmsdrm_input --test kmsdrm_vulkan --no-run --message-format=json > "$RUNNER_TEMP/kmsdrm.json"
           for program in kmsdrm_video kmsdrm_gles kmsdrm_cursor kmsdrm_input kmsdrm_vulkan; do
@@ -544,7 +546,7 @@ jobs:
         env:
           SDL3_TEST_SKIP_LOG: ${{ runner.temp }}/skips.tsv
         run: |
-          touch "$SDL3_TEST_SKIP_LOG"
+          [ -e "$SDL3_TEST_SKIP_LOG" ] || touch "$SDL3_TEST_SKIP_LOG"
           awk -F '\t' '
             $1 == "vulkan" && $2 == "kmsdrm_vulkan" && index($3, "by design: no display plane surface on this card ") == 1 { next }
             { print }' "$SDL3_TEST_SKIP_LOG" > "$RUNNER_TEMP/unexpected.tsv"
