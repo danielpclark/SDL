@@ -31,8 +31,8 @@ use std::sync::{Arc, Mutex, RwLock};
 use super::memory::MemoryAllocator;
 use super::resources::PendingDestroys;
 use super::resources::{
-    get_texture_subresource_index, TextureContainer, TextureContainerState, TextureSubresource,
-    VulkanTexture, VulkanTextureUsageMode,
+    get_texture_subresource_index, ContainerRef, TextureContainer, TextureContainerState,
+    TextureSubresource, VulkanTexture, VulkanTextureUsageMode,
 };
 use super::tables::vk_error_messages;
 use super::tables::{sdl_to_vk_texture_format, swizzle_for_sdl_format, SDL_TO_VK_TEXTURE_FORMAT};
@@ -2401,11 +2401,13 @@ impl VulkanRenderer {
         for swapchain_image in swapchain_images.iter().take(swapchain_image_count as usize) {
             let vk_image = swapchain_image.image;
 
-            // FIXME (upstream): the texture's levelCount and layerCount are
-            // left 0, so the transition to its default usage below is a
-            // barrier over no subresources (which the validation layer
+            // Note (upstream): C leaves the texture's levelCount and
+            // layerCount 0, so the transition to its default usage below is
+            // a barrier over no subresources (which the validation layer
             // reports: VUID-VkImageSubresourceRange-levelCount-01720 and
-            // -layerCount-01721); and its container isn't set.
+            // -layerCount-01721), and its container unset; here they're the
+            // swapchain's mip count and array size, and the container is set
+            // once it's made.
             let mut texture = VulkanTexture {
                 container: Mutex::new(None),
                 used_region: None,
@@ -2414,8 +2416,8 @@ impl VulkanRenderer {
                 swizzle: swizzle_for_sdl_format(format),
                 aspect_flags: VK_IMAGE_ASPECT_COLOR_BIT,
                 depth: 1,
-                level_count: 0,
-                layer_count: 0,
+                level_count: create_info.mip_count,
+                layer_count: create_info.array_size,
                 ty: TextureType::Texture2D,
                 usage: TextureUsageFlags::COLOR_TARGET,
                 subresources: Vec::new(),
@@ -2492,12 +2494,16 @@ impl VulkanRenderer {
                 info: info.clone(),
                 state: Mutex::new(TextureContainerState {
                     active_texture: texture.clone(),
-                    textures: vec![texture],
+                    textures: vec![texture.clone()],
                     debug_name: None,
                 }),
                 can_be_cycled: false,
                 externally_managed: true,
             });
+            texture.set_container(Some(ContainerRef {
+                container: Arc::downgrade(&container),
+                index: 0,
+            }));
             texture_containers.push((BackendObject(container), info));
         }
 
