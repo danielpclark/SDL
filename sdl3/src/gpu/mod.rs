@@ -1828,8 +1828,8 @@ pub const PROP_GPU_DEVICE_CREATE_METAL_ALLOW_MACFAMILY1_BOOLEAN: &str =
 /// device is the one the runtime asks for. Translation of
 /// `SDL_PROP_GPU_DEVICE_CREATE_XR_ENABLE_BOOLEAN`.
 ///
-/// (The Vulkan backend's and the Direct3D 12 backend's OpenXR paths are
-/// not translated yet: they refuse it, as Metal's does.)
+/// (The Direct3D 12 backend's OpenXR path is not translated yet: it
+/// refuses it, as Metal's does.)
 pub const PROP_GPU_DEVICE_CREATE_XR_ENABLE_BOOLEAN: &str = "SDL.gpu.device.create.xr.enable";
 /// Upstream's out pointer for the device's `XrInstance`. Translation of
 /// `SDL_PROP_GPU_DEVICE_CREATE_XR_INSTANCE_POINTER`.

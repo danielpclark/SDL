@@ -41,7 +41,10 @@
 //! Blits and mipmaps use `vkCmdBlitImage`, as upstream's backend does, so
 //! the front end's blit pipelines aren't needed here.
 //!
-//! The OpenXR parts (`HAVE_GPU_OPENXR`) are not translated.
+//! The OpenXR parts (`HAVE_GPU_OPENXR`): a device made with OpenXR has its
+//! instance, physical device and logical device made by the runtime, and
+//! the OpenXR sessions and swapchains (whose images are externally managed
+//! textures) are the backend's ([`device`]).
 
 mod binding;
 mod commands;
@@ -86,6 +89,11 @@ use super::sysgpu::{
     BackendCommandBuffer, BackendDevice, BackendObject, BackendSwapchainTexture,
     ComputePipelineHeader, GpuBootstrap, GpuDriver, GraphicsPipelineHeader,
 };
+use super::xr::openxrdyn::XrInstancePfns;
+use super::xr::sys::{
+    XrInstance, XrSessionCreateInfo, XrSwapchainCreateInfo, XrSystemId, XR_NULL_HANDLE,
+};
+use super::xr::{XrDeviceHandles, XrError};
 use super::{
     BlitInfo, BufferBinding, BufferLocation, BufferRegion, BufferUsageFlags, ColorTargetInfo,
     CommandBuffer, ComputePipelineCreateInfo, DepthStencilTargetInfo, GraphicsPipelineCreateInfo,
@@ -116,10 +124,15 @@ fn vulkan_create_device(
     props: &Properties,
 ) -> Result<BackendDevice> {
     let renderer = device::create_device(debug_mode, prefer_low_power, props)?;
+    // (what GPUInitOpenXR writes to the out pointers)
+    let xr = (renderer.xr_instance != XR_NULL_HANDLE).then_some(XrDeviceHandles {
+        instance: renderer.xr_instance,
+        system_id: renderer.xr_system_id,
+    });
     Ok(BackendDevice {
         driver: Box::new(renderer),
         shader_formats: ShaderFormat::SPIRV,
-        xr: None,
+        xr,
     })
 }
 
@@ -180,8 +193,12 @@ struct VulkanRenderer {
     fill_mode_only_warning: AtomicBool,
 
     // OpenXR
-    #[allow(dead_code)] // (OpenXR isn't translated)
+    #[allow(dead_code)] // (never read: see device::prepare_driver's FIXME (upstream))
     minimum_vk_version: u32,
+    /// a non-null instance also states this vk device was created by OpenXR
+    xr_instance: XrInstance,
+    xr_system_id: XrSystemId,
+    xr: Option<XrInstancePfns>,
 
     debug_mode: bool,
     #[allow(dead_code)] // (kept as upstream does)
@@ -394,6 +411,14 @@ impl GpuDriver for VulkanRenderer {
         self.destroy_device();
     }
 
+    fn destroy_xr_swapchain(
+        &self,
+        swapchain: u64,
+        swapchain_images: &[BackendObject],
+    ) -> std::result::Result<(), XrError> {
+        self.destroy_xr_swapchain(swapchain, swapchain_images)
+    }
+
     /// Translation of `VULKAN_GetDeviceProperties()`.
     fn properties(&self) -> Properties {
         self.props.clone()
@@ -462,6 +487,26 @@ impl GpuDriver for VulkanRenderer {
             true, // Dedicated allocations preserve the data even if a defrag is triggered.
             debug_name,
         )?))
+    }
+
+    fn create_xr_session(
+        &self,
+        createinfo: &XrSessionCreateInfo,
+    ) -> std::result::Result<u64, XrError> {
+        self.create_xr_session(createinfo)
+    }
+
+    fn get_xr_swapchain_formats(&self, session: u64) -> Result<Vec<TextureFormat>> {
+        self.get_xr_swapchain_formats(session)
+    }
+
+    fn create_xr_swapchain(
+        &self,
+        session: u64,
+        createinfo: &XrSwapchainCreateInfo,
+        format: TextureFormat,
+    ) -> std::result::Result<(u64, Vec<(BackendObject, TextureCreateInfo)>), XrError> {
+        self.create_xr_swapchain(session, createinfo, format)
     }
 
     // Debug Naming
