@@ -449,12 +449,13 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           key: kmsdrm
-      # libdrm, libgbm, EGL and Mesa's DRM drivers (kms_swrast, llvmpipe)
+      # libdrm, libgbm, EGL and Mesa's DRM drivers (kms_swrast, llvmpipe),
+      # the Vulkan loader and Mesa's Vulkan drivers (lavapipe)
       - name: Install the test environment
         run: |
           sudo apt-get update
           sudo apt-get install -y libdrm2 libgbm1 libegl1 libegl-mesa0 libgl1 libgles2 \
-            libgl1-mesa-dri libudev1
+            libgl1-mesa-dri libudev1 libvulkan1 mesa-vulkan-drivers
       - name: Load vkms
         shell: bash
         run: |
@@ -486,21 +487,48 @@ jobs:
           # (cargo as the runner user, the programs as root: each starts
           # itself under the runner)
           cargo test -p sdl3 --test kmsdrm_video --test kmsdrm_gles --test kmsdrm_cursor \
-            --test kmsdrm_input --no-run --message-format=json > "$RUNNER_TEMP/kmsdrm.json"
-          for program in kmsdrm_video kmsdrm_gles kmsdrm_cursor kmsdrm_input; do
+            --test kmsdrm_input --test kmsdrm_vulkan --no-run --message-format=json > "$RUNNER_TEMP/kmsdrm.json"
+          for program in kmsdrm_video kmsdrm_gles kmsdrm_cursor kmsdrm_input kmsdrm_vulkan; do
             exe="$(python3 -c 'import json, sys; [print(m["executable"]) for m in map(json.loads, open(sys.argv[1])) if m.get("reason") == "compiler-artifact" and m.get("executable") and m["target"]["name"] == sys.argv[2]]' "$RUNNER_TEMP/kmsdrm.json" "$program")"
             test -n "$exe"
             echo "== $program"
             sudo env SDL3_TEST_REQUIRE="$SDL3_TEST_REQUIRE" SDL_ASSERT="$SDL_ASSERT" \
               SDL_KMSDRM_DEVICE_INDEX="$SDL_KMSDRM_DEVICE_INDEX" SDL3_CONSOLE_TIMEOUT="$SDL3_CONSOLE_TIMEOUT" \
-              RUST_BACKTRACE=1 "$exe" > "$RUNNER_TEMP/$program.log" 2>&1 || {
+              SDL3_TEST_SKIP_LOG="$SDL3_TEST_SKIP_LOG" RUST_BACKTRACE=1 "$exe" > "$RUNNER_TEMP/$program.log" 2>&1 || {
               grep -av '^trace: \|^sdl3-console-runner: ' "$RUNNER_TEMP/$program.log" | tail -80
               exit 1
             }
-            grep -a "^$program: \|^rust: " "$RUNNER_TEMP/$program.log" || true
+            grep -a "^$program: \|^rust: \|^note: " "$RUNNER_TEMP/$program.log" || true
           done
         env:
           SDL3_TEST_REQUIRE: kmsdrm,vt,uinput,egl
+          SDL3_TEST_SKIP_LOG: ${{ runner.temp }}/skips.tsv
+      - name: List the skipped checks
+        if: always()
+        shell: bash
+        env:
+          SDL3_TEST_SKIP_LOG: ${{ runner.temp }}/skips.tsv
+        run: tools/ci/list-skips.sh "$SDL3_TEST_SKIP_LOG" "KMS/DRM on vkms"
+      # The skip by design: Vulkan surfaces on the card (kmsdrm_vulkan's
+      # surface, swapchain and renderers drawing on it), which lavapipe
+      # can't make (it enumerates no displays on vkms, and upstream's
+      # surface takes an integrated or discrete GPU only): kmsdrm_hardware's
+      # check. Any other skip fails the job.
+      - name: Check the skips
+        if: always()
+        shell: bash
+        env:
+          SDL3_TEST_SKIP_LOG: ${{ runner.temp }}/skips.tsv
+        run: |
+          touch "$SDL3_TEST_SKIP_LOG"
+          awk -F '\t' '
+            $1 == "vulkan" && $2 == "kmsdrm_vulkan" && index($3, "by design: no display plane surface on this card ") == 1 { next }
+            { print }' "$SDL3_TEST_SKIP_LOG" > "$RUNNER_TEMP/unexpected.tsv"
+          if [ -s "$RUNNER_TEMP/unexpected.tsv" ]; then
+            cat "$RUNNER_TEMP/unexpected.tsv"
+            echo "::error::checks skipped other than kmsdrm_vulkan's Vulkan surfaces, by design (above)"
+            exit 1
+          fi
 
   # The test programs built for Emscripten, run under node and in headless
   # Chrome (tools/emscripten_run.py, the runner in .cargo/config.toml): see
