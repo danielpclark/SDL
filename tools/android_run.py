@@ -334,14 +334,17 @@ partition), started headless, with SwiftShader's GPU (OpenGL ES 3.0 and
 Vulkan 1.3), the emulated cameras, and no snapshot saved. The first
 program waits for the boot to finish (`sys.boot_completed`; a minute or
 two, or SDL3_ANDROID_BOOT_TIMEOUT seconds, after which an emulator of
-this script's that hasn't booted, as a hung one, is killed), then, while
-the device has been up for less than five minutes
-(SDL3_ANDROID_READY_UPTIME seconds), for it to be ready for apps (up to
-two minutes): the package manager answering, and the home activity (the
-launcher) having the input focus, which comes about 8 s after
-`sys.boot_completed` (the Settings app's FallbackHome, then the image's
-first-boot setup, are on top until then, and an app launched meanwhile
-may lose the front to them). Before each app is launched, an app of
+this script's that hasn't booted, as a hung one, is killed; an adb that
+doesn't answer meanwhile is waited out), then, once per boot (the boot's
+ID kept on the device), for it to be ready for apps (up to five
+minutes): the package manager answering, the image's first-boot setup
+over (it is the home activity until it has set the device up and turned
+itself off), the home activity (the launcher) having the input focus,
+and the display's cutout, when it has one, in its insets, which all
+come about 10 s after `sys.boot_completed` on an idle machine (the
+Settings app's FallbackHome, then the first-boot setup, are on top until
+then, and an app launched meanwhile may lose the front to them, or lay
+out without the cutout). Before each app is launched, an app of
 another package that has the input focus (a previous program's: Chrome,
 after an SDL_OpenURL(), brings its first-run screen back over later
 apps) is stopped and the launcher brought back, and the display is
@@ -920,18 +923,45 @@ def device_properties(serial):
     return [abi for abi in lines[1].strip().split(",") if abi]
 
 
+# The first-boot setups of the emulator's system images (the Google APIs
+# image's GoogleSdkSetup, AOSP's SdkSetup and Provision): the home
+# activity until they have set the device up (its settings, the display's
+# cutout) and turned themselves off.
+FIRST_BOOT_SETUP = ("com.google.android.googlesdksetup", "com.android.sdksetup", "com.android.provision")
+
+
+def display_cutout_pending(script_output):
+    """Whether the display has yet to report the cutout its resources
+    define: `cmd overlay lookup`'s config_mainBuiltInDisplayCutout (the
+    cutout's path, empty for a display without one) set, while `dumpsys
+    window`'s DisplayCutout has no insets."""
+    lines = script_output.splitlines()
+    path = lines[0].strip() if lines else ""
+    cutout = lines[1].strip() if len(lines) > 1 else ""
+    if not path or path.startswith(("Error", "Failed", "Unknown", "Exception")) or not cutout:
+        return False
+    return re.search(r"insets=Rect\(0, 0 - 0, 0\)", cutout) is not None
+
+
 def readiness(serial):
     """What of the device isn't ready yet for an app (a list of reasons,
-    empty once it is): the package manager (`pm path android`), and the
-    home activity (the launcher, as the package manager resolves HOME)
-    having the input focus."""
+    empty once it is): the package manager (`pm path android`); the
+    first-boot setup over (the home activity, as the package manager
+    resolves HOME, no longer one of FIRST_BOOT_SETUP's); the home activity
+    (the launcher) having the input focus; and the display's cutout, when
+    the display has one, reported."""
     script = (
         "pm path android 2>&1 | head -1; echo '--'; "
         "cmd package resolve-activity --brief -a android.intent.action.MAIN -c android.intent.category.HOME 2>&1 | tail -1; "
-        "echo '--'; dumpsys window 2>&1 | grep -E 'mCurrentFocus=' | head -1"
+        "echo '--'; dumpsys window 2>&1 | grep -E 'mCurrentFocus=' | head -1; echo '--'; "
+        "echo \"$(cmd overlay lookup android android:string/config_mainBuiltInDisplayCutout 2>&1 | head -1 | cut -c1-40)\"; "
+        "dumpsys window displays 2>&1 | grep -m1 -oE 'DisplayCutout\\{insets=Rect\\([^)]*\\)'"
     )
-    result = adb_shell(serial, script, check=False, timeout=60)
-    parts = (result.stdout.replace("\r", "").split("--\n") + ["", "", ""])[:3]
+    try:
+        result = adb_shell(serial, script, check=False, timeout=60)
+    except Timeout as e:
+        return [f"an answer ({e})"]
+    parts = (result.stdout.replace("\r", "").split("--\n") + ["", "", "", ""])[:4]
     missing = []
     if not parts[0].startswith("package:"):
         missing.append(f"the package manager ({parts[0].strip() or 'no answer'})")
@@ -940,41 +970,58 @@ def readiness(serial):
     other = re.search(r" ([A-Za-z0-9_.]+)/", focus)
     if "/" not in home:
         missing.append(f"a home activity ({home or 'none'})")
+    elif home.split("/")[0] in FIRST_BOOT_SETUP:
+        missing.append(f"the first-boot setup's end (the home activity is still {home})")
     elif f" {home.split('/')[0]}/" not in focus and not (other and other.group(1) not in SYSTEM_FOCUS):
         # (an app of its own having the focus, the boot is over: a previous
         # program's, which clear_foreground() stops before the next launch)
         missing.append(f"the home activity {home} with the focus ({focus or 'no focused window'})")
+    if display_cutout_pending(parts[3]):
+        missing.append("the display's cutout (config_mainBuiltInDisplayCutout) in its insets")
     return missing
 
 
 def wait_until_ready(serial):
-    """Wait for the device to be ready for an app (readiness()), when it
-    booted less than READY_UPTIME seconds ago. Right after
-    `sys.boot_completed` the boot isn't over for apps: the Settings app's
-    FallbackHome ("Android is starting...") is on top, then the Google
-    APIs image's first-boot setup (com.google.android.googlesdksetup),
-    and the launcher starts about 4 s later and gets the input focus
-    about 8 s later (an app launched in that time may lose the front to
-    them)."""
-    result = adb_shell(serial, "cat /proc/uptime", check=False, timeout=30)
+    """Wait for the device to be ready for an app (readiness()), once per
+    boot: the boot's ID (/proc/sys/kernel/random/boot_id) is written to
+    the device's READY_MARK when it is (or READY_TIMEOUT seconds have
+    gone), and a program finding it there doesn't check again. Right
+    after `sys.boot_completed` the boot isn't over for apps: the Settings
+    app's FallbackHome ("Android is starting...") is on top, then the
+    Google APIs image's first-boot setup (com.google.android.googlesdksetup,
+    the home activity until it is done), which sets the device up (its
+    settings, as auto-rotation) and turns itself off, the display's cutout
+    coming into its insets as it ends (a status bar 65 px taller), and the
+    launcher gets the input focus. That takes 10 s or so after the boot on
+    an idle machine, longer while the programs build; an app launched
+    meanwhile may lose the front to them, or lay out without the cutout
+    (dialogs higher up)."""
     try:
-        uptime = float(result.stdout.split()[0])
-    except (IndexError, ValueError):
-        return
-    if uptime > number("SDL3_ANDROID_READY_UPTIME", READY_UPTIME):
+        result = adb_shell(serial, f"cat /proc/sys/kernel/random/boot_id; cat {READY_MARK} 2>/dev/null", check=False, timeout=30)
+        words = result.stdout.split()
+    except Timeout:
+        words = []
+    boot = words[0] if words and re.fullmatch(r"[0-9a-f-]{36}", words[0]) else None
+    if boot and words[1:2] == [boot]:
         return
     start = time.monotonic()
     missing = readiness(serial)
-    if not missing:
-        return
-    note(f"waiting for {serial} to be ready for apps (up {uptime:.0f} s; not yet: {', '.join(missing)})")
-    while missing and time.monotonic() - start < READY_TIMEOUT:
-        time.sleep(1)
-        missing = readiness(serial)
     if missing:
-        note(f"{serial} still isn't ready after {READY_TIMEOUT} s ({', '.join(missing)}): going on")
-    else:
-        note(f"{serial} is ready for apps ({time.monotonic() - start:.0f} s later)")
+        try:
+            uptime = adb_shell(serial, "cat /proc/uptime", check=False, timeout=30).stdout.split()[:1]
+        except Timeout:
+            uptime = []
+        up = f"up {float(uptime[0]):.0f} s; " if uptime and re.fullmatch(r"[0-9.]+", uptime[0]) else ""
+        note(f"waiting for {serial} to be ready for apps ({up}not yet: {', '.join(missing)})")
+        while missing and time.monotonic() - start < READY_TIMEOUT:
+            time.sleep(1)
+            missing = readiness(serial)
+        if missing:
+            note(f"{serial} still isn't ready after {READY_TIMEOUT} s ({', '.join(missing)}): going on")
+        else:
+            note(f"{serial} is ready for apps ({time.monotonic() - start:.0f} s later)")
+    if boot:
+        adb_shell(serial, f"mkdir -p {DEVICE_ROOT} && echo {boot} > {READY_MARK}", check=False, timeout=30)
 
 
 def wait_for_boot(serial):
@@ -1011,10 +1058,10 @@ def wait_for_boot(serial):
     return abis
 
 
-# How long after its boot the device is checked for being ready for apps
-# (wait_until_ready()), and how long that's waited for.
-READY_UPTIME = 300
-READY_TIMEOUT = 120
+# How long the device is waited for to be ready for apps after its boot
+# (wait_until_ready()), and where the boot it was is kept on the device.
+READY_TIMEOUT = 300
+READY_MARK = DEVICE_ROOT + "/ready-boot-id"
 
 
 def cmd_boot(args):
