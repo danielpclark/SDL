@@ -23,10 +23,9 @@
 //!
 //! Only Linux's DRM device names are translated (`/dev/dri/cardN`; the
 //! OpenBSD `/dev/drmN` names before 6.9 are not), and the console input is
-//! the evdev reader's (`SDL_INPUT_LINUXEV`; not wscons). Vulkan is not
-//! translated yet: the driver behaves as upstream built without
-//! `SDL_VIDEO_VULKAN` (no Vulkan entry points; the `vulkan_mode` paths are
-//! kept but never taken).
+//! the evdev reader's (`SDL_INPUT_LINUXEV`; not wscons). Vulkan windows
+//! ([`vulkan`](super::vulkan)) have no GBM or EGL surfaces: while there is
+//! one the driver is in Vulkan mode (`vulkan_mode`).
 
 use std::ffi::{c_int, c_void, CStr};
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -335,6 +334,8 @@ pub(crate) struct KmsdrmVideo {
     /// `KMSDRM_DeleteDevice()`).
     pub(crate) syms: Arc<KmsdrmSyms>,
     state: Mutex<State>,
+    /// The Vulkan loader (`_this->vulkan_config`).
+    pub(crate) vulkan: Mutex<super::vulkan::VulkanConfig>,
 }
 
 /// `open(path, O_RDWR | O_CLOEXEC)`.
@@ -963,6 +964,7 @@ pub(crate) fn kmsdrm_create_device() -> Option<Arc<KmsdrmVideo>> {
             displays: Vec::new(),
             windata: Vec::new(),
         }),
+        vulkan: Mutex::default(),
     }))
 }
 
