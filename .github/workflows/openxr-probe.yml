@@ -42,9 +42,9 @@ jobs:
         run: |
           O="$RUNNER_TEMP/out"
           mkdir -p "$O"
-          gcc -O1 -o "$O/xrprobe" diag/xrprobe.c -ldl
-          gcc -O1 -o "$O/xrprobe2" diag/xrprobe2.c -ldl
           K="$RUNNER_TEMP/upstream/src/video/khronos"
+          gcc -O1 -o "$O/xrprobe" -I"$K" diag/xrprobe.c -ldl
+          gcc -O1 -o "$O/xrprobe2" -I"$K" diag/xrprobe2.c -ldl
           gcc -o "$O/layout" -I"$K" diag/layout.c
           gcc -Wall -O1 -o "$O/sdlxr" diag/sdlxr.c -I"$RUNNER_TEMP/upstream/include" -I"$RUNNER_TEMP/upstream/build/include" -I"$K" \
             -L"$RUNNER_TEMP/upstream/build" -lSDL3 -Wl,-rpath,"$RUNNER_TEMP/upstream/build"
@@ -67,6 +67,7 @@ jobs:
 
   windows:
     name: probe (Windows)
+    if: false
     runs-on: windows-latest
     timeout-minutes: 40
     defaults:
@@ -157,6 +158,7 @@ jobs:
 
   android:
     name: probe (Android emulator, the Khronos AAR)
+    if: false
     runs-on: ubuntu-latest
     timeout-minutes: 50
     env:
