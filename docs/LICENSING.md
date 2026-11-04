@@ -136,7 +136,11 @@ the kernel's user-space API, under its syscall note, as below. What the
 declarations carry over is interface facts (layouts, names, values),
 checked against a C program built with the headers, not the headers'
 expression. `tools/linux_console_run.py` (stdlib Python) declares the few
-DRM ioctls it uses to read the card the same way.
+DRM ioctls it uses to read the card the same way, and makes
+`kmsdrm_displays`'s vkms device through vkms's configfs interface
+(`/sys/kernel/config/vkms`: the directories, attribute files and symbolic
+links the kernel documents for user space), which carries no code of the
+kernel's either.
 
 ## System headers declared by hand
 

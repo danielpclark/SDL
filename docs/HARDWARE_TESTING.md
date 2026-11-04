@@ -36,7 +36,7 @@ Every skip names one *capability* (the list is `CAPABILITIES` in
 | `udev` | Linux | libudev and a working udev (netlink) |
 | `uinput` | Linux | a writable `/dev/uinput`, and read access to the event nodes of the devices made there (the evdev joystick driver's check, and the console input reader's `evdev_input`: see [Linux console input](#linux-console-input-evdev)) |
 | `vt` | Linux | a virtual console as the program's controlling terminal: root, and a free console, `/dev/tty3`, which `tools/linux_console_run.py --vt 3` starts the program on (the console input reader's `evdev_vt`, and the KMS/DRM driver's programs: see [Linux virtual console](#linux-virtual-console-evdev-on-tty3)) |
-| `kmsdrm` | Linux | a DRM card with a connected connector, DRM master (root), and libdrm (`libdrm.so.2`) and libgbm (`libgbm.so.1`): for the KMS/DRM driver's `kmsdrm_*` programs, a vkms card (`modprobe vkms`; `SDL_KMSDRM_DEVICE_INDEX`, or the first vkms card), whose modes, CRCs and pixels their traces are (see [KMS/DRM](#kmsdrm-on-vkms-as-root-on-tty3)) |
+| `kmsdrm` | Linux | a DRM card with a connected connector, DRM master (root), and libdrm (`libdrm.so.2`) and libgbm (`libgbm.so.1`): for the KMS/DRM driver's `kmsdrm_*` programs, a vkms card (`modprobe vkms`; `SDL_KMSDRM_DEVICE_INDEX`, or the first card whose DRM driver is vkms), whose modes, CRCs and pixels their traces are, and for `kmsdrm_displays` vkms's configfs (`/sys/kernel/config/vkms`, a kernel whose vkms has it) (see [KMS/DRM](#kmsdrm-on-vkms-as-root-on-tty3)) |
 | `hidapi` | Linux, Windows, macOS, iOS, tvOS, Android | the HID backend: hidraw with libudev, `hid.dll`, IOKit's HID manager, CoreBluetooth's Steam Controllers (iOS and tvOS: never missing, no devices without Bluetooth), or the app's HID device manager (Android: never missing, no devices outside an app or on the emulator) |
 | `ipv6` | any | IPv6 sockets that can resolve and bind to the loopback address `::1` (`sdl3-net`'s IPv6 tests; containers often have IPv4 only) |
 | `tzdata` | Linux | the time zone database in `/usr/share/zoneinfo` (the local time tests set `TZ`) |
@@ -97,6 +97,14 @@ doesn't have, and print what they find (so run them with `--nocapture`):
 | `joystick::darwin::tests::hardware_joysticks_per_driver` | macOS | lists the controllers the HIDAPI, IOKit and MFi (GameController) drivers see, together and each alone. Zero controllers is fine |
 | `joystick::darwin::tests::hardware_controller_input` | macOS | the interactive controller check of Windows', through the default macOS drivers. Run it on its own |
 | `kmsdrm_hardware`'s `hardware_vulkan_surface_swapchain_and_renderers` (`cargo test -p sdl3 --test kmsdrm_hardware -- --ignored`, as root) | Linux | Vulkan on the KMS/DRM driver with a GPU's driver (anv, radv: `VK_KHR_display` with the card's displays), run on tty3 by `tools/linux_console_run.py --vt 3` (see [KMS/DRM](#kmsdrm-on-vkms-as-root-on-tty3)): lists the Vulkan devices and the displays and planes each enumerates; a Vulkan window of the display's desktop mode, its surface on a display plane (its extent must be the window's), the GPU API's swapchain on it (three frames cleared and presented, each texture the window's size), then the Vulkan and GPU renderers on it, whose frames read back must be the software renderer's (each channel within 1). Without a Vulkan loader, or with no integrated or discrete GPU among the devices (lavapipe alone), it skips (`vulkan`) |
+| `kmsdrm_hardware`'s `hardware_swap_paths_and_page_flip_timing` | Linux | the swap paths on a GPU's KMS driver (each check of `kmsdrm_hardware` runs as root on tty3 through `tools/linux_console_run.py --vt 3`, on the first card with a connected connector or `SDL_KMSDRM_DEVICE_INDEX`'s, and skips as `kmsdrm` on a vkms card): the fenced atomic commits (with the GPU's `EGL_ANDROID_native_fence_sync` fences), the blocking atomic ones (`SDL_VIDEO_DOUBLE_BUFFER=1`), the legacy page flips (`SDL_KMSDRM_ATOMIC=0`, with and without it), each 120 frames of a window of the desktop mode at swap intervals 1 and 0, printing the times between swaps; at interval 1 their median must be a refresh's (within -20% and +25%) |
+| `kmsdrm_hardware`'s `hardware_async_page_flips` | Linux | with `DRM_CAP_ASYNC_PAGE_FLIP` (else it skips, `kmsdrm`), the legacy page flips at swap interval 0, which upstream makes asynchronous (`DRM_MODE_PAGE_FLIP_ASYNC`): 240 frames must swap, the median time between them printed against a refresh's |
+| `kmsdrm_hardware`'s `hardware_framebuffer_modifiers` | Linux | a window's frames scanned out (the runner's `drm info`: the primary plane's framebuffer must be the window's size), printing the framebuffer's modifier and `DRM_CAP_ADDFB2_MODIFIERS`; it skips (`kmsdrm`) when the GPU's scanout buffers are linear, as vkms's are |
+| `kmsdrm_hardware`'s `hardware_cursor_size` | Linux | a color cursor shown on a window: when a cursor plane shows it, the plane's framebuffer must be `DRM_CAP_CURSOR_WIDTH` by `DRM_CAP_CURSOR_HEIGHT` (upstream's cursor buffer object is the capability's size; vkms's is 512 by 512) |
+| `kmsdrm_hardware`'s `hardware_connector_modes` | Linux | each display against the connector it's named after: connected, a fullscreen mode list no longer than the connector's, and not empty, with the desktop mode's size among them; prints the modes |
+| `kmsdrm_hardware`'s `hardware_vrr` | Linux | with a `vrr_capable` connector (else it skips, `kmsdrm`): the CRTC's `VRR_ENABLED` is 1 with a window (upstream enables it as it adds the display), and what it was before once the window is destroyed (upstream restores it there) |
+| `kmsdrm_hardware`'s `hardware_panel_orientation` | Linux | with a connector that has a `panel orientation` property (a laptop's or tablet's built-in panel; else it skips, `kmsdrm`): prints the connector's value and SDL's `SDL.display.KMSDRM.panel_orientation`, which must be 0, as upstream's: it looks the property up on the CRTC's ID (`FIXME (upstream)` in `video.rs`), which finds none |
+| `kmsdrm_hardware`'s `hardware_console_keymap` | Linux | a non-US console keymap on tty3 (`sudo loadkeys de`, say; with US's plain entries for the keys it presses it skips, `vt`), with uinput: the keys Q, W, Y, Z, A, M and ; pressed on a uinput keyboard must give the text the console's keymap (`KDGKBENT`) has for them |
 | `joystick::apple::tests::hardware_mfi_controllers` | macOS | what GameController reports through the MFi driver alone: names, GUIDs, the generated gamepad mapping, SF Symbols names, sensors, LED, battery and rumble. GameController discovers controllers on the main run loop, which a test thread doesn't run, so only the ones it already knew when the driver started are listed |
 
 On iOS devices the hardware checks are programs of their own (an
@@ -329,7 +337,7 @@ process goes on, its console unmuted).
 ## KMS/DRM (on vkms, as root on tty3)
 
 The KMS/DRM video driver (`video::drivers::kmsdrm`, upstream's
-`video/kmsdrm/`) is tested by five programs (`harness = false`), each
+`video/kmsdrm/`) is tested by six programs (`harness = false`), each
 running as root on tty3 through `tools/linux_console_run.py --vt 3` (as
 `evdev_vt`, above: the console keyboard is the driver's input), on a vkms
 card (the kernel's virtual KMS driver, with its cursor and overlay planes:
@@ -341,10 +349,13 @@ card for them, as a second client without DRM master:
 | Request | What the runner answers |
 |---|---|
 | `drm state` | the first CRTC's mode (and whether it's on), and each plane with a framebuffer: its type, the framebuffer's size and format, its source and CRTC rectangles (the atomic properties) |
-| `drm crc` | the CRC vkms computes of every composed frame (debugfs `dri/N/crtc-0/crc/data`, the cursor plane included), once three in a row are the same; `none` when the CRTC is off |
+| `drm crc` | the CRC vkms computes of every composed frame (debugfs `dri/N/crtc-C/crc/data`, the cursor plane included), once three in a row are the same; `none` when the CRTC is off |
 | `drm pixels X Y ...` | pixels of the primary plane's framebuffer (its GEM buffer mapped with `MAP_DUMB`: Mesa's kms_swrast allocates dumb buffers) |
 | `drm master` | whether another client holds the card's DRM master |
 | `drm master hold`, `drm master release` | every card's DRM master taken by the runner, and given back |
+| `drm card K [C]`, `drm card` | the card `/dev/dri/cardK` and its `C`th CRTC (0 by default) for the requests after (`state`, `crc`, `pixels`, `master`, `info`) in place of `SDL_KMSDRM_DEVICE_INDEX`'s card and first CRTC; then that again |
+| `drm info` | what the hardware checks look at: the card's capabilities (`DUMB_BUFFER`, `ASYNC_PAGE_FLIP`, `CURSOR_WIDTH`, `CURSOR_HEIGHT`, `ADDFB2_MODIFIERS`, `ATOMIC_ASYNC_PAGE_FLIP`), its connectors (status, modes, the preferred one, `vrr_capable`, `panel orientation`), the CRTC's `VRR_ENABLED`, and the planes with a framebuffer (size, format, modifier) |
+| `vkms add NAME N`, `vkms remove NAME` | a vkms device made through vkms's configfs (`/sys/kernel/config/vkms`, mounted if it isn't), of `N` pipelines, each a primary and a cursor plane, a CRTC, an encoder and a connected connector; enabled, and its card opened and closed once (the kernel's fbdev emulation then sets every CRTC); then disabled and removed (and at the end, if left) |
 | `drm versions` | the kernel's, Mesa's (libgbm1's package) and libdrm's versions: the first line of each trace, the reference's preamble (not compared; printed when the trace differs) |
 
 * `kmsdrm_video`: the display (its name, bounds, desktop and current
@@ -396,7 +407,26 @@ card for them, as a second client without DRM master:
   discrete GPU): after the trace the program skips the rest, a surface, a
   swapchain and the renderers drawing on it (`vulkan`, by design), which
   `kmsdrm_hardware`'s Vulkan check does on a GPU (see
-  [Hardware checks](#hardware-checks-cargo-test----ignored)).
+  [Hardware checks](#hardware-checks-cargo-test----ignored));
+* `kmsdrm_displays`: two displays, on a vkms device of two pipelines the
+  runner makes through vkms's configfs (`vkms add`: two connected
+  connectors, two CRTCs, each with a primary and a cursor plane) and
+  removes at the end: each CRTC's scanout as the kernel's fbdev emulation
+  sets it; the displays (their names, bounds side by side, desktop modes,
+  which is primary), then sorted by `SDL_VIDEO_DISPLAY_PRIORITY` (the
+  second connector first; an unknown name and both in another order; both
+  in order); with the legacy page flips (`SDL_KMSDRM_ATOMIC=0`) a window on
+  each display, their events and frames of one color each, with each
+  CRTC's mode, CRC and pixels; with the atomic commits a window on the
+  first display, then one on the second alone, and the CRTCs then.
+  Windows on both displays with the atomic commits aren't made: upstream
+  sets up the display plane of the first window's display only
+  (`KMSDRM_GBMInit()`), so the second window's commit dereferences its
+  NULL plane (`drm_atomic_set_plane_props()`), which crashes the C
+  program (`Note (upstream)` in `video.rs`'s `drm_atomic_set_plane_props()`:
+  nothing is added for it here).
+  `SDL_Quit()` resets every hint, so the program sets the device's card
+  (`SDL_KMSDRM_DEVICE_INDEX`) again before each init.
 
 ```sh
 # as root, with tty3 free (no getty on it), uinput, and vkms loaded (the
@@ -449,16 +479,23 @@ firmware framebuffer's simpledrm card0), which keeps the programs off
 the VM's own display, opens uinput with
 the test job's udev rules, builds the programs as the runner user and runs
 them as root with `SDL3_TEST_REQUIRE=kmsdrm,vt,uinput,egl`, with the
-Vulkan loader and Mesa's Vulkan drivers installed. Its one expected skip
+Vulkan loader and Mesa's Vulkan drivers installed (`kmsdrm_displays`
+makes its own vkms device through configfs, and removes it). Its one expected skip
 is `kmsdrm_vulkan`'s Vulkan surfaces, by design; any other fails the job.
 
-Not covered on CI (hardware checks, to come with the multi-display
-work): real GPUs and their drivers (the fenced path's GPU fences, real
-page-flip timing, `DRM_CAP_ASYNC_PAGE_FLIP`, framebuffer modifiers other
-than linear, other cursor sizes), real connectors' modes, VRR
-(`vrr_capable`), panel orientation (whose property upstream reads from the
-CRTC's ID: always 0, `FIXME (upstream)` in `video.rs`), several displays.
-Vulkan surfaces need a GPU's Vulkan driver: `kmsdrm_hardware`'s check.
+What vkms can't show is `kmsdrm_hardware`'s (`#[ignore]`d: see
+[Hardware checks](#hardware-checks-cargo-test----ignored)), for a machine
+with a GPU and a real display, each check run alone as root on tty3:
+a GPU's swap paths (the fenced path's GPU fences) and their page-flip
+timing, `DRM_CAP_ASYNC_PAGE_FLIP`, framebuffer modifiers other than
+linear, the cursor plane's size, real connectors' modes, VRR
+(`vrr_capable`), panel orientation (whose property upstream reads from
+the CRTC's ID: always 0, `FIXME (upstream)` in `video.rs`), a non-US
+console keymap's text, and Vulkan surfaces (a GPU's Vulkan driver). On
+the CI runner's vkms card (run there once, as root) they all skip: the
+GPU's as `kmsdrm` (the card's DRM driver is vkms), the keymap's as `vt`
+(the console's keymap is US's for its keys), the Vulkan one as `vulkan`
+(lavapipe is no integrated or discrete GPU).
 
 ## Windows 11
 
