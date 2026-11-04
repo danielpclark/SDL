@@ -46,7 +46,7 @@ jobs:
           git -C "$RUNNER_TEMP/upstream" checkout -q ea7a2da
           git -C "$RUNNER_TEMP/upstream" log --oneline -1
           cmake -S "$RUNNER_TEMP/upstream" -B "$RUNNER_TEMP/build" -G Ninja -DCMAKE_BUILD_TYPE=Debug \
-            -DSDL_SHARED=ON -DSDL_STATIC=OFF -DSDL_TEST_LIBRARY=OFF -DSDL_TESTS=OFF -DSDL_EXAMPLES=OFF > "$RUNNER_TEMP/cmake.log" 2>&1 || { tail -60 "$RUNNER_TEMP/cmake.log"; exit 1; }
+            -DSDL_UNIX_CONSOLE_BUILD=ON -DSDL_SHARED=ON -DSDL_STATIC=OFF -DSDL_TEST_LIBRARY=OFF -DSDL_TESTS=OFF -DSDL_EXAMPLES=OFF > "$RUNNER_TEMP/cmake.log" 2>&1 || { tail -60 "$RUNNER_TEMP/cmake.log"; exit 1; }
           grep -iE "evdev|udev|linuxev|kd " "$RUNNER_TEMP/cmake.log" | head -20 || true
           cmake --build "$RUNNER_TEMP/build" > "$RUNNER_TEMP/build.log" 2>&1 || { tail -60 "$RUNNER_TEMP/build.log"; exit 1; }
           grep -E "SDL_INPUT_LINUXEV|SDL_INPUT_LINUXKD|SDL_USE_LIBUDEV" "$RUNNER_TEMP/build/include-config-debug/build_config/SDL_build_config.h" "$RUNNER_TEMP"/build/include*/SDL_build_config.h 2>/dev/null || true
@@ -73,6 +73,7 @@ jobs:
         if: always()
         shell: bash
         run: |
+          set +e
           O="$RUNNER_TEMP/out"
           echo "== C stderr (1)"; head -30 "$O/c1.err" || true
           echo "== Rust stderr (1)"; grep -v "^ *Compiling\|^ *Finished\|^ *Running" "$O/r1.err" | head -30 || true
