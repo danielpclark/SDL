@@ -100,7 +100,7 @@ struct DrmVersion {
 /// The name of the DRM driver of `/dev/dri/card{index}`
 /// (`DRM_IOCTL_VERSION`'s: `vkms` for every vkms device, whatever the
 /// device's own name).
-fn drm_driver(index: u32) -> Option<String> {
+pub fn drm_driver(index: u32) -> Option<String> {
     use std::os::fd::AsRawFd;
     let card = std::fs::File::open(format!("/dev/dri/card{index}")).ok()?;
     let mut name = [0u8; 64];
