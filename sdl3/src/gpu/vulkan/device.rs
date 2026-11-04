@@ -1693,7 +1693,16 @@ pub(super) fn prepare_driver(video: &dyn VideoDriver, props: &Properties) -> boo
         return false;
     }
 
-    // (HAVE_GPU_OPENXR: OpenXR is not translated.)
+    // (HAVE_GPU_OPENXR: the OpenXR path, the throwaway instance's check of
+    // the runtime's system and Vulkan requirements, isn't translated yet:
+    // a device with OpenXR isn't made, as on Metal.)
+    if props
+        .get_bool(super::super::PROP_GPU_DEVICE_CREATE_XR_ENABLE_BOOLEAN)
+        .unwrap_or(false)
+    {
+        crate::video::vulkan::vulkan_unload_library();
+        return false;
+    }
 
     // This needs to be set early for log filtering
     let debug_mode = props

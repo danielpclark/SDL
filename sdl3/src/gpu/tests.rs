@@ -62,6 +62,9 @@ struct MockConfig {
     unsupported: Vec<TextureFormat>,
     /// The swapchain texture `AcquireSwapchainTexture` returns.
     swapchain: bool,
+    /// The result the mock's OpenXR entry points fail with (`None`: they
+    /// succeed).
+    xr_fail: Option<XrResult>,
 }
 
 static CONFIG: Mutex<MockConfig> = Mutex::new(MockConfig {
@@ -69,6 +72,7 @@ static CONFIG: Mutex<MockConfig> = Mutex::new(MockConfig {
     shader_formats: ShaderFormat::SPIRV,
     unsupported: Vec::new(),
     swapchain: true,
+    xr_fail: None,
 });
 
 static LOG: Mutex<Vec<String>> = Mutex::new(Vec::new());
@@ -171,6 +175,14 @@ fn create(
             blit: Mutex::new(None),
         }),
         shader_formats: config().shader_formats,
+        // (the instance and system a backend's GPUInitOpenXR would make)
+        xr: props
+            .get_bool(PROP_GPU_DEVICE_CREATE_XR_ENABLE_BOOLEAN)
+            .unwrap_or(false)
+            .then_some(xr::XrDeviceHandles {
+                instance: 0x1000,
+                system_id: 7,
+            }),
     })
 }
 
@@ -221,6 +233,99 @@ impl GpuDriver for MockDriver {
         let props = Properties::new();
         props.set(PROP_GPU_DEVICE_NAME_STRING, "Mock GPU").unwrap();
         props
+    }
+
+    fn destroy_xr_swapchain(
+        &self,
+        swapchain: u64,
+        swapchain_images: &[BackendObject],
+    ) -> std::result::Result<(), XrError> {
+        let images: Vec<String> = swapchain_images.iter().map(name).collect();
+        log(format!(
+            "destroy_xr_swapchain {swapchain:#x} [{}]",
+            images.join(",")
+        ));
+        match config().xr_fail {
+            Some(result) => Err(XrError::from_result(result)),
+            None => Ok(()),
+        }
+    }
+
+    fn create_xr_session(
+        &self,
+        c: &xr::sys::XrSessionCreateInfo,
+    ) -> std::result::Result<u64, XrError> {
+        log(format!(
+            "create_xr_session type={} next={:p} flags={} system={}",
+            c.ty, c.next, c.create_flags, c.system_id
+        ));
+        match config().xr_fail {
+            Some(result) => Err(XrError::from_result(result)),
+            None => Ok(0x2000),
+        }
+    }
+
+    fn get_xr_swapchain_formats(&self, session: u64) -> Result<Vec<TextureFormat>> {
+        log(format!("get_xr_swapchain_formats {session:#x}"));
+        match config().xr_fail {
+            Some(_) => Err(Error::new(
+                "Failed to find a swapchain format supported by both OpenXR and SDL",
+            )),
+            None => Ok(vec![
+                TextureFormat::R8G8B8A8_UNORM_SRGB,
+                TextureFormat::B8G8R8A8_UNORM,
+            ]),
+        }
+    }
+
+    fn create_xr_swapchain(
+        &self,
+        session: u64,
+        c: &xr::sys::XrSwapchainCreateInfo,
+        format: TextureFormat,
+    ) -> std::result::Result<(u64, Vec<(BackendObject, TextureCreateInfo)>), XrError> {
+        if let Some(result) = config().xr_fail {
+            log(format!("create_xr_swapchain {session:#x} failed"));
+            return Err(XrError::from_result(result));
+        }
+        let images: Vec<(BackendObject, TextureCreateInfo)> = (0..3)
+            .map(|_| {
+                (
+                    object("xrimage", 0),
+                    TextureCreateInfo {
+                        texture_type: if c.array_size > 1 {
+                            TextureType::Texture2DArray
+                        } else {
+                            TextureType::Texture2D
+                        },
+                        format,
+                        usage: TextureUsageFlags::COLOR_TARGET,
+                        width: c.width,
+                        height: c.height,
+                        layer_count_or_depth: c.array_size,
+                        num_levels: c.mip_count,
+                        ..Default::default()
+                    },
+                )
+            })
+            .collect();
+        let names: Vec<String> = images.iter().map(|(raw, _)| name(raw)).collect();
+        log(format!(
+            "create_xr_swapchain {session:#x} type={} next={:p} flags={} usage={:#x} format={} {}x{} samples={} faces={} array={} mips={} as {format:?} -> [{}]",
+            c.ty,
+            c.next,
+            c.create_flags,
+            c.usage_flags,
+            c.format,
+            c.width,
+            c.height,
+            c.sample_count,
+            c.face_count,
+            c.array_size,
+            c.mip_count,
+            names.join(",")
+        ));
+        Ok((0x3000, images))
     }
 
     fn create_compute_pipeline(
@@ -996,6 +1101,7 @@ impl Fixture {
             shader_formats: ShaderFormat::SPIRV,
             unsupported: Vec::new(),
             swapchain: true,
+            xr_fail: None,
         };
         take_log();
         Fixture { _lock: lock }
@@ -1238,9 +1344,10 @@ fn no_backend_fails_cleanly() {
     props
         .set(PROP_GPU_DEVICE_CREATE_XR_ENABLE_BOOLEAN, true)
         .unwrap();
+    // (HAVE_GPU_OPENXR, as upstream's CMake builds: no backend prepares)
     assert_eq!(
         err_message(Device::with_properties(&props)),
-        "OpenXR is not enabled in this build of SDL"
+        "No supported SDL_GPU backend found!"
     );
     assert!(!supports_properties(&props));
     assert!(!supports_shader_formats(ShaderFormat::SPIRV, None));
@@ -3383,4 +3490,174 @@ fn passes_are_not_tracked_without_debug_mode() {
     assert!(log.iter().any(|l| l == "draw_primitives 3 1 0 0"));
     assert!(log.iter().any(|l| l == "set_viewport 0 0 100000 0 0 0"));
     cb.submit().unwrap();
+}
+
+// OpenXR
+
+/// The OpenXR entry points reach the backend with the application's
+/// create infos (the type set, the `next` chain kept, no system ID and no
+/// format: the backend's), a device made with OpenXR has its instance and
+/// system, and a swapchain's images are textures the front end never
+/// releases, destroyed with the swapchain (by `destroy()`, or when it's
+/// dropped, before the device).
+#[test]
+fn openxr_dispatch() {
+    let _f = Fixture::new(true);
+
+    // A device without OpenXR: no handles (the entry points still reach
+    // the backend, as upstream's do).
+    let device = Device::new(ShaderFormat::SPIRV, true, None).unwrap();
+    assert_eq!((device.xr_instance(), device.xr_system_id()), (None, None));
+    take_log();
+    assert_eq!(
+        device
+            .create_xr_session(&XrSessionCreateInfo::default())
+            .unwrap(),
+        0x2000
+    );
+    assert_eq!(
+        take_log(),
+        [format!(
+            "create_xr_session type=8 next={:p} flags=0 system=0",
+            std::ptr::null::<std::ffi::c_void>()
+        )]
+    );
+    drop(device);
+    take_log();
+
+    let props = Properties::new();
+    props
+        .set(PROP_GPU_DEVICE_CREATE_SHADERS_SPIRV_BOOLEAN, true)
+        .unwrap();
+    props
+        .set(PROP_GPU_DEVICE_CREATE_XR_ENABLE_BOOLEAN, true)
+        .unwrap();
+    let device = Device::with_properties(&props).unwrap();
+    assert_eq!(device.xr_instance(), Some(0x1000));
+    assert_eq!(device.xr_system_id(), Some(7));
+    take_log();
+
+    let chain = 0x5550usize as *const std::ffi::c_void;
+    let info = XrSessionCreateInfo {
+        // SAFETY: the mock doesn't read the chain.
+        next: unsafe { XrNext::new(chain) },
+        create_flags: 2,
+    };
+    assert_eq!(info.next.as_ptr(), chain);
+    assert_eq!(device.create_xr_session(&info).unwrap(), 0x2000);
+    assert_eq!(
+        device.xr_swapchain_formats(0x2000).unwrap(),
+        [
+            TextureFormat::R8G8B8A8_UNORM_SRGB,
+            TextureFormat::B8G8R8A8_UNORM
+        ]
+    );
+    assert_eq!(
+        take_log(),
+        [
+            format!("create_xr_session type=8 next={chain:p} flags=2 system=0"),
+            "get_xr_swapchain_formats 0x2000".to_owned(),
+        ]
+    );
+
+    let info = XrSwapchainCreateInfo {
+        create_flags: 1,
+        usage_flags: XrSwapchainUsageFlags::COLOR_ATTACHMENT | XrSwapchainUsageFlags::SAMPLED,
+        sample_count: 1,
+        width: 64,
+        height: 32,
+        face_count: 1,
+        array_size: 2,
+        mip_count: 1,
+        ..Default::default()
+    };
+    let swapchain = device
+        .create_xr_swapchain(0x2000, &info, TextureFormat::R8G8B8A8_UNORM_SRGB)
+        .unwrap();
+    let log = take_log();
+    assert_eq!(log.len(), 1);
+    let images = names(&swapchain.textures().iter().collect::<Vec<_>>());
+    assert_eq!(
+        log[0],
+        format!(
+            "create_xr_swapchain 0x2000 type=9 next={:p} flags=1 usage=0x21 format=0 64x32 samples=1 faces=1 array=2 mips=1 as TextureFormat::R8G8B8A8_UNORM_SRGB -> [{images}]",
+            std::ptr::null::<std::ffi::c_void>()
+        )
+    );
+    assert_eq!(swapchain.handle(), 0x3000);
+    assert_eq!(swapchain.textures().len(), 3);
+    let t = &swapchain.textures()[1];
+    assert_eq!(t.info.texture_type, TextureType::Texture2DArray);
+    assert_eq!(
+        (t.info.width, t.info.height, t.info.layer_count_or_depth),
+        (64, 32, 2)
+    );
+    assert_eq!(format!("{:?}", t.owner), "XrSwapchain");
+    assert_eq!(
+        format!("{swapchain:?}"),
+        "XrSwapchain { handle: 12288, textures: 3, .. }"
+    );
+    assert_eq!(swapchain.destroy(), Ok(()));
+    // (no release_texture: the backend destroys them)
+    assert_eq!(
+        take_log(),
+        [format!("destroy_xr_swapchain 0x3000 [{images}]")]
+    );
+
+    // Dropped with the device gone: destroyed first, then the device.
+    let swapchain = device
+        .create_xr_swapchain(0x2000, &info, TextureFormat::B8G8R8A8_UNORM)
+        .unwrap();
+    let images = names(&swapchain.textures().iter().collect::<Vec<_>>());
+    take_log();
+    drop(device);
+    assert!(take_log().is_empty());
+    drop(swapchain);
+    assert_eq!(
+        take_log(),
+        [
+            format!("destroy_xr_swapchain 0x3000 [{images}]"),
+            "destroy mock_a".to_owned()
+        ]
+    );
+
+    // The backend's failures: its XrResult (no error of SDL's when the
+    // runtime's call failed), or its error.
+    let device = Device::with_properties(&props).unwrap();
+    let swapchain = device
+        .create_xr_swapchain(0x2000, &info, TextureFormat::B8G8R8A8_UNORM)
+        .unwrap();
+    take_log();
+    config().xr_fail = Some(XrResult::ERROR_RUNTIME_FAILURE);
+    let e = device
+        .create_xr_session(&XrSessionCreateInfo::default())
+        .unwrap_err();
+    assert_eq!(e.result(), XrResult::ERROR_RUNTIME_FAILURE);
+    assert_eq!(e.error(), None);
+    assert_eq!(e.to_string(), "OpenXR call failed (XrResult -2)");
+    assert_eq!(
+        err_message(device.xr_swapchain_formats(0x2000)),
+        "Failed to find a swapchain format supported by both OpenXR and SDL"
+    );
+    let e = device
+        .create_xr_swapchain(0x2000, &info, TextureFormat::B8G8R8A8_UNORM)
+        .unwrap_err();
+    assert_eq!(e.result(), XrResult::ERROR_RUNTIME_FAILURE);
+    assert_eq!(
+        swapchain.destroy().unwrap_err().result(),
+        XrResult::ERROR_RUNTIME_FAILURE
+    );
+    assert_eq!(take_log().len(), 4);
+    config().xr_fail = None;
+
+    // The defaults (a backend without OpenXR)
+    let e = sysgpu::xr_unsupported();
+    assert_eq!(e.result(), XrResult::ERROR_FUNCTION_UNSUPPORTED);
+    assert_eq!(e.result().0, -7);
+    assert_eq!(
+        e.to_string(),
+        "That operation is not supported (XrResult -7)"
+    );
+    assert!(XrResult::SUCCESS.succeeded() && XrResult(3).succeeded());
+    assert!(XrResult::ERROR_HANDLE_INVALID.failed());
 }

@@ -40,7 +40,10 @@
 //! `metal` module), "direct3d12" (on Windows, tried first; see the `d3d12`
 //! module) and "vulkan" (see the `vulkan` module; not on Emscripten, which
 //! upstream builds without Vulkan, so that there is no backend). The OpenXR
-//! functions are not translated.
+//! functions (SDL_openxr.h: [`openxr_load_library`], [`Device::xr_instance`],
+//! [`Device::create_xr_session`], [`Device::create_xr_swapchain`]...) load
+//! the OpenXR loader at run time, as upstream does, on every target (upstream's
+//! CMake builds them wherever it builds the GPU API).
 
 #[cfg(windows)]
 pub(crate) mod d3d12;
@@ -172,6 +175,15 @@ macro_rules! gpu_flags {
         }
     };
 }
+
+// (after gpu_flags!, which it uses)
+pub(crate) mod xr;
+
+pub use xr::{
+    openxr_get_xr_get_instance_proc_addr, openxr_load_library, openxr_unload_library, XrError,
+    XrNext, XrResult, XrSessionCreateInfo, XrSwapchain, XrSwapchainCreateInfo,
+    XrSwapchainUsageFlags,
+};
 
 gpu_flags! {
     /// Specifies how a texture is intended to be used by the client.
@@ -1810,10 +1822,77 @@ pub const PROP_GPU_DEVICE_CREATE_VULKAN_OPTIONS_POINTER: &str =
 /// `SDL_PROP_GPU_DEVICE_CREATE_METAL_ALLOW_MACFAMILY1_BOOLEAN`.
 pub const PROP_GPU_DEVICE_CREATE_METAL_ALLOW_MACFAMILY1_BOOLEAN: &str =
     "SDL.gpu.device.create.metal.allowmacfamily1";
-/// Enable OpenXR support for this GPU device, defaults to false (OpenXR is
-/// not translated: setting it makes device creation fail). Translation of
+/// Enable OpenXR support for this GPU device, defaults to false: the
+/// device creates an OpenXR instance and gets its system
+/// ([`Device::xr_instance`], [`Device::xr_system_id`]), and its backend's
+/// device is the one the runtime asks for. Translation of
 /// `SDL_PROP_GPU_DEVICE_CREATE_XR_ENABLE_BOOLEAN`.
+///
+/// (The Vulkan backend's and the Direct3D 12 backend's OpenXR paths are
+/// not translated yet: they refuse it, as Metal's does.)
 pub const PROP_GPU_DEVICE_CREATE_XR_ENABLE_BOOLEAN: &str = "SDL.gpu.device.create.xr.enable";
+/// Upstream's out pointer for the device's `XrInstance`. Translation of
+/// `SDL_PROP_GPU_DEVICE_CREATE_XR_INSTANCE_POINTER`.
+///
+/// Not read here: the instance is [`Device::xr_instance`].
+pub const PROP_GPU_DEVICE_CREATE_XR_INSTANCE_POINTER: &str =
+    "SDL.gpu.device.create.xr.instance_out";
+/// Upstream's out pointer for the device's `XrSystemId`. Translation of
+/// `SDL_PROP_GPU_DEVICE_CREATE_XR_SYSTEM_ID_POINTER`.
+///
+/// Not read here: the system is [`Device::xr_system_id`].
+pub const PROP_GPU_DEVICE_CREATE_XR_SYSTEM_ID_POINTER: &str =
+    "SDL.gpu.device.create.xr.system_id_out";
+/// The OpenXR API version the instance is created for (an `XrVersion`,
+/// `XR_MAKE_VERSION(major, minor, patch)`), by default 1.0 with the
+/// vendored headers' patch version (1.0.63). Translation of
+/// `SDL_PROP_GPU_DEVICE_CREATE_XR_VERSION_NUMBER`.
+pub const PROP_GPU_DEVICE_CREATE_XR_VERSION_NUMBER: &str = "SDL.gpu.device.create.xr.version";
+/// The form factor of the system (an `XrFormFactor`: 1, the default, a
+/// head-mounted display; 2 a handheld display). Translation of
+/// `SDL_PROP_GPU_DEVICE_CREATE_XR_FORM_FACTOR_NUMBER`.
+pub const PROP_GPU_DEVICE_CREATE_XR_FORM_FACTOR_NUMBER: &str =
+    "SDL.gpu.device.create.xr.form_factor";
+/// How many of [`PROP_GPU_DEVICE_CREATE_XR_EXTENSION_NAMES_POINTER`]'s
+/// extensions the instance enables, besides the backend's graphics
+/// extension. Translation of
+/// `SDL_PROP_GPU_DEVICE_CREATE_XR_EXTENSION_COUNT_NUMBER`.
+pub const PROP_GPU_DEVICE_CREATE_XR_EXTENSION_COUNT_NUMBER: &str =
+    "SDL.gpu.device.create.xr.extensions.count";
+/// The OpenXR extensions the instance enables: a `Vec<String>`, set with
+/// [`Properties::set_any`] (upstream's `const char *const *`). Translation
+/// of `SDL_PROP_GPU_DEVICE_CREATE_XR_EXTENSION_NAMES_POINTER`.
+pub const PROP_GPU_DEVICE_CREATE_XR_EXTENSION_NAMES_POINTER: &str =
+    "SDL.gpu.device.create.xr.extensions.names";
+/// How many of [`PROP_GPU_DEVICE_CREATE_XR_LAYER_NAMES_POINTER`]'s API
+/// layers the instance enables (besides the core validation layer, in
+/// debug mode when the loader has it). Translation of
+/// `SDL_PROP_GPU_DEVICE_CREATE_XR_LAYER_COUNT_NUMBER`.
+pub const PROP_GPU_DEVICE_CREATE_XR_LAYER_COUNT_NUMBER: &str =
+    "SDL.gpu.device.create.xr.layers.count";
+/// The OpenXR API layers the instance enables: a `Vec<String>`, set with
+/// [`Properties::set_any`]. Translation of
+/// `SDL_PROP_GPU_DEVICE_CREATE_XR_LAYER_NAMES_POINTER`.
+pub const PROP_GPU_DEVICE_CREATE_XR_LAYER_NAMES_POINTER: &str =
+    "SDL.gpu.device.create.xr.layers.names";
+/// The application's name for the instance, by default the app metadata's
+/// ([`crate::init::app_metadata_property`]). Translation of
+/// `SDL_PROP_GPU_DEVICE_CREATE_XR_APPLICATION_NAME_STRING`.
+pub const PROP_GPU_DEVICE_CREATE_XR_APPLICATION_NAME_STRING: &str =
+    "SDL.gpu.device.create.xr.application.name";
+/// The application's version for the instance, by default 0. Translation
+/// of `SDL_PROP_GPU_DEVICE_CREATE_XR_APPLICATION_VERSION_NUMBER`.
+pub const PROP_GPU_DEVICE_CREATE_XR_APPLICATION_VERSION_NUMBER: &str =
+    "SDL.gpu.device.create.xr.application.version";
+/// The engine's name for the instance, by default "SDLGPU". Translation of
+/// `SDL_PROP_GPU_DEVICE_CREATE_XR_ENGINE_NAME_STRING`.
+pub const PROP_GPU_DEVICE_CREATE_XR_ENGINE_NAME_STRING: &str =
+    "SDL.gpu.device.create.xr.engine.name";
+/// The engine's version for the instance, by default SDL's
+/// (`SDL_VERSION`). Translation of
+/// `SDL_PROP_GPU_DEVICE_CREATE_XR_ENGINE_VERSION_NUMBER`.
+pub const PROP_GPU_DEVICE_CREATE_XR_ENGINE_VERSION_NUMBER: &str =
+    "SDL.gpu.device.create.xr.engine.version";
 
 /// Contains the name of the underlying device as reported by the system
 /// driver. Translation of `SDL_PROP_GPU_DEVICE_NAME_STRING`.
@@ -2055,13 +2134,9 @@ fn select_backend(props: &Properties) -> Result<&'static GpuBootstrap> {
         Err(_) => return Err(Error::new("Video subsystem not initialized")),
     };
 
-    // (HAVE_GPU_OPENXR: OpenXR is not translated.)
-    if props
-        .get_bool(PROP_GPU_DEVICE_CREATE_XR_ENABLE_BOOLEAN)
-        .unwrap_or(false)
-    {
-        return Err(Error::new("OpenXR is not enabled in this build of SDL"));
-    }
+    // (HAVE_GPU_OPENXR is defined wherever upstream's CMake builds the GPU
+    // API, so its "OpenXR is not enabled in this build of SDL" isn't
+    // translated.)
 
     let gpudriver = hints::get(hints::GPU_DRIVER)
         .or_else(|| props.get_string(PROP_GPU_DEVICE_CREATE_NAME_STRING));
@@ -2173,6 +2248,8 @@ pub(crate) struct DeviceShared {
 
     // Store this for SDL_gpu.c's debug layer
     pub(crate) debug_mode: bool,
+    /// The OpenXR instance and system of a device made with OpenXR.
+    xr: Option<xr::XrDeviceHandles>,
     pub(crate) default_enable_depth_clip: bool,
     validate_feature_depth_clamp_disabled: bool,
     validate_feature_anisotropy_disabled: bool,
@@ -2205,6 +2282,9 @@ enum Owner {
     Device(Arc<DeviceShared>),
     /// A swapchain's texture: never released by the front end.
     Swapchain(Arc<DeviceShared>),
+    /// An OpenXR swapchain's image: destroyed with its [`XrSwapchain`],
+    /// never released by the front end.
+    XrSwapchain(Arc<DeviceShared>),
     /// Created by a backend for its own use (blit pipelines and their
     /// shaders and samplers): the backend releases it.
     Backend,
@@ -2213,7 +2293,9 @@ enum Owner {
 impl Owner {
     fn device(&self) -> Option<&Arc<DeviceShared>> {
         match self {
-            Owner::Device(device) | Owner::Swapchain(device) => Some(device),
+            Owner::Device(device) | Owner::Swapchain(device) | Owner::XrSwapchain(device) => {
+                Some(device)
+            }
             Owner::Backend => None,
         }
     }
@@ -2232,6 +2314,7 @@ impl std::fmt::Debug for Owner {
         f.write_str(match self {
             Owner::Device(_) => "Device",
             Owner::Swapchain(_) => "Swapchain",
+            Owner::XrSwapchain(_) => "XrSwapchain",
             Owner::Backend => "Backend",
         })
     }
@@ -2540,6 +2623,7 @@ impl Device {
         let BackendDevice {
             driver,
             shader_formats,
+            xr,
         } = (selected_backend.create_device)(debug_mode, prefer_low_power, props)?;
 
         let (default_enable_depth_clip, validate_feature_depth_clamp_disabled) = if props
@@ -2561,6 +2645,7 @@ impl Device {
                 backend: selected_backend.name,
                 shader_formats,
                 debug_mode,
+                xr,
                 default_enable_depth_clip,
                 validate_feature_depth_clamp_disabled,
                 validate_feature_anisotropy_disabled,

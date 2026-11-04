@@ -37,8 +37,8 @@
 //! UIKit counterparts (the Apple3 family, cube arrays, the HDR10 swapchain,
 //! EDR, visionOS's depth clipping) are `cfg`s, upstream's `@available()`
 //! checks [`available!`](crate::core::apple::foundation::available) ones. The
-//! OpenXR entry points (`HAVE_GPU_OPENXR`, all of which fail on Metal
-//! upstream) are not translated.
+//! OpenXR entry points fail, as upstream's do (`PrepareDriver` refuses a
+//! device with OpenXR).
 
 mod commands;
 mod device;
@@ -76,6 +76,11 @@ use super::sysgpu::{
     BackendCommandBuffer, BackendDevice, BackendObject, BackendSwapchainTexture, BlitPipelineCache,
     BlitShaders, ComputePipelineHeader, GpuBootstrap, GpuDriver, GraphicsPipelineHeader,
 };
+use super::xr::sys::{
+    XrSessionCreateInfo as XrSessionCreateInfoSys,
+    XrSwapchainCreateInfo as XrSwapchainCreateInfoSys,
+};
+use super::xr::{XrError, XrResult};
 use super::{
     BlitInfo, BufferBinding, BufferLocation, BufferRegion, BufferUsageFlags, ColorTargetInfo,
     CommandBuffer, ComputePipelineCreateInfo, DepthStencilTargetInfo, GraphicsPipelineCreateInfo,
@@ -95,6 +100,9 @@ use crate::video::{FColor, Rect, Window};
 
 /// `METAL_FIRST_VERTEX_BUFFER_SLOT`.
 const METAL_FIRST_VERTEX_BUFFER_SLOT: u32 = 14;
+
+/// The OpenXR entry points' error.
+const METAL_NO_OPENXR: &str = "The metal backend does not currently support OpenXR";
 
 /// The Metal backend. Translation of `MetalDriver`.
 pub(crate) static METAL_DRIVER: GpuBootstrap = GpuBootstrap {
@@ -131,6 +139,7 @@ fn metal_create_device(
     Ok(BackendDevice {
         driver: Box::new(renderer),
         shader_formats: ShaderFormat::MSL | ShaderFormat::METALLIB,
+        xr: None,
     })
 }
 
@@ -297,6 +306,18 @@ impl GpuDriver for MetalRenderer {
         autoreleasepool(|| self.destroy_device());
     }
 
+    /// Translation of `METAL_DestroyXRSwapchain()`.
+    fn destroy_xr_swapchain(
+        &self,
+        _swapchain: u64,
+        _swapchain_images: &[BackendObject],
+    ) -> std::result::Result<(), XrError> {
+        Err(XrError::new(
+            XrResult::ERROR_FUNCTION_UNSUPPORTED,
+            Error::new(METAL_NO_OPENXR),
+        ))
+    }
+
     /// Translation of `METAL_GetDeviceProperties()`.
     fn properties(&self) -> Properties {
         self.props.clone()
@@ -365,6 +386,35 @@ impl GpuDriver for MetalRenderer {
             )
         })?;
         Ok(BackendObject::new(container))
+    }
+
+    /// Translation of `METAL_CreateXRSession()`.
+    fn create_xr_session(
+        &self,
+        _createinfo: &XrSessionCreateInfoSys,
+    ) -> std::result::Result<u64, XrError> {
+        Err(XrError::new(
+            XrResult::ERROR_FUNCTION_UNSUPPORTED,
+            Error::new(METAL_NO_OPENXR),
+        ))
+    }
+
+    /// Translation of `METAL_GetXRSwapchainFormats()`.
+    fn get_xr_swapchain_formats(&self, _session: u64) -> Result<Vec<TextureFormat>> {
+        Err(Error::new(METAL_NO_OPENXR))
+    }
+
+    /// Translation of `METAL_CreateXRSwapchain()`.
+    fn create_xr_swapchain(
+        &self,
+        _session: u64,
+        _createinfo: &XrSwapchainCreateInfoSys,
+        _format: TextureFormat,
+    ) -> std::result::Result<(u64, Vec<(BackendObject, TextureCreateInfo)>), XrError> {
+        Err(XrError::new(
+            XrResult::ERROR_FUNCTION_UNSUPPORTED,
+            Error::new(METAL_NO_OPENXR),
+        ))
     }
 
     // Debug Naming

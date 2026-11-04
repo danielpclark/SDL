@@ -1953,3 +1953,53 @@ fn swapchain_queries_without_a_window() {
         .unwrap();
     assert!(!device::prepare_driver(&*video, &props));
 }
+
+/// Metal's `PrepareDriver` refuses a device with OpenXR, and its OpenXR
+/// entry points fail with upstream's message.
+#[test]
+fn openxr_is_refused() {
+    let _l = crate::test_support::test_lock();
+    let _v = Video::init();
+    let props = crate::properties::Properties::new();
+    crate::gpu::fill_properties(&props, ShaderFormat::MSL, true, Some("metal")).unwrap();
+    props
+        .set(crate::gpu::PROP_GPU_DEVICE_CREATE_XR_ENABLE_BOOLEAN, true)
+        .unwrap();
+    let video = crate::video::core::driver().unwrap();
+    assert!(!device::prepare_driver(&*video, &props));
+    let Some(device) = front_end_device() else {
+        return;
+    };
+    assert_eq!((device.xr_instance(), device.xr_system_id()), (None, None));
+    let unsupported = |e: crate::gpu::XrError| {
+        assert_eq!(e.result(), crate::gpu::XrResult::ERROR_FUNCTION_UNSUPPORTED);
+        assert_eq!(e.error().unwrap().message(), METAL_NO_OPENXR);
+    };
+    assert_eq!(
+        METAL_NO_OPENXR,
+        "The metal backend does not currently support OpenXR"
+    );
+    unsupported(
+        device
+            .create_xr_session(&crate::gpu::XrSessionCreateInfo::default())
+            .unwrap_err(),
+    );
+    assert_eq!(
+        device.xr_swapchain_formats(1).unwrap_err().message(),
+        METAL_NO_OPENXR
+    );
+    unsupported(
+        device
+            .create_xr_swapchain(
+                1,
+                &crate::gpu::XrSwapchainCreateInfo::default(),
+                TextureFormat::R8G8B8A8_UNORM,
+            )
+            .unwrap_err(),
+    );
+    unsupported(
+        device_renderer(&device)
+            .destroy_xr_swapchain(1, &[])
+            .unwrap_err(),
+    );
+}
