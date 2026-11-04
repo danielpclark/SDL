@@ -451,6 +451,15 @@ mod app {
     /// `--child WHAT`: SDL started with the console muted (the keyboard is
     /// there), then the end WHAT, without `SDL_Quit()`.
     fn child(what: &str) -> ExitCode {
+        // (the Rust-only child's lines aren't the trace's)
+        let say = |line: &str| {
+            if what == "stack-overflow" {
+                println!("rust: {line}");
+                std::io::stdout().flush().unwrap();
+            } else {
+                print_line(line);
+            }
+        };
         // (no core files)
         let no_core = libc::rlimit {
             rlim_cur: 0,
@@ -473,14 +482,14 @@ mod app {
         }
         hints::set(hints::VIDEO_DRIVER, "evdev").unwrap();
         match init::init(InitFlags::VIDEO) {
-            Ok(()) => print_line("child: init: ok"),
+            Ok(()) => say("child: init: ok"),
             Err(e) => {
-                print_line(&format!("child: init: {e}"));
+                say(&format!("child: init: {e}"));
                 return ExitCode::FAILURE;
             }
         }
         for reply in request("vt modes") {
-            print_line(&format!("child: {reply}"));
+            say(&format!("child: {reply}"));
         }
         // SAFETY: the faults are the point; nothing runs after them.
         unsafe {
@@ -512,7 +521,7 @@ mod app {
                 _ => panic!("unknown child {what:?}"),
             }
         }
-        print_line(&format!("child: {what}: still running"));
+        say(&format!("child: {what}: still running"));
         ExitCode::FAILURE
     }
 

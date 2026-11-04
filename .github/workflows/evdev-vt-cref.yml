@@ -678,6 +678,5 @@ jobs:
           echo "== diff c1 r1"; diff -a "$O/c1.txt" "$O/r1.txt" && echo "(the same)"
           echo "== the Rust program's verdict"; grep -a "evdev_vt:\|^rust: " "$O/r1.log" | head -10
           echo "== probe"; grep -v '^table' "$O/probe.txt" | cut -c1-1500
-          echo "== C log (1)"; tail -150 "$O/c1.log"
           echo "== unpatched C stderr"; head -20 "$O/u1.err"
-          echo "== Rust log (1)"; tail -150 "$O/r1.log"
+          echo "== C trace"; sed 's/^trace: /|/' "$O/c1.txt"

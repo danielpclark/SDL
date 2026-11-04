@@ -226,15 +226,103 @@ twin (on a diag branch only, never committed) run by the same runner,
 translation's, on the CI runner (Ubuntu 24.04, kernel 7.0): the traces
 are identical run to run and to each other's.
 
-Not covered: the console itself (keysyms through `KDGKBENT`, the muted
-keyboard, `VT_PROCESS` switching, the restore on a fatal signal), which
-needs a virtual console and root (the next phase's tests, on tty3 of the
-runner); single-touch screens, whose finger 0 upstream asserts against
-(see the reader's `FIXME (upstream)`); touchpads (classified by the
-capability guess, udev's properties not naming them for SDL, and read as
-touchscreens); the mice's mousedev nodes (`/dev/input/mouseN`), which
-upstream also opens and reads as evdev nodes (another `FIXME
-(upstream)`), but only as root; non-US console keymaps.
+Not covered here: the console itself, which `evdev_vt` tests on a
+virtual console (below); single-touch screens, whose finger 0 upstream
+asserts against (see the reader's `FIXME (upstream)`); touchpads
+(classified by the capability guess, udev's properties not naming them
+for SDL, and read as touchscreens); the mice's mousedev nodes
+(`/dev/input/mouseN`), which upstream also opens and reads as evdev nodes
+(another `FIXME (upstream)`), but only as root.
+
+## Linux virtual console (evdev on tty3)
+
+`sdl3/tests/evdev_vt.rs` (`harness = false`) tests the console keyboard
+on a real virtual console: it runs as root on tty3, its controlling
+terminal and stdin, made the active console for the run, through
+`tools/linux_console_run.py --vt 3` (`setsid -c`), on the dummy video
+driver's `evdev` variant with a uinput keyboard, and traces tty3's
+keyboard mode (`KDGKBMODE`) and VT mode (`VT_GETMODE`) beside the events:
+
+* the console muted (`K_OFF`) while there's a keyboard (the machine's
+  own count: the CI runner's "AT Translated Set 2 keyboard" mutes it from
+  the start) and restored on quit, the VT in `VT_PROCESS` while SDL runs;
+* keys and their text through `KDGKBENT` from tty3's keymap: letters,
+  Shift, Caps Lock, the pad with Num Lock, Control and Alt (which reset
+  the console keyboard's state), and two entries the runner sets for the
+  run (`vt setkey`; the keymap is all the consoles', and is put back):
+  Compose, whose sequences come from the console's accent table
+  (`KDGKBDIACR`), and a Unicode keysym, the euro sign. Unicode keysyms are
+  what upstream loses while the console is muted (`KDGKBENT` gives
+  `K_HOLE` for them unless the console is in `K_UNICODE`): fixed here, the
+  keymaps read before muting (`Note (upstream)` in `evdev_kbd.rs`);
+* a switch away from tty3, which the kernel completes once SDL's event
+  pump has answered the release signal (`VT_RELDISP`), and back
+  (`VT_ACKACQ`);
+* the keyboard unplugged, and SDL quit;
+* `SDL_MUTE_CONSOLE_KEYBOARD=0`: the console isn't muted, the same keys
+  (which also reach tty3's input: the runner flushes it);
+* children of the program that end without `SDL_Quit()` while the
+  console is muted: `abort()`, a write to an unmapped address
+  (`SIGSEGV`), a read past a mapped file's end (`SIGBUS`), a `SIGSEGV`
+  with a handler of the child's installed before SDL's, and `exit()`.
+  Each time the keyboard mode is restored (the emergency handlers, and
+  the `atexit()` one); the VT is left in `VT_PROCESS` for the dead
+  process, as upstream, which the kernel gives back at the next switch
+  (the trace switches to show it). The handler installed before SDL's
+  gets the fault's own siginfo (fixed here: upstream raises the signal
+  again, which gives it `raise()`'s); with `SDL_NO_SIGNAL_HANDLERS`,
+  `abort()` leaves the console muted (the runner restores it);
+* SDL started and quit again: the modes as they were.
+
+Apart from the trace, the Rust program checks that a child's stack
+overflow is still Rust std's: SDL's SIGSEGV handler hands the fault on to
+std's (installed before it), which reports the overflow and aborts, and
+the keyboard is restored. (The library's unit test
+`the_emergency_restore_hands_faults_on` checks the same without a
+console.)
+
+```sh
+# as root, with tty3 free (no getty on it) and uinput; the display
+# switches to tty3 during the run, and the machine's keyboards are muted
+cargo test -p sdl3 --test evdev_vt --no-run   # prints the program's path
+sudo env SDL3_TEST_REQUIRE=vt,uinput target/debug/deps/evdev_vt-<hash>
+```
+
+The program starts itself under the runner as root when tty3 and
+`/dev/uinput` are there; otherwise it skips (`vt`, or `uinput`). Its
+expected trace is upstream's C SDL's on the CI runner's tty3, whose
+keymap is console-setup's US one (Right Alt is Alt there): another keymap
+makes other text (the first difference is printed). The runner's VT
+requests, with `--vt N` (answered on the pipe `SDL3_CONSOLE_REPLY_FD`
+names, stdin being the console):
+
+| Request | What the runner does |
+|---|---|
+| `vt modes` | `vt: keyboard MODE mode VTMODE` (`KDGKBMODE`, `VT_GETMODE`; not the signal numbers, of which upstream's C leaks one per init) |
+| `vt active` | `vt: active M` (`VT_GETSTATE`) |
+| `vt activate M` | `VT_ACTIVATE`, not waited for: a switch away from a `VT_PROCESS` console waits for its program |
+| `vt switch M` | `VT_ACTIVATE`, waited for (within 10 s) |
+| `vt restore` | ttyN's keyboard and VT modes set back to the ones before the program |
+| `vt flush` | ttyN's input thrown away |
+| `vt setkey TABLE KEY VALUE` | a keymap entry (`KDSKBENT`), put back after the run |
+
+However the program ends (by a fatal signal too, or killed at the
+timeout), the runner then checks ttyN's keyboard and VT modes against the
+ones before it: a mode left changed is restored, and fails the run. Then
+it flushes ttyN's input and makes the console active before active again.
+
+The C reference: upstream at ea7a2da built as for `evdev_input`, with the
+two fixes above patched in (and once without them, which differs in the
+handler's siginfo and the euro sign), and the program's C twin (on a diag
+branch only, never committed) run by the same runner on the same CI
+runner and tty3, ten times each beside the translation's: identical
+traces.
+
+Not covered: other console keymaps (dead keys, AltGr, other layouts),
+keymaps changed while SDL runs, the VT switch callbacks (the KMS/DRM
+driver's), an external `kill -SEGV` (Rust std's SIGSEGV handler, which
+SDL's hands the signal to, ignores the first one that isn't a fault: the
+process goes on, its console unmuted).
 
 ## Windows 11
 
