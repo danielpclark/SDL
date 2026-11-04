@@ -250,6 +250,10 @@ pub(crate) mod test_support {
             "a Vulkan loader and driver with surface extensions",
         ),
         (
+            "openxr",
+            "the OpenXR loader (libopenxr_loader.so.1), Monado's service (monado-service, its null compositor), the core validation API layer and lavapipe",
+        ),
+        (
             "wayland",
             "libwayland-client, libxkbcommon and sway (or weston)",
         ),

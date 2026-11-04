@@ -437,6 +437,15 @@ harness = false
 name = "evdev_vt"
 harness = false
 
+# The GPU API's OpenXR functions on the Vulkan backend (its instance,
+# physical device and logical device through the runtime, the session, the
+# swapchains and their textures, frames rendered and read back), on Monado's
+# null compositor and lavapipe, each scenario in a child process with
+# Monado's service of its own, against upstream's C.
+[[test]]
+name = "gpu_openxr"
+harness = false
+
 # The KMS/DRM video driver on a vkms card, as root on tty3 (through
 # tools/linux_console_run.py --vt 3, which reads the card's state, CRCs and
 # pixels for it): its displays, modes and windows, and without DRM master
