@@ -86,6 +86,37 @@ With --vt N only:
               while ttyN is in K_UNICODE), put back once the program has
               ended (the keymap is all the consoles'): `vt: key TABLE KEY
               set to VALUE`
+As root, for the KMS/DRM driver's programs (on the card
+/dev/dri/cardN, N the variable SDL_KMSDRM_DEVICE_INDEX, 0 by default; a
+descriptor of the card opened for each request, without DRM master, as a
+second client; debugfs mounted):
+  drm state   what the card scans out: its first CRTC's mode, and the
+              planes that have a framebuffer (their type, the
+              framebuffer's size and format, their source and CRTC
+              rectangles): `drm: crtc MODE (NAME) on|off`, `drm: plane
+              TYPE fb WxH FOURCC src X,Y WxH crtc X,Y WxH`, or `drm: no
+              planes on`
+  drm crc     the CRC of the frame the first CRTC scans out (its debugfs
+              crc/data: the composed frame of every vblank, with the
+              cursor plane; the value once three in a row are the same,
+              within 5 s): `drm: crc 0xC`, `drm: crc unstable`, or
+              `drm: crc none` (no vblank in 1 s: the CRTC is off)
+  drm pixels X Y [X Y...]
+              pixels of the framebuffer on the first CRTC's primary plane
+              (its GEM buffer mapped with MAP_DUMB: dumb buffers, as
+              Mesa's kms_swrast and vkms have): `drm: pixel X,Y 0xV`
+  drm master  whether another client has the card's DRM master: `drm: master
+              taken`, or `drm: master free`
+  drm versions
+              the kernel's version, Mesa's (libgbm1's package) and
+              libdrm's (libdrm2's): `versions: kernel K, Mesa M, libdrm L`
+  drm master hold
+              every card opened (/dev/dri/card*) and made this script's
+              DRM master, kept until `drm master release` or the end:
+              `drm: master held of cardN ...` (the cards whose master it
+              got)
+  drm master release
+              those cards closed: `drm: master released`
 The answer is written to the program's stdin (with --vt, the reply pipe)
 once the request is done: its lines (`sdl3-console-runner: reply LINE`),
 then `sdl3-console-runner: done`. The program's children may ask too
@@ -99,8 +130,11 @@ readable by the program (root's and the input group's: the rule
 MODE="0666"` opens the ones of these devices only). --vt needs root, and
 util-linux's setsid.
 """
+import ctypes
 import fcntl
+import mmap
 import os
+import select
 import shlex
 import signal
 import struct
@@ -150,6 +184,42 @@ VT_MODES = {0: "VT_AUTO", 1: "VT_PROCESS", 2: "VT_ACKACQ"}
 VT_MODE = struct.Struct("@bbhhh")
 # struct vt_stat: unsigned short v_active, v_signal, v_state
 VT_STAT = struct.Struct("@HHH")
+
+# <drm/drm.h>, <drm/drm_mode.h> (64-bit layouts)
+DRM_IOCTL_SET_MASTER = ioc(IOC_NONE, "d", 0x1E, 0)
+DRM_IOCTL_DROP_MASTER = ioc(IOC_NONE, "d", 0x1F, 0)
+DRM_IOCTL_GEM_CLOSE = ioc(IOC_WRITE, "d", 0x09, 8)  # struct drm_gem_close
+DRM_IOCTL_SET_CLIENT_CAP = ioc(IOC_WRITE, "d", 0x0D, 16)  # struct drm_set_client_cap
+DRM_IOCTL_MODE_GETRESOURCES = ioc(IOC_READ | IOC_WRITE, "d", 0xA0, 64)  # struct drm_mode_card_res
+DRM_IOCTL_MODE_GETCRTC = ioc(IOC_READ | IOC_WRITE, "d", 0xA1, 104)  # struct drm_mode_crtc
+DRM_IOCTL_MODE_GETPROPERTY = ioc(IOC_READ | IOC_WRITE, "d", 0xAA, 64)  # struct drm_mode_get_property
+DRM_IOCTL_MODE_MAP_DUMB = ioc(IOC_READ | IOC_WRITE, "d", 0xB3, 16)  # struct drm_mode_map_dumb
+DRM_IOCTL_MODE_GETPLANERESOURCES = ioc(IOC_READ | IOC_WRITE, "d", 0xB5, 16)  # struct drm_mode_get_plane_res
+DRM_IOCTL_MODE_GETPLANE = ioc(IOC_READ | IOC_WRITE, "d", 0xB6, 32)  # struct drm_mode_get_plane
+DRM_IOCTL_MODE_OBJ_GETPROPERTIES = ioc(IOC_READ | IOC_WRITE, "d", 0xB9, 32)  # struct drm_mode_obj_get_properties
+DRM_IOCTL_MODE_GETFB2 = ioc(IOC_READ | IOC_WRITE, "d", 0xCE, 104)  # struct drm_mode_fb_cmd2
+DRM_CLIENT_CAP_UNIVERSAL_PLANES, DRM_CLIENT_CAP_ATOMIC = 2, 3
+DRM_MODE_OBJECT_PLANE = 0xEEEEEEEE
+DRM_PLANE_TYPES = {0: "overlay", 1: "primary", 2: "cursor"}
+# struct drm_mode_modeinfo
+MODEINFO = "IHHHHHHHHHHIII32s"
+# struct drm_mode_crtc: __u64 set_connectors_ptr; __u32 count_connectors,
+# crtc_id, fb_id, x, y, gamma_size, mode_valid; struct drm_mode_modeinfo
+CRTC = struct.Struct("@QIIIIIII" + MODEINFO)
+# struct drm_mode_card_res
+CARD_RES = struct.Struct("@QQQQIIIIIIII")
+# struct drm_mode_get_plane_res
+PLANE_RES = struct.Struct("@QI4x")
+# struct drm_mode_get_plane
+GET_PLANE = struct.Struct("@IIIIIIQ")
+# struct drm_mode_obj_get_properties
+OBJ_PROPS = struct.Struct("@QQIII4x")
+# struct drm_mode_get_property
+GET_PROPERTY = struct.Struct("@QQII32sII")
+# struct drm_mode_fb_cmd2
+FB_CMD2 = struct.Struct("@IIIII4I4I4I4x4Q")
+# struct drm_mode_map_dumb
+MAP_DUMB = struct.Struct("@IIQ")
 
 # <linux/input-event-codes.h>: the names the requests may use
 CODES = {
@@ -381,16 +451,227 @@ class Console:
         return not restored
 
 
+def fourcc(value):
+    return "".join(chr((value >> s) & 0xFF) for s in (0, 8, 16, 24))
+
+
+def signed(value):
+    return value - (1 << 64) if value >= 1 << 63 else value
+
+
+class Card:
+    """A descriptor of the DRM card the KMS/DRM driver uses, opened for a
+    request (as a second client: without DRM master, which the first open
+    of a card without a master gets, dropped at once)."""
+
+    def __init__(self):
+        self.index = int(os.environ.get("SDL_KMSDRM_DEVICE_INDEX", "0") or "0")
+        self.path = f"/dev/dri/card{self.index}"
+        self.fd = os.open(self.path, os.O_RDWR | os.O_CLOEXEC)
+        try:
+            fcntl.ioctl(self.fd, DRM_IOCTL_DROP_MASTER)
+        except OSError:
+            pass
+        for cap in (DRM_CLIENT_CAP_UNIVERSAL_PLANES, DRM_CLIENT_CAP_ATOMIC):
+            fcntl.ioctl(self.fd, DRM_IOCTL_SET_CLIENT_CAP, struct.pack("@QQ", cap, 1))
+        self.minor = os.minor(os.fstat(self.fd).st_rdev)
+
+    def close(self):
+        os.close(self.fd)
+
+    def ioctl(self, request, layout, *values):
+        buf = bytearray(layout.pack(*values))
+        fcntl.ioctl(self.fd, request, buf)
+        return layout.unpack(buf)
+
+    @staticmethod
+    def array(kind, count):
+        a = (kind * max(count, 1))()
+        return a, ctypes.addressof(a)
+
+    def crtcs(self):
+        r = self.ioctl(DRM_IOCTL_MODE_GETRESOURCES, CARD_RES, *([0] * 12))
+        fbs, fbp = self.array(ctypes.c_uint32, r[4])
+        crtcs, crtcp = self.array(ctypes.c_uint32, r[5])
+        conns, connp = self.array(ctypes.c_uint32, r[6])
+        encs, encp = self.array(ctypes.c_uint32, r[7])
+        self.ioctl(DRM_IOCTL_MODE_GETRESOURCES, CARD_RES, fbp, crtcp, connp, encp, r[4], r[5], r[6], r[7],
+                   0, 0, 0, 0)
+        return list(crtcs)[:r[5]]
+
+    def crtc(self, crtc_id):
+        return self.ioctl(DRM_IOCTL_MODE_GETCRTC, CRTC, *([0, 0, crtc_id] + [0] * 19 + [b""]))
+
+    def props(self, obj_id, obj_type):
+        r = self.ioctl(DRM_IOCTL_MODE_OBJ_GETPROPERTIES, OBJ_PROPS, 0, 0, 0, obj_id, obj_type)
+        ids, idp = self.array(ctypes.c_uint32, r[2])
+        values, valp = self.array(ctypes.c_uint64, r[2])
+        r = self.ioctl(DRM_IOCTL_MODE_OBJ_GETPROPERTIES, OBJ_PROPS, idp, valp, r[2], obj_id, obj_type)
+        props = {}
+        for i in range(r[2]):
+            p = self.ioctl(DRM_IOCTL_MODE_GETPROPERTY, GET_PROPERTY, 0, 0, ids[i], 0, b"", 0, 0)
+            props[p[4].split(b"\0")[0].decode()] = values[i]
+        return props
+
+    def planes(self):
+        r = self.ioctl(DRM_IOCTL_MODE_GETPLANERESOURCES, PLANE_RES, 0, 0)
+        ids, idp = self.array(ctypes.c_uint32, r[1])
+        r = self.ioctl(DRM_IOCTL_MODE_GETPLANERESOURCES, PLANE_RES, idp, r[1])
+        planes = []
+        for plane_id in list(ids)[:r[1]]:
+            p = self.ioctl(DRM_IOCTL_MODE_GETPLANE, GET_PLANE, plane_id, 0, 0, 0, 0, 0, 0)
+            planes.append((plane_id, p[1], p[2], self.props(plane_id, DRM_MODE_OBJECT_PLANE)))
+        return planes
+
+    def fb(self, fb_id):
+        """GETFB2 of a framebuffer: its GEM handles (this descriptor's) are
+        to be closed with close_handles()."""
+        return self.ioctl(DRM_IOCTL_MODE_GETFB2, FB_CMD2, *([fb_id] + [0] * 20))
+
+    def close_handles(self, fb):
+        for h in set(fb[5:9]):
+            if h:
+                fcntl.ioctl(self.fd, DRM_IOCTL_GEM_CLOSE, struct.pack("@II", h, 0))
+
+    def state(self):
+        lines = []
+        crtcs = self.crtcs()
+        crtc = self.crtc(crtcs[0])
+        mode = crtc[8:]
+        name = mode[14].split(b"\0")[0].decode()
+        lines.append(f"drm: crtc {mode[1]}x{mode[6]} ({name}) {'on' if crtc[7] else 'off'}")
+        on = [p for p in self.planes() if p[2]]
+        for plane_id, crtc_id, fb_id, props in sorted(on, key=lambda p: (p[3].get("type", 9), p[0])):
+            fb = self.fb(fb_id)
+            self.close_handles(fb)
+            ptype = DRM_PLANE_TYPES.get(props.get("type"), props.get("type"))
+            lines.append(f"drm: plane {ptype} fb {fb[1]}x{fb[2]} {fourcc(fb[3])} "
+                         f"src {props.get('SRC_X', 0) >> 16},{props.get('SRC_Y', 0) >> 16} "
+                         f"{props.get('SRC_W', 0) >> 16}x{props.get('SRC_H', 0) >> 16} "
+                         f"crtc {signed(props.get('CRTC_X', 0))},{signed(props.get('CRTC_Y', 0))} "
+                         f"{props.get('CRTC_W', 0)}x{props.get('CRTC_H', 0)}"
+                         + ("" if crtc_id == crtcs[0] else f" (crtc {crtc_id})"))
+        if not on:
+            lines.append("drm: no planes on")
+        return lines
+
+    def pixels(self, points):
+        crtcs = self.crtcs()
+        primary = [p for p in self.planes() if p[3].get("type") == 1 and p[2] and p[1] == crtcs[0]]
+        if not primary:
+            return ["drm: no primary plane on"]
+        fb = self.fb(primary[0][2])
+        width, height, handle, pitch, offset = fb[1], fb[2], fb[5], fb[9], fb[13]
+        lines = []
+        try:
+            m = self.ioctl(DRM_IOCTL_MODE_MAP_DUMB, MAP_DUMB, handle, 0, 0)
+            size = pitch * height + offset
+            with mmap.mmap(self.fd, size, mmap.MAP_SHARED, mmap.PROT_READ, offset=m[2]) as data:
+                for x, y in points:
+                    if not (0 <= x < width and 0 <= y < height):
+                        lines.append(f"drm: pixel {x},{y} outside")
+                        continue
+                    at = offset + y * pitch + x * 4
+                    lines.append(f"drm: pixel {x},{y} {struct.unpack_from('<I', data, at)[0]:#010x}")
+        finally:
+            self.close_handles(fb)
+        return lines
+
+    def crc(self):
+        base = f"/sys/kernel/debug/dri/{self.minor}/crtc-0/crc"
+        with open(f"{base}/control", "w") as f:
+            f.write("auto")
+        fd = os.open(f"{base}/data", os.O_RDONLY | os.O_NONBLOCK | os.O_CLOEXEC)
+        try:
+            values = []
+            pending = b""
+            end = time.monotonic() + 5.0
+            while time.monotonic() < end:
+                ready, _, _ = select.select([fd], [], [], 1.0)
+                if not ready:
+                    return ["drm: crc none"]
+                try:
+                    pending += os.read(fd, 4096)
+                except BlockingIOError:
+                    continue
+                *lines, pending = pending.split(b"\n")
+                for line in lines:
+                    words = line.split()
+                    if len(words) >= 2:
+                        values.append(int(words[1], 16))
+                # (the first two may be of frames composed before)
+                if len(values) >= 5 and values[-1] == values[-2] == values[-3]:
+                    return [f"drm: crc {values[-1]:#010x}"]
+            return ["drm: crc unstable"]
+        finally:
+            os.close(fd)
+
+
 class Runner:
     def __init__(self, console=None):
         self.devices = {}
         self.console = console
+        # The cards held by `drm master hold`
+        self.masters = []
+
+    def drm(self, words):
+        what = shlex.join(words[1:])
+        if what == "master hold":
+            held = []
+            for name in sorted(os.listdir("/dev/dri")):
+                if not name.startswith("card"):
+                    continue
+                fd = os.open(f"/dev/dri/{name}", os.O_RDWR | os.O_CLOEXEC)
+                self.masters.append(fd)
+                try:
+                    fcntl.ioctl(fd, DRM_IOCTL_SET_MASTER)
+                    held.append(name)
+                except OSError:
+                    pass
+            return [f"drm: master held of {' '.join(held) or 'no card'}"]
+        if what == "versions":
+            def package(name):
+                r = subprocess.run(["dpkg-query", "-W", "-f", "${Version}", name], capture_output=True,
+                                   text=True)
+                return r.stdout if r.returncode == 0 else "unknown"
+            return [f"versions: kernel {os.uname().release}, Mesa {package('libgbm1')}, "
+                    f"libdrm {package('libdrm2')}"]
+        if what == "master":
+            # (a descriptor that gets DRM master: none else has it)
+            card = Card()
+            try:
+                fcntl.ioctl(card.fd, DRM_IOCTL_SET_MASTER)
+                fcntl.ioctl(card.fd, DRM_IOCTL_DROP_MASTER)
+                return ["drm: master free"]
+            except OSError:
+                return ["drm: master taken"]
+            finally:
+                card.close()
+        if what == "master release":
+            for fd in self.masters:
+                os.close(fd)
+            self.masters.clear()
+            return ["drm: master released"]
+        card = Card()
+        try:
+            if what == "state":
+                return card.state()
+            if what == "crc":
+                return card.crc()
+            if len(words) >= 4 and words[1] == "pixels" and len(words) % 2 == 0:
+                values = [int(w, 0) for w in words[2:]]
+                return card.pixels(list(zip(values[::2], values[1::2])))
+        finally:
+            card.close()
+        raise RequestError(f"unknown request {shlex.join(words)!r}")
 
     def request(self, words):
         if words and words[0] == "vt":
             if self.console is None:
                 raise RequestError("vt requests need --vt")
             return self.console.request(words)
+        if words and words[0] == "drm":
+            return self.drm(words)
         if len(words) < 3 or words[0] != "uinput":
             raise RequestError(f"unknown request {shlex.join(words)!r}")
         what, name = words[1], words[2]
@@ -423,6 +704,9 @@ class Runner:
         raise RequestError(f"unknown request {shlex.join(words)!r}")
 
     def clean_up(self):
+        for fd in self.masters:
+            os.close(fd)
+        self.masters.clear()
         for device in self.devices.values():
             try:
                 device.destroy()
