@@ -22,6 +22,8 @@ for i in $(seq 1 "$n"); do
   s=$(timeout 40 "$ADB" -s "$S" shell '
     cmd overlay list 2>&1 | grep -iE "navbar|cutout" | grep -F "[x]" | sed "s/^ */overlay /" || true
     echo "navigation_mode=$(settings get secure navigation_mode) user_rotation=$(settings get system user_rotation) accelerometer_rotation=$(settings get system accelerometer_rotation)"
+    echo "device_provisioned=$(settings get global device_provisioned) user_setup_complete=$(settings get secure user_setup_complete) home=$(cmd package resolve-activity --brief -a android.intent.action.MAIN -c android.intent.category.HOME 2>&1 | tail -1)"
+    echo "cutout resource: $(cmd overlay lookup android android:string/config_mainBuiltInDisplayCutout 2>&1 | head -c 60)"
     dumpsys window 2>&1 | grep -E "^ *mRotation=|mCurrentFocus=" | sed "s/^ *//" | cut -c1-160 | sort -u | head -4
     dumpsys window displays 2>&1 | grep -oE "InsetsSource id=[^ ]* type=[a-zA-Z]+ frame=\[[0-9,]*\]\[[0-9,]*\] visible=[a-z]+" | sed "s/id=[^ ]* //" | sort -u | head -10
     dumpsys window displays 2>&1 | grep -m1 -oE "DisplayCutout\{[^}]*\}" | cut -c1-200
