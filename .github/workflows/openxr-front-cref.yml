@@ -1,0 +1,178 @@
+# Throwaway diag workflow (claude/diag-openxr-front-ci only, never merged):
+# the OpenXR loader's trace (sdl3/src/gpu/xr/tests.rs) against upstream's C
+# SDL at ea7a2da (unpatched: PR 1 fixes no upstream bug) on Linux, Windows
+# and macOS, without an OpenXR loader on the runner; the Rust test 10 times.
+# The C twin is in this file (no C file is committed). Fails on a
+# difference.
+name: openxr-front-cref
+
+on:
+  push:
+    branches: [claude/diag-openxr-front-ci]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
+  RUST_BACKTRACE: 1
+  UPSTREAM_COMMIT: ea7a2da
+
+jobs:
+  cref:
+    name: cref (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 50
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.99"
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: openxr-front-cref
+      - name: Build upstream at ea7a2da
+        run: |
+          U="$RUNNER_TEMP/upstream"
+          git clone -q --filter=blob:none https://github.com/libsdl-org/SDL "$U"
+          git -C "$U" checkout -q "$UPSTREAM_COMMIT"
+          git -C "$U" log --oneline -1
+          extra=""
+          if [ "$RUNNER_OS" = Linux ]; then extra="-DSDL_UNIX_CONSOLE_BUILD=ON"; fi
+          cmake -S "$U" -B "$U/build" -DCMAKE_BUILD_TYPE=Release -DSDL_SHARED=ON -DSDL_STATIC=OFF \
+            -DSDL_TEST_LIBRARY=OFF -DSDL_TESTS=OFF -DSDL_EXAMPLES=OFF $extra > "$RUNNER_TEMP/cmake.log" 2>&1 || { tail -60 "$RUNNER_TEMP/cmake.log"; exit 1; }
+          grep -iE "openxr" "$RUNNER_TEMP/cmake.log" || true
+          cmake --build "$U/build" --config Release --parallel > "$RUNNER_TEMP/build.log" 2>&1 || { tail -60 "$RUNNER_TEMP/build.log"; exit 1; }
+      - name: Build the C twin
+        run: |
+          T="$RUNNER_TEMP/twin"
+          mkdir -p "$T"
+          cat > "$T/CMakeLists.txt" <<'CM'
+          cmake_minimum_required(VERSION 3.16)
+          project(xrtwin C)
+          find_package(SDL3 REQUIRED CONFIG)
+          add_executable(xrtwin xrtwin.c)
+          target_link_libraries(xrtwin SDL3::SDL3)
+          CM
+          cat > "$T/xrtwin.c" <<'C'
+          /* diag only: the C twin of sdl3/src/gpu/xr/tests.rs's trace, on
+           * upstream SDL at ea7a2da: the same calls, the same lines. */
+          #include <SDL3/SDL.h>
+          #include <SDL3/SDL_openxr.h>
+          #include <stdio.h>
+
+          #if defined(SDL_PLATFORM_WINDOWS)
+          static const char *names[] = { "openxr_loader.dll", NULL };
+          static const char *not_a_loader = "kernel32.dll";
+          #elif defined(SDL_PLATFORM_APPLE)
+          static const char *names[] = { "libopenxr_loader.dylib", NULL };
+          static const char *not_a_loader = "/usr/lib/libSystem.B.dylib";
+          #else
+          static const char *names[] = { "libopenxr_loader.so.1", NULL };
+          static const char *not_a_loader = "libm.so.6";
+          #endif
+          static const char *bad_path = "/nonexistent/sdl3-test/libopenxr_loader.so";
+
+          static void load(void)
+          {
+              if (SDL_OpenXR_LoadLibrary()) {
+                  printf("xrtrace: load: ok\n");
+              } else {
+                  printf("xrtrace: load: failed: %s\n", SDL_GetError());
+              }
+          }
+
+          static void get(void)
+          {
+              if (SDL_OpenXR_GetXrGetInstanceProcAddr()) {
+                  printf("xrtrace: get: ok\n");
+              } else {
+                  printf("xrtrace: get: %s\n", SDL_GetError());
+              }
+          }
+
+          static void unload(void)
+          {
+              SDL_OpenXR_UnloadLibrary();
+              printf("xrtrace: unload\n");
+          }
+
+          static void hint(const char *value)
+          {
+              if (value) {
+                  SDL_SetHint(SDL_HINT_OPENXR_LIBRARY, value);
+              } else {
+                  SDL_ResetHint(SDL_HINT_OPENXR_LIBRARY);
+              }
+              printf("xrtrace: hint %s\n", value ? value : "(none)");
+          }
+
+          int main(void)
+          {
+              bool loader = false;
+              for (int i = 0; names[i]; i++) {
+                  SDL_SharedObject *so = SDL_LoadObject(names[i]);
+                  if (so) {
+                      loader = true;
+                      SDL_UnloadObject(so);
+                  }
+              }
+              printf("xrtrace: (an OpenXR loader on the machine: %s)\n", loader ? "true" : "false");
+              hint(NULL);
+              get();
+              unload();
+              get();
+              load();
+              get();
+              hint(bad_path);
+              load();
+              get();
+              unload();
+              get();
+              unload();
+              get();
+              unload();
+              hint(not_a_loader);
+              load();
+              get();
+              hint(bad_path);
+              load();
+              get();
+              unload();
+              unload();
+              load();
+              get();
+              unload();
+              hint(NULL);
+              return 0;
+          }
+          C
+          cmake -S "$T" -B "$T/build" -DSDL3_DIR="$RUNNER_TEMP/upstream/build" -DCMAKE_BUILD_TYPE=Release > "$T/cmake.log" 2>&1 || { cat "$T/cmake.log"; exit 1; }
+          cmake --build "$T/build" --config Release > "$T/build.log" 2>&1 || { cat "$T/build.log"; exit 1; }
+          exe="$(find "$T/build" -name 'xrtwin' -o -name 'xrtwin.exe' | head -1)"
+          if [ "$RUNNER_OS" = Windows ]; then cp "$(find "$RUNNER_TEMP/upstream/build" -name SDL3.dll | head -1)" "$(dirname "$exe")/"; fi
+          echo "XRTWIN=$exe" >> "$GITHUB_ENV"
+      - name: The traces, C and Rust (10 times)
+        run: |
+          "$XRTWIN" | tr -d '\r' > "$RUNNER_TEMP/c.txt"
+          cat "$RUNNER_TEMP/c.txt"
+          cargo test -p sdl3 --lib --no-run
+          for i in $(seq 1 10); do
+            cargo test -q -p sdl3 --lib gpu::xr::tests -- --nocapture --test-threads=1 > "$RUNNER_TEMP/rust.log" 2>&1 || { tail -60 "$RUNNER_TEMP/rust.log"; exit 1; }
+            tr -d '\r' < "$RUNNER_TEMP/rust.log" | { grep "^xrtrace: " || true; } > "$RUNNER_TEMP/rust.txt"
+            if ! diff -u "$RUNNER_TEMP/c.txt" "$RUNNER_TEMP/rust.txt"; then
+              echo "::error::the Rust trace (run $i) differs from upstream's C"
+              exit 1
+            fi
+            echo "run $i: $(wc -l < "$RUNNER_TEMP/rust.txt") lines, identical"
+          done
+          test "$(wc -l < "$RUNNER_TEMP/c.txt")" -gt 20
