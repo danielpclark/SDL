@@ -880,12 +880,17 @@ mod uinput {
             let node = (result >= 0)
                 .then(|| {
                     let dir = format!("/sys/devices/virtual/input/{sysname}");
-                    // Wait for the event node to appear
-                    for _ in 0..100 {
+                    // Wait for the event node to appear, readable: udev
+                    // applies its rules' permissions (as CI's, which open
+                    // the node to the runner's user) a moment after the
+                    // kernel makes it
+                    for _ in 0..500 {
                         let found = scan_directory(&dir, is_joystick_event_node);
                         if let Some(event) = found.first() {
                             let path = format!("/dev/input/{event}");
-                            if std::fs::metadata(&path).is_ok() {
+                            let c_path = std::ffi::CString::new(path.as_str()).unwrap();
+                            // SAFETY: access() reads the NUL-terminated path.
+                            if unsafe { libc::access(c_path.as_ptr(), libc::R_OK) } == 0 {
                                 return Some(path);
                             }
                         }
