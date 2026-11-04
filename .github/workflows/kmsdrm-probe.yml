@@ -1,0 +1,70 @@
+# Throwaway diag workflow (claude/diag-kmsdrm-probe only, never merged):
+# probes the runner for the KMS/DRM driver and the console input reader.
+name: kmsdrm-probe
+
+on:
+  push:
+    branches: [claude/diag-kmsdrm-probe]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    name: probe (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q libdrm-tests kmscube mesa-utils vulkan-tools \
+            libdrm-dev libgbm-dev libegl-dev libgles-dev libvulkan-dev \
+            libgbm1 libegl1 libgles2 libgl1-mesa-dri mesa-vulkan-drivers \
+            udev kbd python3 > "$RUNNER_TEMP/apt.log" 2>&1 || { tail -50 "$RUNNER_TEMP/apt.log"; exit 1; }
+      - name: Probe
+        run: sudo -E bash diag/probe.sh 2>&1 | tee "$RUNNER_TEMP/findings.txt"
+      - name: Upload
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: findings-${{ matrix.os }}
+          path: ${{ runner.temp }}/findings.txt
+      - name: Findings (again, last)
+        if: always()
+        run: tail -c 120000 "$RUNNER_TEMP/findings.txt" || true
+
+  vm:
+    name: virtme-ng fallback (ubuntu-24.04)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v5
+      - name: KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+          ls -l /dev/kvm
+      - name: virtme-ng
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q virtme-ng qemu-system-x86 > "$RUNNER_TEMP/apt.log" 2>&1 || { tail -50 "$RUNNER_TEMP/apt.log"; exit 1; }
+          vng --version || true
+          sudo chmod a+r /boot/vmlinuz-* || true
+          cat > "$RUNNER_TEMP/inside.sh" <<'EOF'
+          set -x
+          uname -r
+          modprobe vkms enable_cursor=1 enable_overlay=1 enable_writeback=1; echo "modprobe=$?"
+          ls -l /dev/dri /dev/uinput /dev/tty3 2>&1
+          cat /sys/class/drm/card*/device/uevent 2>/dev/null | head
+          modetest -c 2>&1 | head -30 || true
+          EOF
+          timeout 600 vng -r "$(uname -r)" --user root --exec "bash $RUNNER_TEMP/inside.sh" 2>&1 | tail -80 || echo "vng status $?"
