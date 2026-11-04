@@ -260,6 +260,10 @@ pub(crate) mod test_support {
         ("udev", "libudev and a udev database"),
         ("uinput", "a writable /dev/uinput"),
         (
+            "vt",
+            "a virtual console as the controlling terminal (tty3, as root, through tools/linux_console_run.py --vt)",
+        ),
+        (
             "hidapi",
             "the HID backend: hidraw/libudev, hid.dll, IOKit, CoreBluetooth, or Android's HID device manager",
         ),

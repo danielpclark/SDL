@@ -428,3 +428,11 @@ harness = false
 [[test]]
 name = "evdev_input"
 harness = false
+
+# The console input reader on a virtual console (tty3, as root, which
+# tools/linux_console_run.py --vt 3 starts it on): its keymap, the keyboard's
+# mute and its restore (on quit, and on fatal signals), VT switches, against
+# upstream's C.
+[[test]]
+name = "evdev_vt"
+harness = false
