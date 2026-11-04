@@ -1174,8 +1174,12 @@ impl Keycode {
                         });
                     }
                 }
-                // SDL_UCS4ToUTF8
-                char::from_u32(key.0).map(String::from).unwrap_or_default()
+                // SDL_UCS4ToUTF8 (U+FFFD for a code point that's none), into a
+                // C string: the name of key 0 is the empty string
+                match key.0 {
+                    0 => String::new(),
+                    c => char::from_u32(c).unwrap_or('\u{FFFD}').to_string(),
+                }
             }
         }
     }
@@ -1247,6 +1251,11 @@ mod tests {
         assert_eq!(Keycode::LEFT_TAB.name(), "LeftTab");
         assert_eq!(Keycode::LHYPER.name(), "Left Hyper");
         assert_eq!(Keycode(0x20000050).name(), "");
+        // (SDL_UCS4ToUTF8() into a C string: key 0's name is empty, a code
+        // point that's none U+FFFD)
+        assert_eq!(Keycode::UNKNOWN.name(), "");
+        assert_eq!(Keycode(0xD800).name(), "\u{FFFD}");
+        assert_eq!(Keycode(0x110000).name(), "\u{FFFD}");
         assert_eq!(Keycode::from_name("F1"), Keycode::F1);
         assert_eq!(Keycode::from_name("Return"), Keycode::RETURN);
         assert_eq!(Keycode::from_name("lefttab"), Keycode::LEFT_TAB);
