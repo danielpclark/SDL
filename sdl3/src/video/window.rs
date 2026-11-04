@@ -137,6 +137,15 @@ pub const PROP_WINDOW_EMSCRIPTEN_CANVAS_ID_STRING: &str = "SDL.window.emscripten
 /// Translation of `SDL_PROP_WINDOW_EMSCRIPTEN_KEYBOARD_ELEMENT_STRING`.
 pub const PROP_WINDOW_EMSCRIPTEN_KEYBOARD_ELEMENT_STRING: &str =
     "SDL.window.emscripten.keyboard_element";
+/// The device index of the window's DRM card (KMS/DRM). Translation of
+/// `SDL_PROP_WINDOW_KMSDRM_DEVICE_INDEX_NUMBER`.
+pub const PROP_WINDOW_KMSDRM_DEVICE_INDEX_NUMBER: &str = "SDL.window.kmsdrm.dev_index";
+/// The DRM file descriptor of the window (KMS/DRM). Translation of
+/// `SDL_PROP_WINDOW_KMSDRM_DRM_FD_NUMBER`.
+pub const PROP_WINDOW_KMSDRM_DRM_FD_NUMBER: &str = "SDL.window.kmsdrm.drm_fd";
+/// The `struct gbm_device *` of the window, as an address (a number;
+/// KMS/DRM). Translation of `SDL_PROP_WINDOW_KMSDRM_GBM_DEVICE_POINTER`.
+pub const PROP_WINDOW_KMSDRM_GBM_DEVICE_POINTER: &str = "SDL.window.kmsdrm.gbm_dev";
 /// The X11 `Display *` of the window, as an address (a number). Translation
 /// of `SDL_PROP_WINDOW_X11_DISPLAY_POINTER`.
 pub const PROP_WINDOW_X11_DISPLAY_POINTER: &str = "SDL.window.x11.display";

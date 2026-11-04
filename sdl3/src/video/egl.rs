@@ -217,7 +217,8 @@ type PfnEglGetPlatformDisplay =
     unsafe extern "system" fn(EGLenum, *mut c_void, *const EGLAttrib) -> EGLDisplay;
 type PfnEglGetPlatformDisplayExt =
     unsafe extern "system" fn(EGLenum, *mut c_void, *const EGLint) -> EGLDisplay;
-type EGLSyncKHR = *mut c_void;
+/// `EGLSyncKHR` (EGL_KHR_fence_sync).
+pub(crate) type EGLSyncKHR = *mut c_void;
 type PfnEglCreateSyncKhr =
     unsafe extern "system" fn(EGLDisplay, EGLenum, *const EGLint) -> EGLSyncKHR;
 type PfnEglDestroySyncKhr = unsafe extern "system" fn(EGLDisplay, EGLSyncKHR) -> EGLBoolean;
@@ -378,7 +379,7 @@ pub(crate) fn egl_set_error_ex(
 impl Egl {
     /// Translation of `SDL_EGL_SetError()`: the error for a failed call,
     /// with `eglGetError()`.
-    fn set_error(&self, message: &str, egl_function_name: &str) -> Error {
+    pub(crate) fn set_error(&self, message: &str, egl_function_name: &str) -> Error {
         // SAFETY: eglGetError has no preconditions.
         let code = unsafe { (self.f.eglGetError)() };
         egl_set_error_ex(message, egl_function_name, code)
@@ -392,6 +393,79 @@ impl Egl {
         unsafe {
             let s = (self.f.eglQueryString)(display, name);
             (!s.is_null()).then(|| CStr::from_ptr(s).to_string_lossy().into_owned())
+        }
+    }
+
+    /// `egl_data->eglSwapBuffers(egl_display, surface)` (the KMS/DRM
+    /// driver's, which reports its own errors).
+    #[cfg(target_os = "linux")]
+    pub(crate) fn swap_buffers_raw(&self, surface: EGLSurface) -> EGLBoolean {
+        // SAFETY: the display is EGL's; the surface is EGL's (or invalid,
+        // which fails).
+        unsafe { (self.f.eglSwapBuffers)(self.egl_display, surface) }
+    }
+
+    // The atomic functions (`egl_data->eglCreateSyncKHR`, ...), for the
+    // KMS/DRM driver's fences. Note (upstream): upstream calls them
+    // without checking that they were found (it uses them when the display
+    // has EGL_ANDROID_native_fence_sync); missing, they fail here
+    // (EGL_NO_SYNC_KHR, EGL_FALSE, -1).
+
+    /// `egl_data->eglCreateSyncKHR(egl_display, type, attrib_list)` (the
+    /// list EGL_NONE-terminated).
+    #[cfg(target_os = "linux")]
+    pub(crate) fn create_sync_khr(&self, type_: EGLenum, attrib_list: &[EGLint]) -> EGLSyncKHR {
+        assert_eq!(attrib_list.last(), Some(&EGL_NONE));
+        match self.f.eglCreateSyncKHR {
+            // SAFETY: the display is EGL's; the list is EGL_NONE-terminated.
+            Some(f) => unsafe { f(self.egl_display, type_, attrib_list.as_ptr()) },
+            None => std::ptr::null_mut(),
+        }
+    }
+
+    /// `egl_data->eglDestroySyncKHR(egl_display, sync)`.
+    #[cfg(target_os = "linux")]
+    pub(crate) fn destroy_sync_khr(&self, sync: EGLSyncKHR) -> EGLBoolean {
+        match self.f.eglDestroySyncKHR {
+            // SAFETY: the display is EGL's; the sync is EGL's (or invalid,
+            // which fails).
+            Some(f) => unsafe { f(self.egl_display, sync) },
+            None => EGL_FALSE,
+        }
+    }
+
+    /// `egl_data->eglDupNativeFenceFDANDROID(egl_display, sync)`.
+    #[cfg(target_os = "linux")]
+    pub(crate) fn dup_native_fence_fd_android(&self, sync: EGLSyncKHR) -> EGLint {
+        match self.f.eglDupNativeFenceFDANDROID {
+            // SAFETY: as above.
+            Some(f) => unsafe { f(self.egl_display, sync) },
+            None => -1,
+        }
+    }
+
+    /// `egl_data->eglWaitSyncKHR(egl_display, sync, flags)`.
+    #[cfg(target_os = "linux")]
+    pub(crate) fn wait_sync_khr(&self, sync: EGLSyncKHR, flags: EGLint) -> EGLint {
+        match self.f.eglWaitSyncKHR {
+            // SAFETY: as above.
+            Some(f) => unsafe { f(self.egl_display, sync, flags) },
+            None => EGL_FALSE as EGLint,
+        }
+    }
+
+    /// `egl_data->eglClientWaitSyncKHR(egl_display, sync, flags, timeout)`.
+    #[cfg(target_os = "linux")]
+    pub(crate) fn client_wait_sync_khr(
+        &self,
+        sync: EGLSyncKHR,
+        flags: EGLint,
+        timeout: u64,
+    ) -> EGLint {
+        match self.f.eglClientWaitSyncKHR {
+            // SAFETY: as above.
+            Some(f) => unsafe { f(self.egl_display, sync, flags, timeout) },
+            None => EGL_FALSE as EGLint,
         }
     }
 
@@ -1030,7 +1104,7 @@ fn offscreen_device_order(device: i32, count: i32) -> Result<impl Iterator<Item 
 
 /// Require configs of this native visual. Translation of
 /// `SDL_EGL_SetRequiredVisualId()`.
-#[allow(dead_code)] // (used by drivers that aren't translated yet)
+#[cfg_attr(not(target_os = "linux"), allow(dead_code))] // (the KMS/DRM driver's)
 pub(crate) fn set_required_visual_id(visual_id: i32) {
     with_egl(|e| e.egl_required_visual_id = visual_id);
 }

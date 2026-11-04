@@ -3,7 +3,8 @@
 // This is an altered (translated) version of the original software; see LICENSE.txt.
 
 //! Video backends: Wayland and X11 (on Unix other than Apple platforms,
-//! Android and Emscripten), Cocoa (on macOS), UIKit (on iOS, tvOS and
+//! Android and Emscripten), KMS/DRM (on Linux: a DRM card, without a
+//! display server), Cocoa (on macOS), UIKit (on iOS, tvOS and
 //! visionOS, in an app), Android's (in an app; its event pump's part, the
 //! activity's lifecycle, whatever the driver), Windows (on Windows), the
 //! canvas driver (on Emscripten, in a page), and the dummy and offscreen
@@ -17,6 +18,8 @@ pub(crate) mod cocoa;
 pub(crate) mod dummy;
 #[cfg(target_os = "emscripten")]
 pub(crate) mod emscripten;
+#[cfg(target_os = "linux")]
+pub(crate) mod kmsdrm;
 pub(crate) mod offscreen;
 #[cfg(all(target_vendor = "apple", not(target_os = "macos")))]
 pub(crate) mod uikit;
