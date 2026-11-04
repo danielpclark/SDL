@@ -1,0 +1,620 @@
+# Throwaway diag workflow (claude/diag-kmsdrm-vt-cref only, never merged):
+# upstream's C SDL at ea7a2da (with the emergency handler's fix the
+# translation has, and once without it) and this translation running the
+# evdev_vt program on tty3 as root, on the same runner, 10 times each; their
+# traces compared. The C twin is in this file (no C file is committed).
+name: evdev-vt-cref
+
+on:
+  push:
+    branches: [claude/diag-kmsdrm-vt-cref]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
+  RUST_BACKTRACE: 1
+
+jobs:
+  cref:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.99"
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: evdev-vt-cref
+      - name: Enable uinput
+        run: |
+          printf '%s\n' 'KERNEL=="uinput", SUBSYSTEM=="misc", MODE="0666", OPTIONS+="static_node=uinput"' \
+            'SUBSYSTEM=="input", KERNEL=="event*|js*", ATTRS{name}=="SDL*", MODE="0666"' | sudo tee /etc/udev/rules.d/99-sdl3-uinput.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=uinput
+          sudo udevadm settle
+          ls -l /dev/uinput
+      - name: Probe the console and the input devices
+        shell: bash
+        run: |
+          set +e
+          mkdir -p "$RUNNER_TEMP/out"
+          {
+            cat /proc/bus/input/devices
+            for n in /dev/input/event*; do echo "== $n"; udevadm info -q property -n "$n" | grep -E '^ID_INPUT|^NAME|^ID_CLASS'; done
+            cat > "$RUNNER_TEMP/vtprobe.py" <<'PY'
+          import fcntl, os, struct, sys
+          fd = os.open(sys.argv[1] if len(sys.argv) > 1 else '/dev/tty3', os.O_RDONLY | os.O_NOCTTY)
+          def rd(req, fmt):
+              b = bytearray(struct.calcsize(fmt)); fcntl.ioctl(fd, req, b); return struct.unpack(fmt, b)
+          print('VT_GETSTATE', rd(0x5603, 'HHH'))
+          print('KDGKBMODE', rd(0x4B44, 'i'))
+          print('VT_GETMODE', rd(0x5601, 'bbhhh'))
+          print('KDGKBLED', rd(0x4B64, 'b'))
+          print('KDGKBTYPE', rd(0x4B33, 'b'))
+          b = bytearray(8); b[0] = 6; fcntl.ioctl(fd, 0x541C, b); print('shift state', b[0])
+          names = {0: 'plain', 1: 'shift', 2: 'altgr', 3: 'shift+altgr', 4: 'ctrl', 5: 'shift+ctrl', 8: 'alt', 9: 'shift+alt', 12: 'ctrl+alt'}
+          for t, n in names.items():
+              row = []
+              for k in range(1, 128):
+                  b = bytearray(struct.pack('BBH', t, k, 0)); fcntl.ioctl(fd, 0x4B46, b)
+                  row.append(f'{k}:{struct.unpack("BBH", b)[2]:04x}')
+              print('KDGKBENT', n, ' '.join(row))
+          for t in range(256):
+              b = bytearray(struct.pack('BBH', t, 30, 0))
+              try:
+                  fcntl.ioctl(fd, 0x4B46, b)
+              except OSError as e:
+                  print('table', t, e); continue
+              v = struct.unpack('BBH', b)[2]
+              if v not in (0, 0xf200):
+                  print('table', t, 'key 30', hex(v))
+          b = bytearray(4 + 256 * 3); fcntl.ioctl(fd, 0x4B4A, b)
+          n = struct.unpack_from('I', b)[0]
+          print('KDGKBDIACR', n, ' '.join(bytes(b[4 + i * 3:7 + i * 3]).decode('latin-1') for i in range(n)))
+          PY
+            sudo python3 -I "$RUNNER_TEMP/vtprobe.py" /dev/tty3
+            ls -l /dev/tty3 /dev/tty0
+            which setsid
+          } > "$RUNNER_TEMP/out/probe.txt" 2>&1
+          head -c 3000 "$RUNNER_TEMP/out/probe.txt"
+      - name: Build upstream (patched, and not)
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q libudev-dev ninja-build > /dev/null
+          git clone -q --filter=blob:none https://github.com/libsdl-org/SDL "$RUNNER_TEMP/upstream"
+          git -C "$RUNNER_TEMP/upstream" checkout -q ea7a2da
+          git -C "$RUNNER_TEMP/upstream" log --oneline -1
+          cmake -S "$RUNNER_TEMP/upstream" -B "$RUNNER_TEMP/build" -G Ninja -DCMAKE_BUILD_TYPE=Debug \
+            -DSDL_UNIX_CONSOLE_BUILD=ON -DSDL_SHARED=ON -DSDL_STATIC=OFF -DSDL_TEST_LIBRARY=OFF -DSDL_TESTS=OFF -DSDL_EXAMPLES=OFF > "$RUNNER_TEMP/cmake.log" 2>&1 || { tail -60 "$RUNNER_TEMP/cmake.log"; exit 1; }
+          cmake --build "$RUNNER_TEMP/build" > "$RUNNER_TEMP/build.log" 2>&1 || { tail -60 "$RUNNER_TEMP/build.log"; exit 1; }
+          mkdir -p "$RUNNER_TEMP/unpatched"
+          cp -a "$RUNNER_TEMP"/build/libSDL3.so* "$RUNNER_TEMP/unpatched/"
+          # The translation's fix (Note (upstream) in evdev_kbd.rs): a fault
+          # the kernel signaled is handed on by returning, not raised again
+          python3 - "$RUNNER_TEMP/upstream/src/core/linux/SDL_evdev_kbd.c" <<'PY'
+          import sys
+          p = sys.argv[1]
+          s = open(p).read()
+          old = "    // Restore keyboard.\n    kbd_cleanup();\n\n    // Reraise signal.\n"
+          new = ("    // Restore keyboard.\n    kbd_cleanup();\n\n"
+                 "    if ((signum == SIGSEGV || signum == SIGBUS || signum == SIGILL || signum == SIGFPE) && info && info->si_code > 0) {\n"
+                 "        return;\n    }\n\n    // Reraise signal.\n")
+          assert s.count(old) == 1
+          open(p, "w").write(s.replace(old, new))
+          PY
+          git -C "$RUNNER_TEMP/upstream" diff
+          cmake --build "$RUNNER_TEMP/build" > "$RUNNER_TEMP/build2.log" 2>&1 || { tail -60 "$RUNNER_TEMP/build2.log"; exit 1; }
+          cat > "$RUNNER_TEMP/evdev_vt.c" <<'C'
+          /* diag only: the C twin of sdl3/tests/evdev_vt.rs, on upstream SDL at
+           * ea7a2da, run by tools/linux_console_run.py --vt 3. Prints the same trace
+           * lines. */
+          #define _GNU_SOURCE
+          #include <SDL3/SDL.h>
+          #include <errno.h>
+          #include <signal.h>
+          #include <stdio.h>
+          #include <stdlib.h>
+          #include <string.h>
+          #include <sys/mman.h>
+          #include <sys/resource.h>
+          #include <sys/wait.h>
+          #include <unistd.h>
+
+          #define PREFIX "sdl3-console-runner: "
+          #define KEYBOARD "SDL3 evdev vt keyboard"
+          #define VT "3"
+          #define OTHER_VT "1"
+
+          static FILE *reply_file;
+          static char replies[16][512];
+          static int nreplies;
+
+          static void request(const char *line)
+          {
+              char answer[1024];
+              if (!reply_file) {
+                  const char *fd = getenv("SDL3_CONSOLE_REPLY_FD");
+                  if (!fd) {
+                      fprintf(stderr, "no SDL3_CONSOLE_REPLY_FD\n");
+                      exit(2);
+                  }
+                  reply_file = fdopen(atoi(fd), "r");
+                  setvbuf(reply_file, NULL, _IONBF, 0);
+              }
+              printf(PREFIX "request %s\n", line);
+              fflush(stdout);
+              nreplies = 0;
+              while (fgets(answer, sizeof(answer), reply_file)) {
+                  answer[strcspn(answer, "\n")] = 0;
+                  if (strcmp(answer, PREFIX "done") == 0) {
+                      return;
+                  }
+                  if (strncmp(answer, PREFIX "reply ", strlen(PREFIX "reply ")) == 0 && nreplies < 16) {
+                      snprintf(replies[nreplies++], sizeof(replies[0]), "%s", answer + strlen(PREFIX "reply "));
+                  }
+              }
+              fprintf(stderr, "the runner ended without answering\n");
+              exit(2);
+          }
+
+          static void print_line(const char *text)
+          {
+              printf("trace: %s\n", text);
+              fflush(stdout);
+          }
+
+          static int nlines;
+          static void line(const char *text)
+          {
+              print_line(text);
+              nlines++;
+          }
+
+          static void ask(const char *what)
+          {
+              request(what);
+              for (int i = 0; i < nreplies; i++) {
+                  line(replies[i]);
+              }
+          }
+
+          typedef struct { Uint32 id; char name[128]; } Named;
+          static Named keyboards[256];
+          static int nkeyboards;
+          static SDL_WindowID window_id;
+
+          static const char *lookup(Uint32 id)
+          {
+              for (int i = nkeyboards - 1; i >= 0; i--) {
+                  if (keyboards[i].id == id) return keyboards[i].name;
+              }
+              return NULL;
+          }
+
+          static void remember(Uint32 id, const char *name)
+          {
+              if (nkeyboards < 256) {
+                  keyboards[nkeyboards].id = id;
+                  snprintf(keyboards[nkeyboards].name, sizeof(keyboards[0].name), "%s", name ? name : "");
+                  nkeyboards++;
+              }
+          }
+
+          static int ours(const char *name)
+          {
+              return name && strncmp(name, "SDL3 evdev", 10) == 0;
+          }
+
+          static const char *win(SDL_WindowID id)
+          {
+              return id == window_id ? "window" : id == 0 ? "none" : "another";
+          }
+
+          static int describe(const SDL_Event *e, char *buf, size_t size)
+          {
+              const char *name;
+              switch (e->type) {
+              case SDL_EVENT_KEYBOARD_ADDED:
+              case SDL_EVENT_KEYBOARD_REMOVED:
+                  if (e->type == SDL_EVENT_KEYBOARD_ADDED) {
+                      remember(e->kdevice.which, SDL_GetKeyboardNameForID(e->kdevice.which));
+                  }
+                  name = lookup(e->kdevice.which);
+                  if (!ours(name)) return 0;
+                  snprintf(buf, size, "keyboard %s: %s", e->type == SDL_EVENT_KEYBOARD_ADDED ? "added" : "removed", name);
+                  return 1;
+              case SDL_EVENT_KEY_DOWN:
+              case SDL_EVENT_KEY_UP:
+                  name = lookup(e->key.which);
+                  if (!ours(name)) return 0;
+                  snprintf(buf, size, "key %s %s key %s raw %u mod 0x%04x repeat %d %s", e->key.down ? "down" : "up",
+                           SDL_GetScancodeName(e->key.scancode), SDL_GetKeyName(e->key.key), (unsigned)e->key.raw,
+                           (unsigned)e->key.mod, e->key.repeat ? 1 : 0, win(e->key.windowID));
+                  return 1;
+              case SDL_EVENT_TEXT_INPUT:
+                  snprintf(buf, size, "text \"%s\" %s", e->text.text, win(e->text.windowID));
+                  return 1;
+              default:
+                  return 0;
+              }
+          }
+
+          static void pump(void)
+          {
+              SDL_Event e;
+              char buf[1024];
+              SDL_PumpEvents();
+              while (SDL_PollEvent(&e)) {
+                  if (describe(&e, buf, sizeof(buf))) line(buf);
+              }
+          }
+
+          static void wait_for(const char *want)
+          {
+              Uint64 end = SDL_GetTicks() + 10000;
+              SDL_Event e;
+              char buf[1024];
+              for (;;) {
+                  SDL_PumpEvents();
+                  while (SDL_PollEvent(&e)) {
+                      if (describe(&e, buf, sizeof(buf))) {
+                          int done = strcmp(buf, want) == 0;
+                          line(buf);
+                          if (done) return;
+                      }
+                  }
+                  if (SDL_GetTicks() >= end) {
+                      snprintf(buf, sizeof(buf), "timeout: no \"%s\" in 10 s", want);
+                      line(buf);
+                      return;
+                  }
+                  SDL_Delay(10);
+              }
+          }
+
+          static char *tap(char *out, const char *key)
+          {
+              sprintf(out + strlen(out), "%sEV_KEY %s 1 EV_SYN SYN_REPORT 0 EV_KEY %s 0 EV_SYN SYN_REPORT 0", *out ? " " : "",
+                      key, key);
+              return out;
+          }
+
+          static char *held(char *out, const char *modifier, const char **keys, int n)
+          {
+              sprintf(out + strlen(out), "%sEV_KEY %s 1 EV_SYN SYN_REPORT 0", *out ? " " : "", modifier);
+              for (int i = 0; i < n; i++) tap(out, keys[i]);
+              sprintf(out + strlen(out), " EV_KEY %s 0 EV_SYN SYN_REPORT 0", modifier);
+              return out;
+          }
+
+          static void keys(const char *events)
+          {
+              char req[8192];
+              snprintf(req, sizeof(req), "uinput events '%s' %s", KEYBOARD, events);
+              request(req);
+              for (int i = 0; i < nreplies; i++) {
+                  if (strncmp(replies[i], "uinput: sent ", 13) != 0) line(replies[i]);
+              }
+              pump();
+          }
+
+          static void typing(void)
+          {
+              char b[4096];
+              b[0] = 0; tap(b, "KEY_A"); tap(b, "KEY_1"); tap(b, "KEY_SPACE"); keys(b);
+              {
+                  const char *k[] = { "KEY_A", "KEY_1", "KEY_APOSTROPHE", "KEY_SLASH", "KEY_102ND" };
+                  b[0] = 0; held(b, "KEY_LEFTSHIFT", k, 5); keys(b);
+              }
+              b[0] = 0; tap(b, "KEY_GRAVE"); tap(b, "KEY_BACKSLASH"); tap(b, "KEY_102ND"); tap(b, "KEY_SEMICOLON"); keys(b);
+              {
+                  const char *k[] = { "KEY_A" };
+                  b[0] = 0; tap(b, "KEY_CAPSLOCK"); tap(b, "KEY_A"); held(b, "KEY_LEFTSHIFT", k, 1); tap(b, "KEY_CAPSLOCK");
+                  keys(b);
+              }
+              b[0] = 0; tap(b, "KEY_KP7"); tap(b, "KEY_NUMLOCK"); tap(b, "KEY_KP7"); tap(b, "KEY_KPDOT"); tap(b, "KEY_NUMLOCK");
+              keys(b);
+              {
+                  const char *k[] = { "KEY_E", "KEY_8", "KEY_Q" };
+                  b[0] = 0; held(b, "KEY_RIGHTALT", k, 3); keys(b);
+              }
+              {
+                  const char *k[] = { "KEY_A" };
+                  b[0] = 0;
+                  strcpy(b, "EV_KEY KEY_RIGHTALT 1 EV_SYN SYN_REPORT 0");
+                  held(b, "KEY_LEFTSHIFT", k, 1);
+                  strcat(b, " EV_KEY KEY_RIGHTALT 0 EV_SYN SYN_REPORT 0");
+                  keys(b);
+              }
+              {
+                  const char *k[] = { "KEY_C" };
+                  b[0] = 0; held(b, "KEY_LEFTCTRL", k, 1); keys(b);
+              }
+              {
+                  const char *k[] = { "KEY_A" };
+                  b[0] = 0; held(b, "KEY_LEFTALT", k, 1); keys(b);
+              }
+              b[0] = 0; tap(b, "KEY_COMPOSE"); tap(b, "KEY_APOSTROPHE"); tap(b, "KEY_E"); tap(b, "KEY_B"); keys(b);
+          }
+
+          static int cmp(const void *a, const void *b)
+          {
+              return strcmp(*(char *const *)a, *(char *const *)b);
+          }
+
+          static SDL_Window *init(void)
+          {
+              char buf[1024];
+              char *found[64];
+              int nfound = 0, others = 0, n = 0;
+              SDL_Event e;
+              SDL_Window *window;
+              SDL_KeyboardID *ids;
+
+              SDL_SetHint(SDL_HINT_VIDEO_DRIVER, "evdev");
+              if (!SDL_Init(SDL_INIT_VIDEO)) {
+                  snprintf(buf, sizeof(buf), "init: %s", SDL_GetError());
+                  line(buf);
+                  return NULL;
+              }
+              snprintf(buf, sizeof(buf), "init: ok (%s)", SDL_GetCurrentVideoDriver());
+              line(buf);
+              window = SDL_CreateWindow("evdev_vt", 1024, 768, 0);
+              window_id = SDL_GetWindowID(window);
+              SDL_StartTextInput(window);
+              while (SDL_PollEvent(&e)) {
+                  if (describe(&e, buf, sizeof(buf)) && nfound < 64) found[nfound++] = SDL_strdup(buf);
+              }
+              qsort(found, nfound, sizeof(found[0]), cmp);
+              for (int i = 0; i < nfound; i++) {
+                  line(found[i]);
+                  SDL_free(found[i]);
+              }
+              ids = SDL_GetKeyboards(&n);
+              for (int i = 0; i < n; i++) {
+                  if (!ours(SDL_GetKeyboardNameForID(ids[i]))) others++;
+              }
+              SDL_free(ids);
+              snprintf(buf, sizeof(buf), "other keyboards: %d", others);
+              line(buf);
+              return window;
+          }
+
+          static void quit(SDL_Window *window)
+          {
+              SDL_DestroyWindow(window);
+              SDL_Quit();
+              line("quit");
+          }
+
+          static void ended(char *buf, size_t size, int status)
+          {
+              if (WIFEXITED(status)) {
+                  snprintf(buf, size, "exited with %d", WEXITSTATUS(status));
+              } else if (WIFSIGNALED(status)) {
+                  int sig = WTERMSIG(status);
+                  const char *name = sig == SIGABRT ? "SIGABRT" : sig == SIGSEGV ? "SIGSEGV" : sig == SIGBUS ? "SIGBUS"
+                                     : sig == SIGKILL ? "SIGKILL" : NULL;
+                  if (name) snprintf(buf, size, "killed by %s", name);
+                  else snprintf(buf, size, "killed by signal %d", sig);
+              } else {
+                  snprintf(buf, size, "status %d", status);
+              }
+          }
+
+          static char *self_path;
+
+          static void child(const char *what, const char *env_name, const char *env_value)
+          {
+              char buf[256], how[128];
+              pid_t pid;
+              int status;
+              snprintf(buf, sizeof(buf), "-- child %s", what);
+              line(buf);
+              fflush(stdout);
+              pid = fork();
+              if (pid == 0) {
+                  if (env_name) setenv(env_name, env_value, 1);
+                  execl(self_path, self_path, "--child", what, (char *)NULL);
+                  _exit(127);
+              }
+              waitpid(pid, &status, 0);
+              ended(how, sizeof(how), status);
+              snprintf(buf, sizeof(buf), "child %s: %s", what, how);
+              line(buf);
+              ask("vt modes");
+          }
+
+          static void previous_handler(int sig, siginfo_t *info, void *context)
+          {
+              const char *l;
+              struct sigaction action;
+              (void)context;
+              if (info->si_code == SEGV_MAPERR && (uintptr_t)info->si_addr == 16) {
+                  l = "trace: child: the previous handler: SIGSEGV at the fault's address\n";
+              } else if (info->si_code == SI_TKILL) {
+                  l = "trace: child: the previous handler: SIGSEGV raised again\n";
+              } else {
+                  l = "trace: child: the previous handler: SIGSEGV from elsewhere\n";
+              }
+              (void)!write(1, l, strlen(l));
+              memset(&action, 0, sizeof(action));
+              action.sa_handler = SIG_DFL;
+              sigaction(sig, &action, NULL);
+          }
+
+          static int run_child(const char *what)
+          {
+              struct rlimit no_core = { 0, 0 };
+              char buf[600];
+              setrlimit(RLIMIT_CORE, &no_core);
+              if (strcmp(what, "chained") == 0) {
+                  struct sigaction action;
+                  memset(&action, 0, sizeof(action));
+                  action.sa_sigaction = previous_handler;
+                  action.sa_flags = SA_SIGINFO;
+                  sigaction(SIGSEGV, &action, NULL);
+              }
+              SDL_SetHint(SDL_HINT_VIDEO_DRIVER, "evdev");
+              if (!SDL_Init(SDL_INIT_VIDEO)) {
+                  snprintf(buf, sizeof(buf), "child: init: %s", SDL_GetError());
+                  print_line(buf);
+                  return 1;
+              }
+              print_line("child: init: ok");
+              request("vt modes");
+              for (int i = 0; i < nreplies; i++) {
+                  snprintf(buf, sizeof(buf), "child: %s", replies[i]);
+                  print_line(buf);
+              }
+              if (strcmp(what, "abort") == 0 || strcmp(what, "no-signal-handlers") == 0) {
+                  abort();
+              } else if (strcmp(what, "segv") == 0 || strcmp(what, "chained") == 0) {
+                  *(volatile char *)16 = 1;
+              } else if (strcmp(what, "bus") == 0) {
+                  int fd = memfd_create("evdev_vt", 0);
+                  volatile char *map;
+                  if (fd < 0 || ftruncate(fd, 4096) != 0) return 1;
+                  map = mmap(NULL, 4096, PROT_READ, MAP_SHARED, fd, 0);
+                  if (map == MAP_FAILED || ftruncate(fd, 0) != 0) return 1;
+                  (void)map[0];
+              } else if (strcmp(what, "exit") == 0) {
+                  exit(0);
+              }
+              snprintf(buf, sizeof(buf), "child: %s: still running", what);
+              print_line(buf);
+              return 1;
+          }
+
+          int main(int argc, char **argv)
+          {
+              char buf[512];
+              SDL_Window *window;
+              self_path = argv[0];
+              if (argc == 3 && strcmp(argv[1], "--child") == 0) {
+                  return run_child(argv[2]);
+              }
+
+              ask("vt active");
+              ask("vt modes");
+
+              line("-- init");
+              window = init();
+              if (!window) return 1;
+              ask("vt modes");
+              ask("uinput add '" KEYBOARD "' keyboard");
+              wait_for("keyboard added: " KEYBOARD);
+              ask("vt modes");
+
+              line("-- keys");
+              typing();
+
+              line("-- vt switch");
+              ask("vt activate " OTHER_VT);
+              {
+                  Uint64 end = SDL_GetTicks() + 10000;
+                  for (;;) {
+                      SDL_PumpEvents();
+                      request("vt active");
+                      if ((nreplies > 0 && strcmp(replies[0], "vt: active " OTHER_VT) == 0) || SDL_GetTicks() >= end) {
+                          for (int i = 0; i < nreplies; i++) line(replies[i]);
+                          break;
+                      }
+                      SDL_Delay(10);
+                  }
+              }
+              ask("vt modes");
+              ask("vt switch " VT);
+              pump();
+              ask("vt modes");
+              buf[0] = 0;
+              keys(tap(buf, "KEY_Z"));
+
+              line("-- unplugged");
+              ask("uinput remove '" KEYBOARD "'");
+              wait_for("keyboard removed: " KEYBOARD);
+              ask("vt modes");
+              quit(window);
+              ask("vt modes");
+
+              line("-- SDL_MUTE_CONSOLE_KEYBOARD=0");
+              ask("uinput add '" KEYBOARD "' keyboard");
+              SDL_SetHint(SDL_HINT_MUTE_CONSOLE_KEYBOARD, "0");
+              window = init();
+              if (!window) return 1;
+              ask("vt modes");
+              typing();
+              quit(window);
+              SDL_ResetHint(SDL_HINT_MUTE_CONSOLE_KEYBOARD);
+              ask("vt modes");
+              ask("vt flush");
+
+              child("abort", NULL, NULL);
+              ask("vt switch " OTHER_VT);
+              ask("vt modes");
+              ask("vt switch " VT);
+              child("segv", NULL, NULL);
+              child("bus", NULL, NULL);
+              child("chained", NULL, NULL);
+              child("exit", NULL, NULL);
+              child("no-signal-handlers", SDL_HINT_NO_SIGNAL_HANDLERS, "1");
+              ask("vt restore");
+
+              line("-- init and quit");
+              window = init();
+              if (!window) return 1;
+              ask("vt modes");
+              quit(window);
+              ask("vt modes");
+              ask("uinput remove '" KEYBOARD "'");
+              printf("evdev_vt.c: %d lines\n", nlines);
+              return 0;
+          }
+          C
+          gcc -g -Wall -o "$RUNNER_TEMP/evdev_vt_c" "$RUNNER_TEMP/evdev_vt.c" -I"$RUNNER_TEMP/upstream/include" -L"$RUNNER_TEMP/build" -lSDL3
+      - name: Build the Rust program
+        shell: bash
+        run: |
+          cargo test -p sdl3 --test evdev_vt --no-run --message-format=json > "$RUNNER_TEMP/build.json"
+          python3 -c 'import json,sys; [print(m["executable"]) for m in map(json.loads, open(sys.argv[1])) if m.get("reason") == "compiler-artifact" and m.get("executable") and m["target"]["name"] == "evdev_vt"]' "$RUNNER_TEMP/build.json" > "$RUNNER_TEMP/rust_exe"
+          cat "$RUNNER_TEMP/rust_exe"
+      - name: Run C and Rust, 10 times each
+        shell: bash
+        run: |
+          set +e
+          O="$RUNNER_TEMP/out"
+          R="$(cat "$RUNNER_TEMP/rust_exe")"
+          timeout 300 sudo env LD_LIBRARY_PATH="$RUNNER_TEMP/unpatched" python3 tools/linux_console_run.py --vt 3 "$RUNNER_TEMP/evdev_vt_c" > "$O/u1.log" 2> "$O/u1.err"
+          echo "unpatched status $?"
+          grep -a '^trace: ' "$O/u1.log" > "$O/u1.txt"
+          for i in $(seq 1 10); do
+            timeout 300 sudo env LD_LIBRARY_PATH="$RUNNER_TEMP/build" python3 tools/linux_console_run.py --vt 3 "$RUNNER_TEMP/evdev_vt_c" > "$O/c$i.log" 2> "$O/c$i.err"
+            echo "c$i status $?"
+            grep -a '^trace: ' "$O/c$i.log" > "$O/c$i.txt"
+            timeout 300 sudo env SDL3_TEST_REQUIRE=vt,uinput RUST_BACKTRACE=1 "$R" > "$O/r$i.log" 2> "$O/r$i.err"
+            echo "r$i status $?"
+            grep -a '^trace: ' "$O/r$i.log" > "$O/r$i.txt"
+          done
+          md5sum "$O"/*.txt
+          sudo python3 -I "$RUNNER_TEMP/vtprobe.py" /dev/tty3 | head -4
+          exit 0
+      - name: Findings (last)
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          O="$RUNNER_TEMP/out"
+          echo "== C stderr (1)"; head -40 "$O/c1.err"
+          echo "== Rust stderr (1)"; head -40 "$O/r1.err"
+          echo "== C runs differing from c1:"; for i in $(seq 2 10); do cmp -s "$O/c1.txt" "$O/c$i.txt" || { echo "c$i"; diff "$O/c1.txt" "$O/c$i.txt" | head -20; }; done
+          echo "== Rust runs differing from r1:"; for i in $(seq 2 10); do cmp -s "$O/r1.txt" "$O/r$i.txt" || { echo "r$i"; diff "$O/r1.txt" "$O/r$i.txt" | head -20; }; done
+          echo "== diff unpatched c1"; diff -a "$O/u1.txt" "$O/c1.txt"
+          echo "== diff c1 r1"; diff -a "$O/c1.txt" "$O/r1.txt" && echo "(the same)"
+          echo "== the Rust program's verdict"; grep -a "evdev_vt:\|^rust: " "$O/r1.log" | head -10
+          echo "== probe"; grep -v '^table' "$O/probe.txt" | cut -c1-1500
+          echo "== C trace"; sed 's/^trace: //' "$O/c1.txt"
