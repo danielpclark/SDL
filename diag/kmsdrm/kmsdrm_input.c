@@ -68,17 +68,17 @@ static bool describe(const SDL_Event *e, char *out, size_t size)
         snprintf(out, size, "text \"%s\" %s", e->text.text, win(e->text.windowID));
         return true;
     case SDL_EVENT_MOUSE_MOTION:
-        name = lookup(mice, nmice, e->motion.which);
-        if (!ours(name)) return false;
-        snprintf(out, size, "motion at (%.1f, %.1f) rel (%.1f, %.1f) %s", e->motion.x, e->motion.y,
+        name = e->motion.which == 0 ? "global" : lookup(mice, nmice, e->motion.which);
+        if (e->motion.which != 0 && !ours(name)) return false;
+        snprintf(out, size, "motion %s at (%.1f, %.1f) rel (%.1f, %.1f) %s", name, e->motion.x, e->motion.y,
                  e->motion.xrel, e->motion.yrel, win(e->motion.windowID));
         return true;
     case SDL_EVENT_MOUSE_BUTTON_DOWN:
     case SDL_EVENT_MOUSE_BUTTON_UP:
-        name = lookup(mice, nmice, e->button.which);
-        if (!ours(name)) return false;
-        snprintf(out, size, "button %s %d at (%.1f, %.1f) %s", e->button.down ? "down" : "up", e->button.button,
-                 e->button.x, e->button.y, win(e->button.windowID));
+        name = e->button.which == 0 ? "global" : lookup(mice, nmice, e->button.which);
+        if (e->button.which != 0 && !ours(name)) return false;
+        snprintf(out, size, "button %s %d %s at (%.1f, %.1f) %s", e->button.down ? "down" : "up", e->button.button,
+                 name, e->button.x, e->button.y, win(e->button.windowID));
         return true;
     default:
         if (e->type >= SDL_EVENT_WINDOW_FIRST && e->type <= SDL_EVENT_WINDOW_LAST) {

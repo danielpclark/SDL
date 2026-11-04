@@ -61,7 +61,366 @@ mod app {
 
     /// Upstream's trace (the C program, by the runner, on the CI runner).
     const EXPECTED: &str = "\
-versions: (the reference's)
+versions: kernel 7.0.0-1017-azure, Mesa 25.2.8-0ubuntu0.24.04.4, libdrm 2.4.125-1ubuntu0.1~24.04.2
+drm: crtc 1024x768 (1024x768) on
+drm: plane primary fb 1024x768 XR24 src 0,0 1024x768 crtc 0,0 1024x768
+-- fenced (atomic)
+init: ok (kmsdrm)
+window: ok
+context: ok
+swap interval 0: ok
+swap 0: ok
+drm: crtc 1024x768 (1024x768) on
+drm: plane primary fb 1024x768 XR24 src 0,0 1024x768 crtc 0,0 1024x768
+drm: plane cursor fb 512x512 AR24 src 0,0 512x512 crtc 0,0 512x512
+drm: crc 0xbc7130f0
+drm: pixel 0,0 0x00000000
+drm: pixel 100,100 0x00000000
+drm: pixel 300,200 0x00000000
+drm: pixel 512,384 0x00000000
+drm: pixel 700,500 0x00000000
+drm: pixel 1023,767 0x00000000
+swap 1: ok
+drm: crc 0x87ba7f7a
+drm: pixel 0,0 0xff00ff00
+drm: pixel 100,100 0xff00ff00
+drm: pixel 300,200 0xff00ff00
+drm: pixel 512,384 0xff00ff00
+drm: pixel 700,500 0xff00ff00
+drm: pixel 1023,767 0xff00ff00
+swap 2: ok
+drm: crc 0xd9867bd7
+drm: pixel 0,0 0xff0000ff
+drm: pixel 100,100 0xff0000ff
+drm: pixel 300,200 0xff0000ff
+drm: pixel 512,384 0xff0000ff
+drm: pixel 700,500 0xff0000ff
+drm: pixel 1023,767 0xff0000ff
+swap interval 1: ok
+swap 0: ok
+drm: crc 0x9b7e27fb
+drm: pixel 0,0 0xffff0000
+drm: pixel 100,100 0xffff0000
+drm: pixel 300,200 0xffff0000
+drm: pixel 512,384 0xffff0000
+drm: pixel 700,500 0xffff0000
+drm: pixel 1023,767 0xffff0000
+swap 1: ok
+drm: crc 0x87ba7f7a
+drm: pixel 0,0 0xff00ff00
+drm: pixel 100,100 0xff00ff00
+drm: pixel 300,200 0xff00ff00
+drm: pixel 512,384 0xff00ff00
+drm: pixel 700,500 0xff00ff00
+drm: pixel 1023,767 0xff00ff00
+swap 2: ok
+drm: crc 0xd9867bd7
+drm: pixel 0,0 0xff0000ff
+drm: pixel 100,100 0xff0000ff
+drm: pixel 300,200 0xff0000ff
+drm: pixel 512,384 0xff0000ff
+drm: pixel 700,500 0xff0000ff
+drm: pixel 1023,767 0xff0000ff
+swap twice: ok
+drm: crc 0xf99e45f0
+drm: pixel 0,0 0xff808080
+drm: pixel 100,100 0xff808080
+drm: pixel 300,200 0xff808080
+drm: pixel 512,384 0xff808080
+drm: pixel 700,500 0xff808080
+drm: pixel 1023,767 0xff808080
+quit
+drm: crtc 1024x768 (1024x768) on
+drm: plane primary fb 1024x768 XR24 src 0,0 1024x768 crtc 0,0 1024x768
+-- double buffered (atomic, SDL_VIDEO_DOUBLE_BUFFER=1)
+init: ok (kmsdrm)
+window: ok
+context: ok
+swap interval 0: ok
+swap 0: ok
+drm: crtc 1024x768 (1024x768) on
+drm: plane primary fb 1024x768 XR24 src 0,0 1024x768 crtc 0,0 1024x768
+drm: plane cursor fb 512x512 AR24 src 0,0 512x512 crtc 0,0 512x512
+drm: crc 0xbc7130f0
+drm: pixel 0,0 0x00000000
+drm: pixel 100,100 0x00000000
+drm: pixel 300,200 0x00000000
+drm: pixel 512,384 0x00000000
+drm: pixel 700,500 0x00000000
+drm: pixel 1023,767 0x00000000
+swap 1: ok
+drm: crc 0x87ba7f7a
+drm: pixel 0,0 0xff00ff00
+drm: pixel 100,100 0xff00ff00
+drm: pixel 300,200 0xff00ff00
+drm: pixel 512,384 0xff00ff00
+drm: pixel 700,500 0xff00ff00
+drm: pixel 1023,767 0xff00ff00
+swap 2: ok
+drm: crc 0xd9867bd7
+drm: pixel 0,0 0xff0000ff
+drm: pixel 100,100 0xff0000ff
+drm: pixel 300,200 0xff0000ff
+drm: pixel 512,384 0xff0000ff
+drm: pixel 700,500 0xff0000ff
+drm: pixel 1023,767 0xff0000ff
+swap interval 1: ok
+swap 0: ok
+drm: crc 0x9b7e27fb
+drm: pixel 0,0 0xffff0000
+drm: pixel 100,100 0xffff0000
+drm: pixel 300,200 0xffff0000
+drm: pixel 512,384 0xffff0000
+drm: pixel 700,500 0xffff0000
+drm: pixel 1023,767 0xffff0000
+swap 1: ok
+drm: crc 0x87ba7f7a
+drm: pixel 0,0 0xff00ff00
+drm: pixel 100,100 0xff00ff00
+drm: pixel 300,200 0xff00ff00
+drm: pixel 512,384 0xff00ff00
+drm: pixel 700,500 0xff00ff00
+drm: pixel 1023,767 0xff00ff00
+swap 2: ok
+drm: crc 0xd9867bd7
+drm: pixel 0,0 0xff0000ff
+drm: pixel 100,100 0xff0000ff
+drm: pixel 300,200 0xff0000ff
+drm: pixel 512,384 0xff0000ff
+drm: pixel 700,500 0xff0000ff
+drm: pixel 1023,767 0xff0000ff
+swap twice: ok
+drm: crc 0xf99e45f0
+drm: pixel 0,0 0xff808080
+drm: pixel 100,100 0xff808080
+drm: pixel 300,200 0xff808080
+drm: pixel 512,384 0xff808080
+drm: pixel 700,500 0xff808080
+drm: pixel 1023,767 0xff808080
+quit
+drm: crtc 1024x768 (1024x768) on
+drm: plane primary fb 1024x768 XR24 src 0,0 1024x768 crtc 0,0 1024x768
+-- legacy (SDL_KMSDRM_ATOMIC=0)
+init: ok (kmsdrm)
+window: ok
+context: ok
+swap interval 0: ok
+swap 0: ok
+drm: crtc 1024x768 (1024x768) on
+drm: plane primary fb 1024x768 XR24 src 0,0 1024x768 crtc 0,0 1024x768
+drm: plane cursor fb 512x512 AR24 src 0,0 512x512 crtc 0,0 512x512
+drm: crc 0xbc7130f0
+drm: pixel 0,0 0x00000000
+drm: pixel 100,100 0x00000000
+drm: pixel 300,200 0x00000000
+drm: pixel 512,384 0x00000000
+drm: pixel 700,500 0x00000000
+drm: pixel 1023,767 0x00000000
+swap 1: ok
+drm: crc 0x87ba7f7a
+drm: pixel 0,0 0xff00ff00
+drm: pixel 100,100 0xff00ff00
+drm: pixel 300,200 0xff00ff00
+drm: pixel 512,384 0xff00ff00
+drm: pixel 700,500 0xff00ff00
+drm: pixel 1023,767 0xff00ff00
+swap 2: ok
+drm: crc 0xd9867bd7
+drm: pixel 0,0 0xff0000ff
+drm: pixel 100,100 0xff0000ff
+drm: pixel 300,200 0xff0000ff
+drm: pixel 512,384 0xff0000ff
+drm: pixel 700,500 0xff0000ff
+drm: pixel 1023,767 0xff0000ff
+swap interval 1: ok
+swap 0: ok
+drm: crc 0x9b7e27fb
+drm: pixel 0,0 0xffff0000
+drm: pixel 100,100 0xffff0000
+drm: pixel 300,200 0xffff0000
+drm: pixel 512,384 0xffff0000
+drm: pixel 700,500 0xffff0000
+drm: pixel 1023,767 0xffff0000
+swap 1: ok
+drm: crc 0x87ba7f7a
+drm: pixel 0,0 0xff00ff00
+drm: pixel 100,100 0xff00ff00
+drm: pixel 300,200 0xff00ff00
+drm: pixel 512,384 0xff00ff00
+drm: pixel 700,500 0xff00ff00
+drm: pixel 1023,767 0xff00ff00
+swap 2: ok
+drm: crc 0xd9867bd7
+drm: pixel 0,0 0xff0000ff
+drm: pixel 100,100 0xff0000ff
+drm: pixel 300,200 0xff0000ff
+drm: pixel 512,384 0xff0000ff
+drm: pixel 700,500 0xff0000ff
+drm: pixel 1023,767 0xff0000ff
+swap twice: ok
+drm: crc 0xf99e45f0
+drm: pixel 0,0 0xff808080
+drm: pixel 100,100 0xff808080
+drm: pixel 300,200 0xff808080
+drm: pixel 512,384 0xff808080
+drm: pixel 700,500 0xff808080
+drm: pixel 1023,767 0xff808080
+quit
+drm: crtc 1024x768 (1024x768) on
+drm: plane primary fb 1024x768 XR24 src 0,0 1024x768 crtc 0,0 1024x768
+-- legacy, double buffered
+init: ok (kmsdrm)
+window: ok
+context: ok
+swap interval 0: ok
+swap 0: ok
+drm: crtc 1024x768 (1024x768) on
+drm: plane primary fb 1024x768 XR24 src 0,0 1024x768 crtc 0,0 1024x768
+drm: plane cursor fb 512x512 AR24 src 0,0 512x512 crtc 0,0 512x512
+drm: crc 0xbc7130f0
+drm: pixel 0,0 0x00000000
+drm: pixel 100,100 0x00000000
+drm: pixel 300,200 0x00000000
+drm: pixel 512,384 0x00000000
+drm: pixel 700,500 0x00000000
+drm: pixel 1023,767 0x00000000
+swap 1: ok
+drm: crc 0x87ba7f7a
+drm: pixel 0,0 0xff00ff00
+drm: pixel 100,100 0xff00ff00
+drm: pixel 300,200 0xff00ff00
+drm: pixel 512,384 0xff00ff00
+drm: pixel 700,500 0xff00ff00
+drm: pixel 1023,767 0xff00ff00
+swap 2: ok
+drm: crc 0xd9867bd7
+drm: pixel 0,0 0xff0000ff
+drm: pixel 100,100 0xff0000ff
+drm: pixel 300,200 0xff0000ff
+drm: pixel 512,384 0xff0000ff
+drm: pixel 700,500 0xff0000ff
+drm: pixel 1023,767 0xff0000ff
+swap interval 1: ok
+swap 0: ok
+drm: crc 0x9b7e27fb
+drm: pixel 0,0 0xffff0000
+drm: pixel 100,100 0xffff0000
+drm: pixel 300,200 0xffff0000
+drm: pixel 512,384 0xffff0000
+drm: pixel 700,500 0xffff0000
+drm: pixel 1023,767 0xffff0000
+swap 1: ok
+drm: crc 0x87ba7f7a
+drm: pixel 0,0 0xff00ff00
+drm: pixel 100,100 0xff00ff00
+drm: pixel 300,200 0xff00ff00
+drm: pixel 512,384 0xff00ff00
+drm: pixel 700,500 0xff00ff00
+drm: pixel 1023,767 0xff00ff00
+swap 2: ok
+drm: crc 0xd9867bd7
+drm: pixel 0,0 0xff0000ff
+drm: pixel 100,100 0xff0000ff
+drm: pixel 300,200 0xff0000ff
+drm: pixel 512,384 0xff0000ff
+drm: pixel 700,500 0xff0000ff
+drm: pixel 1023,767 0xff0000ff
+swap twice: ok
+drm: crc 0xf99e45f0
+drm: pixel 0,0 0xff808080
+drm: pixel 100,100 0xff808080
+drm: pixel 300,200 0xff808080
+drm: pixel 512,384 0xff808080
+drm: pixel 700,500 0xff808080
+drm: pixel 1023,767 0xff808080
+quit
+drm: crtc 1024x768 (1024x768) on
+drm: plane primary fb 1024x768 XR24 src 0,0 1024x768 crtc 0,0 1024x768
+-- renderer opengles2
+init: ok (kmsdrm)
+window: ok
+renderer: ok
+name: opengles2
+output size: (1024, 768)
+texture: ok
+read back 0: 1024x768 9b087a25
+present 0: ok
+drm: crc 0xbc7130f0
+drm: pixel 0,0 0x00000000
+drm: pixel 100,100 0x00000000
+drm: pixel 300,200 0x00000000
+drm: pixel 512,384 0x00000000
+drm: pixel 700,500 0x00000000
+drm: pixel 1023,767 0x00000000
+read back 1: 1024x768 b9939625
+present 1: ok
+drm: crc 0xeb45f386
+drm: pixel 0,0 0xff208060
+drm: pixel 100,100 0xffff8080
+drm: pixel 300,200 0xff00ff00
+drm: pixel 512,384 0xff0000ff
+drm: pixel 700,500 0xff8080ff
+drm: pixel 1023,767 0xff208060
+drm: crtc 1024x768 (1024x768) on
+drm: plane primary fb 1024x768 XR24 src 0,0 1024x768 crtc 0,0 1024x768
+drm: plane cursor fb 512x512 AR24 src 0,0 512x512 crtc 0,0 512x512
+quit
+-- renderer opengl
+init: ok (kmsdrm)
+window: ok
+renderer: ok
+name: opengl
+output size: (1024, 768)
+texture: ok
+read back 0: 1024x768 9b087a25
+present 0: ok
+drm: crc 0xbc7130f0
+drm: pixel 0,0 0x00000000
+drm: pixel 100,100 0x00000000
+drm: pixel 300,200 0x00000000
+drm: pixel 512,384 0x00000000
+drm: pixel 700,500 0x00000000
+drm: pixel 1023,767 0x00000000
+read back 1: 1024x768 b9939625
+present 1: ok
+drm: crc 0xeb45f386
+drm: pixel 0,0 0xff208060
+drm: pixel 100,100 0xffff8080
+drm: pixel 300,200 0xff00ff00
+drm: pixel 512,384 0xff0000ff
+drm: pixel 700,500 0xff8080ff
+drm: pixel 1023,767 0xff208060
+drm: crtc 1024x768 (1024x768) on
+drm: plane primary fb 1024x768 XR24 src 0,0 1024x768 crtc 0,0 1024x768
+drm: plane cursor fb 512x512 AR24 src 0,0 512x512 crtc 0,0 512x512
+quit
+-- window surface
+init: ok (kmsdrm)
+window: ok
+surface: ok
+surface: 1024x768 SDL_PIXELFORMAT_ARGB8888
+update 0: ok
+drm: crc 0xbc7130f0
+drm: pixel 0,0 0x00000000
+drm: pixel 100,100 0x00000000
+drm: pixel 300,200 0x00000000
+drm: pixel 512,384 0x00000000
+drm: pixel 700,500 0x00000000
+drm: pixel 1023,767 0x00000000
+update 1: ok
+drm: crc 0x7e943c28
+drm: pixel 0,0 0xff108430
+drm: pixel 100,100 0xffff0000
+drm: pixel 300,200 0xff00ff00
+drm: pixel 512,384 0xff108430
+drm: pixel 700,500 0xff108430
+drm: pixel 1023,767 0xff108430
+drm: crtc 1024x768 (1024x768) on
+drm: plane primary fb 1024x768 XR24 src 0,0 1024x768 crtc 0,0 1024x768
+drm: plane cursor fb 512x512 AR24 src 0,0 512x512 crtc 0,0 512x512
+quit
+drm: crtc 1024x768 (1024x768) on
+drm: plane primary fb 1024x768 XR24 src 0,0 1024x768 crtc 0,0 1024x768
 ";
 
     const PROGRAM: &str = "kmsdrm_gles";

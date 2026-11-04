@@ -58,7 +58,105 @@ mod app {
 
     /// Upstream's trace (the C program, by the runner, on the CI runner).
     const EXPECTED: &str = "\
-versions: (the reference's)
+versions: kernel 7.0.0-1017-azure, Mesa 25.2.8-0ubuntu0.24.04.4, libdrm 2.4.125-1ubuntu0.1~24.04.2
+-- init
+init: ok (kmsdrm)
+warp global before a window: error: That operation is not supported
+color cursor before a window: ok
+default cursor before a window: true
+-- window
+window: ok
+default cursor: true, current is default: true
+window event 0x207 1024 768 window
+window event 0x20c 0 0 window
+window event 0x20e 0 0 window
+window event 0x202 0 0 window
+window event 0x215 0 0 window
+mouse: at (0.0, 0.0) buttons 0x0 focus window cursor visible true
+drm: crtc 1024x768 (1024x768) on
+drm: plane primary fb 1024x768 XR24 src 0,0 1024x768 crtc 0,0 1024x768
+drm: plane cursor fb 512x512 AR24 src 0,0 512x512 crtc 0,0 512x512
+context: ok
+swap: ok
+mouse: at (0.0, 0.0) buttons 0x0 focus window cursor visible true
+drm: crtc 1024x768 (1024x768) on
+drm: plane primary fb 1024x768 XR24 src 0,0 1024x768 crtc 0,0 1024x768
+drm: plane cursor fb 512x512 AR24 src 0,0 512x512 crtc 0,0 512x512
+drm: crc 0xbc7130f0
+-- warps
+motion 0 at (100.0, 200.0) rel (0.0, 0.0) window
+mouse: at (100.0, 200.0) buttons 0x0 focus window cursor visible true
+drm: crtc 1024x768 (1024x768) on
+drm: plane primary fb 1024x768 XR24 src 0,0 1024x768 crtc 0,0 1024x768
+drm: plane cursor fb 512x512 AR24 src 0,0 512x512 crtc 100,200 512x512
+drm: crc 0x21c9ad16
+warp global: ok
+motion 0 at (300.5, 400.5) rel (200.5, 200.5) window
+mouse: at (300.5, 400.5) buttons 0x0 focus window cursor visible true
+drm: crtc 1024x768 (1024x768) on
+drm: plane primary fb 1024x768 XR24 src 0,0 1024x768 crtc 0,0 1024x768
+drm: plane cursor fb 512x512 AR24 src 0,0 512x512 crtc 300,400 512x512
+drm: crc 0x2907ad7b
+motion 0 at (1023.0, 767.0) rel (0.0, 0.0) window
+mouse: at (1023.0, 767.0) buttons 0x0 focus window cursor visible true
+drm: crtc 1024x768 (1024x768) on
+drm: plane primary fb 1024x768 XR24 src 0,0 1024x768 crtc 0,0 1024x768
+drm: plane cursor fb 512x512 AR24 src 0,0 512x512 crtc 1023,767 512x512
+-- color cursor
+motion 0 at (400.0, 300.0) rel (0.0, 0.0) window
+mouse: at (400.0, 300.0) buttons 0x0 focus window cursor visible true
+color cursor: ok
+set cursor: ok
+drm: crtc 1024x768 (1024x768) on
+drm: plane primary fb 1024x768 XR24 src 0,0 1024x768 crtc 0,0 1024x768
+drm: plane cursor fb 512x512 AR24 src 0,0 512x512 crtc 400,300 512x512
+drm: crc 0xf58998c4
+motion 0 at (50.0, 60.0) rel (0.0, 0.0) window
+mouse: at (50.0, 60.0) buttons 0x0 focus window cursor visible true
+drm: crtc 1024x768 (1024x768) on
+drm: plane primary fb 1024x768 XR24 src 0,0 1024x768 crtc 0,0 1024x768
+drm: plane cursor fb 512x512 AR24 src 0,0 512x512 crtc 50,60 512x512
+drm: crc 0xdba8a56a
+-- hidden and shown
+mouse: at (50.0, 60.0) buttons 0x0 focus window cursor visible false
+drm: crtc 1024x768 (1024x768) on
+drm: plane primary fb 1024x768 XR24 src 0,0 1024x768 crtc 0,0 1024x768
+drm: crc 0x4c4126bf
+mouse: at (50.0, 60.0) buttons 0x0 focus window cursor visible true
+drm: crtc 1024x768 (1024x768) on
+drm: plane primary fb 1024x768 XR24 src 0,0 1024x768 crtc 0,0 1024x768
+drm: plane cursor fb 512x512 AR24 src 0,0 512x512 crtc 50,60 512x512
+drm: crc 0xdba8a56a
+-- relative mode
+relative mode on: ok
+mouse: at (50.0, 60.0) buttons 0x0 focus window cursor visible true
+drm: crtc 1024x768 (1024x768) on
+drm: plane primary fb 1024x768 XR24 src 0,0 1024x768 crtc 0,0 1024x768
+relative mode off: ok
+mouse: at (50.0, 60.0) buttons 0x0 focus window cursor visible true
+drm: crtc 1024x768 (1024x768) on
+drm: plane primary fb 1024x768 XR24 src 0,0 1024x768 crtc 0,0 1024x768
+drm: plane cursor fb 512x512 AR24 src 0,0 512x512 crtc 50,60 512x512
+-- system cursor
+system cursor: error: CreateSystemCursor is not currently supported
+-- destroyed
+cursor destroyed, current is default: true
+mouse: at (50.0, 60.0) buttons 0x0 focus window cursor visible true
+drm: crtc 1024x768 (1024x768) on
+drm: plane primary fb 1024x768 XR24 src 0,0 1024x768 crtc 0,0 1024x768
+drm: plane cursor fb 512x512 AR24 src 0,0 512x512 crtc 50,60 512x512
+drm: crc 0xce42ca99
+motion 0 at (0.0, 0.0) rel (0.0, 0.0) window
+mouse: at (0.0, 0.0) buttons 0x0 focus window cursor visible true
+drm: crtc 1024x768 (1024x768) on
+drm: plane primary fb 1024x768 XR24 src 0,0 1024x768 crtc 0,0 1024x768
+drm: plane cursor fb 512x512 AR24 src 0,0 512x512 crtc 0,0 512x512
+window destroyed
+drm: crtc 1024x768 (1024x768) on
+drm: plane primary fb 1024x768 XR24 src 0,0 1024x768 crtc 0,0 1024x768
+quit
+drm: crtc 1024x768 (1024x768) on
+drm: plane primary fb 1024x768 XR24 src 0,0 1024x768 crtc 0,0 1024x768
 ";
 
     const PROGRAM: &str = "kmsdrm_cursor";

@@ -58,7 +58,80 @@ mod app {
 
     /// Upstream's trace (the C program, by the runner, on the CI runner).
     const EXPECTED: &str = "\
-versions: (the reference's)
+versions: kernel 7.0.0-1017-azure, Mesa 25.2.8-0ubuntu0.24.04.4, libdrm 2.4.125-1ubuntu0.1~24.04.2
+vt: active 3
+vt: keyboard K_UNICODE mode VT_AUTO
+-- init
+init: ok (kmsdrm)
+window: ok
+window event 0x207 1024 768 window
+window event 0x20c 0 0 window
+window event 0x20e 0 0 window
+window event 0x202 0 0 window
+window event 0x215 0 0 window
+context: ok
+swap: ok
+vt: keyboard K_OFF mode VT_PROCESS
+drm: master taken
+-- devices
+uinput: added SDL3 kmsdrm keyboard
+uinput: added SDL3 kmsdrm mouse
+keyboard added: SDL3 kmsdrm keyboard
+mouse added: SDL3 kmsdrm mouse
+-- keys and mouse
+key down A key A mod 0x0000 window
+text \"a\" window
+key up A key A mod 0x0000 window
+key down 1 key 1 mod 0x0000 window
+text \"1\" window
+key up 1 key 1 mod 0x0000 window
+key down Left Shift key Left Shift mod 0x0001 window
+key down B key B mod 0x0001 window
+text \"B\" window
+key up B key B mod 0x0001 window
+key up Left Shift key Left Shift mod 0x0000 window
+mouse: at (40.0, 30.0) buttons 0x0
+drm: crtc 1024x768 (1024x768) on
+drm: plane primary fb 1024x768 XR24 src 0,0 1024x768 crtc 0,0 1024x768
+drm: plane cursor fb 512x512 AR24 src 0,0 512x512 crtc 40,30 512x512
+mouse: at (40.0, 30.0) buttons 0x0
+-- vt switch away
+vt: activating 1
+vt: active 1
+vt: keyboard K_OFF mode VT_PROCESS
+drm: master free
+drm: crtc 1024x768 (1024x768) on
+drm: plane primary fb 1024x768 XR24 src 0,0 1024x768 crtc 0,0 1024x768
+drm: plane cursor fb 512x512 AR24 src 0,0 512x512 crtc 40,30 512x512
+-- vt switch back
+vt: active 3
+vt: keyboard K_OFF mode VT_PROCESS
+drm: master taken
+swap: ok
+drm: crtc 1024x768 (1024x768) on
+drm: plane primary fb 1024x768 XR24 src 0,0 1024x768 crtc 0,0 1024x768
+drm: plane cursor fb 512x512 AR24 src 0,0 512x512 crtc 40,30 512x512
+drm: crc 0x0b41bf6d
+key down Z key Z mod 0x0000 window
+text \"z\" window
+key up Z key Z mod 0x0000 window
+mouse: at (20.0, 30.0) buttons 0x0
+drm: crtc 1024x768 (1024x768) on
+drm: plane primary fb 1024x768 XR24 src 0,0 1024x768 crtc 0,0 1024x768
+drm: plane cursor fb 512x512 AR24 src 0,0 512x512 crtc 20,30 512x512
+drm: crtc 1024x768 (1024x768) on
+drm: plane primary fb 1024x768 XR24 src 0,0 1024x768 crtc 0,0 1024x768
+drm: plane cursor fb 512x512 AR24 src 0,0 512x512 crtc 0,0 512x512
+-- removed
+uinput: removed SDL3 kmsdrm keyboard
+uinput: removed SDL3 kmsdrm mouse
+keyboard removed: SDL3 kmsdrm keyboard
+mouse removed: SDL3 kmsdrm mouse
+window destroyed
+quit
+vt: keyboard K_UNICODE mode VT_AUTO
+drm: crtc 1024x768 (1024x768) on
+drm: plane primary fb 1024x768 XR24 src 0,0 1024x768 crtc 0,0 1024x768
 ";
 
     const PROGRAM: &str = "kmsdrm_input";
@@ -86,6 +159,15 @@ versions: (the reference's)
             } else {
                 "another"
             }
+        }
+
+        /// Who a mouse event is from: "global" (the reader's mice, and
+        /// warps), or one of these devices (`None`: another).
+        fn mouse(&self, which: u32) -> Option<String> {
+            if which == 0 {
+                return Some("global".to_owned());
+            }
+            self.mice.get(&which).filter(|n| ours(n)).cloned()
         }
 
         /// The event's line, if it's one of the traced ones (of these
@@ -134,30 +216,26 @@ versions: (the reference's)
                     Some(format!("text \"{}\" {}", t.text, self.window(t.window_id)))
                 }
                 Event::MouseMotion(m) => {
-                    let name = self.mice.get(&m.which)?;
-                    ours(name).then(|| {
-                        format!(
-                            "motion at ({:.1}, {:.1}) rel ({:.1}, {:.1}) {}",
-                            m.x,
-                            m.y,
-                            m.xrel,
-                            m.yrel,
-                            self.window(m.window_id)
-                        )
-                    })
+                    let who = self.mouse(m.which)?;
+                    Some(format!(
+                        "motion {who} at ({:.1}, {:.1}) rel ({:.1}, {:.1}) {}",
+                        m.x,
+                        m.y,
+                        m.xrel,
+                        m.yrel,
+                        self.window(m.window_id)
+                    ))
                 }
                 Event::MouseButton(b) => {
-                    let name = self.mice.get(&b.which)?;
-                    ours(name).then(|| {
-                        format!(
-                            "button {} {} at ({:.1}, {:.1}) {}",
-                            if b.down { "down" } else { "up" },
-                            b.button,
-                            b.x,
-                            b.y,
-                            self.window(b.window_id)
-                        )
-                    })
+                    let who = self.mouse(b.which)?;
+                    Some(format!(
+                        "button {} {} {who} at ({:.1}, {:.1}) {}",
+                        if b.down { "down" } else { "up" },
+                        b.button,
+                        b.x,
+                        b.y,
+                        self.window(b.window_id)
+                    ))
                 }
                 Event::Window(w) => Some(format!(
                     "window event 0x{:x} {} {} {}",
