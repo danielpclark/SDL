@@ -65,11 +65,25 @@ pub(crate) type VtSwitchCallback = Box<dyn FnMut() + Send>;
  * Keyboard State
  */
 
+/// The console's keymaps read before it's muted: by map (`MAX_NR_KEYMAPS`
+/// of them, read where there's a built-in table), the keys' `KDGKBENT`
+/// values.
+type MutedKeyMaps = Vec<Option<Box<[Option<u16>; NR_KEYS]>>>;
+
 /// Translation of `struct SDL_EVDEV_keyboard_state`.
 pub(crate) struct EvdevKeyboardState {
     console_fd: c_int,
     muted: bool,
     old_kbd_mode: c_int,
+    // Note (upstream): the console's keymaps as they were when it was muted
+    // (KDGKBENT of each key of the maps there are built-in tables for;
+    // None where it failed), which the keysyms come from while
+    // it is. KDGKBENT gives K_HOLE for the Unicode keysyms of a console that
+    // isn't in K_UNICODE, as a muted one (K_OFF) isn't: upstream, which
+    // asks while muted, makes no text of them (every key past ASCII in a
+    // keymap loaded in Unicode, as console-setup's). A keymap loaded while
+    // muted isn't seen until the console is muted again.
+    muted_key_maps: Option<MutedKeyMaps>,
     key_maps: &'static [Option<&'static [u16; NR_KEYS]>; MAX_NR_KEYMAPS],
     shift_down: [u8; NR_SHIFT], // shift state counters..
     dead_key_next: bool,
@@ -481,6 +495,7 @@ impl EvdevKeyboardState {
             console_fd: -1,
             muted: false,
             old_kbd_mode: 0,
+            muted_key_maps: None,
             key_maps: &DEFAULT_KEY_MAPS,
             shift_down: [0; NR_SHIFT],
             dead_key_next: false,
@@ -552,6 +567,9 @@ impl EvdevKeyboardState {
                 /* Mute the keyboard so keystrokes only generate evdev events
                  * and do not leak through to the console
                  */
+                if self.console_fd >= 0 {
+                    self.muted_key_maps = Some(self.read_key_maps());
+                }
                 ioctl_int(self.console_fd, KDSKBMODE, K_OFF);
 
                 /* Make sure to restore keyboard if application fails to call
@@ -563,6 +581,7 @@ impl EvdevKeyboardState {
             }
         } else {
             kbd_unregister_emerg_cleanup();
+            self.muted_key_maps = None;
 
             // Restore the original keyboard mode
             ioctl_int(self.console_fd, KDSKBMODE, self.old_kbd_mode);
@@ -614,6 +633,7 @@ impl EvdevKeyboardState {
             console_fd: -1,
             muted: false,
             old_kbd_mode: 0,
+            muted_key_maps: None,
             key_maps: &DEFAULT_KEY_MAPS,
             shift_down: [0; NR_SHIFT],
             dead_key_next: false,
@@ -1003,11 +1023,37 @@ fn k_slock(kbd: &mut EvdevKeyboardState, value: u8, up_flag: bool) {
 fn k_brl(_kbd: &mut EvdevKeyboardState, _value: u8, _up_flag: bool) {}
 
 impl EvdevKeyboardState {
-    /// The keysym of a key in a keymap: the console's (`KDGKBENT`), or the
-    /// built-in table's without one.
+    /// The console's keymaps there are built-in tables for, read
+    /// (`KDGKBENT`) before it's muted (see `muted_key_maps`).
+    fn read_key_maps(&self) -> MutedKeyMaps {
+        let mut maps: MutedKeyMaps = vec![None; MAX_NR_KEYMAPS];
+        for (table, map) in self.key_maps.iter().enumerate() {
+            if map.is_none() {
+                continue;
+            }
+            let mut entries = Box::new([None; NR_KEYS]);
+            for (index, entry) in entries.iter_mut().enumerate() {
+                let mut kbe = kbentry {
+                    kb_table: table as u8,
+                    kb_index: index as u8,
+                    kb_value: 0,
+                };
+                if ioctl_read(self.console_fd, KDGKBENT, &mut kbe) == 0 {
+                    *entry = Some(kbe.kb_value);
+                }
+            }
+            maps[table] = Some(entries);
+        }
+        maps
+    }
+
+    /// The keysym of a key in a keymap: the console's (`KDGKBENT`; while
+    /// it's muted, as it was then), or the built-in table's without one.
     fn keysym(&self, key_map: &[u16; NR_KEYS], shift_final: u8, keycode: usize) -> Option<u16> {
         if self.console_fd < 0 {
             Some(key_map[keycode])
+        } else if let Some(maps) = &self.muted_key_maps {
+            maps[usize::from(shift_final)].as_ref()?[keycode].map(|value| value ^ 0xf000)
         } else {
             let mut kbe = kbentry {
                 kb_table: shift_final,
