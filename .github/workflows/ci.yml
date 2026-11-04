@@ -383,6 +383,12 @@ jobs:
           MTL_DEBUG_LAYER: 0
           SDL3_TEST_SKIP_LOG: ${{ runner.temp }}/skips-moltenvk.tsv
           SDL3_TEST_REQUIRE: vulkan
+      # When a step failed: the crash reports of the processes that crashed
+      # (a test binary's SIGSEGV or SIGABRT, which cargo reports only as the
+      # signal), with every thread's stack.
+      - name: Print the crash reports
+        if: failure() && runner.os == 'macOS'
+        run: tools/ci/macos-crash-reports.sh
       - name: List the skipped checks
         if: always()
         shell: bash
