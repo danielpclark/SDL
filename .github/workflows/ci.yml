@@ -431,7 +431,9 @@ jobs:
   # whose DRM driver is vkms and sets SDL_KMSDRM_DEVICE_INDEX to it, which
   # keeps the programs off the VM's own display (and the traces name
   # neither the card's index nor its connector's number, which varies the
-  # same way). A frame that never flips would hang in upstream's
+  # same way). kmsdrm_displays makes a vkms device of two pipelines
+  # through vkms's configfs for itself (the runner's `vkms add`), and
+  # removes it. A frame that never flips would hang in upstream's
   # page-flip wait (poll() without a timeout): each program is stopped
   # after SDL3_CONSOLE_TIMEOUT seconds (the runner fails the run then),
   # and the job has its own timeout.
@@ -513,8 +515,9 @@ jobs:
           # for the steps after, root appending to it)
           : > "$SDL3_TEST_SKIP_LOG"
           cargo test -p sdl3 --test kmsdrm_video --test kmsdrm_gles --test kmsdrm_cursor \
-            --test kmsdrm_input --test kmsdrm_vulkan --no-run --message-format=json > "$RUNNER_TEMP/kmsdrm.json"
-          for program in kmsdrm_video kmsdrm_gles kmsdrm_cursor kmsdrm_input kmsdrm_vulkan; do
+            --test kmsdrm_input --test kmsdrm_vulkan --test kmsdrm_displays --no-run --message-format=json \
+            > "$RUNNER_TEMP/kmsdrm.json"
+          for program in kmsdrm_video kmsdrm_gles kmsdrm_cursor kmsdrm_input kmsdrm_vulkan kmsdrm_displays; do
             exe="$(python3 -c 'import json, sys; [print(m["executable"]) for m in map(json.loads, open(sys.argv[1])) if m.get("reason") == "compiler-artifact" and m.get("executable") and m["target"]["name"] == sys.argv[2]]' "$RUNNER_TEMP/kmsdrm.json" "$program")"
             test -n "$exe"
             echo "== $program"
