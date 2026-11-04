@@ -118,9 +118,13 @@ fn validation_layer_available() -> bool {
             return false;
         }
 
-        // Note (upstream): the structures' type isn't set (the loader's
-        // check of XR_TYPE_API_LAYER_PROPERTIES is skipped by the ones that
-        // fill them anyway); kept.
+        // FIXME (upstream): the structures' type isn't set to
+        // XR_TYPE_API_LAYER_PROPERTIES, which the Khronos loader checks
+        // (Ubuntu 24.04's 1.0.20: "VUID-XrApiLayerProperties-type-type:
+        // unknown type in api_layer_properties"), so with any layer
+        // installed this second call fails: nothing is logged and the
+        // validation layer is never enabled in debug mode. Kept, as
+        // upstream's C does it.
         let mut apiLayerProperties = vec![XrApiLayerProperties::default(); apiLayerCount as usize];
         // SAFETY: an array of apiLayerCount structures.
         if unsafe {
