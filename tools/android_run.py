@@ -1680,6 +1680,10 @@ def write_apk(program, elf, out, env, temp):
                 zip_out.writestr(info, f.read())
         # (uncompressed, so that zipalign page-aligns it)
         zip_out.write(program, f"lib/{abi}/libmain.so", compress_type=zipfile.ZIP_STORED)
+        # (diag only) more libraries beside it
+        for extra in os.environ.get("SDL3_ANDROID_EXTRA_LIBS", "").split(os.pathsep):
+            if extra:
+                zip_out.write(extra, f"lib/{abi}/{os.path.basename(extra)}", compress_type=zipfile.ZIP_STORED)
     aligned = os.path.join(temp, "aligned.apk")
     run_tool([os.path.join(tools, "zipalign"), "-P", "16", "-f", "4", unsigned, aligned], timeout=300)
     run_tool([

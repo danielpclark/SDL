@@ -1,0 +1,252 @@
+# Throwaway diag workflow (claude/diag-openxr-probe only, never merged):
+# probes the runners for the OpenXR phase (docs: the phase's plan, PR 0).
+name: openxr-probe
+
+on:
+  push:
+    branches: [claude/diag-openxr-probe]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  UPSTREAM_COMMIT: ea7a2da
+
+jobs:
+  linux:
+    name: probe (Linux, Monado null compositor)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q monado-service libopenxr1-monado libopenxr-loader1 libopenxr-dev \
+            openxr-layer-corevalidation vulkan-validationlayers mesa-vulkan-drivers libvulkan1 libvulkan-dev \
+            vulkan-tools ninja-build cmake gcc > "$RUNNER_TEMP/apt.log" 2>&1 || { tail -50 "$RUNNER_TEMP/apt.log"; exit 1; }
+          grep -cE "^(Setting up|Unpacking)" "$RUNNER_TEMP/apt.log" || true
+      - name: Build upstream at ea7a2da (offscreen, Vulkan, OpenXR, tests)
+        run: |
+          git clone -q --filter=blob:none https://github.com/libsdl-org/SDL "$RUNNER_TEMP/upstream"
+          git -C "$RUNNER_TEMP/upstream" checkout -q "$UPSTREAM_COMMIT"
+          git -C "$RUNNER_TEMP/upstream" log --oneline -1
+          cmake -S "$RUNNER_TEMP/upstream" -B "$RUNNER_TEMP/upstream/build" -G Ninja -DCMAKE_BUILD_TYPE=Debug \
+            -DSDL_SHARED=ON -DSDL_STATIC=OFF -DSDL_TESTS=ON -DSDL_EXAMPLES=OFF -DSDL_X11=OFF -DSDL_WAYLAND=OFF \
+            -DSDL_OFFSCREEN=ON -DSDL_VULKAN=ON -DSDL_GPU_OPENXR=ON > "$RUNNER_TEMP/cmake.log" 2>&1 || { tail -60 "$RUNNER_TEMP/cmake.log"; exit 1; }
+          grep -iE "openxr|vulkan|offscreen" "$RUNNER_TEMP/cmake.log" | head -20 || true
+          cmake --build "$RUNNER_TEMP/upstream/build" --target SDL3-shared testgpu_spinning_cube_xr > "$RUNNER_TEMP/build.log" 2>&1 || { tail -60 "$RUNNER_TEMP/build.log"; exit 1; }
+          grep -n HAVE_GPU_OPENXR "$RUNNER_TEMP/upstream/build/include-config-debug/build_config/SDL_build_config.h" || grep -rn "HAVE_GPU_OPENXR" "$RUNNER_TEMP/upstream/build" --include=SDL_build_config.h | head -3
+      - name: Build the probes
+        run: |
+          O="$RUNNER_TEMP/out"
+          mkdir -p "$O"
+          gcc -O1 -o "$O/xrprobe" diag/xrprobe.c -ldl
+          gcc -O1 -o "$O/xrprobe2" diag/xrprobe2.c -ldl
+          K="$RUNNER_TEMP/upstream/src/video/khronos"
+          gcc -o "$O/layout" -I"$K" diag/layout.c
+          gcc -Wall -O1 -o "$O/sdlxr" diag/sdlxr.c -I"$RUNNER_TEMP/upstream/include" -I"$RUNNER_TEMP/upstream/build/include" -I"$K" \
+            -L"$RUNNER_TEMP/upstream/build" -lSDL3 -Wl,-rpath,"$RUNNER_TEMP/upstream/build"
+          "$O/layout" > "$O/layout.txt"
+          cat "$O/layout.txt"
+      - name: Probe
+        env:
+          UP: ${{ runner.temp }}/upstream
+        run: bash diag/linux.sh "$RUNNER_TEMP/out" 2>&1 | tee "$RUNNER_TEMP/findings.txt"
+      - name: Upload
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: findings-linux
+          path: ${{ runner.temp }}/out
+      - name: Findings (again, last)
+        if: always()
+        run: |
+          grep -E "^== |^exit|^formats|^HANDHELD|^xrGetSystem|^frame [0-2] |^frame 9 |^no-xr|^Destroy|^device|^log\[|^SDL_|^ok|^monado" "$RUNNER_TEMP/findings.txt" | cut -c1-300 | tail -250 || true
+
+  windows:
+    name: probe (Windows)
+    runs-on: windows-latest
+    timeout-minutes: 40
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v5
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          path-type: inherit
+          install: mingw-w64-x86_64-gcc
+      - name: Elevation
+        run: |
+          whoami
+          whoami //groups | grep -iE "mandatory|administrators" || true
+      - name: The Khronos loader (the release's zip)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          W="$RUNNER_TEMP/xr"
+          mkdir -p "$W/dl"
+          gh api repos/KhronosGroup/OpenXR-SDK-Source/releases?per_page=5 --jq '.[] | .tag_name + " " + .published_at' || true
+          gh api repos/KhronosGroup/OpenXR-SDK-Source/releases/latest --jq '.tag_name, (.assets[] | .name + " " + (.size|tostring) + " " + (.digest // "no-digest") + " " + .browser_download_url)' | tee "$W/assets.txt"
+          URL="$(grep -E 'openxr_loader_windows-[0-9.]+\.zip ' "$W/assets.txt" | awk '{print $4}' | head -1)"
+          DIGEST="$(grep -E 'openxr_loader_windows-[0-9.]+\.zip ' "$W/assets.txt" | awk '{print $3}' | head -1)"
+          echo "URL=$URL DIGEST=$DIGEST"
+          curl -fsSL --retry 5 --retry-delay 10 --retry-all-errors -o "$W/dl/loader.zip" "$URL"
+          SHA="$(sha256sum "$W/dl/loader.zip" | awk '{print $1}')"
+          echo "sha256 $SHA"
+          if [ "sha256:$SHA" = "$DIGEST" ]; then echo "the publisher's digest matches"; else echo "DIGEST: none or different ($DIGEST)"; fi
+          mkdir -p "$W/zip"
+          cd "$W/zip" && 7z x -y ../dl/loader.zip > /dev/null
+          find "$W/zip" -maxdepth 4 | head -40
+          DLL="$(find "$W/zip" -path '*x64*' -name openxr_loader.dll | head -1)"
+          echo "dll $DLL"
+          sha256sum "$DLL"
+          echo "XR_DLL=$DLL" >> "$GITHUB_ENV"
+          echo "XR_INC=$(dirname "$(find "$W/zip" -name openxr.h | head -1)")/.." >> "$GITHUB_ENV"
+      - name: The Khronos loader (CMake build of OpenXR-SDK, the fallback)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          W="$RUNNER_TEMP/xr"
+          TAG="$(gh api repos/KhronosGroup/OpenXR-SDK/releases/latest --jq .tag_name)"
+          echo "OpenXR-SDK $TAG"
+          git clone -q --depth 1 --branch "$TAG" https://github.com/KhronosGroup/OpenXR-SDK "$W/sdk"
+          git -C "$W/sdk" rev-parse HEAD
+          cmake -S "$W/sdk" -B "$W/sdk/build" -D DYNAMIC_LOADER=ON -D BUILD_TESTS=OFF > "$W/cmake.log" 2>&1 || { tail -50 "$W/cmake.log"; exit 1; }
+          cmake --build "$W/sdk/build" --config Release --target openxr_loader --parallel > "$W/build.log" 2>&1 || { tail -80 "$W/build.log"; exit 1; }
+          find "$W/sdk/build" -name 'openxr_loader*.dll' | head
+      - name: Layouts, DXGI and the loader probe (mingw-w64)
+        shell: msys2 {0}
+        run: |
+          W="$(cygpath -u "$RUNNER_TEMP")/xr"
+          git clone -q --filter=blob:none --no-checkout https://github.com/libsdl-org/SDL "$W/upstream"
+          git -C "$W/upstream" checkout -q "$UPSTREAM_COMMIT" -- src/video/khronos
+          K="$W/upstream/src/video/khronos"
+          gcc --version | head -1
+          gcc -o "$W/layout.exe" -I"$K" diag/layout.c
+          "$W/layout.exe" | tee "$W/layout.txt"
+          gcc -Wall -o "$W/winxr.exe" -I"$K" diag/winxr.c -ldxgi -ldxguid
+          "$W/winxr.exe" dxgi
+      - name: XR_RUNTIME_JSON and the registry (elevated)
+        run: |
+          W="$RUNNER_TEMP/xr"
+          cp "$XR_DLL" "$W/"
+          WW="$(cygpath -w "$W")"
+          for n in env registry; do
+            printf '{"file_format_version": "1.0.0", "runtime": {"name": "%s", "library_path": "%s"}}\n' "$n-runtime" "C:\\\\nonexistent\\\\$n-runtime.dll" > "$W/$n.json"
+          done
+          cat "$W/env.json"
+          run() { echo "== $1"; (cd "$W" && XR_LOADER_DEBUG=all ./winxr.exe 2>&1 | grep -iE "runtime|json|XR_RUNTIME|elevat|secure|registry|ActiveRuntime|xrEnumerate|loaded|syms" | head -40) || true; }
+          run "neither"
+          export XR_RUNTIME_JSON="$WW\\env.json"
+          run "XR_RUNTIME_JSON only"
+          MSYS_NO_PATHCONV=1 reg add 'HKLM\SOFTWARE\Khronos\OpenXR\1' /v ActiveRuntime /t REG_SZ /d "$WW\\registry.json" /f
+          run "XR_RUNTIME_JSON and the registry"
+          unset XR_RUNTIME_JSON
+          run "the registry only"
+          MSYS_NO_PATHCONV=1 reg query 'HKLM\SOFTWARE\Khronos\OpenXR\1'
+          MSYS_NO_PATHCONV=1 reg delete 'HKLM\SOFTWARE\Khronos\OpenXR\1' /v ActiveRuntime /f
+          echo "== no loader"
+          (cd "$RUNNER_TEMP" && "$W/winxr.exe" 2>&1 | head -3) || true
+
+  android:
+    name: probe (Android emulator, the Khronos AAR)
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    env:
+      ANDROID_EMULATOR_BUILD: "16428233"
+      ANDROID_EMULATOR_SHA256: b08fc43d8608d2955f607f1b287beb525041e730086bdca3af152accac3af9c1
+      ANDROID_IMAGE_ARCHIVE: x86_64-35_r09.zip
+      ANDROID_IMAGE_SHA256: c67b9ba0ff5bc0eb6d046871bfa228af14d4d47b02f0cdae94f048e511b7566e
+      SDL3_ANDROID_SYSTEM_IMAGE: "system-images;android-35;google_apis;x86_64"
+      ANDROID_NDK_VERSION: "29.0.14206865"
+      SDL3_ANDROID_BUILD_TOOLS: "35.0.0"
+      SDL3_ANDROID_PLATFORM: "35"
+      RUST_TEST_NOCAPTURE: 1
+      SDL3_ANDROID_TIMEOUT: 600
+    steps:
+      - uses: actions/checkout@v5
+      - name: The AAR (Maven Central)
+        run: |
+          A="$RUNNER_TEMP/aar"
+          mkdir -p "$A"
+          M=https://repo1.maven.org/maven2/org/khronos/openxr/openxr_loader_for_android
+          curl -fsSL --retry 5 --retry-delay 10 --retry-all-errors -o "$A/metadata.xml" "$M/maven-metadata.xml"
+          cat "$A/metadata.xml"
+          V="$(python3 -c 'import sys, xml.etree.ElementTree as E; print(E.parse(sys.argv[1]).find("versioning/release").text)' "$A/metadata.xml")"
+          echo "version $V"
+          curl -fsSL --retry 5 --retry-delay 10 --retry-all-errors -o "$A/loader.aar" "$M/$V/openxr_loader_for_android-$V.aar"
+          SHA1="$(curl -fsSL --retry 5 --retry-delay 10 --retry-all-errors "$M/$V/openxr_loader_for_android-$V.aar.sha1")"
+          echo "maven sha1 $SHA1"
+          echo "$SHA1  $A/loader.aar" | sha1sum -c
+          curl -fsSL --retry 5 --retry-delay 10 --retry-all-errors "$M/$V/openxr_loader_for_android-$V.aar.sha256" && echo || echo "(no .sha256 on Maven Central)"
+          sha256sum "$A/loader.aar"
+          ls -l "$A/loader.aar"
+          (cd "$A" && unzip -q loader.aar -d x && find x | head -40)
+          for abi in x86_64 arm64-v8a; do
+            f="$(find "$A/x" -path "*$abi*" -name libopenxr_loader.so | head -1)"
+            echo "$abi: $f"
+            readelf -d "$f" | grep -E "NEEDED|SONAME"
+            sha256sum "$f"
+          done
+          echo "XR_SO=$(find "$A/x" -path '*x86_64*' -name libopenxr_loader.so | head -1)" >> "$GITHUB_ENV"
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Free disk space
+        run: sudo rm -rf /usr/share/dotnet /usr/local/.ghcup /opt/ghc /opt/hostedtoolcache/CodeQL /usr/local/share/powershell /usr/share/swift /usr/local/lib/node_modules
+      - name: Install the emulator, its system image and the NDK
+        run: |
+          D="$RUNNER_TEMP/android-download"
+          mkdir -p "$D"
+          curl -fsSL --retry 5 --retry-delay 10 --retry-all-errors -o "$D/emulator.zip" "https://dl.google.com/android/repository/emulator-linux_x64-$ANDROID_EMULATOR_BUILD.zip"
+          curl -fsSL --retry 5 --retry-delay 10 --retry-all-errors -o "$D/image.zip" "https://dl.google.com/android/repository/sys-img/google_apis/$ANDROID_IMAGE_ARCHIVE"
+          echo "$ANDROID_EMULATOR_SHA256  $D/emulator.zip" | sha256sum -c
+          echo "$ANDROID_IMAGE_SHA256  $D/image.zip" | sha256sum -c
+          rm -rf "$ANDROID_HOME/emulator"
+          unzip -q "$D/emulator.zip" -d "$ANDROID_HOME"
+          I="$ANDROID_HOME/$(echo "$SDL3_ANDROID_SYSTEM_IMAGE" | tr ';' /)"
+          rm -rf "$I"
+          mkdir -p "$(dirname "$I")"
+          unzip -q "$D/image.zip" -d "$(dirname "$I")"
+          rm -rf "$D"
+          sudo apt-get install -y -q libpulse0 > /dev/null || { sudo apt-get update -q > /dev/null && sudo apt-get install -y -q libpulse0 > /dev/null; }
+          if [ ! -d "$ANDROID_HOME/ndk/$ANDROID_NDK_VERSION" ]; then
+            yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "ndk;$ANDROID_NDK_VERSION" > /dev/null
+          fi
+          echo "SDL3_ANDROID_NDK=$ANDROID_HOME/ndk/$ANDROID_NDK_VERSION" >> "$GITHUB_ENV"
+      - name: Install Rust
+        run: |
+          rustup toolchain install 1.99 --profile minimal --target x86_64-linux-android
+          rustup default 1.99
+      - name: Start the emulator
+        run: echo "SDL3_ANDROID_SERIAL=$(tools/android_run.py --boot)" >> "$GITHUB_ENV"
+      - name: Build
+        run: cargo test --no-run --target x86_64-linux-android -p sdl3 --test android_xrprobe
+      - name: The layouts on the emulator (NDK clang)
+        run: |
+          git clone -q --filter=blob:none --no-checkout https://github.com/libsdl-org/SDL "$RUNNER_TEMP/upstream"
+          git -C "$RUNNER_TEMP/upstream" checkout -q "$UPSTREAM_COMMIT" -- src/video/khronos
+          CC="$SDL3_ANDROID_NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/x86_64-linux-android35-clang"
+          "$CC" -o "$RUNNER_TEMP/layout" -I"$RUNNER_TEMP/upstream/src/video/khronos" diag/layout.c
+          ADB="$ANDROID_HOME/platform-tools/adb"
+          "$ADB" push "$RUNNER_TEMP/layout" /data/local/tmp/layout > /dev/null
+          "$ADB" shell /data/local/tmp/layout | tee "$RUNNER_TEMP/layout-android.txt" | grep -i android
+      - name: The loader in an app, without a runtime
+        env:
+          SDL3_ANDROID_EXTRA_LIBS: ${{ env.XR_SO }}
+          SDL3_ANDROID_VERBOSE: 1
+        run: cargo test --target x86_64-linux-android -p sdl3 --test android_xrprobe 2>&1 | tee "$RUNNER_TEMP/xrprobe.log"
+      - name: Findings (again, last)
+        if: always()
+        run: |
+          grep -E "xrprobe:" "$RUNNER_TEMP/xrprobe.log" | cut -c1-300 | tail -150 || true
+          cat "$RUNNER_TEMP/layout-android.txt" || true
+      - name: Stop the emulator
+        if: always()
+        run: tools/android_run.py --kill || true
