@@ -4,7 +4,7 @@ KMS/DRM driver and of the dummy driver's `evdev` variant) with its
 requests answered: the input devices it reads made with uinput.
 
 Usage:
-  linux_console_run.py PROGRAM [ARGUMENTS...]
+  linux_console_run.py [--vt N] PROGRAM [ARGUMENTS...]
 
 The program is run with this script's arguments after PROGRAM, its
 stdout read by this script (and copied to this script's stdout), its
@@ -15,6 +15,19 @@ finds no console (`/dev/tty`), and uses its built-in keymaps. The
 variable SDL3_CONSOLE_RUNNER is set (to this script's path) for it, so it
 knows it runs here. It is stopped (SIGKILL) after SDL3_CONSOLE_TIMEOUT
 seconds (300 by default); the run fails then.
+
+With --vt N (as root), the program runs on the virtual console ttyN
+instead: ttyN is made the active console first, and the program's
+controlling terminal and stdin (`setsid -c`, as a console program
+started there), so SDL's console keyboard is ttyN's (its keymap, its
+keyboard mode, its VT switches). The answers then come on another pipe,
+whose descriptor is in the variable SDL3_CONSOLE_REPLY_FD, and
+SDL3_CONSOLE_VT is N. The keyboard mode (KDGKBMODE) and the VT mode
+(VT_GETMODE) ttyN had are checked once the program has ended, however it
+ended (by a fatal signal too): a mode it left changed is restored and
+fails the run. Then ttyN's input is flushed (keys the console wasn't muted
+for are typed into it), and the console active before is made active
+again.
 
 A program asks for what it needs with a line `sdl3-console-runner:
 request WHAT [ARGUMENTS]` (copied, then acted on; ARGUMENTS are shell
@@ -51,16 +64,34 @@ words):
   uinput remove NAME
               the device destroyed, once udev's database hasn't it (within
               10 s): `uinput: removed NAME`
-The answer is written to the program's stdin once the request is done:
-its lines (`sdl3-console-runner: reply LINE`), then `sdl3-console-runner:
-done`. A request this script can't act on fails the run (its reply is
+With --vt N only:
+  vt modes    ttyN's keyboard mode and VT mode: `vt: keyboard MODE mode
+              VTMODE` (K_XLATE, K_UNICODE, K_OFF, ...; VT_AUTO or
+              VT_PROCESS: the signals VT_PROCESS asks for aren't told)
+  vt active   the active console: `vt: active M`
+  vt activate M
+              VT_ACTIVATE of ttyM, not waited for (a switch away from a
+              VT_PROCESS console waits for its program's VT_RELDISP): `vt:
+              activating M`
+  vt switch M VT_ACTIVATE of ttyM, waited for (VT_GETSTATE, within 10 s):
+              `vt: active M`, or the console still active then
+  vt restore  ttyN's keyboard mode and VT mode set back to the ones it had
+              before the program: `vt: restored keyboard OLD to MODE`,
+              `vt: restored mode OLD to VTMODE`, or `vt: nothing to
+              restore`
+  vt flush    ttyN's input thrown away (TCIFLUSH): `vt: flushed`
+The answer is written to the program's stdin (with --vt, the reply pipe)
+once the request is done: its lines (`sdl3-console-runner: reply LINE`),
+then `sdl3-console-runner: done`. The program's children may ask too
+(their stdout and the reply pipe inherited), one process at a time. A request this script can't act on fails the run (its reply is
 `error: WHY`). Every device left is destroyed once the program ends.
 
 This needs a writable /dev/uinput (on Ubuntu: root's only; a udev rule
 `KERNEL=="uinput", MODE="0666"` opens it), and the devices' event nodes
 readable by the program (root's and the input group's: the rule
 `SUBSYSTEM=="input", KERNEL=="event*", ATTRS{name}=="SDL3 *",
-MODE="0666"` opens the ones of these devices only).
+MODE="0666"` opens the ones of these devices only). --vt needs root, and
+util-linux's setsid.
 """
 import fcntl
 import os
@@ -69,6 +100,7 @@ import signal
 import struct
 import subprocess
 import sys
+import termios
 import threading
 import time
 
@@ -99,6 +131,16 @@ def UI_GET_SYSNAME(length):
 
 
 BUS_USB = 0x03
+
+# <linux/kd.h>, <linux/vt.h>
+KDGKBMODE, KDSKBMODE = 0x4B44, 0x4B45
+KB_MODES = {0: "K_RAW", 1: "K_XLATE", 2: "K_MEDIUMRAW", 3: "K_UNICODE", 4: "K_OFF"}
+VT_GETMODE, VT_SETMODE, VT_GETSTATE, VT_ACTIVATE = 0x5601, 0x5602, 0x5603, 0x5606
+VT_MODES = {0: "VT_AUTO", 1: "VT_PROCESS", 2: "VT_ACKACQ"}
+# struct vt_mode: char mode, waitv; short relsig, acqsig, frsig
+VT_MODE = struct.Struct("@bbhhh")
+# struct vt_stat: unsigned short v_active, v_signal, v_state
+VT_STAT = struct.Struct("@HHH")
 
 # <linux/input-event-codes.h>: the names the requests may use
 CODES = {
@@ -223,11 +265,108 @@ class Device:
             raise RequestError(f"udev didn't remove {self.name} in {timeout} s")
 
 
-class Runner:
-    def __init__(self):
-        self.devices = {}
+class Console:
+    """The virtual console ttyN the program runs on (--vt N)."""
+
+    def __init__(self, number):
+        self.number = number
+        self.path = f"/dev/tty{number}"
+        self.fd = os.open(self.path, os.O_RDWR | os.O_NOCTTY | os.O_CLOEXEC)
+        self.kb_mode = self.keyboard_mode()
+        self.vt_mode = self.mode()
+        self.active_before = self.active()
+
+    def keyboard_mode(self):
+        buf = bytearray(4)
+        fcntl.ioctl(self.fd, KDGKBMODE, buf)
+        return struct.unpack("@i", buf)[0]
+
+    def mode(self):
+        buf = bytearray(VT_MODE.size)
+        fcntl.ioctl(self.fd, VT_GETMODE, buf)
+        return VT_MODE.unpack(buf)
+
+    def active(self):
+        buf = bytearray(VT_STAT.size)
+        fcntl.ioctl(self.fd, VT_GETSTATE, buf)
+        return VT_STAT.unpack(buf)[0]
+
+    def switch(self, number, timeout=10.0):
+        """VT_ACTIVATE, then the switch waited for (VT_WAITACTIVE can't time
+        out): the console active then."""
+        fcntl.ioctl(self.fd, VT_ACTIVATE, number)
+        end = time.monotonic() + timeout
+        while self.active() != number and time.monotonic() < end:
+            time.sleep(0.01)
+        return self.active()
+
+    def modes(self):
+        kb = self.keyboard_mode()
+        return f"vt: keyboard {KB_MODES.get(kb, kb)} mode {VT_MODES.get(self.mode()[0], self.mode()[0])}"
+
+    def restore(self):
+        """The modes set back to the ones before the program: what was
+        restored, (what, old, new) for each."""
+        restored = []
+        kb = self.keyboard_mode()
+        if kb != self.kb_mode:
+            fcntl.ioctl(self.fd, KDSKBMODE, self.kb_mode)
+            restored.append(("keyboard", KB_MODES.get(kb, kb), KB_MODES.get(self.kb_mode, self.kb_mode)))
+        mode = self.mode()
+        if mode[0] != self.vt_mode[0]:
+            fcntl.ioctl(self.fd, VT_SETMODE, VT_MODE.pack(*self.vt_mode))
+            restored.append(("mode", VT_MODES.get(mode[0], mode[0]),
+                             VT_MODES.get(self.vt_mode[0], self.vt_mode[0])))
+        return restored
 
     def request(self, words):
+        what = words[1] if len(words) > 1 else ""
+        if what == "modes" and len(words) == 2:
+            return [self.modes()]
+        if what == "active" and len(words) == 2:
+            return [f"vt: active {self.active()}"]
+        if what == "activate" and len(words) == 3:
+            fcntl.ioctl(self.fd, VT_ACTIVATE, int(words[2]))
+            return [f"vt: activating {int(words[2])}"]
+        if what == "switch" and len(words) == 3:
+            return [f"vt: active {self.switch(int(words[2]))}"]
+        if what == "restore" and len(words) == 2:
+            return [f"vt: restored {what} {old} to {new}" for what, old, new in self.restore()] or \
+                ["vt: nothing to restore"]
+        if what == "flush" and len(words) == 2:
+            termios.tcflush(self.fd, termios.TCIFLUSH)
+            return ["vt: flushed"]
+        raise RequestError(f"unknown request {shlex.join(words)!r}")
+
+    def finish(self):
+        """After the program: the modes checked (and restored), the input
+        flushed, the console active before made active again. Whether the
+        modes were the ones before."""
+        # (opened again: the program's end, as its session's leader, hung
+        # the console up, which this descriptor is then)
+        os.close(self.fd)
+        self.fd = os.open(self.path, os.O_RDWR | os.O_NOCTTY | os.O_CLOEXEC)
+        restored = self.restore()
+        for what, old, new in restored:
+            print(f"linux_console_run.py: {self.path}: the program left the {what} mode {old}, not {new} "
+                  "as it was: restored", file=sys.stderr)
+        termios.tcflush(self.fd, termios.TCIFLUSH)
+        if self.active() != self.active_before:
+            self.switch(self.active_before)
+        os.close(self.fd)
+        return not restored
+
+
+class Runner:
+    def __init__(self, console=None):
+        self.devices = {}
+        self.console = console
+
+    def request(self, words):
+        if words and words[0] == "vt":
+            if self.console is None:
+                raise RequestError("vt requests need --vt")
+            return self.console.request(words)
         if len(words) < 3 or words[0] != "uinput":
             raise RequestError(f"unknown request {shlex.join(words)!r}")
         what, name = words[1], words[2]
@@ -269,13 +408,41 @@ class Runner:
 
 
 def main():
-    if len(sys.argv) < 2 or sys.argv[1] in ("-h", "--help"):
+    args = sys.argv[1:]
+    if not args or args[0] in ("-h", "--help"):
         print(__doc__)
-        return 0 if len(sys.argv) > 1 else 2
+        return 0 if args else 2
+    console = None
+    if args[0] == "--vt":
+        if len(args) < 3:
+            print(__doc__)
+            return 2
+        console = Console(int(args[1]))
+        args = args[2:]
     timeout = float(os.environ.get("SDL3_CONSOLE_TIMEOUT", "300"))
     env = dict(os.environ, SDL3_CONSOLE_RUNNER=os.path.abspath(__file__))
-    proc = subprocess.Popen(sys.argv[1:], stdin=subprocess.PIPE, stdout=subprocess.PIPE, env=env,
-                            start_new_session=True)
+    if console is None:
+        proc = subprocess.Popen(args, stdin=subprocess.PIPE, stdout=subprocess.PIPE, env=env,
+                                start_new_session=True)
+        replies = proc.stdin
+    else:
+        if console.switch(console.number) != console.number:
+            print(f"linux_console_run.py: {console.path} isn't active after 10 s", file=sys.stderr)
+            console.finish()
+            return 1
+        reply_read, reply_write = os.pipe()
+        env.update(SDL3_CONSOLE_REPLY_FD=str(reply_read), SDL3_CONSOLE_VT=str(console.number))
+        # (setsid -c: a session of its own, whose controlling terminal is its
+        # stdin, the console; not forking, as this child of the script leads
+        # no process group)
+        tty = os.open(console.path, os.O_RDWR | os.O_NOCTTY | os.O_CLOEXEC)
+        try:
+            proc = subprocess.Popen(["setsid", "-c"] + args, stdin=tty, stdout=subprocess.PIPE, env=env,
+                                    pass_fds=(reply_read,))
+        finally:
+            os.close(tty)
+            os.close(reply_read)
+        replies = os.fdopen(reply_write, "wb")
     timed_out = threading.Event()
 
     def stop():
@@ -284,7 +451,7 @@ def main():
 
     timer = threading.Timer(timeout, stop)
     timer.start()
-    runner = Runner()
+    runner = Runner(console)
     failed = False
     try:
         for raw in proc.stdout:
@@ -293,33 +460,41 @@ def main():
             if not line.startswith(PREFIX + "request "):
                 continue
             try:
-                replies = runner.request(shlex.split(line[len(PREFIX + "request "):]))
+                lines = runner.request(shlex.split(line[len(PREFIX + "request "):]))
             except (RequestError, OSError, ValueError) as e:
-                replies = [f"error: {e}"]
+                lines = [f"error: {e}"]
                 failed = True
                 print(f"linux_console_run.py: {line}: {e}", file=sys.stderr, flush=True)
-            answer = "".join(f"{PREFIX}reply {r}\n" for r in replies) + f"{PREFIX}done\n"
+            answer = "".join(f"{PREFIX}reply {r}\n" for r in lines) + f"{PREFIX}done\n"
             try:
-                proc.stdin.write(answer.encode())
-                proc.stdin.flush()
+                replies.write(answer.encode())
+                replies.flush()
             except BrokenPipeError:
                 pass
-        status = proc.wait()
+        proc.wait()
     finally:
         timer.cancel()
         if proc.poll() is None:
             proc.kill()
             proc.wait()
         runner.clean_up()
+        if console is not None:
+            try:
+                replies.close()
+            except BrokenPipeError:
+                pass
+            # (however the program ended)
+            if not console.finish():
+                failed = True
     if timed_out.is_set():
-        print(f"linux_console_run.py: {sys.argv[1]} didn't end in {timeout:g} s", file=sys.stderr)
+        print(f"linux_console_run.py: {args[0]} didn't end in {timeout:g} s", file=sys.stderr)
         return 1
+    status = proc.returncode
     if status < 0:
         status = 128 - status
     if failed and status == 0:
         return 1
     return status
-
 
 if __name__ == "__main__":
     sys.exit(main())
