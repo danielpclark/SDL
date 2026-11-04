@@ -105,6 +105,8 @@ static BOOTSTRAP: &[&VideoBootStrap] = &[
     &drivers::emscripten::EMSCRIPTEN_BOOTSTRAP,
     &drivers::offscreen::OFFSCREEN_BOOTSTRAP,
     &drivers::dummy::DUMMY_BOOTSTRAP,
+    #[cfg(target_os = "linux")]
+    &drivers::dummy::DUMMY_EVDEV_BOOTSTRAP,
 ];
 #[cfg(test)]
 static BOOTSTRAP: &[&VideoBootStrap] = &[
@@ -142,6 +144,8 @@ static BOOTSTRAP: &[&VideoBootStrap] = &[
     &drivers::emscripten::EMSCRIPTEN_BOOTSTRAP,
     &drivers::offscreen::OFFSCREEN_BOOTSTRAP,
     &drivers::dummy::DUMMY_BOOTSTRAP,
+    #[cfg(target_os = "linux")]
+    &drivers::dummy::DUMMY_EVDEV_BOOTSTRAP,
     &super::tests::TESTVIDEO_BOOTSTRAP,
 ];
 

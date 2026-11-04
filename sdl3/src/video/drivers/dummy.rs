@@ -12,8 +12,9 @@
 //! is a performance problem for a given platform, enable this driver, and
 //! then see if your application runs faster without video overhead.
 //!
-//! (The `evdev` variant, which reads input devices, comes with the Linux
-//! input layer.)
+//! On Linux, its `evdev` variant reads the keyboards, mice and touch
+//! devices through the console input reader
+//! ([`crate::core::linux::evdev`]).
 
 use std::sync::atomic::AtomicI32;
 use std::sync::Arc;
@@ -29,13 +30,30 @@ use crate::video::sysvideo::{DisplayMode, VideoBootStrap, VideoDriver};
 use crate::video::{PixelFormat, Rect, Surface};
 
 const DUMMYVID_DRIVER_NAME: &str = "dummy";
+#[cfg(target_os = "linux")]
+const DUMMYVID_DRIVER_EVDEV_NAME: &str = "evdev";
 
 /// Translation of `DUMMY_Available()`: the driver must be asked for.
 pub(crate) fn available(drivername: &str) -> bool {
     hints::get(hints::VIDEO_DRIVER).is_some_and(|hint| hint.contains(drivername))
 }
 
-struct DummyVideo;
+/// The driver; `evdev` for `DUMMY_evdev_bootstrap`'s, whose
+/// `VideoInit`, `VideoQuit` and `PumpEvents` are the evdev ones.
+struct DummyVideo {
+    #[cfg(target_os = "linux")]
+    evdev: bool,
+}
+
+impl DummyVideo {
+    /// Whether this is the `evdev` variant.
+    fn evdev(&self) -> bool {
+        #[cfg(target_os = "linux")]
+        return self.evdev;
+        #[cfg(not(target_os = "linux"))]
+        false
+    }
+}
 
 /// Translation of `DUMMY_VideoInitCommon()`.
 pub(super) fn video_init_common() -> Result<()> {
@@ -56,12 +74,32 @@ static FRAME_NUMBER: AtomicI32 = AtomicI32::new(0);
 
 impl VideoDriver for DummyVideo {
     fn video_init(&self) -> Result<()> {
+        #[cfg(target_os = "linux")]
+        if self.evdev {
+            // Translation of DUMMY_EVDEV_VideoInit()
+            video_init_common()?;
+
+            let _ = crate::core::linux::evdev::init();
+            return Ok(());
+        }
         video_init_common()
     }
 
-    fn video_quit(&self) {}
+    fn video_quit(&self) {
+        // Translation of DUMMY_EVDEV_VideoQuit()
+        #[cfg(target_os = "linux")]
+        if self.evdev {
+            crate::core::linux::evdev::quit();
+        }
+    }
 
     fn pump_events(&self) -> Option<()> {
+        // Translation of DUMMY_EVDEV_Poll()
+        #[cfg(target_os = "linux")]
+        if self.evdev {
+            crate::core::linux::evdev::poll();
+            return Some(());
+        }
         // do nothing.
         Some(())
     }
@@ -115,16 +153,26 @@ impl VideoDriver for DummyVideo {
     }
 
     fn implements_mouse_feature(&self, feature: MouseFeature) -> bool {
-        feature == MouseFeature::SetRelativeMouseMode
+        // (DUMMY_VideoInit()'s; DUMMY_EVDEV_VideoInit() leaves it to
+        // SDL_EVDEV_Init())
+        feature == MouseFeature::SetRelativeMouseMode && !self.evdev()
     }
+}
+
+/// Translation of `DUMMY_InternalCreateDevice()`.
+fn internal_create_device(enable_hint: &str) -> Option<DummyVideo> {
+    if !available(enable_hint) {
+        return None;
+    }
+    Some(DummyVideo {
+        #[cfg(target_os = "linux")]
+        evdev: false,
+    })
 }
 
 /// Translation of `DUMMY_CreateDevice()`.
 fn create_device() -> Option<Arc<dyn VideoDriver>> {
-    if !available(DUMMYVID_DRIVER_NAME) {
-        return None;
-    }
-    Some(Arc::new(DummyVideo))
+    Some(Arc::new(internal_create_device(DUMMYVID_DRIVER_NAME)?))
 }
 
 /// Translation of `DUMMY_bootstrap`.
@@ -132,6 +180,24 @@ pub(crate) static DUMMY_BOOTSTRAP: VideoBootStrap = VideoBootStrap {
     name: DUMMYVID_DRIVER_NAME,
     desc: "SDL dummy video driver",
     create: create_device,
+    show_message_box: None, // no ShowMessageBox implementation
+    is_preferred: false,
+};
+
+/// Translation of `DUMMY_EVDEV_CreateDevice()`.
+#[cfg(target_os = "linux")]
+fn evdev_create_device() -> Option<Arc<dyn VideoDriver>> {
+    let mut device = internal_create_device(DUMMYVID_DRIVER_EVDEV_NAME)?;
+    device.evdev = true;
+    Some(Arc::new(device))
+}
+
+/// Translation of `DUMMY_evdev_bootstrap`.
+#[cfg(target_os = "linux")]
+pub(crate) static DUMMY_EVDEV_BOOTSTRAP: VideoBootStrap = VideoBootStrap {
+    name: DUMMYVID_DRIVER_EVDEV_NAME,
+    desc: "SDL dummy video driver with evdev",
+    create: evdev_create_device,
     show_message_box: None, // no ShowMessageBox implementation
     is_preferred: false,
 };
