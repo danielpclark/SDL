@@ -304,6 +304,22 @@ jobs:
           # of skipping.
           SDL3_TEST_SKIP_LOG: ${{ runner.temp }}/skips.tsv
           SDL3_TEST_REQUIRE: ${{ runner.os == 'Linux' && env.LINUX_REQUIRE || runner.os == 'Windows' && env.WINDOWS_REQUIRE || '' }}
+      # (diag only) the uinput programs again, 10 times each
+      - name: diag - evdev_input and the uinput joystick check, 10 times
+        if: runner.os == 'Linux'
+        shell: bash
+        env:
+          SDL3_TEST_REQUIRE: uinput
+        run: |
+          fail=0
+          for i in $(seq 1 10); do
+            if cargo test -q -p sdl3 --test evdev_input > "$RUNNER_TEMP/evdev$i.log" 2>&1; then r=ok; else r=FAILED; fail=1; fi
+            echo "evdev_input run $i: $r: $(grep -a 'evdev_input:' "$RUNNER_TEMP/evdev$i.log" | head -3 || true)"
+            if cargo test -q -p sdl3 --lib joystick::linux::tests::uinput > "$RUNNER_TEMP/joy$i.log" 2>&1; then r=ok; else r=FAILED; fail=1; fi
+            echo "uinput joystick run $i: $r: $(grep -a 'test result' "$RUNNER_TEMP/joy$i.log" | head -1 || true)"
+          done
+          if [ "$fail" != 0 ]; then tail -60 "$RUNNER_TEMP"/evdev1.log; fi
+          exit $fail
       # The OpenGL ES 1 renderer's checks, which skip in the run above on
       # Linux (Mesa's Ubuntu packages are built without OpenGL ES 1), on
       # ANGLE's OpenGL ES 1.1 over SwiftShader: the libEGL.so and
@@ -344,6 +360,22 @@ jobs:
         env:
           SDL3_TEST_SKIP_LOG: ${{ runner.temp }}/skips.tsv
           SDL3_TEST_REQUIRE: ${{ runner.os == 'Linux' && env.LINUX_REQUIRE || runner.os == 'Windows' && env.WINDOWS_REQUIRE || '' }}
+      # (diag only) the uinput programs again in release builds, 10 times each
+      - name: diag - evdev_input and the uinput joystick check (release), 10 times
+        if: runner.os == 'Linux' && matrix.toolchain == 'pinned'
+        shell: bash
+        env:
+          SDL3_TEST_REQUIRE: uinput
+        run: |
+          fail=0
+          for i in $(seq 1 10); do
+            if cargo test --release -q -p sdl3 --test evdev_input > "$RUNNER_TEMP/revdev$i.log" 2>&1; then r=ok; else r=FAILED; fail=1; fi
+            echo "release evdev_input run $i: $r: $(grep -a 'evdev_input:' "$RUNNER_TEMP/revdev$i.log" | head -3 || true)"
+            if cargo test --release -q -p sdl3 --lib joystick::linux::tests::uinput > "$RUNNER_TEMP/rjoy$i.log" 2>&1; then r=ok; else r=FAILED; fail=1; fi
+            echo "release uinput joystick run $i: $r: $(grep -a 'test result' "$RUNNER_TEMP/rjoy$i.log" | head -1 || true)"
+          done
+          if [ "$fail" != 0 ]; then tail -60 "$RUNNER_TEMP"/rjoy1.log; fi
+          exit $fail
       # The render-state test whose checks MoltenVK misdraws under the Metal
       # debug layer (which the Metal tests turn on in the main run's
       # process, so they skip there), without the layer: they must run.
