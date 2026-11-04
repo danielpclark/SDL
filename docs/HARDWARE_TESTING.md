@@ -35,6 +35,7 @@ Every skip names one *capability* (the list is `CAPABILITIES` in
 | `alsa` | Linux | libasound and its configuration (the tests use its `file` and `null` PCMs, no sound card) |
 | `udev` | Linux | libudev and a working udev (netlink) |
 | `uinput` | Linux | a writable `/dev/uinput`, and read access to the event nodes of the devices made there (the evdev joystick driver's check, and the console input reader's `evdev_input`: see [Linux console input](#linux-console-input-evdev)) |
+| `vt` | Linux | a virtual console as the program's controlling terminal: root, and a free console, `/dev/tty3`, which `tools/linux_console_run.py --vt 3` starts the program on (the console input reader's `evdev_vt`: see [Linux virtual console](#linux-virtual-console-evdev-on-tty3)) |
 | `hidapi` | Linux, Windows, macOS, iOS, tvOS, Android | the HID backend: hidraw with libudev, `hid.dll`, IOKit's HID manager, CoreBluetooth's Steam Controllers (iOS and tvOS: never missing, no devices without Bluetooth), or the app's HID device manager (Android: never missing, no devices outside an app or on the emulator) |
 | `ipv6` | any | IPv6 sockets that can resolve and bind to the loopback address `::1` (`sdl3-net`'s IPv6 tests; containers often have IPv4 only) |
 | `tzdata` | Linux | the time zone database in `/usr/share/zoneinfo` (the local time tests set `TZ`) |

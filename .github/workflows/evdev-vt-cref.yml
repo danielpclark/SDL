@@ -17,6 +17,8 @@ env:
   CARGO_TERM_COLOR: always
   CARGO_INCREMENTAL: 0
   RUST_BACKTRACE: 1
+  RUNS: 1
+  SDL3_CONSOLE_TIMEOUT: 60
 
 jobs:
   cref:
@@ -589,14 +591,14 @@ jobs:
           set +e
           O="$RUNNER_TEMP/out"
           R="$(cat "$RUNNER_TEMP/rust_exe")"
-          timeout 300 sudo env LD_LIBRARY_PATH="$RUNNER_TEMP/unpatched" python3 tools/linux_console_run.py --vt 3 "$RUNNER_TEMP/evdev_vt_c" > "$O/u1.log" 2> "$O/u1.err"
+          timeout 90 sudo env SDL3_CONSOLE_TIMEOUT="$SDL3_CONSOLE_TIMEOUT" LD_LIBRARY_PATH="$RUNNER_TEMP/unpatched" python3 tools/linux_console_run.py --vt 3 "$RUNNER_TEMP/evdev_vt_c" > "$O/u1.log" 2> "$O/u1.err"
           echo "unpatched status $?"
           grep -a '^trace: ' "$O/u1.log" > "$O/u1.txt"
-          for i in $(seq 1 10); do
-            timeout 300 sudo env LD_LIBRARY_PATH="$RUNNER_TEMP/build" python3 tools/linux_console_run.py --vt 3 "$RUNNER_TEMP/evdev_vt_c" > "$O/c$i.log" 2> "$O/c$i.err"
+          for i in $(seq 1 "$RUNS"); do
+            timeout 90 sudo env SDL3_CONSOLE_TIMEOUT="$SDL3_CONSOLE_TIMEOUT" LD_LIBRARY_PATH="$RUNNER_TEMP/build" python3 tools/linux_console_run.py --vt 3 "$RUNNER_TEMP/evdev_vt_c" > "$O/c$i.log" 2> "$O/c$i.err"
             echo "c$i status $?"
             grep -a '^trace: ' "$O/c$i.log" > "$O/c$i.txt"
-            timeout 300 sudo env SDL3_TEST_REQUIRE=vt,uinput RUST_BACKTRACE=1 "$R" > "$O/r$i.log" 2> "$O/r$i.err"
+            timeout 90 sudo env SDL3_CONSOLE_TIMEOUT="$SDL3_CONSOLE_TIMEOUT" SDL3_TEST_REQUIRE=vt,uinput RUST_BACKTRACE=1 "$R" > "$O/r$i.log" 2> "$O/r$i.err"
             echo "r$i status $?"
             grep -a '^trace: ' "$O/r$i.log" > "$O/r$i.txt"
           done
@@ -611,10 +613,12 @@ jobs:
           O="$RUNNER_TEMP/out"
           echo "== C stderr (1)"; head -40 "$O/c1.err"
           echo "== Rust stderr (1)"; head -40 "$O/r1.err"
-          echo "== C runs differing from c1:"; for i in $(seq 2 10); do cmp -s "$O/c1.txt" "$O/c$i.txt" || { echo "c$i"; diff "$O/c1.txt" "$O/c$i.txt" | head -20; }; done
-          echo "== Rust runs differing from r1:"; for i in $(seq 2 10); do cmp -s "$O/r1.txt" "$O/r$i.txt" || { echo "r$i"; diff "$O/r1.txt" "$O/r$i.txt" | head -20; }; done
+          echo "== C runs differing from c1:"; for i in $(seq 2 "$RUNS"); do cmp -s "$O/c1.txt" "$O/c$i.txt" || { echo "c$i"; diff "$O/c1.txt" "$O/c$i.txt" | head -20; }; done
+          echo "== Rust runs differing from r1:"; for i in $(seq 2 "$RUNS"); do cmp -s "$O/r1.txt" "$O/r$i.txt" || { echo "r$i"; diff "$O/r1.txt" "$O/r$i.txt" | head -20; }; done
           echo "== diff unpatched c1"; diff -a "$O/u1.txt" "$O/c1.txt"
           echo "== diff c1 r1"; diff -a "$O/c1.txt" "$O/r1.txt" && echo "(the same)"
           echo "== the Rust program's verdict"; grep -a "evdev_vt:\|^rust: " "$O/r1.log" | head -10
           echo "== probe"; grep -v '^table' "$O/probe.txt" | cut -c1-1500
-          echo "== C trace"; sed 's/^trace: //' "$O/c1.txt"
+          echo "== C log (1)"; tail -150 "$O/c1.log"
+          echo "== unpatched C stderr"; head -20 "$O/u1.err"
+          echo "== Rust log (1)"; tail -150 "$O/r1.log"
