@@ -47,6 +47,14 @@ pub(crate) const KEY_CNT: usize = KEY_MAX + 1;
 pub(crate) const BTN_MISC: usize = 0x100;
 pub(crate) const BTN_1: usize = 0x101;
 pub(crate) const BTN_MOUSE: usize = 0x110;
+pub(crate) const BTN_LEFT: usize = 0x110;
+pub(crate) const BTN_RIGHT: usize = 0x111;
+pub(crate) const BTN_MIDDLE: usize = 0x112;
+pub(crate) const BTN_SIDE: usize = 0x113;
+pub(crate) const BTN_EXTRA: usize = 0x114;
+pub(crate) const BTN_FORWARD: usize = 0x115;
+pub(crate) const BTN_BACK: usize = 0x116;
+pub(crate) const BTN_TASK: usize = 0x117;
 pub(crate) const BTN_JOYSTICK: usize = 0x120;
 pub(crate) const BTN_TRIGGER: usize = 0x120;
 pub(crate) const BTN_GAMEPAD: usize = 0x130;
@@ -91,6 +99,11 @@ pub(crate) const BTN_TRIGGER_HAPPY8: usize = 0x2c7;
 
 pub(crate) const REL_X: u16 = 0x00;
 pub(crate) const REL_Y: u16 = 0x01;
+pub(crate) const REL_HWHEEL: u16 = 0x06;
+pub(crate) const REL_WHEEL: u16 = 0x08;
+// These are not defined in older Linux kernel headers
+pub(crate) const REL_WHEEL_HI_RES: u16 = 0x0b;
+pub(crate) const REL_HWHEEL_HI_RES: u16 = 0x0c;
 pub(crate) const REL_MAX: usize = 0x0f;
 
 // Absolute axes
@@ -114,6 +127,17 @@ pub(crate) const ABS_HAT2X: usize = 0x14;
 pub(crate) const ABS_HAT2Y: usize = 0x15;
 pub(crate) const ABS_HAT3X: usize = 0x16;
 pub(crate) const ABS_HAT3Y: usize = 0x17;
+// These are not defined in older Linux kernel headers
+/// MT slot being modified
+pub(crate) const ABS_MT_SLOT: usize = 0x2f;
+/// Center X touch position
+pub(crate) const ABS_MT_POSITION_X: usize = 0x35;
+/// Center Y touch position
+pub(crate) const ABS_MT_POSITION_Y: usize = 0x36;
+/// Unique ID of initiated contact
+pub(crate) const ABS_MT_TRACKING_ID: usize = 0x39;
+/// Pressure on contact area
+pub(crate) const ABS_MT_PRESSURE: usize = 0x3a;
 pub(crate) const ABS_MAX: usize = 0x3f;
 pub(crate) const ABS_CNT: usize = ABS_MAX + 1;
 
@@ -431,6 +455,13 @@ pub(crate) const fn eviocgprop(len: usize) -> c_ulong {
     ioc(IOC_READ, b'E', 0x09, len)
 }
 
+/// get MT slot values (`EVIOCGMTSLOTS(len)`): `len` bytes of a `struct
+/// input_mt_request_layout`, the code to read (a `u32`) followed by one
+/// `i32` per slot
+pub(crate) const fn eviocgmtslots(len: usize) -> c_ulong {
+    ioc(IOC_READ, b'E', 0x0a, len)
+}
+
 /// get global key state (`EVIOCGKEY(len)`)
 pub(crate) const fn eviocgkey(len: usize) -> c_ulong {
     ioc(IOC_READ, b'E', 0x18, len)
@@ -545,6 +576,39 @@ mod tests {
         assert_eq!(size_of::<ff_effect>(), 44);
     }
 
+    #[test]
+    fn event_codes() {
+        // <linux/input-event-codes.h>
+        assert_eq!(
+            [
+                BTN_LEFT,
+                BTN_RIGHT,
+                BTN_MIDDLE,
+                BTN_SIDE,
+                BTN_EXTRA,
+                BTN_FORWARD,
+                BTN_BACK,
+                BTN_TASK
+            ],
+            [0x110, 0x111, 0x112, 0x113, 0x114, 0x115, 0x116, 0x117]
+        );
+        assert_eq!(BTN_LEFT, BTN_MOUSE);
+        assert_eq!(
+            [REL_HWHEEL, REL_WHEEL, REL_WHEEL_HI_RES, REL_HWHEEL_HI_RES],
+            [0x06, 0x08, 0x0b, 0x0c]
+        );
+        assert_eq!(
+            [
+                ABS_MT_SLOT,
+                ABS_MT_POSITION_X,
+                ABS_MT_POSITION_Y,
+                ABS_MT_TRACKING_ID,
+                ABS_MT_PRESSURE
+            ],
+            [0x2f, 0x35, 0x36, 0x39, 0x3a]
+        );
+    }
+
     #[cfg(any(target_arch = "x86_64", target_arch = "aarch64"))]
     #[test]
     fn request_numbers() {
@@ -554,6 +618,7 @@ mod tests {
         assert_eq!(eviocgname(128), 0x80804506);
         assert_eq!(eviocguniq(127), 0x807f4508);
         assert_eq!(eviocgprop(8), 0x80084509);
+        assert_eq!(eviocgmtslots(4 + 4 * 10), 0x802c450a);
         assert_eq!(eviocgkey(96), 0x80604518);
         assert_eq!(eviocgbit(0, 8), 0x80084520);
         assert_eq!(eviocgbit(EV_KEY, 96), 0x80604521);
