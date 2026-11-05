@@ -71,7 +71,19 @@ jobs:
           print("readiness after wait:", a.readiness(s))
           PY
           dump "after wait_until_ready"
-          sleep 60; dump "+60 s"
-          sleep 120; dump "+180 s"
+          echo "===== forced: the overlay off, the ready mark gone, wait_until_ready again"
+          $A shell 'cmd overlay disable --user 0 com.android.internal.emulation.pixel_6; rm -f /data/local/tmp/sdl3/ready-boot-id'
+          sleep 3
+          $A shell 'dumpsys window displays 2>&1 | grep -oE "DisplayCutout\{insets=Rect\([^)]*\)" | head -1'
+          python3 -I - "$SDL3_ANDROID_SERIAL" <<'PY'
+          import sys, os
+          sys.path.insert(0, os.path.join(os.getcwd(), "tools"))
+          import android_run as a
+          s = sys.argv[1]
+          print("readiness (forced):", a.readiness(s))
+          a.wait_until_ready(s)
+          print("readiness after wait (forced):", a.readiness(s))
+          PY
+          dump "after the forced wait"
           echo "===== logcat"
           $A logcat -d 2>/dev/null | grep -iE "cutout|overlay|sdksetup|googlesdksetup|provision|DisplayCutout" | grep -v "^--" | head -120 || true
