@@ -231,6 +231,29 @@ pub fn checked(checks: impl FnOnce()) -> u8 {
     }
 }
 
+/// Whether the runner put a library of the program's `libs=` word in the
+/// app's package (`SDL3_ANDROID_RUNNER_LIBS`: those it found).
+pub fn packaged_library(name: &str) -> bool {
+    sdl3::stdlib::getenv_unsafe("SDL3_ANDROID_RUNNER_LIBS")
+        .is_some_and(|libs| libs.split(',').any(|l| l == name))
+}
+
+/// Skip the program's checks, `capability` (one of the library's) missing:
+/// a note, or a panic when `SDL3_TEST_REQUIRE` names it (`all` too). (An
+/// app has no skip log: CI requires what its app programs need.)
+pub fn skip_app(capability: &str, reason: &str) {
+    let required = sdl3::stdlib::getenv_unsafe("SDL3_TEST_REQUIRE")
+        .unwrap_or_default()
+        .split(',')
+        .map(str::trim)
+        .any(|c| c == "all" || c == capability);
+    assert!(
+        !required,
+        "required capability {capability} unavailable: {reason}"
+    );
+    println!("note: skipping, {capability} unavailable: {reason}");
+}
+
 /// The current thread's name as the system has it (`/proc`'s `comm`).
 pub fn os_thread_name() -> String {
     // SAFETY: no arguments.
