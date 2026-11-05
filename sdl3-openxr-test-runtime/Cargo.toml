@@ -1,0 +1,23 @@
+[package]
+name = "sdl3-openxr-test-runtime"
+description = "Internal to the sdl3 crates' tests: a test-only OpenXR runtime (OpenXR 1.0 and XR_KHR_vulkan_enable2, deterministic, with failure injection), written from the OpenXR specification in pure Rust. No C code."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+readme = "../README.md"
+publish = false
+
+# A shared library only, which the OpenXR loader loads through a runtime
+# manifest, or SDL in the loader's place (SDL_OPENXR_LIBRARY). It is built
+# on every target (from std alone, no dependency) and used by the sdl3
+# crate's gpu_openxr test, which finds it beside its own program (sdl3's
+# dev-dependency on this crate builds it there). Its unit tests need no
+# Vulkan driver; there are no doctests (a cdylib has no rlib to link them
+# with).
+[lib]
+name = "sdl3_openxr_test_runtime"
+path = "src/lib.rs"
+crate-type = ["cdylib"]
+doctest = false

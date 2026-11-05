@@ -81,6 +81,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "sdl3-openxr-test-runtime"
+version = "3.5.0"
+
+[[package]]
 name = "sdl3-rtf"
 version = "3.5.0"
 dependencies = [
