@@ -65,9 +65,11 @@
 //! * the other `rt-` scenarios, the same steps with one of the runtime's
 //!   calls failing (`SDL3_OPENXR_TEST_RUNTIME_FAIL`), each call SDL makes,
 //!   in PrepareDriver (the first call) and in CreateDevice (the second),
-//!   the lookups of the extension's functions too: where upstream sets no
-//!   error (the instance, its functions, its system and the requirements in
-//!   CreateDevice; the swapchain formats), the trace says `failed`.
+//!   the lookups of the extension's functions too (and the API layers'
+//!   query, whose failure changes nothing): where upstream sets no error
+//!   (the extension's search, the instance, its functions, its system and
+//!   the requirements in CreateDevice; the swapchain formats), the trace
+//!   says `failed`.
 //!
 //! The expected traces are upstream's C SDL's, from the same program in C
 //! (upstream built with CMake at ea7a2da, patched for the two fixes above,
@@ -366,6 +368,35 @@ quit
 rt-extensions-2: exit 0
 rt-extensions-2: vulkan validation errors: 0
 rt-extensions-2: openxr valid usage messages: 0
+-- rt-extensions-3
+init: ok (offscreen)
+load library: ok
+log 4: Found XR_KHR_vulkan_enable2 extension
+log 3: Failed to find a compatible OpenXR vulkan extension
+device: failed
+library unloaded
+quit
+rt-extensions-3: exit 0
+rt-extensions-3: vulkan validation errors: 0
+rt-extensions-3: openxr valid usage messages: 0
+-- rt-api-layers
+init: ok (offscreen)
+load library: ok
+log 4: Found XR_KHR_vulkan_enable2 extension
+log 4: Found XR_KHR_vulkan_enable2 extension
+device: ok (vulkan)
+session: ok
+formats: 52 4 53 12 29 60
+swapchain: ok
+destroy swapchain: ok
+destroy session: 0
+device destroyed
+destroy instance: 0
+library unloaded
+quit
+rt-api-layers: exit 0
+rt-api-layers: vulkan validation errors: 0
+rt-api-layers: openxr valid usage messages: 0
 -- rt-instance
 init: ok (offscreen)
 load library: ok
@@ -762,6 +793,12 @@ rt-destroy-swapchain: openxr valid usage messages: 0
             Via::Hint,
             "xrEnumerateInstanceExtensionProperties@2",
         ),
+        (
+            "rt-extensions-3",
+            Via::Hint,
+            "xrEnumerateInstanceExtensionProperties@3",
+        ),
+        ("rt-api-layers", Via::Hint, "xrEnumerateApiLayerProperties"),
         ("rt-instance", Via::Hint, "xrCreateInstance"),
         ("rt-instance-2", Via::Hint, "xrCreateInstance@2"),
         (
@@ -851,6 +888,7 @@ rt-destroy-swapchain: openxr valid usage messages: 0
     /// without setting an error (`SDL_GetError()` says what failed before):
     /// the trace says `failed`, and the Rust's error is a `rust:` line.
     const DEVICE_FAILS_WITHOUT_ERROR: &[&str] = &[
+        "rt-extensions-3",
         "rt-instance-2",
         "rt-symbols-2",
         "rt-system-2",
