@@ -162,6 +162,34 @@ pub(crate) unsafe fn get_instance_proc_addr<F: Copy>(
     (result, f)
 }
 
+/// `xrGetInstanceProcAddr(instance, name, &function)` with the loader's
+/// global function, as the backends call it (upstream's
+/// `xrGetInstanceProcAddr` is the loader's `OPENXR_xrGetInstanceProcAddr`):
+/// the result, and the function.
+///
+/// # Safety
+///
+/// `F` is the function pointer type of `name`.
+#[allow(dead_code)] // (for the backends)
+pub(crate) unsafe fn xr_get_instance_proc_addr<F: Copy>(
+    instance: XrInstance,
+    name: &str,
+) -> (XrResult, Option<F>) {
+    // (a loader without the function: see get_sym)
+    let Some(gipa) = globals().xrGetInstanceProcAddr else {
+        return (XrResult::ERROR_FUNCTION_UNSUPPORTED, None);
+    };
+    // SAFETY: F is the function's type (the caller's contract).
+    let (result, function) = unsafe { get_instance_proc_addr::<F>(gipa, instance, name) };
+    // (a runtime that answers XR_SUCCESS with no function: upstream would
+    // call NULL; here it's a failure)
+    match function {
+        Some(f) if result == XrResult::SUCCESS => (result, Some(f)),
+        _ if result == XrResult::SUCCESS => (XrResult::ERROR_FUNCTION_UNSUPPORTED, None),
+        _ => (result, None),
+    }
+}
+
 /// Translation of `OPENXR_InitializeAndroidLoader()`.
 #[cfg(target_os = "android")]
 fn initialize_android_loader(s: &mut State) -> Result<()> {

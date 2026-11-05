@@ -40,7 +40,9 @@ use super::vkfuncs::{DeviceFunctions, GlobalFunctions, InstanceFunctions};
 use super::{set_string_error, vulkan_error, VulkanRenderer};
 use crate::error::{Error, Result};
 use crate::gpu::sysgpu::{BackendObject, UNIFORM_BUFFER_SIZE};
-use crate::gpu::xr::gpu_openxr::{c_name as xr_name, gpu_init_openxr};
+use crate::gpu::xr::gpu_openxr::{
+    c_name as xr_name, destroy_unreturned_xr_instance, gpu_init_openxr,
+};
 use crate::gpu::xr::openxrdyn::{self, XrInstancePfns};
 use crate::gpu::xr::sys::*;
 use crate::gpu::xr::XrError;
@@ -562,33 +564,6 @@ fn load_global_functions() -> Result<(PfnVkGetInstanceProcAddr, GlobalFunctions)
     }
 }
 
-/// `xrGetInstanceProcAddr(instance, name, &function)` with the loader's
-/// global function (upstream's `xrGetInstanceProcAddr` is the loader's
-/// `OPENXR_xrGetInstanceProcAddr`): the result, and the function.
-///
-/// # Safety
-///
-/// `F` is the function pointer type of `name`.
-unsafe fn xr_get_instance_proc_addr<F: Copy>(
-    instance: XrInstance,
-    name: &str,
-) -> (XrResult, Option<F>) {
-    // (a loader without the function: see openxrdyn::get_sym)
-    let Some(gipa) = openxrdyn::globals().xrGetInstanceProcAddr else {
-        return (XrResult::ERROR_FUNCTION_UNSUPPORTED, None);
-    };
-    // SAFETY: F is the function's type (the caller's contract).
-    let (result, function) =
-        unsafe { openxrdyn::get_instance_proc_addr::<F>(gipa, instance, name) };
-    // (a runtime that answers XR_SUCCESS with no function: upstream would
-    // call NULL; here it's a failure)
-    match function {
-        Some(f) if result == XrResult::SUCCESS => (result, Some(f)),
-        _ if result == XrResult::SUCCESS => (XrResult::ERROR_FUNCTION_UNSUPPORTED, None),
-        _ => (result, None),
-    }
-}
-
 /// Translation of `VULKAN_INTERNAL_CreateInstance()`: the instance, and
 /// the optional instance extensions it has. With an OpenXR instance
 /// (`xr_instance`), the runtime makes it (`xrCreateVulkanInstanceKHR`),
@@ -726,7 +701,7 @@ fn create_instance(
     let vulkan_result = if xr_instance != XR_NULL_HANDLE {
         // SAFETY: the function's type.
         let (_, xr_create_vulkan_instance_khr) = unsafe {
-            xr_get_instance_proc_addr::<PfnXrCreateVulkanInstanceKHR>(
+            openxrdyn::xr_get_instance_proc_addr::<PfnXrCreateVulkanInstanceKHR>(
                 xr_instance,
                 "xrCreateVulkanInstanceKHR",
             )
@@ -1315,7 +1290,7 @@ impl PreparedVulkan {
         if self.xr_instance != XR_NULL_HANDLE {
             // SAFETY: the function's type.
             let (xr_result, xr_get_vulkan_graphics_device2_khr) = unsafe {
-                xr_get_instance_proc_addr::<PfnXrGetVulkanGraphicsDevice2KHR>(
+                openxrdyn::xr_get_instance_proc_addr::<PfnXrGetVulkanGraphicsDevice2KHR>(
                     self.xr_instance,
                     "xrGetVulkanGraphicsDevice2KHR",
                 )
@@ -1676,7 +1651,7 @@ impl PreparedVulkan {
         let vulkan_result = if self.xr_instance != XR_NULL_HANDLE {
             // SAFETY: the function's type.
             let (_, xr_create_vulkan_device_khr) = unsafe {
-                xr_get_instance_proc_addr::<PfnXrCreateVulkanDeviceKHR>(
+                openxrdyn::xr_get_instance_proc_addr::<PfnXrCreateVulkanDeviceKHR>(
                     self.xr_instance,
                     "xrCreateVulkanDeviceKHR",
                 )
@@ -1967,7 +1942,7 @@ fn get_xr_minimum_vulkan_api_version(
 ) -> std::result::Result<XrVersion, XrResult> {
     // SAFETY: the function's type.
     let (xr_result, xr_get_vulkan_graphics_requirements2_khr) = unsafe {
-        xr_get_instance_proc_addr::<PfnXrGetVulkanGraphicsRequirements2KHR>(
+        openxrdyn::xr_get_instance_proc_addr::<PfnXrGetVulkanGraphicsRequirements2KHR>(
             instance,
             "xrGetVulkanGraphicsRequirements2KHR",
         )
@@ -2941,16 +2916,6 @@ pub(super) fn create_device(
     }
 
     Ok(renderer)
-}
-
-/// Destroy the OpenXR instance of a device that fails after its Vulkan
-/// instance was made (see `create_device()`'s Note (upstream)).
-fn destroy_unreturned_xr_instance(xr_init: Option<&crate::gpu::xr::gpu_openxr::GpuOpenXr>) {
-    if let Some(init) = xr_init {
-        // SAFETY: the instance GPUInitOpenXR made, whose Vulkan instance is
-        // gone.
-        unsafe { (init.xr.xrDestroyInstance)(init.instance) };
-    }
 }
 
 impl VulkanRenderer {
