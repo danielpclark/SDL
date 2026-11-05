@@ -4,14 +4,15 @@
 //! Interface facts only (names, values and layouts), declared by hand for
 //! what the runtime implements: the loader's negotiation structures, the
 //! core structures of the functions it serves, `XR_KHR_vulkan_enable2`'s
-//! and `XR_KHR_D3D12_enable`'s, the few Vulkan structures and functions it
-//! calls through the application's `vkGetInstanceProcAddr`, and the few
-//! DXGI and Direct3D 12 ones it calls (on Windows: `dxgi.dll`'s factory,
-//! and the application's device). The layouts are pinned by the tests
-//! below to what a C program built against the OpenXR 1.1.63 and Vulkan
-//! headers upstream SDL vendors printed on x86-64 Linux (and, for the
-//! Direct3D 12 ones, a mingw-w64 one against the Windows headers on
-//! x86-64 Windows).
+//! and `XR_KHR_D3D12_enable`'s, Android's loader initialization and
+//! instance structures, the few Vulkan structures and functions it calls
+//! through the application's `vkGetInstanceProcAddr`, and the few DXGI and
+//! Direct3D 12 ones it calls (on Windows: `dxgi.dll`'s factory, and the
+//! application's device). The layouts are pinned by the tests below to
+//! what a C program built against the OpenXR 1.1.63 and Vulkan headers
+//! upstream SDL vendors printed on x86-64 Linux (and, for the Direct3D 12
+//! ones, a mingw-w64 one against the Windows headers on x86-64 Windows;
+//! for the Android ones, the NDK's clang on the x86-64 emulator).
 //!
 //! Handles are `u64` (`XR_DEFINE_HANDLE`, `VK_DEFINE_NON_DISPATCHABLE_HANDLE`)
 //! or pointers (Vulkan's dispatchable handles); the function types are
@@ -532,6 +533,46 @@ pub struct XrSwapchainImageD3D12KHR {
     pub texture: *mut c_void,
 }
 
+// XR_KHR_loader_init, XR_KHR_loader_init_android and
+// XR_KHR_android_create_instance (on Android)
+
+/// `XR_KHR_ANDROID_CREATE_INSTANCE_EXTENSION_NAME`.
+pub const XR_KHR_ANDROID_CREATE_INSTANCE_EXTENSION_NAME: &str = "XR_KHR_android_create_instance";
+/// The extension's version this runtime implements.
+pub const XR_KHR_ANDROID_CREATE_INSTANCE_SPEC_VERSION: u32 = 3;
+
+pub const XR_TYPE_INSTANCE_CREATE_INFO_ANDROID_KHR: XrStructureType = 1000008000;
+pub const XR_TYPE_LOADER_INIT_INFO_ANDROID_KHR: XrStructureType = 1000089000;
+
+/// `XrLoaderInitInfoBaseHeaderKHR`.
+#[repr(C)]
+pub struct XrLoaderInitInfoBaseHeaderKHR {
+    pub ty: XrStructureType,
+    pub next: *const c_void,
+}
+
+/// `XrLoaderInitInfoAndroidKHR`.
+#[repr(C)]
+pub struct XrLoaderInitInfoAndroidKHR {
+    pub ty: XrStructureType,
+    pub next: *const c_void,
+    /// `JavaVM *`.
+    pub application_vm: *mut c_void,
+    /// `jobject` (an `android.content.Context`).
+    pub application_context: *mut c_void,
+}
+
+/// `XrInstanceCreateInfoAndroidKHR`.
+#[repr(C)]
+pub struct XrInstanceCreateInfoAndroidKHR {
+    pub ty: XrStructureType,
+    pub next: *const c_void,
+    /// `JavaVM *`.
+    pub application_vm: *mut c_void,
+    /// `jobject` (an `android.app.Activity`).
+    pub application_activity: *mut c_void,
+}
+
 // The function types
 
 /// `PFN_xrVoidFunction`.
@@ -798,6 +839,13 @@ mod tests {
         off!(XrViewLocateInfo, space, 32);
         size!(XrViewState, 24);
         off!(XrViewState, view_state_flags, 16);
+        size!(XrLoaderInitInfoBaseHeaderKHR, 16);
+        size!(XrLoaderInitInfoAndroidKHR, 32);
+        off!(XrLoaderInitInfoAndroidKHR, application_vm, 16);
+        off!(XrLoaderInitInfoAndroidKHR, application_context, 24);
+        size!(XrInstanceCreateInfoAndroidKHR, 32);
+        off!(XrInstanceCreateInfoAndroidKHR, application_vm, 16);
+        off!(XrInstanceCreateInfoAndroidKHR, application_activity, 24);
         size!(XrView, 64);
         off!(XrView, pose, 16);
         off!(XrView, fov, 44);

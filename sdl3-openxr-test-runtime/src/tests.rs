@@ -30,10 +30,19 @@ fn instance(extensions: &[&str], api_version: XrVersion) -> Result<XrInstance, X
         .iter()
         .map(|e| CString::new(*e).unwrap())
         .collect();
-    let pointers: Vec<*const c_char> = names.iter().map(|n| n.as_ptr()).collect();
+    #[cfg_attr(not(target_os = "android"), allow(unused_mut))]
+    let mut pointers: Vec<*const c_char> = names.iter().map(|n| n.as_ptr()).collect();
+    // (on Android, the app's information, which the runtime needs: a
+    // program the shell runs has no Java VM to check it against)
+    #[cfg(target_os = "android")]
+    let android = android_info(&mut pointers);
+    #[cfg(target_os = "android")]
+    let next: *const std::ffi::c_void = (&android as *const XrInstanceCreateInfoAndroidKHR).cast();
+    #[cfg(not(target_os = "android"))]
+    let next = null();
     let info = XrInstanceCreateInfo {
         ty: XR_TYPE_INSTANCE_CREATE_INFO,
-        next: null(),
+        next,
         create_flags: 0,
         application_info: XrApplicationInfo {
             application_name: name_array("runtime tests"),
@@ -55,6 +64,19 @@ fn instance(extensions: &[&str], api_version: XrVersion) -> Result<XrInstance, X
     }
 }
 
+/// The Android structure of an instance's creation, with stand-ins for the
+/// VM and the activity, its extension added to `extensions`.
+#[cfg(target_os = "android")]
+fn android_info(extensions: &mut Vec<*const c_char>) -> XrInstanceCreateInfoAndroidKHR {
+    extensions.push(c"XR_KHR_android_create_instance".as_ptr());
+    XrInstanceCreateInfoAndroidKHR {
+        ty: XR_TYPE_INSTANCE_CREATE_INFO_ANDROID_KHR,
+        next: null(),
+        application_vm: std::ptr::NonNull::<u8>::dangling().as_ptr().cast(),
+        application_activity: std::ptr::NonNull::<u8>::dangling().as_ptr().cast(),
+    }
+}
+
 const VULKAN: &[&str] = &[XR_KHR_VULKAN_ENABLE2_EXTENSION_NAME];
 const API_1_0: XrVersion = xr_make_version(1, 0, 63);
 
@@ -68,6 +90,15 @@ fn proc_addr_follows_the_specification() {
         (XR_SUCCESS, true)
     );
     assert_eq!(gipa(0, "xrGetSystem"), (XR_ERROR_HANDLE_INVALID, false));
+    // (XR_KHR_loader_init, on Android only)
+    assert_eq!(
+        gipa(0, "xrInitializeLoaderKHR"),
+        if cfg!(target_os = "android") {
+            (XR_SUCCESS, true)
+        } else {
+            (XR_ERROR_HANDLE_INVALID, false)
+        }
+    );
     assert_eq!(
         gipa(0xdead_0000, "xrGetSystem"),
         (XR_ERROR_HANDLE_INVALID, false)
@@ -159,8 +190,20 @@ fn negotiation_checks_the_loader_structures() {
 
 #[test]
 fn extensions_two_call_idiom() {
-    // (XR_KHR_D3D12_enable on Windows only)
-    let expected: &[(&str, u32)] = if cfg!(windows) {
+    // (XR_KHR_D3D12_enable on Windows only, XR_KHR_android_create_instance
+    // on Android only)
+    let expected: &[(&str, u32)] = if cfg!(target_os = "android") {
+        &[
+            (
+                XR_KHR_VULKAN_ENABLE2_EXTENSION_NAME,
+                XR_KHR_VULKAN_ENABLE2_SPEC_VERSION,
+            ),
+            (
+                XR_KHR_ANDROID_CREATE_INSTANCE_EXTENSION_NAME,
+                XR_KHR_ANDROID_CREATE_INSTANCE_SPEC_VERSION,
+            ),
+        ]
+    } else if cfg!(windows) {
         &[
             (
                 XR_KHR_VULKAN_ENABLE2_EXTENSION_NAME,
@@ -379,5 +422,99 @@ fn d3d12_requirements() {
         assert_ne!(requirements.adapter_luid, NO_ADAPTER_LUID);
         assert_eq!(destroy_instance(with), XR_SUCCESS);
         assert_eq!(destroy_instance(plain), XR_SUCCESS);
+    }
+}
+
+#[cfg(target_os = "android")]
+#[test]
+fn android_loader_initialization_and_instance_information() {
+    use std::ffi::c_void;
+    let init = |info: *const c_void| {
+        // SAFETY: the runtime's function, with a structure (or null).
+        unsafe { crate::android::initialize_loader(info.cast()) }
+    };
+    let dangling: *mut c_void = std::ptr::NonNull::<u8>::dangling().as_ptr().cast();
+    let android = |vm, context| XrLoaderInitInfoAndroidKHR {
+        ty: XR_TYPE_LOADER_INIT_INFO_ANDROID_KHR,
+        next: null(),
+        application_vm: vm,
+        application_context: context,
+    };
+    // (no structure, another structure, null pointers: a program the shell
+    // runs has no Java VM to check them against, beyond that)
+    assert_eq!(init(null()), XR_ERROR_VALIDATION_FAILURE);
+    let other = XrLoaderInitInfoBaseHeaderKHR {
+        ty: XR_TYPE_INSTANCE_CREATE_INFO,
+        next: null(),
+    };
+    assert_eq!(
+        init((&other as *const XrLoaderInitInfoBaseHeaderKHR).cast()),
+        XR_ERROR_VALIDATION_FAILURE
+    );
+    for (vm, context) in [
+        (std::ptr::null_mut(), dangling),
+        (dangling, std::ptr::null_mut()),
+    ] {
+        let info = android(vm, context);
+        assert_eq!(
+            init((&info as *const XrLoaderInitInfoAndroidKHR).cast()),
+            XR_ERROR_VALIDATION_FAILURE
+        );
+    }
+
+    // (the instance: the extension and its structure, both needed)
+    let names = [c"XR_KHR_vulkan_enable2".as_ptr()];
+    let mut info = XrInstanceCreateInfo {
+        ty: XR_TYPE_INSTANCE_CREATE_INFO,
+        next: null(),
+        create_flags: 0,
+        application_info: XrApplicationInfo {
+            application_name: name_array("runtime tests"),
+            application_version: 1,
+            engine_name: name_array(""),
+            engine_version: 0,
+            api_version: API_1_0,
+        },
+        enabled_api_layer_count: 0,
+        enabled_api_layer_names: null(),
+        enabled_extension_count: 1,
+        enabled_extension_names: names.as_ptr(),
+    };
+    let mut handle = 0;
+    // SAFETY: the info and its arrays.
+    unsafe {
+        assert_eq!(
+            create_instance(&info, &mut handle),
+            XR_ERROR_VALIDATION_FAILURE,
+            "no Android structure"
+        );
+        let mut with = Vec::from(names);
+        let structure = android_info(&mut with);
+        info.enabled_extension_names = with.as_ptr();
+        info.enabled_extension_count = 2;
+        assert_eq!(
+            create_instance(&info, &mut handle),
+            XR_ERROR_VALIDATION_FAILURE,
+            "no Android structure, the extension enabled"
+        );
+        info.next = (&structure as *const XrInstanceCreateInfoAndroidKHR).cast();
+        info.enabled_extension_count = 1;
+        assert_eq!(
+            create_instance(&info, &mut handle),
+            XR_ERROR_VALIDATION_FAILURE,
+            "the extension not enabled"
+        );
+        let mut no_vm = android_info(&mut Vec::new());
+        no_vm.application_vm = std::ptr::null_mut();
+        info.next = (&no_vm as *const XrInstanceCreateInfoAndroidKHR).cast();
+        info.enabled_extension_count = 2;
+        assert_eq!(
+            create_instance(&info, &mut handle),
+            XR_ERROR_VALIDATION_FAILURE,
+            "no VM"
+        );
+        info.next = (&structure as *const XrInstanceCreateInfoAndroidKHR).cast();
+        assert_eq!(create_instance(&info, &mut handle), XR_SUCCESS);
+        assert_eq!(destroy_instance(handle), XR_SUCCESS);
     }
 }
