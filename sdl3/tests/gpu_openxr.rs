@@ -1,5 +1,6 @@
-// Tests of the GPU API's OpenXR functions on the Vulkan backend, against
-// Monado's null compositor and the repository's test runtime.
+// Tests of the GPU API's OpenXR functions on the Vulkan and Direct3D 12
+// backends, against Monado's null compositor and the repository's test
+// runtime.
 // Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
 // This is an altered (translated) version of the original software; see LICENSE.txt.
 
@@ -81,22 +82,44 @@
 //! `monado-service`, the core validation layer, lavapipe; `openxr-runtime`:
 //! the test runtime, which sdl3's dev-dependency on it builds beside this
 //! program, the loader, the core validation layer, lavapipe), unless
-//! `SDL3_TEST_REQUIRE` asks for them. Elsewhere than Linux it does
-//! nothing.
+//! `SDL3_TEST_REQUIRE` asks for them.
+//!
+//! On Windows, the test runtime's part only (`openxr-runtime`: see
+//! `openxr_support` for what it needs there), on the Direct3D 12 backend on
+//! WARP (the runtime's adapter) and on the Vulkan one on lavapipe, a trace
+//! of its own (the children on the Windows video driver; the loader the
+//! Khronos one, `openxr_loader.dll`, with the runtime as its registered
+//! active runtime):
+//!
+//! * the `d3d12-` scenarios (DXBC and DXIL shaders, so Direct3D 12):
+//!   `d3d12-no-xr`, a device made without OpenXR (upstream's entry points
+//!   crash there: fixed, as Vulkan's); `d3d12-main`, the main scenario
+//!   again, through the loader (WARP's device; upstream's DestroyXRSwapchain
+//!   destroys each texture container as a texture, an error or a crash:
+//!   fixed, with the C patched the same way); `d3d12-loader`, `d3d12-hint`,
+//!   `d3d12-negotiate` as on Vulkan; and the failures of each call SDL
+//!   makes (the extension missing, its enumeration in PrepareDriver and in
+//!   CreateDevice, the instance, its functions, the system, the
+//!   requirements and their lookup, a LUID no adapter has (the adapters
+//!   are enumerated past the last), the session, the formats, the
+//!   swapchain, its images, its destruction);
+//! * the `rt-` scenarios, on Vulkan, as on Linux.
+//!
+//! Elsewhere than Linux and Windows it does nothing.
 
-#[cfg(not(target_os = "linux"))]
+#[cfg(not(any(target_os = "linux", windows)))]
 fn main() {}
 
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", windows))]
 #[path = "openxr_support/mod.rs"]
 mod openxr_support;
 
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", windows))]
 fn main() -> std::process::ExitCode {
     app::main()
 }
 
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", windows))]
 mod app {
     use std::path::{Path, PathBuf};
     use std::process::ExitCode;
@@ -104,10 +127,11 @@ mod app {
 
     use super::openxr_support::xr::{self, Xr};
     use super::openxr_support::{
-        missing_openxr, missing_openxr_runtime, run_child, skip, test_runtime,
-        write_test_runtime_manifest, Monado, RuntimeDir, Trace, PREFIX, SCENARIO,
-        TEST_RUNTIME_FAIL, XR_VALIDATION_LAYER,
+        missing_openxr, missing_openxr_runtime, run_child, skip, test_runtime, RuntimeDir, Trace,
+        PREFIX, SCENARIO, TEST_RUNTIME_FAIL, XR_VALIDATION_LAYER,
     };
+    #[cfg(target_os = "linux")]
+    use super::openxr_support::{write_test_runtime_manifest, Monado};
     use sdl3::gpu::{
         self, ColorTargetInfo, Device, LoadOp, StoreOp, TextureFormat, TextureRegion,
         TextureTransferInfo, TransferBufferCreateInfo, TransferBufferUsage, XrError,
@@ -216,10 +240,12 @@ main: openxr valid usage messages: 2
 ";
 
     /// A scenario's environment variables.
+    #[cfg(target_os = "linux")]
     type Env = &'static [(&'static str, &'static str)];
 
     /// The scenarios: their names, whether Monado's service runs for them,
     /// and their environment.
+    #[cfg(target_os = "linux")]
     const SCENARIOS: &[(&str, bool, Env)] = &[
         ("no-xr", false, &[]),
         (
@@ -236,6 +262,7 @@ main: openxr valid usage messages: 2
 
     /// Upstream's trace on the test runtime (the C program, patched, by this
     /// harness on the CI runner).
+    #[cfg(target_os = "linux")]
     const EXPECTED_RUNTIME: &str = "\
 versions: libopenxr-loader1 1.0.20~dfsg1-1build2, mesa-vulkan-drivers 25.2.8-0ubuntu0.24.04.4, monado-service 21.0.0+git2905.e26a272c1~dfsg1-2build2, openxr-layer-corevalidation 1.0.20~dfsg1-1build2, vulkan-validationlayers 1.3.275.0-1
 -- rt-main
@@ -760,7 +787,8 @@ rt-destroy-swapchain: openxr valid usage messages: 0
 ";
 
     /// How a scenario reaches the test runtime: through the OpenXR loader
-    /// (`XR_RUNTIME_JSON` names a manifest of it), or in the loader's place
+    /// (`XR_RUNTIME_JSON` names a manifest of it; on Windows, the loader's
+    /// registered active runtime), or in the loader's place
     /// (`SDL_OPENXR_LIBRARY` names it).
     #[derive(Clone, Copy)]
     enum Via {
@@ -895,6 +923,102 @@ rt-destroy-swapchain: openxr valid usage messages: 0
         "rt-requirements-2",
     ];
 
+    /// Upstream's trace on the test runtime on Windows (the C program,
+    /// patched, by this harness on the CI runner).
+    #[cfg(windows)]
+    const EXPECTED_WINDOWS: &str = "\
+versions: openxr_loader 1.1.65, mesa 26.2.4
+";
+
+    /// The test runtime's scenarios on Windows: the Direct3D 12 ones (as
+    /// [`RUNTIME_SCENARIOS`]), then the Vulkan ones.
+    #[cfg(windows)]
+    const D3D12_SCENARIOS: &[(&str, Via, &str)] = &[
+        ("d3d12-no-xr", Via::Hint, ""),
+        ("d3d12-main", Via::Loader, ""),
+        ("d3d12-loader", Via::Loader, ""),
+        (
+            "d3d12-negotiate",
+            Via::Loader,
+            "xrNegotiateLoaderRuntimeInterface",
+        ),
+        ("d3d12-hint", Via::Hint, ""),
+        ("d3d12-no-extension", Via::Hint, "XR_KHR_D3D12_enable"),
+        (
+            "d3d12-extensions",
+            Via::Hint,
+            "xrEnumerateInstanceExtensionProperties",
+        ),
+        (
+            "d3d12-extensions-2",
+            Via::Hint,
+            "xrEnumerateInstanceExtensionProperties@2",
+        ),
+        (
+            "d3d12-extensions-3",
+            Via::Hint,
+            "xrEnumerateInstanceExtensionProperties@3",
+        ),
+        ("d3d12-instance", Via::Hint, "xrCreateInstance"),
+        (
+            "d3d12-symbols",
+            Via::Hint,
+            "xrGetInstanceProcAddr:xrDestroySwapchain",
+        ),
+        ("d3d12-system", Via::Hint, "xrGetSystem"),
+        (
+            "d3d12-requirements",
+            Via::Hint,
+            "xrGetD3D12GraphicsRequirementsKHR",
+        ),
+        (
+            "d3d12-requirements-lookup",
+            Via::Hint,
+            "xrGetInstanceProcAddr:xrGetD3D12GraphicsRequirementsKHR",
+        ),
+        (
+            "d3d12-luid",
+            Via::Hint,
+            "xrGetD3D12GraphicsRequirementsKHR:luid",
+        ),
+        ("d3d12-session", Via::Hint, "xrCreateSession"),
+        ("d3d12-formats", Via::Hint, "xrEnumerateSwapchainFormats"),
+        (
+            "d3d12-formats-2",
+            Via::Hint,
+            "xrEnumerateSwapchainFormats@2",
+        ),
+        ("d3d12-swapchain", Via::Hint, "xrCreateSwapchain"),
+        ("d3d12-images", Via::Hint, "xrEnumerateSwapchainImages"),
+        ("d3d12-images-2", Via::Hint, "xrEnumerateSwapchainImages@2"),
+        (
+            "d3d12-destroy-images",
+            Via::Hint,
+            "xrEnumerateSwapchainImages@3",
+        ),
+        ("d3d12-destroy-swapchain", Via::Hint, "xrDestroySwapchain"),
+    ];
+
+    /// Whether the child's scenario is on Direct3D 12 (a `d3d12-` one: its
+    /// devices take DXBC and DXIL shaders, not SPIR-V).
+    static D3D12: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+    /// The shader formats of the scenario's devices.
+    fn shader_props(props: &Properties) {
+        if D3D12.load(std::sync::atomic::Ordering::Relaxed) {
+            props
+                .set(gpu::PROP_GPU_DEVICE_CREATE_SHADERS_DXBC_BOOLEAN, true)
+                .unwrap();
+            props
+                .set(gpu::PROP_GPU_DEVICE_CREATE_SHADERS_DXIL_BOOLEAN, true)
+                .unwrap();
+        } else {
+            props
+                .set(gpu::PROP_GPU_DEVICE_CREATE_SHADERS_SPIRV_BOOLEAN, true)
+                .unwrap();
+        }
+    }
+
     pub(super) fn main() -> ExitCode {
         if let Ok(scenario) = std::env::var(SCENARIO) {
             return child(&scenario);
@@ -914,6 +1038,13 @@ rt-destroy-swapchain: openxr valid usage messages: 0
 
         // (each part skips without its capability; with --run-c, the
         // reference's traces are printed, not compared)
+        #[cfg(windows)]
+        let monado = {
+            let why = missing_openxr().unwrap_or_default();
+            skip(PROGRAM, "openxr", &why);
+            true
+        };
+        #[cfg(target_os = "linux")]
         let monado = match missing_openxr() {
             Some(why) => {
                 skip(PROGRAM, "openxr", &why);
@@ -986,6 +1117,7 @@ rt-destroy-swapchain: openxr valid usage messages: 0
 
     /// The scenarios on Monado: whether the trace is upstream's (or, with
     /// `--run-c`, printed).
+    #[cfg(target_os = "linux")]
     fn monado_scenarios(program: &Path, run_c: bool) -> bool {
         let Some(mut t) = new_trace() else {
             return false;
@@ -1017,20 +1149,34 @@ rt-destroy-swapchain: openxr valid usage messages: 0
             return false;
         };
         let library = test_runtime().expect("the test runtime");
-        for &(scenario, via, fail) in RUNTIME_SCENARIOS {
+        #[cfg(target_os = "linux")]
+        let (scenarios, expected) = (RUNTIME_SCENARIOS.iter(), EXPECTED_RUNTIME);
+        #[cfg(windows)]
+        let (scenarios, expected) = (
+            D3D12_SCENARIOS.iter().chain(RUNTIME_SCENARIOS),
+            EXPECTED_WINDOWS,
+        );
+        for &(scenario, via, fail) in scenarios {
             t.line(format!("-- {scenario}"));
             let dir = RuntimeDir::new("gpu-openxr");
+            #[cfg(target_os = "linux")]
             let manifest = write_test_runtime_manifest(&dir.0, &library);
+            #[cfg(target_os = "linux")]
             let manifest = manifest.to_string_lossy();
             let library = library.to_string_lossy();
             let mut env = vec![(TEST_RUNTIME_FAIL, fail)];
             match via {
+                // (on Windows, the loader's active runtime is the test
+                // runtime: see missing_openxr_runtime)
+                #[cfg(target_os = "linux")]
                 Via::Loader => env.push(("XR_RUNTIME_JSON", &manifest)),
+                #[cfg(windows)]
+                Via::Loader => {}
                 Via::Hint => env.push(("SDL_OPENXR_LIBRARY", &library)),
             }
             trace_child(&mut t, program, scenario, &dir.0, &env);
         }
-        run_c || t.finish(PROGRAM, EXPECTED_RUNTIME)
+        run_c || t.finish(PROGRAM, expected)
     }
 
     /// A trace line of the child.
@@ -1073,11 +1219,17 @@ rt-destroy-swapchain: openxr valid usage messages: 0
             }
         }
 
+        D3D12.store(
+            scenario.starts_with("d3d12-"),
+            std::sync::atomic::Ordering::Relaxed,
+        );
         match scenario {
-            "no-xr" => no_xr(),
+            "no-xr" | "d3d12-no-xr" => no_xr(),
             "no-runtime" | "no-service" => no_service(),
-            "main" | "rt-main" => main_scenario(),
-            _ if scenario.starts_with("rt-") => runtime_steps(scenario),
+            "main" | "rt-main" | "d3d12-main" => main_scenario(),
+            _ if scenario.starts_with("rt-") || scenario.starts_with("d3d12-") => {
+                runtime_steps(scenario)
+            }
             _ => panic!("unknown scenario {scenario}"),
         }
 
@@ -1086,13 +1238,11 @@ rt-destroy-swapchain: openxr valid usage messages: 0
         ExitCode::SUCCESS
     }
 
-    /// The creation properties of an OpenXR device (SPIR-V, no verbose
-    /// logs).
+    /// The creation properties of an OpenXR device (SPIR-V, or DXBC and
+    /// DXIL in a `d3d12-` scenario; no verbose logs).
     fn xr_props(debug_mode: bool) -> Properties {
         let props = Properties::new();
-        props
-            .set(gpu::PROP_GPU_DEVICE_CREATE_SHADERS_SPIRV_BOOLEAN, true)
-            .unwrap();
+        shader_props(&props);
         props
             .set(gpu::PROP_GPU_DEVICE_CREATE_DEBUGMODE_BOOLEAN, debug_mode)
             .unwrap();
@@ -1108,9 +1258,7 @@ rt-destroy-swapchain: openxr valid usage messages: 0
     /// A device made without OpenXR, whose OpenXR entry points fail.
     fn no_xr() {
         let props = Properties::new();
-        props
-            .set(gpu::PROP_GPU_DEVICE_CREATE_SHADERS_SPIRV_BOOLEAN, true)
-            .unwrap();
+        shader_props(&props);
         props
             .set(gpu::PROP_GPU_DEVICE_CREATE_DEBUGMODE_BOOLEAN, false)
             .unwrap();
