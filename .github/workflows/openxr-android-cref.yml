@@ -1,0 +1,170 @@
+name: openxr-android-cref
+
+# (diag branch only) The C references of sdl3/tests/android_openxr.rs and
+# android_openxr_loader.rs: upstream's android-project at ea7a2da with each
+# C twin (diag/openxr-android/*.c), the test runtime (built for
+# x86_64-linux-android) or the Khronos loader (the AAR's) in its jniLibs,
+# built with Gradle and CMake, run by tools/android_run.py --run-apk; then
+# the Rust programs on the same emulator.
+on:
+  push:
+    branches: ['claude/diag-openxr-android*']
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
+  RUST_BACKTRACE: 1
+
+jobs:
+  cref:
+    name: C reference and the Rust programs (Android emulator)
+    runs-on: ubuntu-latest
+    timeout-minutes: 80
+    env:
+      ANDROID_EMULATOR_BUILD: "16428233"
+      ANDROID_EMULATOR_SHA256: b08fc43d8608d2955f607f1b287beb525041e730086bdca3af152accac3af9c1
+      ANDROID_IMAGE_ARCHIVE: x86_64-35_r09.zip
+      ANDROID_IMAGE_SHA256: c67b9ba0ff5bc0eb6d046871bfa228af14d4d47b02f0cdae94f048e511b7566e
+      SDL3_ANDROID_SYSTEM_IMAGE: "system-images;android-35;google_apis;x86_64"
+      ANDROID_NDK_VERSION: "29.0.14206865"
+      SDL3_ANDROID_BUILD_TOOLS: "35.0.0"
+      SDL3_ANDROID_PLATFORM: "35"
+      SDL3_ANDROID_TIMEOUT: 600
+      RUST_TEST_NOCAPTURE: 1
+      CARGO_PROFILE_DEV_DEBUG: line-tables-only
+      UPSTREAM_COMMIT: ea7a2dabfd1ab6b0a5720568ffd207f5825e47f1
+      OPENXR_LOADER_ANDROID_VERSION: "1.1.65"
+      OPENXR_LOADER_ANDROID_SHA256: a298c326085b09181c85235fb04d37510939bd30938ed4322c093c09780e8643
+    steps:
+      - uses: actions/checkout@v5
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/.ghcup /opt/ghc /opt/hostedtoolcache/CodeQL /usr/local/share/powershell /usr/share/swift /usr/local/lib/node_modules
+          df -h /
+      - name: Install the emulator, its system image and the NDK
+        run: |
+          D="$RUNNER_TEMP/android-download"
+          mkdir -p "$D"
+          curl -fsSL --retry 5 --retry-delay 10 --retry-all-errors -o "$D/emulator.zip" "https://dl.google.com/android/repository/emulator-linux_x64-$ANDROID_EMULATOR_BUILD.zip"
+          curl -fsSL --retry 5 --retry-delay 10 --retry-all-errors -o "$D/image.zip" "https://dl.google.com/android/repository/sys-img/google_apis/$ANDROID_IMAGE_ARCHIVE"
+          echo "$ANDROID_EMULATOR_SHA256  $D/emulator.zip" | sha256sum -c
+          echo "$ANDROID_IMAGE_SHA256  $D/image.zip" | sha256sum -c
+          rm -rf "$ANDROID_HOME/emulator"
+          unzip -q "$D/emulator.zip" -d "$ANDROID_HOME"
+          I="$ANDROID_HOME/$(echo "$SDL3_ANDROID_SYSTEM_IMAGE" | tr ';' /)"
+          rm -rf "$I"
+          mkdir -p "$(dirname "$I")"
+          unzip -q "$D/image.zip" -d "$(dirname "$I")"
+          rm -rf "$D"
+          sudo apt-get install -y -q libpulse0 > /dev/null || { sudo apt-get update -q > /dev/null && sudo apt-get install -y -q libpulse0 > /dev/null; }
+          if [ ! -d "$ANDROID_HOME/ndk/$ANDROID_NDK_VERSION" ]; then
+            yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "ndk;$ANDROID_NDK_VERSION" > /dev/null
+          fi
+          echo "SDL3_ANDROID_NDK=$ANDROID_HOME/ndk/$ANDROID_NDK_VERSION" >> "$GITHUB_ENV"
+      - name: Install Rust
+        run: |
+          rustup toolchain install 1.99 --profile minimal --target x86_64-linux-android
+          rustup default 1.99
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: android-openxr-cref
+          cache-on-failure: true
+      - name: Install the OpenXR loader for Android
+        run: tools/ci/openxr-android.sh
+      - name: Start the emulator
+        run: echo "SDL3_ANDROID_SERIAL=$(tools/android_run.py --boot)" >> "$GITHUB_ENV"
+      - name: Build the test runtime and the Rust programs
+        run: |
+          cargo build -p sdl3-openxr-test-runtime --target x86_64-linux-android
+          ls -l target/x86_64-linux-android/debug/libsdl3_openxr_test_runtime.so
+          cargo test --no-run --target x86_64-linux-android -p sdl3 --test android_openxr --test android_openxr_loader
+      - name: Build upstream's android-project with each C reference
+        run: |
+          up="$RUNNER_TEMP/upstream"
+          proj="$RUNNER_TEMP/cref"
+          mkdir -p "$RUNNER_TEMP/apks"
+          git init -q "$up"
+          git -C "$up" fetch -q --depth 1 https://github.com/libsdl-org/SDL "$UPSTREAM_COMMIT"
+          git -C "$up" checkout -q FETCH_HEAD
+          for p in diag/openxr-android/*.patch; do
+            if [ -e "$p" ]; then git -C "$up" apply -v "$p"; fi
+          done
+          git -C "$up" diff --stat
+          cp -r "$up/android-project" "$proj"
+          ln -s "$up" "$proj/app/jni/SDL"
+          cp diag/openxr-android/*.h "$proj/app/jni/src/"
+          sed -i 's/YourSourceHere.c/main.c/' "$proj/app/jni/src/CMakeLists.txt"
+          sed -i "s/abiFilters 'arm64-v8a'/abiFilters 'x86_64'/" "$proj/app/build.gradle"
+          sed -i "s/ndkVersion = \"28.2.13676358\"/ndkVersion = \"$ANDROID_NDK_VERSION\"/" "$proj/app/build.gradle"
+          runtime="$PWD/target/x86_64-linux-android/debug/libsdl3_openxr_test_runtime.so"
+          loader="$SDL3_ANDROID_LIBRARY_PATH/x86_64/libopenxr_loader.so"
+          cd "$proj"
+          for n in android_openxr android_openxr_loader; do
+            cp "$GITHUB_WORKSPACE/diag/openxr-android/$n.c" app/jni/src/main.c
+            rm -rf app/libs
+            mkdir -p app/libs/x86_64
+            if [ "$n" = android_openxr ]; then cp "$runtime" app/libs/x86_64/; else cp "$loader" app/libs/x86_64/; fi
+            s=$(date +%s)
+            ./gradlew --no-daemon -q -PBUILD_WITH_CMAKE assembleDebug 2>&1 | tail -40
+            echo "gradle $n: $(( $(date +%s) - s )) s"
+            cp app/build/outputs/apk/debug/app-debug.apk "$RUNNER_TEMP/apks/$n.apk"
+            unzip -l "$RUNNER_TEMP/apks/$n.apk" 'lib/*'
+          done
+      - name: Run the C references
+        env:
+          SDL3_ANDROID_VERBOSE: 1
+        run: |
+          set -o pipefail
+          status=0
+          for n in android_openxr android_openxr_loader; do
+            apk="$RUNNER_TEMP/apks/$n.apk"
+            echo "===== $n"
+            rc=0
+            tools/android_run.py --run-apk "$apk" org.libsdl.app | tee "$RUNNER_TEMP/$n.txt" || rc=$?
+            echo "--run-apk $n: exit status $rc"
+            echo "--- the trace of $n"
+            python3 - "$RUNNER_TEMP/$n.txt" "$n" <<'EOF'
+          import sys
+          lines = []
+          for raw in open(sys.argv[1], encoding="utf-8", errors="replace"):
+              text = raw.rstrip("\n")
+              if text.startswith("trace: "):
+                  lines.append(text[len("trace: "):])
+          for line in lines:
+              print(f"EXPECTED[{sys.argv[2]}]| " + line)
+          print(f"({len(lines)} lines)")
+          EOF
+            "$ANDROID_HOME/platform-tools/adb" -s "$SDL3_ANDROID_SERIAL" logcat -d -v threadtime | grep -E " (SDL|SDL/[A-Z]+|AndroidRuntime|DEBUG|libc|OpenXR|openxr_loader|ActivityManager) *:" | tail -120 | sed "s/^/LOG[$n]| /" || true
+            test "$rc" = 0 || status=1
+          done
+          exit $status
+      - name: The Rust programs
+        if: ${{ !cancelled() }}
+        env:
+          SDL3_TEST_REQUIRE: openxr,openxr-runtime
+          SDL3_ANDROID_VERBOSE: 1
+        run: |
+          set -o pipefail
+          status=0
+          for n in android_openxr android_openxr_loader; do
+            echo "===== $n"
+            cargo test --target x86_64-linux-android -p sdl3 --test $n 2>&1 | tee "$RUNNER_TEMP/rust-$n.txt" || status=1
+            grep -E "^ *trace: " "$RUNNER_TEMP/rust-$n.txt" | sed "s/^ *trace: /RUST[$n]| /" || true
+          done
+          exit $status
+      - name: The device's log
+        if: failure() && env.SDL3_ANDROID_SERIAL != ''
+        timeout-minutes: 5
+        run: |
+          timeout 60 "$ANDROID_HOME/platform-tools/adb" -s "$SDL3_ANDROID_SERIAL" logcat -d -b crash | tail -200 || true
+      - name: Stop the emulator
+        if: always()
+        run: tools/android_run.py --kill
