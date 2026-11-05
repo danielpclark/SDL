@@ -22,12 +22,13 @@ env:
 
 jobs:
   loop:
-    name: loop (all, ${{ matrix.toolchain }})
+    name: loop (all, 1.87, ${{ matrix.variant }})
     strategy:
       fail-fast: false
       matrix:
         filter: ["all"]
-        toolchain: ["1.99", "1.87"]
+        toolchain: ["1.87"]
+        variant: ["baseline", "MVK_CONFIG_USE_MTLHEAP=0", "MTL_DEBUG_LAYER=0"]
     runs-on: macos-latest
     timeout-minutes: 150
     steps:
@@ -58,12 +59,13 @@ jobs:
           rm -f ~/Library/Logs/DiagnosticReports/*.ips || true
       - name: Loop
         env:
-          RUNS: 50
+          RUNS: 200
           # (as cargo test sets it: where dlopen finds /usr/local/lib's libMoltenVK.dylib by name)
           DYLD_FALLBACK_LIBRARY_PATH: /Users/runner/lib:/usr/local/lib:/usr/lib
           FILTER: ${{ matrix.filter != 'all' && matrix.filter || '' }}
         shell: bash
         run: |
+          case "${{ matrix.variant }}" in *=*) export "${{ matrix.variant }}"; echo "with ${{ matrix.variant }}";; esac
           cd sdl3
           crashes=0
           for i in $(seq 1 "$RUNS"); do
