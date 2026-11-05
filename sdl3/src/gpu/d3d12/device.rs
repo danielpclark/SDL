@@ -836,15 +836,25 @@ fn get_adapter_by_luid(luid: Luid, factory: &DxgiFactory1) -> Option<DxgiAdapter
 }
 
 impl D3D12Renderer {
-    /// The OpenXR instance's functions (`renderer->xr`).
+    /// The OpenXR instance's functions (`renderer->xr`), or the error of a
+    /// device made without OpenXR.
     ///
-    /// FIXME (upstream): the OpenXR entry points use `renderer->xr`, which
+    /// Note (upstream): the OpenXR entry points use `renderer->xr`, which
     /// is NULL on a device made without OpenXR, so C dereferences NULL
-    /// there (an access violation); here it panics.
-    fn xr_pfns(&self) -> &XrInstancePfns {
+    /// there (an access violation); here they fail with
+    /// `XR_ERROR_FUNCTION_UNSUPPORTED` (the formats with no list), as the
+    /// backends without OpenXR do, and as the Vulkan backend's do.
+    fn xr_pfns(&self) -> Result<&XrInstancePfns> {
         self.xr
             .as_ref()
-            .expect("the GPU device was made without OpenXR")
+            .ok_or_else(|| Error::new("The GPU device was not created with OpenXR enabled"))
+    }
+
+    /// [`D3D12Renderer::xr_pfns`] for the entry points that return an
+    /// `XrResult`.
+    fn xr_pfns_or_unsupported(&self) -> std::result::Result<&XrInstancePfns, XrError> {
+        self.xr_pfns()
+            .map_err(|e| XrError::new(XrResult::ERROR_FUNCTION_UNSUPPORTED, e))
     }
 
     /// Destroy an OpenXR swapchain and the textures of its images.
@@ -860,7 +870,7 @@ impl D3D12Renderer {
         swapchain: XrSwapchain,
         swapchain_images: &[BackendObject],
     ) -> std::result::Result<(), XrError> {
-        let xr = self.xr_pfns();
+        let xr = self.xr_pfns_or_unsupported()?;
 
         let _ = self.wait_internal();
 
@@ -922,7 +932,7 @@ impl D3D12Renderer {
         &self,
         session: XrSession,
     ) -> Result<Vec<TextureFormat>> {
-        let xr = self.xr_pfns();
+        let xr = self.xr_pfns()?;
 
         let mut num_supported_formats: u32 = 0;
         // SAFETY: the instance's function, a count query.
@@ -1009,7 +1019,7 @@ impl D3D12Renderer {
         old_create_info: &XrSwapchainCreateInfo,
         format: TextureFormat,
     ) -> std::result::Result<(XrSwapchain, Vec<(BackendObject, TextureCreateInfo)>), XrError> {
-        let xr = self.xr_pfns();
+        let xr = self.xr_pfns_or_unsupported()?;
 
         let mut create_info = *old_create_info;
         create_info.format = i64::from(sdl_to_d3d12_texture_format(format));
@@ -1181,7 +1191,7 @@ impl D3D12Renderer {
         &self,
         createinfo: &XrSessionCreateInfo,
     ) -> std::result::Result<XrSession, XrError> {
-        let xr = self.xr_pfns();
+        let xr = self.xr_pfns_or_unsupported()?;
 
         // Copy out the existing next ptr so that we can append it to the end of the chain we create
         let current_next_ptr = createinfo.next;
