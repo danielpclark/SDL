@@ -101,7 +101,7 @@ features = [
 # a dev-dependency only so that `cargo test` builds it beside the test
 # programs, where gpu_openxr loads it from (through the OpenXR loader, and
 # in the loader's place). No version: it isn't published.
-[target.'cfg(target_os = "linux")'.dev-dependencies]
+[target.'cfg(any(target_os = "linux", windows))'.dev-dependencies]
 sdl3-openxr-test-runtime = { path = "../sdl3-openxr-test-runtime" }
 
 # The Cocoa video driver, which only starts on the main thread: a program of
@@ -448,7 +448,8 @@ harness = false
 # physical device and logical device through the runtime, the session, the
 # swapchains and their textures, frames rendered and read back), on Monado's
 # null compositor and lavapipe, each scenario in a child process with
-# Monado's service of its own, against upstream's C.
+# Monado's service of its own, and on the repository's test runtime, with
+# the Direct3D 12 backend's on Windows (WARP), against upstream's C.
 [[test]]
 name = "gpu_openxr"
 harness = false

@@ -27,6 +27,20 @@
 //! loader with a manifest of it made in the scenario's runtime directory
 //! (`XR_RUNTIME_JSON`) or in the loader's place (`SDL_OPENXR_LIBRARY`),
 //! with the loader, the core validation API layer and lavapipe.
+//!
+//! On Windows there is no Monado (`openxr` is Linux's), and the children
+//! have the Windows video driver (Vulkan's surfaces there; lavapipe has no
+//! headless ones) and no runtime directory. `openxr-runtime` there: the
+//! test runtime (`sdl3_openxr_test_runtime.dll`, beside the program, or
+//! where `SDL3_OPENXR_TEST_RUNTIME` says), the Khronos loader
+//! (`openxr_loader.dll`, beside the program or in `PATH`) with the test
+//! runtime as the active runtime (a manifest of it named by
+//! `HKLM\SOFTWARE\Khronos\OpenXR\1\ActiveRuntime`: the loader ignores
+//! `XR_RUNTIME_JSON` in an elevated process, as the CI runner's), the core
+//! validation API layer registered
+//! (`HKLM\SOFTWARE\Khronos\OpenXR\1\ApiLayers\Explicit`, for the same
+//! reason), WARP (`d3d10warp.dll`, for Direct3D 12) and lavapipe registered
+//! as a Vulkan driver (`HKLM\SOFTWARE\Khronos\Vulkan\Drivers`).
 
 #![allow(dead_code)] // (each program uses some of it)
 
@@ -34,9 +48,12 @@ pub mod xr;
 
 use std::ffi::CStr;
 use std::io::{Read, Write};
+#[cfg(unix)]
 use std::os::unix::fs::{DirBuilderExt, PermissionsExt};
 use std::path::{Path, PathBuf};
-use std::process::{Child, ChildStdin, Command, ExitCode, Stdio};
+#[cfg(target_os = "linux")]
+use std::process::{Child, ChildStdin};
+use std::process::{Command, ExitCode, Stdio};
 use std::time::{Duration, Instant};
 
 /// The variable naming a child's scenario.
@@ -44,6 +61,7 @@ pub const SCENARIO: &str = "SDL3_GPU_OPENXR_SCENARIO";
 /// The prefix of a child's trace lines.
 pub const PREFIX: &str = "xrtrace: ";
 /// Lavapipe's ICD manifest (Ubuntu's mesa-vulkan-drivers).
+#[cfg(target_os = "linux")]
 pub const LAVAPIPE_ICD: &str = "/usr/share/vulkan/icd.d/lvp_icd.json";
 /// The core validation API layer's name.
 pub const XR_VALIDATION_LAYER: &str = "XR_APILAYER_LUNARG_core_validation";
@@ -77,6 +95,7 @@ pub fn skip(program: &str, capability: &str, reason: &str) -> ExitCode {
 }
 
 /// Whether a library can be loaded (`dlopen()`).
+#[cfg(unix)]
 pub fn loadable(name: &CStr) -> bool {
     // SAFETY: dlopen of a NUL-terminated name; the handle is closed at
     // once.
@@ -90,7 +109,153 @@ pub fn loadable(name: &CStr) -> bool {
     true
 }
 
+/// Whether a library can be loaded (`LoadLibraryW()`).
+#[cfg(windows)]
+pub fn loadable(name: &CStr) -> bool {
+    use windows_sys::Win32::Foundation::FreeLibrary;
+    use windows_sys::Win32::System::LibraryLoader::LoadLibraryW;
+    let name = wide(&name.to_string_lossy());
+    // SAFETY: a NUL-terminated name; the module is freed at once.
+    unsafe {
+        let module = LoadLibraryW(name.as_ptr());
+        if module.is_null() {
+            return false;
+        }
+        FreeLibrary(module);
+    }
+    true
+}
+
+/// A NUL-terminated UTF-16 string.
+#[cfg(windows)]
+pub fn wide(s: &str) -> Vec<u16> {
+    s.encode_utf16().chain(Some(0)).collect()
+}
+
+/// A string value of a key of `HKEY_LOCAL_MACHINE`.
+#[cfg(windows)]
+pub fn registry_string(key: &str, value: &str) -> Option<String> {
+    use windows_sys::Win32::System::Registry::{RegGetValueW, HKEY_LOCAL_MACHINE, RRF_RT_REG_SZ};
+    let (key, value) = (wide(key), wide(value));
+    let mut buf = vec![0u16; 4096];
+    let mut size = (buf.len() * 2) as u32;
+    // SAFETY: NUL-terminated names, a buffer of `size` bytes.
+    let status = unsafe {
+        RegGetValueW(
+            HKEY_LOCAL_MACHINE,
+            key.as_ptr(),
+            value.as_ptr(),
+            RRF_RT_REG_SZ,
+            std::ptr::null_mut(),
+            buf.as_mut_ptr().cast(),
+            &mut size,
+        )
+    };
+    if status != 0 {
+        return None;
+    }
+    let len = (size as usize / 2).min(buf.len());
+    let text = String::from_utf16_lossy(&buf[..len]);
+    Some(text.trim_end_matches('\0').to_owned())
+}
+
+/// The value names of a key of `HKEY_LOCAL_MACHINE` (the paths of a
+/// Khronos loader's manifests).
+#[cfg(windows)]
+pub fn registry_value_names(key: &str) -> Vec<String> {
+    use windows_sys::Win32::System::Registry::{
+        RegCloseKey, RegEnumValueW, RegOpenKeyExW, HKEY, HKEY_LOCAL_MACHINE, KEY_READ,
+    };
+    let key = wide(key);
+    let mut hkey: HKEY = std::ptr::null_mut();
+    // SAFETY: a NUL-terminated name and an out-pointer.
+    if unsafe { RegOpenKeyExW(HKEY_LOCAL_MACHINE, key.as_ptr(), 0, KEY_READ, &mut hkey) } != 0 {
+        return Vec::new();
+    }
+    let mut names = Vec::new();
+    for index in 0.. {
+        let mut name = vec![0u16; 4096];
+        let mut len = name.len() as u32;
+        // SAFETY: the open key, a buffer of `len` characters, no data.
+        let status = unsafe {
+            RegEnumValueW(
+                hkey,
+                index,
+                name.as_mut_ptr(),
+                &mut len,
+                std::ptr::null(),
+                std::ptr::null_mut(),
+                std::ptr::null_mut(),
+                std::ptr::null_mut(),
+            )
+        };
+        if status != 0 {
+            break;
+        }
+        names.push(String::from_utf16_lossy(&name[..len as usize]));
+    }
+    // SAFETY: the key opened above.
+    unsafe { RegCloseKey(hkey) };
+    names
+}
+
+/// The Khronos OpenXR loader's key.
+#[cfg(windows)]
+pub const OPENXR_KEY: &str = "SOFTWARE\\Khronos\\OpenXR\\1";
+
+/// The library a runtime manifest names (`runtime.library_path`, relative
+/// to the manifest's directory unless absolute).
+pub fn manifest_library(manifest: &Path) -> Option<PathBuf> {
+    let text = std::fs::read_to_string(manifest).ok()?;
+    let after = &text[text.find("\"library_path\"")? + "\"library_path\"".len()..];
+    let start = after.find('"')? + 1;
+    let mut value = String::new();
+    let mut chars = after[start..].chars();
+    while let Some(c) = chars.next() {
+        match c {
+            '"' => break,
+            '\\' => value.extend(chars.next()),
+            c => value.push(c),
+        }
+    }
+    let path = PathBuf::from(value);
+    Some(if path.is_absolute() {
+        path
+    } else {
+        manifest.parent()?.join(path)
+    })
+}
+
+/// The library of the OpenXR loader's active runtime on Windows (the
+/// manifest `HKLM\SOFTWARE\Khronos\OpenXR\1\ActiveRuntime` names).
+#[cfg(windows)]
+pub fn active_runtime_library() -> Option<PathBuf> {
+    manifest_library(Path::new(&registry_string(OPENXR_KEY, "ActiveRuntime")?))
+}
+
+/// Lavapipe's ICD manifest: the one registered with the Vulkan loader
+/// (`HKLM\SOFTWARE\Khronos\Vulkan\Drivers`, Mesa's `lvp_icd.*.json`).
+#[cfg(windows)]
+pub fn lavapipe_icd() -> Option<String> {
+    registry_value_names("SOFTWARE\\Khronos\\Vulkan\\Drivers")
+        .into_iter()
+        .find(|name| {
+            Path::new(name)
+                .file_name()
+                .is_some_and(|f| f.to_string_lossy().starts_with("lvp_icd"))
+        })
+}
+
+/// Lavapipe's ICD manifest.
+#[cfg(target_os = "linux")]
+pub fn lavapipe_icd() -> Option<String> {
+    Path::new(LAVAPIPE_ICD)
+        .exists()
+        .then(|| LAVAPIPE_ICD.to_owned())
+}
+
 /// A program in `PATH`.
+#[cfg(unix)]
 pub fn in_path(program: &str) -> Option<PathBuf> {
     std::env::split_paths(&std::env::var_os("PATH")?)
         .map(|dir| dir.join(program))
@@ -102,6 +267,7 @@ pub fn in_path(program: &str) -> Option<PathBuf> {
 
 /// Whether the loader finds an explicit API layer (in `XR_API_LAYER_PATH`,
 /// or the system's and the user's directories).
+#[cfg(target_os = "linux")]
 pub fn api_layer_installed(name: &str) -> bool {
     let mut dirs: Vec<PathBuf> = match std::env::var_os("XR_API_LAYER_PATH") {
         Some(path) => std::env::split_paths(&path).collect(),
@@ -120,7 +286,27 @@ pub fn api_layer_installed(name: &str) -> bool {
     })
 }
 
+/// Whether the loader finds an explicit API layer (a manifest registered
+/// in `HKLM\SOFTWARE\Khronos\OpenXR\1\ApiLayers\Explicit`).
+#[cfg(windows)]
+pub fn api_layer_installed(name: &str) -> bool {
+    registry_value_names(&format!("{OPENXR_KEY}\\ApiLayers\\Explicit"))
+        .iter()
+        .any(|manifest| {
+            std::fs::read_to_string(manifest)
+                .is_ok_and(|text| text.contains(&format!("\"{name}\"")))
+        })
+}
+
+/// Why the `openxr` capability is missing, if it is: on Windows, always
+/// (Monado's service is Linux's).
+#[cfg(windows)]
+pub fn missing_openxr() -> Option<String> {
+    Some("no Monado's service (Linux only)".into())
+}
+
 /// Why the `openxr` capability is missing, if it is.
+#[cfg(target_os = "linux")]
 pub fn missing_openxr() -> Option<String> {
     if !loadable(c"libopenxr_loader.so.1") {
         return Some("no OpenXR loader (libopenxr_loader.so.1)".into());
@@ -143,7 +329,11 @@ pub const TEST_RUNTIME_PATH: &str = "SDL3_OPENXR_TEST_RUNTIME";
 /// The test runtime's failure list (see sdl3-openxr-test-runtime's fail.rs).
 pub const TEST_RUNTIME_FAIL: &str = "SDL3_OPENXR_TEST_RUNTIME_FAIL";
 /// The test runtime's file name.
+#[cfg(target_os = "linux")]
 pub const TEST_RUNTIME_FILE: &str = "libsdl3_openxr_test_runtime.so";
+/// The test runtime's file name.
+#[cfg(windows)]
+pub const TEST_RUNTIME_FILE: &str = "sdl3_openxr_test_runtime.dll";
 
 /// The repository's test runtime (sdl3-openxr-test-runtime, which sdl3's
 /// dev-dependency on it builds beside the test programs, in `deps/`), or
@@ -163,9 +353,54 @@ pub fn test_runtime() -> Option<PathBuf> {
 }
 
 /// Why the `openxr-runtime` capability is missing, if it is: the test
+/// runtime, the OpenXR loader with the test runtime as its active runtime,
+/// the core validation API layer, WARP and lavapipe (see the module's
+/// documentation).
+#[cfg(windows)]
+pub fn missing_openxr_runtime() -> Option<String> {
+    let Some(library) = test_runtime() else {
+        return Some(format!(
+            "no test runtime ({TEST_RUNTIME_FILE} beside the program, or {TEST_RUNTIME_PATH}: cargo build -p sdl3-openxr-test-runtime)"
+        ));
+    };
+    if !loadable(c"openxr_loader.dll") {
+        return Some("no OpenXR loader (openxr_loader.dll beside the program or in PATH)".into());
+    }
+    let same = |a: &Path, b: &Path| match (a.canonicalize(), b.canonicalize()) {
+        (Ok(a), Ok(b)) => a == b,
+        _ => false,
+    };
+    match active_runtime_library() {
+        Some(active) if same(&active, &library) => {}
+        active => {
+            return Some(format!(
+                "the OpenXR loader's active runtime (HKLM\\{OPENXR_KEY}\\ActiveRuntime) is {}, not the test runtime {}",
+                active.map_or("none".into(), |a| a.display().to_string()),
+                library.display()
+            ))
+        }
+    }
+    if !api_layer_installed(XR_VALIDATION_LAYER) {
+        return Some(format!(
+            "no {XR_VALIDATION_LAYER} API layer (HKLM\\{OPENXR_KEY}\\ApiLayers\\Explicit)"
+        ));
+    }
+    if !loadable(c"d3d10warp.dll") {
+        return Some("no WARP (d3d10warp.dll)".into());
+    }
+    if lavapipe_icd().is_none() {
+        return Some(
+            "no lavapipe (lvp_icd.*.json in HKLM\\SOFTWARE\\Khronos\\Vulkan\\Drivers)".into(),
+        );
+    }
+    None
+}
+
+/// Why the `openxr-runtime` capability is missing, if it is: the test
 /// runtime, the OpenXR loader (for the scenarios through it, with a
 /// manifest), the core validation API layer (which the loader then finds,
 /// and the main scenario enables) and lavapipe.
+#[cfg(target_os = "linux")]
 pub fn missing_openxr_runtime() -> Option<String> {
     if test_runtime().is_none() {
         return Some(format!(
@@ -211,10 +446,11 @@ impl RuntimeDir {
                 .map_or(0, |d| d.subsec_nanos())
         ));
         let _ = std::fs::remove_dir_all(&dir);
-        std::fs::DirBuilder::new()
-            .mode(0o700)
-            .create(&dir)
-            .expect("the runtime directory");
+        #[cfg(unix)]
+        let created = std::fs::DirBuilder::new().mode(0o700).create(&dir);
+        #[cfg(not(unix))]
+        let created = std::fs::create_dir(&dir);
+        created.expect("the runtime directory");
         RuntimeDir(dir)
     }
 }
@@ -226,12 +462,14 @@ impl Drop for RuntimeDir {
 }
 
 /// Monado's service, with its null compositor, in a runtime directory.
+#[cfg(target_os = "linux")]
 pub struct Monado {
     child: Child,
     stdin: Option<ChildStdin>,
     pub log: PathBuf,
 }
 
+#[cfg(target_os = "linux")]
 impl Monado {
     /// Start it and wait for its socket (`monado_comp_ipc`), for up to 30 s.
     pub fn start(dir: &Path) -> Result<Monado, String> {
@@ -277,6 +515,7 @@ impl Monado {
     }
 }
 
+#[cfg(target_os = "linux")]
 impl Drop for Monado {
     fn drop(&mut self) {
         // (closing its standard input stops it)
@@ -318,16 +557,27 @@ pub fn run_child(
     env: &[(&str, &str)],
     timeout: Duration,
 ) -> ChildOutput {
+    #[cfg(unix)]
     use std::os::unix::process::ExitStatusExt;
     let mut command = Command::new(program);
     command
         .env(SCENARIO, scenario)
-        .env("XDG_RUNTIME_DIR", dir)
-        .env("VK_ICD_FILENAMES", LAVAPIPE_ICD)
-        .env("SDL_VIDEO_DRIVER", "offscreen")
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
+    #[cfg(target_os = "linux")]
+    command
+        .env("XDG_RUNTIME_DIR", dir)
+        .env("VK_ICD_FILENAMES", LAVAPIPE_ICD)
+        .env("SDL_VIDEO_DRIVER", "offscreen");
+    // (the Windows video driver, whose Vulkan surfaces lavapipe has; and
+    // the Vulkan loader's registered drivers: it ignores VK_DRIVER_FILES in
+    // an elevated process)
+    #[cfg(windows)]
+    {
+        let _ = dir;
+        command.env("SDL_VIDEO_DRIVER", "windows");
+    }
     for (name, value) in env {
         command.env(name, value);
     }
@@ -348,11 +598,15 @@ pub fn run_child(
     let status = loop {
         match child.try_wait() {
             Ok(Some(status)) => {
-                break match (status.code(), status.signal()) {
+                #[cfg(unix)]
+                let signal = status.signal();
+                #[cfg(not(unix))]
+                let signal: Option<i32> = None;
+                break match (status.code(), signal) {
                     (Some(code), _) => format!("exit {code}"),
                     (None, Some(signal)) => format!("signal {signal}"),
                     _ => "exit ?".to_owned(),
-                }
+                };
             }
             Ok(None) if Instant::now() < end => std::thread::sleep(Duration::from_millis(50)),
             _ => {
@@ -391,8 +645,22 @@ pub fn run_child(
     }
 }
 
+/// The versions of what the trace depends on on Windows (the reference's
+/// preamble): the OpenXR loader's and Mesa's, as the CI job's environment
+/// names them (`OPENXR_LOADER_VERSION`, `MESA_VERSION`).
+#[cfg(windows)]
+pub fn versions() -> String {
+    let var = |name: &str| std::env::var(name).unwrap_or_else(|_| "?".into());
+    format!(
+        "versions: openxr_loader {}, mesa {}",
+        var("OPENXR_LOADER_VERSION"),
+        var("MESA_VERSION")
+    )
+}
+
 /// The installed versions of the packages the trace depends on (the
 /// reference's preamble).
+#[cfg(target_os = "linux")]
 pub fn versions() -> String {
     let packages = [
         "monado-service",
