@@ -11,8 +11,7 @@
 
 #![allow(non_snake_case)]
 // (upstream's names)
-// (for the backends' OpenXR paths: none is built on Emscripten, and Direct3D
-// 12's isn't translated yet)
+// (for the backends' OpenXR paths: none is built on Emscripten)
 #![allow(dead_code)]
 
 use std::ffi::{c_char, CStr, CString};

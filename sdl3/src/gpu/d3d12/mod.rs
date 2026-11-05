@@ -40,10 +40,14 @@
 //! * claimed windows and their DXGI flip model swapchains, present modes,
 //!   compositions (HDR too), frames in flight, swapchain texture
 //!   acquisition and resizing ([`swapchain`]);
-//! * `SupportsTextureFormat` and `SupportsSampleCount`.
+//! * `SupportsTextureFormat` and `SupportsSampleCount`;
+//! * OpenXR (`HAVE_GPU_OPENXR`): PrepareDriver's check of the runtime's
+//!   `XR_KHR_D3D12_enable`, CreateDevice's instance, system and adapter
+//!   (the runtime's LUID), and the session, swapchain formats and
+//!   swapchains, whose images are externally managed textures
+//!   ([`device`]).
 //!
-//! The OpenXR parts (`HAVE_GPU_OPENXR`) and the Xbox (GDK) code are not
-//! translated.
+//! The Xbox (GDK) code is not translated.
 
 mod commands;
 pub(crate) mod d3d;
@@ -87,6 +91,11 @@ use super::sysgpu::{
     BackendCommandBuffer, BackendDevice, BackendObject, BackendSwapchainTexture, BlitPipelineCache,
     ComputePipelineHeader, GpuBootstrap, GpuDriver, GraphicsPipelineHeader,
 };
+use super::xr::openxrdyn::XrInstancePfns;
+use super::xr::sys::{
+    XrInstance, XrSessionCreateInfo, XrSwapchainCreateInfo, XrSystemId, XR_NULL_HANDLE,
+};
+use super::xr::{XrDeviceHandles, XrError};
 use super::{
     BlitInfo, BufferBinding, BufferLocation, BufferRegion, BufferUsageFlags, ColorTargetInfo,
     CommandBuffer, ComputePipelineCreateInfo, DepthStencilTargetInfo, GraphicsPipelineCreateInfo,
@@ -136,10 +145,14 @@ fn d3d12_create_device(
     props: &Properties,
 ) -> Result<BackendDevice> {
     let (renderer, shader_formats) = device::create_device(debug_mode, prefer_low_power, props)?;
+    let xr = (renderer.xr_instance != XR_NULL_HANDLE).then_some(XrDeviceHandles {
+        instance: renderer.xr_instance,
+        system_id: renderer.xr_system_id,
+    });
     Ok(BackendDevice {
         driver: Box::new(renderer),
         shader_formats,
-        xr: None,
+        xr,
     })
 }
 
@@ -359,6 +372,12 @@ struct D3D12Renderer {
     dxgidebug_dll: Option<SharedObject>,
     #[allow(dead_code)] // (kept loaded)
     winpixeventruntime_dll: Option<SharedObject>,
+
+    // OpenXR state
+    xr_instance: XrInstance,
+    xr_system_id: XrSystemId,
+    /// Note (upstream): C never frees it; it is owned here.
+    xr: Option<XrInstancePfns>,
 }
 
 // SAFETY: Direct3D 12 devices, queues, heaps and resources, and DXGI
@@ -509,6 +528,14 @@ impl GpuDriver for D3D12Renderer {
         self.destroy_device();
     }
 
+    fn destroy_xr_swapchain(
+        &self,
+        swapchain: u64,
+        swapchain_images: &[BackendObject],
+    ) -> std::result::Result<(), XrError> {
+        self.destroy_xr_swapchain(swapchain, swapchain_images)
+    }
+
     /// Translation of `D3D12_GetDeviceProperties()`.
     fn properties(&self) -> Properties {
         self.props.clone()
@@ -581,6 +608,26 @@ impl GpuDriver for D3D12Renderer {
             },
             debug_name,
         )?))
+    }
+
+    fn create_xr_session(
+        &self,
+        createinfo: &XrSessionCreateInfo,
+    ) -> std::result::Result<u64, XrError> {
+        self.create_xr_session(createinfo)
+    }
+
+    fn get_xr_swapchain_formats(&self, session: u64) -> Result<Vec<TextureFormat>> {
+        self.get_xr_swapchain_formats(session)
+    }
+
+    fn create_xr_swapchain(
+        &self,
+        session: u64,
+        createinfo: &XrSwapchainCreateInfo,
+        format: TextureFormat,
+    ) -> std::result::Result<(u64, Vec<(BackendObject, TextureCreateInfo)>), XrError> {
+        self.create_xr_swapchain(session, createinfo, format)
     }
 
     // Debug Naming

@@ -1,6 +1,6 @@
 // Rust translation of the device parts of src/gpu/d3d12/SDL_gpu_d3d12.c from
 // Simple DirectMedia Layer: PrepareDriver, the debug layers, the blit
-// resources and CreateDevice.
+// resources, the OpenXR entry points and CreateDevice.
 // Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
 // This is an altered (translated) version of the original software; see LICENSE.txt.
 
@@ -10,34 +10,63 @@
 //! Direct3D 12 runtime of the Agility SDK, the DXGI and Direct3D 12 debug
 //! layers and their message logging, and the blit resources.
 //!
-//! The Xbox paths (`SDL_PLATFORM_XBOXONE`, `SDL_PLATFORM_XBOXSERIES`) and
-//! OpenXR (`HAVE_GPU_OPENXR`) are not translated. Upstream also builds this
-//! backend on other systems over DXVK's `libdxvk_d3d12.so`; here it is
-//! Windows only.
+//! A device made with OpenXR (`HAVE_GPU_OPENXR`, on every target, as
+//! upstream's CMake builds it) has its instance and system made by
+//! `SDL_OPENXR_INTERNAL_GPUInitOpenXR()`, and its adapter is the one the
+//! runtime asks for (`XR_KHR_D3D12_enable`:
+//! `xrGetD3D12GraphicsRequirementsKHR`'s LUID); the OpenXR entry points
+//! (`CreateXRSession`...) are here, between PrepareDriver and CreateDevice,
+//! where upstream has them.
+//!
+//! The Xbox paths (`SDL_PLATFORM_XBOXONE`, `SDL_PLATFORM_XBOXSERIES`) are
+//! not translated. Upstream also builds this backend on other systems over
+//! DXVK's `libdxvk_d3d12.so`; here it is Windows only.
 
 use std::ffi::{c_char, c_void, CStr, CString};
-use std::sync::atomic::AtomicU32;
-use std::sync::Mutex;
+use std::mem::ManuallyDrop;
+use std::ptr::{null, null_mut};
+use std::sync::atomic::{AtomicI32, AtomicU32};
+use std::sync::{Arc, Mutex};
 
 use super::d3d::*;
 use super::descriptors::{
     create_descriptor_heap, create_staging_descriptor_pool, GpuDescriptorHeapPool,
 };
-use super::resources::{D3D12Sampler, PendingDestroys};
+use super::resources::{
+    calc_subresource, ContainerRef, D3D12Sampler, D3D12Texture, PendingDestroys, TextureContainer,
+    TextureContainerState, TextureSubresource,
+};
 use super::shaders::*;
+use super::tables::{sdl_to_d3d12_texture_format, SDL_TO_D3D12_TEXTURE_FORMAT};
 use super::{
     d3d12_error, lock, set_string_error, BlitResources, D3D12Renderer, LiveObjectReporter,
     WinPixEventRuntimeFns, D3D12_DLL, D3D_FEATURE_LEVEL_CHOICE, D3D_FEATURE_LEVEL_CHOICE_STR,
     DXGIDEBUG_DLL, DXGI_DLL, SAMPLER_GPU_DESCRIPTOR_COUNT, VIEW_GPU_DESCRIPTOR_COUNT,
     WINPIXEVENTRUNTIME_DLL,
 };
+use crate::core::windows::com::ComPtr;
 use crate::core::windows::{is_windows_11_or_greater, wide_to_utf8};
-use crate::error::Result;
+use crate::error::{Error, Result};
 use crate::gpu::sysgpu::{BackendObject, BlitPipelineCache};
+use crate::gpu::xr::gpu_openxr::{
+    c_name as xr_name, destroy_unreturned_xr_instance, gpu_init_openxr, GpuOpenXr,
+};
+use crate::gpu::xr::openxrdyn::{self, XrInstancePfns};
+use crate::gpu::xr::sys::{
+    Luid, PfnXrGetD3D12GraphicsRequirementsKHR, XrExtensionProperties, XrGraphicsBindingD3D12KHR,
+    XrGraphicsRequirementsD3D12KHR, XrInstance, XrSession, XrSessionCreateInfo, XrSwapchain,
+    XrSwapchainCreateInfo, XrSwapchainImageD3D12KHR, XrSystemId,
+    XR_KHR_D3D12_ENABLE_EXTENSION_NAME, XR_NULL_HANDLE, XR_NULL_SYSTEM_ID,
+    XR_SWAPCHAIN_USAGE_COLOR_ATTACHMENT_BIT, XR_TYPE_EXTENSION_PROPERTIES,
+    XR_TYPE_GRAPHICS_BINDING_D3D12_KHR, XR_TYPE_GRAPHICS_REQUIREMENTS_D3D12_KHR,
+    XR_TYPE_SWAPCHAIN_IMAGE_D3D12_KHR,
+};
+use crate::gpu::xr::{XrError, XrResult};
 use crate::gpu::{
     CompareOp, Filter, IndexedIndirectDrawCommand, IndirectDispatchCommand, IndirectDrawCommand,
-    Sampler, SamplerAddressMode, SamplerCreateInfo, SamplerMipmapMode, Shader, ShaderCreateInfo,
-    ShaderFormat, ShaderStage,
+    SampleCount, Sampler, SamplerAddressMode, SamplerCreateInfo, SamplerMipmapMode, Shader,
+    ShaderCreateInfo, ShaderFormat, ShaderStage, TextureCreateInfo, TextureFormat, TextureType,
+    TextureUsageFlags, PROP_GPU_DEVICE_CREATE_XR_ENABLE_BOOLEAN,
 };
 use crate::loadso::SharedObject;
 use crate::log::Category;
@@ -59,6 +88,16 @@ fn create_dxgi_factory1(f: PfnCreateDxgiFactory) -> std::result::Result<DxgiFact
     // SAFETY: CreateDXGIFactory1 stores an owned IDXGIFactory1, the
     // interface asked for.
     unsafe { out(|o| f(&IID_IDXGIFACTORY1, o)) }
+}
+
+/// The OpenXR instance of a device being made, destroyed when the device
+/// fails (see `create_device()`'s Note (upstream)).
+struct UnreturnedXrInstance(Option<GpuOpenXr>);
+
+impl Drop for UnreturnedXrInstance {
+    fn drop(&mut self) {
+        destroy_unreturned_xr_instance(self.0.as_ref());
+    }
 }
 
 /// Select the adapter for rendering: the first by GPU preference when
@@ -84,10 +123,13 @@ fn create_device_on(
 }
 
 /// Whether Direct3D 12 can work here for the creation properties'
-/// shader formats. Translation of `D3D12_PrepareDriver()`.
+/// shader formats, and with OpenXR whether the runtime has its Direct3D 12
+/// extension. Translation of `D3D12_PrepareDriver()`.
 ///
 /// Note (upstream): C leaks `d3d12.dll` when `dxgi.dll` or its
 /// `CreateDXGIFactory1()` can't be loaded; the library is unloaded here.
+/// And on Windows 11, without DXIL and with fewer resource slots allowed,
+/// it returns before the OpenXR check.
 pub(super) fn prepare_driver(_video: &dyn VideoDriver, props: &Properties) -> bool {
     let mut supports_64_uavs = false;
     let needs_64_uavs = !props
@@ -208,14 +250,30 @@ pub(super) fn prepare_driver(_video: &dyn VideoDriver, props: &Properties) -> bo
         return false;
     }
 
-    // (HAVE_GPU_OPENXR: the OpenXR path, the check of the runtime's
-    // XR_KHR_D3D12_enable, isn't translated yet: a device with OpenXR isn't
-    // made, as on Metal.)
-    if props
-        .get_bool(super::super::PROP_GPU_DEVICE_CREATE_XR_ENABLE_BOOLEAN)
-        .unwrap_or(false)
-    {
-        return false;
+    // Check for OpenXR support if requested
+    let xr = props
+        .get_bool(PROP_GPU_DEVICE_CREATE_XR_ENABLE_BOOLEAN)
+        .unwrap_or(false);
+    if xr {
+        if let Err(e) = openxrdyn::load_library() {
+            crate::log::warn!(
+                Category::Gpu,
+                "D3D12: Failed to load OpenXR: {}",
+                e.message()
+            );
+            return false;
+        }
+
+        if search_for_openxr_gpu_extension().is_none() {
+            crate::log::warn!(
+                Category::Gpu,
+                "D3D12: Failed to find {} extension",
+                XR_KHR_D3D12_ENABLE_EXTENSION_NAME
+            );
+            openxrdyn::unload_library();
+            return false;
+        }
+        openxrdyn::unload_library();
     }
 
     true
@@ -633,6 +691,510 @@ impl D3D12Renderer {
     }
 }
 
+// OpenXR D3D12 Support
+
+/// The runtime's Direct3D 12 extension (`XR_KHR_D3D12_enable`), if it has
+/// it. Translation of `D3D12_INTERNAL_SearchForOpenXrGpuExtension()`.
+fn search_for_openxr_gpu_extension() -> Option<XrExtensionProperties> {
+    // (a loader without the function: see openxrdyn::get_sym)
+    let xr_enumerate_instance_extension_properties =
+        openxrdyn::globals().xrEnumerateInstanceExtensionProperties?;
+
+    let mut extension_count: u32 = 0;
+    // SAFETY: a count query.
+    let result = unsafe {
+        xr_enumerate_instance_extension_properties(null(), 0, &mut extension_count, null_mut())
+    };
+    if result != XrResult::SUCCESS {
+        return None;
+    }
+
+    let mut extension_properties = vec![
+        XrExtensionProperties {
+            ty: XR_TYPE_EXTENSION_PROPERTIES,
+            ..Default::default()
+        };
+        extension_count as usize
+    ];
+
+    // SAFETY: an array of extension_count structures.
+    let result = unsafe {
+        xr_enumerate_instance_extension_properties(
+            null(),
+            extension_count,
+            &mut extension_count,
+            extension_properties.as_mut_ptr(),
+        )
+    };
+    if result != XrResult::SUCCESS {
+        return None;
+    }
+
+    for extension in extension_properties.iter().take(extension_count as usize) {
+        if xr_name(&extension.extension_name) == XR_KHR_D3D12_ENABLE_EXTENSION_NAME {
+            crate::log::info!(
+                Category::Gpu,
+                "Found {} extension",
+                XR_KHR_D3D12_ENABLE_EXTENSION_NAME
+            );
+
+            return Some(*extension);
+        }
+    }
+
+    None
+}
+
+/// The runtime's Direct3D 12 requirements for the system: the minimum
+/// feature level and the adapter (its LUID), or the failed call's result.
+/// Translation of `D3D12_INTERNAL_GetXrGraphicsRequirements()`.
+fn get_xr_graphics_requirements(
+    instance: XrInstance,
+    system_id: XrSystemId,
+) -> std::result::Result<(i32, Luid), XrResult> {
+    // SAFETY: the function's type.
+    let (xr_result, xr_get_d3d12_graphics_requirements_khr) = unsafe {
+        openxrdyn::xr_get_instance_proc_addr::<PfnXrGetD3D12GraphicsRequirementsKHR>(
+            instance,
+            "xrGetD3D12GraphicsRequirementsKHR",
+        )
+    };
+    let Some(xr_get_d3d12_graphics_requirements_khr) = xr_get_d3d12_graphics_requirements_khr
+    else {
+        crate::log::debug!(
+            Category::Gpu,
+            "Failed to get xrGetD3D12GraphicsRequirementsKHR"
+        );
+        return Err(xr_result);
+    };
+
+    let mut graphics_requirements_d3d12 = XrGraphicsRequirementsD3D12KHR {
+        ty: XR_TYPE_GRAPHICS_REQUIREMENTS_D3D12_KHR,
+        next: null_mut(),
+        adapter_luid: Luid::default(),
+        min_feature_level: 0,
+    };
+    // SAFETY: the instance's function, with the system and an out-structure.
+    let xr_result = unsafe {
+        xr_get_d3d12_graphics_requirements_khr(
+            instance,
+            system_id,
+            &mut graphics_requirements_d3d12,
+        )
+    };
+    if xr_result != XrResult::SUCCESS {
+        crate::log::debug!(
+            Category::Gpu,
+            "Failed to get D3D12 graphics requirements, got OpenXR error {}",
+            xr_result.0
+        );
+        return Err(xr_result);
+    }
+
+    Ok((
+        graphics_requirements_d3d12.min_feature_level,
+        graphics_requirements_d3d12.adapter_luid,
+    ))
+}
+
+/// The adapter of a LUID, from the factory's adapters. Translation of
+/// `D3D12_INTERNAL_GetAdapterByLuid()`.
+fn get_adapter_by_luid(luid: Luid, factory: &DxgiFactory1) -> Option<DxgiAdapter1> {
+    // We need to iterate over all the adapters in the system to find the one with the matching LUID
+    for adapter_index in 0u32.. {
+        // EnumAdapters1 will fail with DXGI_ERROR_NOT_FOUND when there are no more adapters to enumerate.
+        let adapter = match factory.enum_adapters1(adapter_index) {
+            Ok(adapter) => adapter,
+            Err(res) => {
+                crate::log::error!(
+                    Category::Gpu,
+                    "Failed to get an adapter when iterating, i: {}, res: {}",
+                    adapter_index as i32,
+                    res
+                );
+                return None;
+            }
+        };
+
+        let adapter_desc = match adapter.desc1() {
+            Ok(adapter_desc) => adapter_desc,
+            Err(res) => {
+                crate::log::error!(
+                    Category::Gpu,
+                    "Failed to get description of adapter, i: {}, res {}",
+                    adapter_index as i32,
+                    res
+                );
+                return None;
+            }
+        };
+        if adapter_desc.adapter_luid == [luid.low_part, luid.high_part as u32] {
+            return Some(adapter);
+        }
+    }
+    None
+}
+
+impl D3D12Renderer {
+    /// The OpenXR instance's functions (`renderer->xr`).
+    ///
+    /// FIXME (upstream): the OpenXR entry points use `renderer->xr`, which
+    /// is NULL on a device made without OpenXR, so C dereferences NULL
+    /// there (an access violation); here it panics.
+    fn xr_pfns(&self) -> &XrInstancePfns {
+        self.xr
+            .as_ref()
+            .expect("the GPU device was made without OpenXR")
+    }
+
+    /// Destroy an OpenXR swapchain and the textures of its images.
+    /// Translation of `D3D12_DestroyXRSwapchain()`.
+    ///
+    /// Note (upstream): a texture that isn't an OpenXR swapchain's gives
+    /// "Invalid GPU Texture handle." once the textures before it are
+    /// destroyed, and the swapchain is kept. An array shorter than the
+    /// swapchain's images is read past its end; here the destruction stops
+    /// at its end.
+    pub(super) fn destroy_xr_swapchain(
+        &self,
+        swapchain: XrSwapchain,
+        swapchain_images: &[BackendObject],
+    ) -> std::result::Result<(), XrError> {
+        let xr = self.xr_pfns();
+
+        let _ = self.wait_internal();
+
+        let mut swapchain_count: u32 = 0;
+        // SAFETY: the instance's function, a count query.
+        let result = unsafe {
+            (xr.xrEnumerateSwapchainImages)(swapchain, 0, &mut swapchain_count, null_mut())
+        };
+        if result != XrResult::SUCCESS {
+            return Err(XrError::from_result(result));
+        }
+
+        // We always want to destroy the swapchain images, so don't early return if xrDestroySwapchain fails for some reason
+        // FIXME (upstream): C casts each texture container to a texture
+        // (`D3D12Texture *container = (D3D12Texture *)swapchainImages[i]`),
+        // so it reads `externallyManaged` at the texture's offset (a padding
+        // byte of the container's, uninitialized) and destroys the container
+        // as a texture (its subresources' array is the container's height
+        // and layer count), then frees it twice: an error or a crash, as the
+        // byte happens to be; here it panics.
+        if swapchain_count > 0 && !swapchain_images.is_empty() {
+            panic!("upstream destroys the OpenXR swapchain's texture containers as textures");
+        }
+
+        // (SDL_free(swapchainImages): the front end's)
+
+        // SAFETY: the instance's function, with the swapchain.
+        let result = unsafe { (xr.xrDestroySwapchain)(swapchain) };
+        if result.failed() {
+            return Err(XrError::from_result(result));
+        }
+        Ok(())
+    }
+
+    /// The session's swapchain formats that have a texture format, in the
+    /// runtime's order (the first texture format of each). Translation of
+    /// `D3D12_GetXRSwapchainFormats()`.
+    ///
+    /// Note (upstream): when the runtime's call fails, C returns `NULL`
+    /// with no error set; and it frees the runtime's array twice and its
+    /// own never (harmless where `SDL_stack_alloc` is `alloca`). Here the
+    /// error says which call failed, and the arrays are owned.
+    pub(super) fn get_xr_swapchain_formats(
+        &self,
+        session: XrSession,
+    ) -> Result<Vec<TextureFormat>> {
+        let xr = self.xr_pfns();
+
+        let mut num_supported_formats: u32 = 0;
+        // SAFETY: the instance's function, a count query.
+        let result = unsafe {
+            (xr.xrEnumerateSwapchainFormats)(session, 0, &mut num_supported_formats, null_mut())
+        };
+        if result != XrResult::SUCCESS {
+            return Err(Error::new(format!(
+                "xrEnumerateSwapchainFormats failed ({result})"
+            )));
+        }
+
+        let mut supported_formats = vec![0i64; num_supported_formats as usize];
+        // SAFETY: an array of num_supported_formats formats.
+        let result = unsafe {
+            (xr.xrEnumerateSwapchainFormats)(
+                session,
+                num_supported_formats,
+                &mut num_supported_formats,
+                supported_formats.as_mut_ptr(),
+            )
+        };
+        if result != XrResult::SUCCESS {
+            return Err(Error::new(format!(
+                "xrEnumerateSwapchainFormats failed ({result})"
+            )));
+        }
+
+        let mut sdl_formats = Vec::with_capacity(num_supported_formats as usize);
+
+        // Iterate over all formats the runtime supports
+        for &supported_format in supported_formats
+            .iter()
+            .take(num_supported_formats as usize)
+        {
+            // Iterate over all formats we support
+            if let Some(j) = SDL_TO_D3D12_TEXTURE_FORMAT
+                .iter()
+                .position(|&dxgi_format| i64::from(dxgi_format) == supported_format)
+            {
+                // Add the format match we found, linearly. The output order should match the order of the runtime.
+                sdl_formats.push(TextureFormat(j as u32));
+            }
+        }
+
+        if sdl_formats.is_empty() {
+            return Err(Error::new(
+                "Failed to find a swapchain format supported by both OpenXR and SDL",
+            ));
+        }
+
+        Ok(sdl_formats)
+    }
+
+    /// Create an OpenXR swapchain in a texture format, and a texture of
+    /// each of its images (a container of one texture, never cycled, whose
+    /// resource is the runtime's). Translation of
+    /// `D3D12_CreateXRSwapchain()`.
+    ///
+    /// FIXME (upstream): when a call after `xrCreateSwapchain` fails, the
+    /// swapchain is left alive (C also leaks the images' array when their
+    /// count can't be had).
+    ///
+    /// Note (upstream): the textures' usage is COLOR_TARGET whatever the
+    /// swapchain's usage flags (their render target views are made only
+    /// with `XR_SWAPCHAIN_USAGE_COLOR_ATTACHMENT_BIT`), they have no shader
+    /// resource view (they can't be sampled), and their type is 2D whatever
+    /// the array size.
+    ///
+    /// FIXME (upstream): so every image is taken to be in the color target
+    /// usage's default state, `D3D12_RESOURCE_STATE_RENDER_TARGET` (the
+    /// state the runtime gives a color attachment's images, which upstream
+    /// never transitions here), which Direct3D 12 allows only for resources
+    /// made with `D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET`: the images of a
+    /// swapchain without `XR_SWAPCHAIN_USAGE_COLOR_ATTACHMENT_BIT`, on a
+    /// runtime whose images have exactly the flags its usage asks for (the
+    /// repository's test runtime makes them in the common state), get
+    /// barriers from a state they can't be in on their first use (a copy's
+    /// or a render pass's, the latter with no view to render to). Kept, as
+    /// upstream's C does it.
+    pub(super) fn create_xr_swapchain(
+        &self,
+        session: XrSession,
+        old_create_info: &XrSwapchainCreateInfo,
+        format: TextureFormat,
+    ) -> std::result::Result<(XrSwapchain, Vec<(BackendObject, TextureCreateInfo)>), XrError> {
+        let xr = self.xr_pfns();
+
+        let mut create_info = *old_create_info;
+        create_info.format = i64::from(sdl_to_d3d12_texture_format(format));
+
+        let mut swapchain: XrSwapchain = XR_NULL_HANDLE;
+        // SAFETY: the instance's function, with the create info (the
+        // application's chain is its to keep valid) and an out-pointer.
+        let result = unsafe { (xr.xrCreateSwapchain)(session, &create_info, &mut swapchain) };
+        if result != XrResult::SUCCESS {
+            return Err(XrError::from_result(result));
+        }
+
+        let mut swapchain_image_count: u32 = 0;
+        // SAFETY: the instance's function, a count query.
+        let result = unsafe {
+            (xr.xrEnumerateSwapchainImages)(swapchain, 0, &mut swapchain_image_count, null_mut())
+        };
+        if result != XrResult::SUCCESS {
+            return Err(XrError::from_result(result));
+        }
+
+        let mut swapchain_images = vec![
+            XrSwapchainImageD3D12KHR {
+                ty: XR_TYPE_SWAPCHAIN_IMAGE_D3D12_KHR,
+                next: null_mut(),
+                texture: null_mut(),
+            };
+            swapchain_image_count as usize
+        ];
+
+        // SAFETY: an array of swapchain_image_count Direct3D 12 images,
+        // whose header the structures begin with.
+        let result = unsafe {
+            (xr.xrEnumerateSwapchainImages)(
+                swapchain,
+                swapchain_image_count,
+                &mut swapchain_image_count,
+                swapchain_images.as_mut_ptr().cast(),
+            )
+        };
+        if result != XrResult::SUCCESS {
+            return Err(XrError::from_result(result));
+        }
+
+        let mut texture_containers = Vec::with_capacity(swapchain_image_count as usize);
+
+        let depth = 1;
+
+        for swapchain_image in swapchain_images.iter().take(swapchain_image_count as usize) {
+            // (the runtime's reference, borrowed: an externally managed
+            // texture never releases it)
+            // SAFETY: the runtime's ID3D12Resource, alive while the
+            // swapchain is.
+            let Some(d3d12_texture) = (unsafe { ComPtr::from_raw(swapchain_image.texture.cast()) })
+            else {
+                // (a NULL image, which C would dereference)
+                return Err(XrError::new(
+                    XrResult::ERROR_RUNTIME_FAILURE,
+                    Error::new("The OpenXR runtime gave a NULL swapchain image"),
+                ));
+            };
+            let resource: ManuallyDrop<D3d12Resource> = ManuallyDrop::new(d3d12_texture);
+
+            let subresource_count = (create_info.array_size * create_info.mip_count) as usize;
+            let mut subresources: Vec<TextureSubresource> = Vec::with_capacity(subresource_count);
+            subresources.resize_with(subresource_count, Default::default);
+
+            for layer_index in 0..create_info.array_size {
+                for level_index in 0..create_info.mip_count {
+                    let subresource_index =
+                        calc_subresource(level_index, layer_index, create_info.mip_count);
+                    let subresource = &mut subresources[subresource_index as usize];
+
+                    subresource.layer = layer_index;
+                    subresource.level = level_index;
+                    subresource.depth = depth;
+                    subresource.index = subresource_index;
+
+                    if create_info.usage_flags & XR_SWAPCHAIN_USAGE_COLOR_ATTACHMENT_BIT != 0 {
+                        subresource.rtv_handles.reserve_exact(depth as usize);
+
+                        for _depth_index in 0..depth {
+                            // Note (upstream): C ignores a failure to get a
+                            // descriptor; the swapchain fails here.
+                            let rtv = self
+                                .assign_staging_descriptor_handle(D3D12_DESCRIPTOR_HEAP_TYPE_RTV)
+                                .map_err(|e| XrError::new(XrResult::ERROR_RUNTIME_FAILURE, e))?;
+
+                            let mut rtv_desc = RenderTargetViewDesc {
+                                format: sdl_to_d3d12_texture_format(format),
+                                ..Default::default()
+                            };
+
+                            // For XR we typically use 2D array textures for stereo rendering
+                            if create_info.array_size > 1 {
+                                rtv_desc.view_dimension = D3D12_RTV_DIMENSION_TEXTURE2DARRAY;
+                                rtv_desc.u.texture_2d_array = Tex2dArrayRtv {
+                                    mip_slice: level_index,
+                                    first_array_slice: layer_index,
+                                    array_size: 1,
+                                    plane_slice: 0,
+                                };
+                            } else {
+                                rtv_desc.view_dimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+                                rtv_desc.u.texture_2d = Tex2dRtv {
+                                    mip_slice: level_index,
+                                    plane_slice: 0,
+                                };
+                            }
+
+                            self.device.create_render_target_view(
+                                &resource,
+                                &rtv_desc,
+                                rtv.cpu_handle,
+                            );
+                            subresource.rtv_handles.push(rtv);
+                        }
+                    }
+                }
+            }
+
+            let info = TextureCreateInfo {
+                texture_type: TextureType::Texture2D,
+                format,
+                usage: TextureUsageFlags::COLOR_TARGET,
+                width: create_info.width,
+                height: create_info.height,
+                layer_count_or_depth: create_info.array_size,
+                num_levels: create_info.mip_count,
+                sample_count: SampleCount::One,
+                props: None,
+            };
+
+            let texture = Arc::new(D3D12Texture {
+                container: Mutex::new(None),
+                subresources,
+                resource,
+                srv_handle: None,
+                reference_count: AtomicI32::new(0),
+                externally_managed: true,
+                info: info.clone(),
+            });
+
+            let container = Arc::new(TextureContainer {
+                info: info.clone(),
+                state: Mutex::new(TextureContainerState {
+                    active_texture: texture.clone(),
+                    textures: vec![texture.clone()],
+                    debug_name: None,
+                }),
+                can_be_cycled: false,
+                externally_managed: true,
+            });
+
+            *lock(&texture.container) = Some(ContainerRef {
+                container: Arc::downgrade(&container),
+                index: 0,
+            });
+            texture_containers.push((BackendObject(container), info));
+        }
+
+        Ok((swapchain, texture_containers))
+    }
+
+    /// Create an OpenXR session of the device's system, with the device's
+    /// graphics binding (its device and queue) before the application's
+    /// chain of structures. Translation of `D3D12_CreateXRSession()`.
+    pub(super) fn create_xr_session(
+        &self,
+        createinfo: &XrSessionCreateInfo,
+    ) -> std::result::Result<XrSession, XrError> {
+        let xr = self.xr_pfns();
+
+        // Copy out the existing next ptr so that we can append it to the end of the chain we create
+        let current_next_ptr = createinfo.next;
+
+        let graphics_binding = XrGraphicsBindingD3D12KHR {
+            ty: XR_TYPE_GRAPHICS_BINDING_D3D12_KHR,
+            next: current_next_ptr,
+            device: raw(&self.device),
+            queue: raw(&self.command_queue),
+        };
+
+        let mut session_create_info = *createinfo;
+        session_create_info.system_id = self.xr_system_id;
+        session_create_info.next = (&graphics_binding as *const XrGraphicsBindingD3D12KHR).cast();
+
+        let mut session: XrSession = XR_NULL_HANDLE;
+        // SAFETY: the instance's function, with the create info and its
+        // chain (the application's part is its to keep valid), and an
+        // out-pointer.
+        let result =
+            unsafe { (xr.xrCreateSession)(self.xr_instance, &session_create_info, &mut session) };
+        if result.failed() {
+            return Err(XrError::from_result(result));
+        }
+        Ok(session)
+    }
+}
+
 /// The adapter's description, as `D3D12_CreateDevice()` logs it and
 /// records it in the properties: the name and the driver version.
 fn record_adapter(
@@ -746,10 +1308,21 @@ fn agility_sdk_device_factory(
 }
 
 /// Translation of `D3D12_CreateDevice()`: the renderer and the shader
-/// formats it takes (DXBC, and DXIL with shader model 6).
+/// formats it takes (DXBC, and DXIL with shader model 6); with OpenXR, the
+/// instance and system first (`SDL_OPENXR_INTERNAL_GPUInitOpenXR()`), and
+/// the adapter of the runtime's LUID.
 ///
 /// Upstream frees what it made so far (`D3D12_INTERNAL_DestroyRenderer()`)
 /// when a step fails; here that is dropping it.
+///
+/// Note (upstream): upstream refuses a device made with OpenXR without
+/// its out pointers for the instance and the system; here they're the
+/// renderer's (`Device::xr_instance`, `Device::xr_system_id`). When a step
+/// fails once the instance is made, C leaves it to the application, which
+/// has it through the out pointer (and `renderer->xr` leaks; and the
+/// loader's reference too after the adapter's steps); here the application
+/// never sees it, so it's destroyed (the loader's reference is released or
+/// kept as upstream does).
 pub(super) fn create_device(
     debug_mode: bool,
     prefer_low_power: bool,
@@ -847,26 +1420,104 @@ pub(super) fn create_device(
             .unwrap_or(false);
     }
 
-    // (HAVE_GPU_OPENXR: OpenXR is not translated.)
+    let xr = props
+        .get_bool(PROP_GPU_DEVICE_CREATE_XR_ENABLE_BOOLEAN)
+        .unwrap_or(false);
+    // FIXME (upstream): the runtime's minimum feature level is read into
+    // this and never used: the device is made with D3D_FEATURE_LEVEL_CHOICE
+    // (11_0) whatever the runtime asks for.
+    let mut _feature_level = D3D_FEATURE_LEVEL_11_0 as i32;
+    let mut xr_instance = UnreturnedXrInstance(None);
 
-    // Select the appropriate device for rendering
-    let gpu_preference = if prefer_low_power {
-        DXGI_GPU_PREFERENCE_MINIMUM_POWER
+    let adapter = if xr {
+        if openxrdyn::load_library().is_err() {
+            return Err(set_string_error(
+                debug_mode,
+                "This should have failed in PrepareDevice first!",
+            ));
+        }
+
+        let Some(gpu_extension) = search_for_openxr_gpu_extension() else {
+            crate::log::debug!(
+                Category::Gpu,
+                "Failed to find a compatible OpenXR D3D12 extension"
+            );
+            openxrdyn::unload_library();
+            return Err(set_string_error(
+                debug_mode,
+                &format!("Failed to find {XR_KHR_D3D12_ENABLE_EXTENSION_NAME} extension"),
+            ));
+        };
+
+        let Some(init) = gpu_init_openxr(debug_mode, &gpu_extension, props) else {
+            crate::log::debug!(Category::Gpu, "Failed to init OpenXR");
+            openxrdyn::unload_library();
+            return Err(set_string_error(debug_mode, "Failed to initialize OpenXR"));
+        };
+        let (instance, system_id) = (init.instance, init.system_id);
+        xr_instance.0 = Some(init);
+
+        let xr_adapter = match get_xr_graphics_requirements(instance, system_id) {
+            Ok((feature_level, xr_adapter)) => {
+                _feature_level = feature_level;
+                xr_adapter
+            }
+            Err(_) => {
+                drop(xr_instance);
+                openxrdyn::unload_library();
+                return Err(set_string_error(
+                    debug_mode,
+                    "Failed to get XR graphics requirements",
+                ));
+            }
+        };
+
+        // Need factory1 again for adapter enumeration
+        let factory1_for_xr = match create_dxgi_factory1(create_dxgi_factory1_fn) {
+            Ok(factory1_for_xr) => factory1_for_xr,
+            Err(res) => {
+                drop(xr_instance);
+                openxrdyn::unload_library();
+                return Err(d3d12_error(
+                    debug_mode,
+                    None,
+                    "Could not create DXGIFactory for XR adapter lookup",
+                    res,
+                ));
+            }
+        };
+
+        let Some(adapter) = get_adapter_by_luid(xr_adapter, &factory1_for_xr) else {
+            drop(factory1_for_xr);
+            drop(xr_instance);
+            openxrdyn::unload_library();
+            return Err(set_string_error(
+                debug_mode,
+                "Failed to find adapter matching XR LUID",
+            ));
+        };
+        drop(factory1_for_xr);
+        adapter
     } else {
-        DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE
+        // Select the appropriate device for rendering
+        let gpu_preference = if prefer_low_power {
+            DXGI_GPU_PREFERENCE_MINIMUM_POWER
+        } else {
+            DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE
+        };
+        match factory.query::<IDXGIFactory6Vtbl>(&IID_IDXGIFACTORY6) {
+            Ok(factory6) => factory6.enum_adapter_by_gpu_preference(0, gpu_preference),
+            Err(_) => factory.enum_adapters1(0),
+        }
+        .map_err(|res| {
+            d3d12_error(
+                debug_mode,
+                None,
+                "Could not find adapter for D3D12Device",
+                res,
+            )
+        })?
     };
-    let adapter = match factory.query::<IDXGIFactory6Vtbl>(&IID_IDXGIFACTORY6) {
-        Ok(factory6) => factory6.enum_adapter_by_gpu_preference(0, gpu_preference),
-        Err(_) => factory.enum_adapters1(0),
-    }
-    .map_err(|res| {
-        d3d12_error(
-            debug_mode,
-            None,
-            "Could not find adapter for D3D12Device",
-            res,
-        )
-    })?;
 
     // Get information about the selected adapter. Used for logging info.
     let adapter_desc = adapter
@@ -1071,6 +1722,14 @@ pub(super) fn create_device(
     let semantic =
         CString::new(semantic.split('\0').next().unwrap_or_default()).unwrap_or_default();
 
+    let (xr_instance_handle, xr_system_id) = xr_instance
+        .0
+        .as_ref()
+        .map_or((XR_NULL_HANDLE, XR_NULL_SYSTEM_ID), |init| {
+            (init.instance, init.system_id)
+        });
+    let xr_pfns = xr_instance.0.as_ref().map(|init| init.xr);
+
     let renderer = D3D12Renderer {
         uniform_buffer_pool: Mutex::new(Vec::with_capacity(4)),
         dispose: Mutex::new(PendingDestroys::default()),
@@ -1106,7 +1765,12 @@ pub(super) fn create_device(
         dxgi_dll,
         dxgidebug_dll,
         winpixeventruntime_dll,
+        xr_instance: xr_instance_handle,
+        xr_system_id,
+        xr: xr_pfns,
     };
+    // (the device has the instance now, and the application next)
+    xr_instance.0 = None;
 
     // Blit resources
     let blit = renderer.init_blit_resources();
