@@ -221,7 +221,6 @@ pub(super) struct TextureContainer {
     /// Swapchain images cannot be cycled
     pub(super) can_be_cycled: bool,
     /// XR swapchain images are managed by OpenXR runtime
-    #[allow(dead_code)] // (C reads the texture's in its place: see DestroyXRSwapchain)
     pub(super) externally_managed: bool,
 }
 
