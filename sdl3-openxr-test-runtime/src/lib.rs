@@ -25,8 +25,11 @@
 //!   its exported symbols, only the functions behind them.
 //!
 //! It implements what SDL calls, and what the tests' application side calls
-//! around it, of OpenXR 1.0, `XR_KHR_vulkan_enable2` and, on Windows,
-//! `XR_KHR_D3D12_enable` (its two extensions): instances, the system, the
+//! around it, of OpenXR 1.0, `XR_KHR_vulkan_enable2`, on Windows
+//! `XR_KHR_D3D12_enable`, and on Android `XR_KHR_loader_init` (with
+//! `XR_KHR_loader_init_android`) and `XR_KHR_android_create_instance` (see
+//! `android.rs`): the loader's initialization with the app's Java VM,
+//! instances, the system, the
 //! Vulkan instance, physical device and device made for the application,
 //! the Direct3D 12 adapter it asks for, sessions and their states,
 //! swapchains of Vulkan images or Direct3D 12 resources made on the
@@ -36,17 +39,21 @@
 //! `XR_ERROR_FUNCTION_UNSUPPORTED` for them. Every Vulkan function comes
 //! through the application's `vkGetInstanceProcAddr`, every Direct3D 12
 //! one through the application's device: the runtime loads no library but
-//! Windows' `dxgi.dll` (for the adapter's LUID).
+//! Windows' `dxgi.dll` (for the adapter's LUID) and Android's
+//! `libnativehelper.so` (for the process's Java VM).
 //!
 //! Everything is deterministic (handles count from 1, the time from a fixed
 //! start), and any call can be made to fail through the environment
 //! (`SDL3_OPENXR_TEST_RUNTIME_FAIL`, see `fail.rs`).
 //!
 //! The library is built on every target the workspace builds, from `std`
-//! alone; Linux's and Windows' tests use it.
+//! alone; Linux's, Windows' and Android's tests use it (on Android, in an
+//! app's package, loaded by `SDL_OPENXR_LIBRARY`).
 
 #![allow(clippy::missing_safety_doc)] // (the functions' contracts are OpenXR's)
 
+#[cfg(target_os = "android")]
+mod android;
 #[cfg(windows)]
 mod d3d12;
 mod fail;
@@ -88,6 +95,8 @@ fn function(name: &[u8]) -> Option<(Needs, Option<PfnXrVoidFunction>)> {
             (Core, void_fn!(enumerate_instance_extension_properties))
         }
         b"xrCreateInstance" => (Core, void_fn!(create_instance)),
+        #[cfg(target_os = "android")]
+        b"xrInitializeLoaderKHR" => (Core, void_fn!(crate::android::initialize_loader)),
         b"xrDestroyInstance" => (Core, void_fn!(destroy_instance)),
         b"xrGetSystem" => (Core, void_fn!(get_system)),
         b"xrPollEvent" => (Core, void_fn!(poll_event)),
@@ -143,11 +152,13 @@ unsafe extern "system" fn get_instance_proc_addr(
         return result;
     }
     let found = if instance == 0 {
-        // (before an instance, only the three global functions)
+        // (before an instance, only the three global functions, and on
+        // Android XR_KHR_loader_init's)
         match name {
             b"xrEnumerateInstanceExtensionProperties"
             | b"xrEnumerateApiLayerProperties"
             | b"xrCreateInstance" => function(name),
+            b"xrInitializeLoaderKHR" if cfg!(target_os = "android") => function(name),
             _ => return XR_ERROR_HANDLE_INVALID,
         }
     } else {

@@ -1170,6 +1170,11 @@ jobs:
       # the ARM translation)
       SDL3_ANDROID_TIMEOUT: 900
       ARM64_TEST_ARGS: -p sdl3 -p sdl3-image -p sdl3-shadercross --lib
+      # Khronos's OpenXR loader for Android (the Maven Central package
+      # org.khronos.openxr:openxr_loader_for_android's AAR, Apache-2.0, CI
+      # only: never committed), for android_openxr_loader's app package
+      OPENXR_LOADER_ANDROID_VERSION: "1.1.65"
+      OPENXR_LOADER_ANDROID_SHA256: a298c326085b09181c85235fb04d37510939bd30938ed4322c093c09780e8643
     steps:
       - uses: actions/checkout@v5
       # (the runner's /dev/kvm is the kvm group's)
@@ -1227,6 +1232,17 @@ jobs:
         with:
           key: android
           cache-on-failure: true
+      # The OpenXR loader's AAR, kept between runs (checked again on every
+      # run); its libopenxr_loader.so of each ABI where the runner looks
+      # for an app's libraries (SDL3_ANDROID_LIBRARY_PATH):
+      # tools/ci/openxr-android.sh.
+      - name: Cache the OpenXR loader for Android
+        uses: actions/cache@v5
+        with:
+          path: ${{ runner.temp }}/openxr-android-cache
+          key: openxr-android-${{ env.OPENXR_LOADER_ANDROID_VERSION }}-${{ env.OPENXR_LOADER_ANDROID_SHA256 }}
+      - name: Install the OpenXR loader for Android
+        run: tools/ci/openxr-android.sh
       # The emulator starts here, on a virtual device the runner writes; it
       # boots while the programs build (a minute or two with the build
       # taking the CPUs), and the runner waits for that before the first
@@ -1237,11 +1253,15 @@ jobs:
         env:
           TEST_ARGS: ${{ inputs.android_test_args }}
         run: cargo test --no-run --target x86_64-linux-android ${TEST_ARGS:---workspace}
+      # (an app has no skip log: SDL3_TEST_REQUIRE makes the OpenXR apps'
+      # missing libraries failures, which reaches them through their
+      # manifests)
       - name: cargo test --workspace --target x86_64-linux-android
         shell: bash
         env:
           TEST_ARGS: ${{ inputs.android_test_args }}
           SDL3_TEST_SKIP_LOG: ${{ runner.temp }}/skips.tsv
+          SDL3_TEST_REQUIRE: openxr,openxr-runtime
         run: cargo test --target x86_64-linux-android --no-fail-fast ${TEST_ARGS:---workspace} 2>&1 | tee "$RUNNER_TEMP/test.log"
       # The app mode once more, with arguments and a variable (the same
       # string, which comes through the manifest and the arguments each its

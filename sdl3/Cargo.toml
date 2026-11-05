@@ -100,8 +100,9 @@ features = [
 # The repository's test OpenXR runtime (a shared library, never linked):
 # a dev-dependency only so that `cargo test` builds it beside the test
 # programs, where gpu_openxr loads it from (through the OpenXR loader, and
-# in the loader's place). No version: it isn't published.
-[target.'cfg(any(target_os = "linux", windows))'.dev-dependencies]
+# in the loader's place), and where tools/android_run.py finds it for
+# android_openxr's app package. No version: it isn't published.
+[target.'cfg(any(target_os = "linux", windows, target_os = "android"))'.dev-dependencies]
 sdl3-openxr-test-runtime = { path = "../sdl3-openxr-test-runtime" }
 
 # The Cocoa video driver, which only starts on the main thread: a program of
@@ -427,6 +428,21 @@ harness = false
 # are enumerated, opened, read and closed), against upstream's C.
 [[test]]
 name = "android_hidapi"
+harness = false
+
+# The GPU API's OpenXR functions in an app (the loader's initialization
+# with the app's Java VM, the instance's Android information, Android's
+# loader kept loaded): without a loader, then on the repository's test
+# runtime in the loader's place (a session, swapchains, frames read back
+# on SwiftShader); and with the Khronos loader for Android and no runtime,
+# which is also the device check of a headset's runtime; against
+# upstream's C.
+[[test]]
+name = "android_openxr"
+harness = false
+
+[[test]]
+name = "android_openxr_loader"
 harness = false
 
 # The console input reader (the dummy video driver's evdev variant) on uinput
