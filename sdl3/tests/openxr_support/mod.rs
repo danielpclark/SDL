@@ -1,5 +1,5 @@
 // What the OpenXR test programs share: the capability checks, Monado's
-// service, the scenarios' child processes and the trace.
+// service, the test runtime, the scenarios' child processes and the trace.
 // Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
 // This is an altered (translated) version of the original software; see LICENSE.txt.
 
@@ -20,6 +20,13 @@
 //! `monado-service` in `PATH`, the core validation API layer
 //! (`XR_APILAYER_LUNARG_core_validation`) and lavapipe. A program skips
 //! without them, unless `SDL3_TEST_REQUIRE` names `openxr`.
+//!
+//! Capability `openxr-runtime`: the repository's test runtime
+//! (sdl3-openxr-test-runtime's `libsdl3_openxr_test_runtime.so`, beside the
+//! program, or where `SDL3_OPENXR_TEST_RUNTIME` says), reached through the
+//! loader with a manifest of it made in the scenario's runtime directory
+//! (`XR_RUNTIME_JSON`) or in the loader's place (`SDL_OPENXR_LIBRARY`),
+//! with the loader, the core validation API layer and lavapipe.
 
 #![allow(dead_code)] // (each program uses some of it)
 
@@ -128,6 +135,67 @@ pub fn missing_openxr() -> Option<String> {
         return Some(format!("no lavapipe ({LAVAPIPE_ICD})"));
     }
     None
+}
+
+/// The variable naming the repository's test runtime library, when it
+/// isn't beside the program.
+pub const TEST_RUNTIME_PATH: &str = "SDL3_OPENXR_TEST_RUNTIME";
+/// The test runtime's failure list (see sdl3-openxr-test-runtime's fail.rs).
+pub const TEST_RUNTIME_FAIL: &str = "SDL3_OPENXR_TEST_RUNTIME_FAIL";
+/// The test runtime's file name.
+pub const TEST_RUNTIME_FILE: &str = "libsdl3_openxr_test_runtime.so";
+
+/// The repository's test runtime (sdl3-openxr-test-runtime, which sdl3's
+/// dev-dependency on it builds beside the test programs, in `deps/`), or
+/// the library [`TEST_RUNTIME_PATH`] names.
+pub fn test_runtime() -> Option<PathBuf> {
+    if let Some(path) = std::env::var_os(TEST_RUNTIME_PATH) {
+        return Some(PathBuf::from(path)).filter(|p| p.is_file());
+    }
+    let exe = std::env::current_exe().ok()?;
+    let deps = exe.parent()?;
+    [
+        deps.join(TEST_RUNTIME_FILE),
+        deps.parent()?.join(TEST_RUNTIME_FILE),
+    ]
+    .into_iter()
+    .find(|p| p.is_file())
+}
+
+/// Why the `openxr-runtime` capability is missing, if it is: the test
+/// runtime, the OpenXR loader (for the scenarios through it, with a
+/// manifest), the core validation API layer (which the loader then finds,
+/// and the main scenario enables) and lavapipe.
+pub fn missing_openxr_runtime() -> Option<String> {
+    if test_runtime().is_none() {
+        return Some(format!(
+            "no test runtime ({TEST_RUNTIME_FILE} beside the program, or {TEST_RUNTIME_PATH}: cargo build -p sdl3-openxr-test-runtime)"
+        ));
+    }
+    if !loadable(c"libopenxr_loader.so.1") {
+        return Some("no OpenXR loader (libopenxr_loader.so.1)".into());
+    }
+    if !api_layer_installed(XR_VALIDATION_LAYER) {
+        return Some(format!("no {XR_VALIDATION_LAYER} API layer"));
+    }
+    if !Path::new(LAVAPIPE_ICD).exists() {
+        return Some(format!("no lavapipe ({LAVAPIPE_ICD})"));
+    }
+    None
+}
+
+/// A runtime manifest for the test runtime in `dir` (for `XR_RUNTIME_JSON`).
+pub fn write_test_runtime_manifest(dir: &Path, library: &Path) -> PathBuf {
+    let manifest = dir.join("sdl3_openxr_test_runtime.json");
+    let path = library
+        .to_string_lossy()
+        .replace('\\', "\\\\")
+        .replace('"', "\\\"");
+    let text = format!(
+        "{{\n    \"file_format_version\": \"1.0.0\",\n    \"runtime\": {{\n        \"name\": \"sdl3-openxr-test-runtime\",\n        \"library_path\": \"{path}\"\n    }}\n}}\n"
+    );
+    std::fs::write(&manifest, text).expect("the runtime manifest");
+    manifest
 }
 
 /// A private runtime directory (mode 0700), removed when dropped.
@@ -384,8 +452,9 @@ impl Trace {
         }
     }
 
-    /// Compare the trace with upstream's (its preamble apart).
-    pub fn finish(self, program: &str, expected: &str) -> ExitCode {
+    /// Compare the trace with upstream's (its preamble apart): whether it
+    /// is, with no Rust-only failure.
+    pub fn finish(self, program: &str, expected: &str) -> bool {
         let mut ok = true;
         for f in &self.rust_failures {
             println!("{program}: {f}");
@@ -398,11 +467,7 @@ impl Trace {
                 "{program}: the trace is upstream's ({} lines)",
                 self.lines.len()
             );
-            return if ok {
-                ExitCode::SUCCESS
-            } else {
-                ExitCode::FAILURE
-            };
+            return ok;
         }
         if expected.first() != actual.first() {
             println!(
@@ -428,6 +493,6 @@ impl Trace {
                 expected.len()
             );
         }
-        ExitCode::FAILURE
+        false
     }
 }

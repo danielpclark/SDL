@@ -254,6 +254,10 @@ pub(crate) mod test_support {
             "the OpenXR loader (libopenxr_loader.so.1), Monado's service (monado-service, its null compositor), the core validation API layer and lavapipe",
         ),
         (
+            "openxr-runtime",
+            "the repository's test OpenXR runtime (sdl3-openxr-test-runtime, built), with the OpenXR loader, the core validation API layer and lavapipe",
+        ),
+        (
             "wayland",
             "libwayland-client, libxkbcommon and sway (or weston)",
         ),
