@@ -1026,12 +1026,71 @@ def wait_until_ready(serial):
             note(f"{serial} still isn't ready after {READY_TIMEOUT} s ({', '.join(missing)}): going on")
         else:
             note(f"{serial} is ready for apps ({time.monotonic() - start:.0f} s later)")
+    if restore_device_overlay(serial):
+        # (the overlay's configuration change relaunches the launcher, which
+        # loses the focus for a moment: ready for 3 checks in a row)
+        start = time.monotonic()
+        steady = 0
+        while time.monotonic() - start < READY_TIMEOUT:
+            missing = readiness(serial)
+            steady = 0 if missing else steady + 1
+            if steady == 3:
+                break
+            time.sleep(1)
+        if missing:
+            note(f"{serial} still isn't ready after {READY_TIMEOUT} s ({', '.join(missing)}): going on")
+        else:
+            note(f"{serial} has its display's cutout ({time.monotonic() - start:.0f} s later)")
     restore_auto_rotation(serial)
     if boot:
         try:
             adb_shell(serial, f"mkdir -p {DEVICE_ROOT} && echo {boot} > {READY_MARK}", check=False, timeout=30)
         except Timeout as e:
             note(f"{e}: the device's readiness not kept")
+
+
+# The overlay of the virtual device's profile (AVD_HARDWARE's
+# hw.device.name), which holds the profile's display cutout.
+DEVICE_OVERLAY = "com.android.internal.emulation." + AVD_HARDWARE["hw.device.name"]
+
+
+def restore_device_overlay(serial):
+    """On a virtual device named as the ones this runner makes are
+    (`ro.boot.qemu.avd_name` sdl3-..., avd_name()), once the first-boot
+    setup is over (wait_until_ready()):
+    the overlay of its profile, DEVICE_OVERLAY (the Pixel 6's camera hole,
+    the display's cutout, among its resources), turned on when it is still
+    off. The Google APIs image's first-boot setup turns it on, but only
+    around the time readiness() sees the setup end, often a moment after,
+    and on some boots (one of the eight of a CI diagnosis, the setup
+    otherwise ending as usual) never: the display then has no cutout for
+    the whole boot, the insets are the 63 px status bar's alone, and the
+    windows' safe areas, the system's dialogs and the documents' picker
+    lie higher than in upstream's traces, which were captured with the
+    cutout. Whether it turned the overlay on."""
+    script = (
+        "getprop ro.boot.qemu.avd_name; "
+        f"cmd overlay list android 2>&1 | grep -F ' {DEVICE_OVERLAY}' | head -1"
+    )
+    try:
+        lines = adb_shell(serial, script, check=False, timeout=30).stdout.replace("\r", "").split("\n")
+    except Timeout as e:
+        note(f"{e}: the device's overlay not checked")
+        return False
+    name = lines[0].strip() if lines else ""
+    state = lines[1].strip() if len(lines) > 1 else ""
+    if not name.startswith("sdl3-") or not state.startswith("[ ]"):
+        return False
+    note(
+        f"{serial}'s {DEVICE_OVERLAY} overlay (its display's cutout) is off after the first-boot setup: "
+        "turning it on, as the setup does"
+    )
+    try:
+        adb_shell(serial, f"cmd overlay enable --user 0 {DEVICE_OVERLAY}", check=False, timeout=30)
+    except Timeout as e:
+        note(f"{e}: the device's overlay not turned on")
+        return False
+    return True
 
 
 def restore_auto_rotation(serial):
