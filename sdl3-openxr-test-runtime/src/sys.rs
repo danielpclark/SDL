@@ -3,11 +3,15 @@
 
 //! Interface facts only (names, values and layouts), declared by hand for
 //! what the runtime implements: the loader's negotiation structures, the
-//! core structures of the functions it serves, `XR_KHR_vulkan_enable2`'s,
-//! and the few Vulkan structures and functions it calls through the
-//! application's `vkGetInstanceProcAddr`. The layouts are pinned by the
-//! tests below to what a C program built against the OpenXR 1.1.63 and
-//! Vulkan headers upstream SDL vendors printed on x86-64 Linux.
+//! core structures of the functions it serves, `XR_KHR_vulkan_enable2`'s
+//! and `XR_KHR_D3D12_enable`'s, the few Vulkan structures and functions it
+//! calls through the application's `vkGetInstanceProcAddr`, and the few
+//! DXGI and Direct3D 12 ones it calls (on Windows: `dxgi.dll`'s factory,
+//! and the application's device). The layouts are pinned by the tests
+//! below to what a C program built against the OpenXR 1.1.63 and Vulkan
+//! headers upstream SDL vendors printed on x86-64 Linux (and, for the
+//! Direct3D 12 ones, a mingw-w64 one against the Windows headers on
+//! x86-64 Windows).
 //!
 //! Handles are `u64` (`XR_DEFINE_HANDLE`, `VK_DEFINE_NON_DISPATCHABLE_HANDLE`)
 //! or pointers (Vulkan's dispatchable handles); the function types are
@@ -478,6 +482,56 @@ pub struct XrSwapchainImageVulkan2KHR {
     pub image: VkImage,
 }
 
+/// `XR_KHR_D3D12_ENABLE_EXTENSION_NAME`.
+pub const XR_KHR_D3D12_ENABLE_EXTENSION_NAME: &str = "XR_KHR_D3D12_enable";
+/// The extension's version this runtime implements.
+pub const XR_KHR_D3D12_ENABLE_SPEC_VERSION: u32 = 11;
+
+pub const XR_TYPE_GRAPHICS_BINDING_D3D12_KHR: XrStructureType = 1000028000;
+pub const XR_TYPE_SWAPCHAIN_IMAGE_D3D12_KHR: XrStructureType = 1000028001;
+pub const XR_TYPE_GRAPHICS_REQUIREMENTS_D3D12_KHR: XrStructureType = 1000028002;
+
+/// `D3D_FEATURE_LEVEL_11_0` (d3dcommon.h).
+pub const D3D_FEATURE_LEVEL_11_0: i32 = 0xb000;
+
+/// `LUID` (winnt.h).
+#[repr(C)]
+#[derive(Clone, Copy, Default, PartialEq, Eq, Debug)]
+pub struct Luid {
+    pub low_part: u32,
+    pub high_part: i32,
+}
+
+/// `XrGraphicsRequirementsD3D12KHR`.
+#[repr(C)]
+pub struct XrGraphicsRequirementsD3D12KHR {
+    pub ty: XrStructureType,
+    pub next: *mut c_void,
+    pub adapter_luid: Luid,
+    /// `D3D_FEATURE_LEVEL`.
+    pub min_feature_level: i32,
+}
+
+/// `XrGraphicsBindingD3D12KHR`.
+#[repr(C)]
+pub struct XrGraphicsBindingD3D12KHR {
+    pub ty: XrStructureType,
+    pub next: *const c_void,
+    /// `ID3D12Device *`.
+    pub device: *mut c_void,
+    /// `ID3D12CommandQueue *`.
+    pub queue: *mut c_void,
+}
+
+/// `XrSwapchainImageD3D12KHR`.
+#[repr(C)]
+pub struct XrSwapchainImageD3D12KHR {
+    pub ty: XrStructureType,
+    pub next: *mut c_void,
+    /// `ID3D12Resource *`.
+    pub texture: *mut c_void,
+}
+
 // The function types
 
 /// `PFN_xrVoidFunction`.
@@ -775,6 +829,15 @@ mod tests {
         off!(XrGraphicsBindingVulkan2KHR, queue_index, 44);
         size!(XrSwapchainImageVulkan2KHR, 24);
         off!(XrSwapchainImageVulkan2KHR, image, 16);
+        assert_eq!((size_of::<Luid>(), std::mem::align_of::<Luid>()), (8, 4));
+        size!(XrGraphicsRequirementsD3D12KHR, 32);
+        off!(XrGraphicsRequirementsD3D12KHR, adapter_luid, 16);
+        off!(XrGraphicsRequirementsD3D12KHR, min_feature_level, 24);
+        size!(XrGraphicsBindingD3D12KHR, 32);
+        off!(XrGraphicsBindingD3D12KHR, device, 16);
+        off!(XrGraphicsBindingD3D12KHR, queue, 24);
+        size!(XrSwapchainImageD3D12KHR, 24);
+        off!(XrSwapchainImageD3D12KHR, texture, 16);
         size!(VkImageCreateInfo, 88);
         off!(VkImageCreateInfo, flags, 16);
         off!(VkImageCreateInfo, image_type, 20);
@@ -845,5 +908,13 @@ mod tests {
             (1, 2, 3)
         );
         assert_eq!(xr_make_version(1, 0, 63), 0x0001_0000_0000_003f);
+        assert_eq!(
+            [
+                XR_TYPE_GRAPHICS_BINDING_D3D12_KHR,
+                XR_TYPE_SWAPCHAIN_IMAGE_D3D12_KHR,
+                XR_TYPE_GRAPHICS_REQUIREMENTS_D3D12_KHR,
+            ],
+            [1000028000, 1000028001, 1000028002]
+        );
     }
 }

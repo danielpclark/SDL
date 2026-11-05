@@ -25,25 +25,30 @@
 //!   its exported symbols, only the functions behind them.
 //!
 //! It implements what SDL calls, and what the tests' application side calls
-//! around it, of OpenXR 1.0 and `XR_KHR_vulkan_enable2` (its only extension):
-//! instances, the system, the Vulkan instance, physical device and device
-//! made for the application, sessions and their states, swapchains of
-//! Vulkan images made on the application's device, reference spaces, views
-//! and the frame loop (see `runtime.rs` for its fixed choices: formats,
-//! image counts, states). The other core functions aren't there:
-//! `xrGetInstanceProcAddr` answers `XR_ERROR_FUNCTION_UNSUPPORTED` for
-//! them. Every Vulkan function comes through the application's
-//! `vkGetInstanceProcAddr`: the runtime loads no library.
+//! around it, of OpenXR 1.0, `XR_KHR_vulkan_enable2` and, on Windows,
+//! `XR_KHR_D3D12_enable` (its two extensions): instances, the system, the
+//! Vulkan instance, physical device and device made for the application,
+//! the Direct3D 12 adapter it asks for, sessions and their states,
+//! swapchains of Vulkan images or Direct3D 12 resources made on the
+//! application's device, reference spaces, views and the frame loop (see
+//! `runtime.rs` for its fixed choices: formats, image counts, states). The
+//! other core functions aren't there: `xrGetInstanceProcAddr` answers
+//! `XR_ERROR_FUNCTION_UNSUPPORTED` for them. Every Vulkan function comes
+//! through the application's `vkGetInstanceProcAddr`, every Direct3D 12
+//! one through the application's device: the runtime loads no library but
+//! Windows' `dxgi.dll` (for the adapter's LUID).
 //!
 //! Everything is deterministic (handles count from 1, the time from a fixed
 //! start), and any call can be made to fail through the environment
 //! (`SDL3_OPENXR_TEST_RUNTIME_FAIL`, see `fail.rs`).
 //!
 //! The library is built on every target the workspace builds, from `std`
-//! alone; only Linux's tests use it so far.
+//! alone; Linux's and Windows' tests use it.
 
 #![allow(clippy::missing_safety_doc)] // (the functions' contracts are OpenXR's)
 
+#[cfg(windows)]
+mod d3d12;
 mod fail;
 mod runtime;
 mod sys;
@@ -62,44 +67,58 @@ macro_rules! void_fn {
     };
 }
 
-/// The functions served for an instance: their names, whether they need
-/// `XR_KHR_vulkan_enable2`, and the functions.
-fn function(name: &[u8]) -> Option<(bool, Option<PfnXrVoidFunction>)> {
+/// The extension a function needs.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Needs {
+    Core,
+    VulkanEnable2,
+    #[cfg_attr(not(windows), allow(dead_code))]
+    D3D12Enable,
+}
+
+/// The functions served for an instance: their names, the extension they
+/// need, and the functions.
+fn function(name: &[u8]) -> Option<(Needs, Option<PfnXrVoidFunction>)> {
     use runtime::*;
+    use Needs::*;
     Some(match name {
-        b"xrGetInstanceProcAddr" => (false, void_fn!(get_instance_proc_addr)),
-        b"xrEnumerateApiLayerProperties" => (false, void_fn!(enumerate_api_layer_properties)),
+        b"xrGetInstanceProcAddr" => (Core, void_fn!(get_instance_proc_addr)),
+        b"xrEnumerateApiLayerProperties" => (Core, void_fn!(enumerate_api_layer_properties)),
         b"xrEnumerateInstanceExtensionProperties" => {
-            (false, void_fn!(enumerate_instance_extension_properties))
+            (Core, void_fn!(enumerate_instance_extension_properties))
         }
-        b"xrCreateInstance" => (false, void_fn!(create_instance)),
-        b"xrDestroyInstance" => (false, void_fn!(destroy_instance)),
-        b"xrGetSystem" => (false, void_fn!(get_system)),
-        b"xrPollEvent" => (false, void_fn!(poll_event)),
-        b"xrCreateSession" => (false, void_fn!(create_session)),
-        b"xrDestroySession" => (false, void_fn!(destroy_session)),
-        b"xrBeginSession" => (false, void_fn!(begin_session)),
-        b"xrEndSession" => (false, void_fn!(end_session)),
-        b"xrRequestExitSession" => (false, void_fn!(request_exit_session)),
-        b"xrEnumerateSwapchainFormats" => (false, void_fn!(enumerate_swapchain_formats)),
-        b"xrCreateSwapchain" => (false, void_fn!(create_swapchain)),
-        b"xrDestroySwapchain" => (false, void_fn!(destroy_swapchain)),
-        b"xrEnumerateSwapchainImages" => (false, void_fn!(enumerate_swapchain_images)),
-        b"xrAcquireSwapchainImage" => (false, void_fn!(acquire_swapchain_image)),
-        b"xrWaitSwapchainImage" => (false, void_fn!(wait_swapchain_image)),
-        b"xrReleaseSwapchainImage" => (false, void_fn!(release_swapchain_image)),
-        b"xrCreateReferenceSpace" => (false, void_fn!(create_reference_space)),
-        b"xrDestroySpace" => (false, void_fn!(destroy_space)),
-        b"xrLocateViews" => (false, void_fn!(locate_views)),
-        b"xrWaitFrame" => (false, void_fn!(wait_frame)),
-        b"xrBeginFrame" => (false, void_fn!(begin_frame)),
-        b"xrEndFrame" => (false, void_fn!(end_frame)),
+        b"xrCreateInstance" => (Core, void_fn!(create_instance)),
+        b"xrDestroyInstance" => (Core, void_fn!(destroy_instance)),
+        b"xrGetSystem" => (Core, void_fn!(get_system)),
+        b"xrPollEvent" => (Core, void_fn!(poll_event)),
+        b"xrCreateSession" => (Core, void_fn!(create_session)),
+        b"xrDestroySession" => (Core, void_fn!(destroy_session)),
+        b"xrBeginSession" => (Core, void_fn!(begin_session)),
+        b"xrEndSession" => (Core, void_fn!(end_session)),
+        b"xrRequestExitSession" => (Core, void_fn!(request_exit_session)),
+        b"xrEnumerateSwapchainFormats" => (Core, void_fn!(enumerate_swapchain_formats)),
+        b"xrCreateSwapchain" => (Core, void_fn!(create_swapchain)),
+        b"xrDestroySwapchain" => (Core, void_fn!(destroy_swapchain)),
+        b"xrEnumerateSwapchainImages" => (Core, void_fn!(enumerate_swapchain_images)),
+        b"xrAcquireSwapchainImage" => (Core, void_fn!(acquire_swapchain_image)),
+        b"xrWaitSwapchainImage" => (Core, void_fn!(wait_swapchain_image)),
+        b"xrReleaseSwapchainImage" => (Core, void_fn!(release_swapchain_image)),
+        b"xrCreateReferenceSpace" => (Core, void_fn!(create_reference_space)),
+        b"xrDestroySpace" => (Core, void_fn!(destroy_space)),
+        b"xrLocateViews" => (Core, void_fn!(locate_views)),
+        b"xrWaitFrame" => (Core, void_fn!(wait_frame)),
+        b"xrBeginFrame" => (Core, void_fn!(begin_frame)),
+        b"xrEndFrame" => (Core, void_fn!(end_frame)),
         b"xrGetVulkanGraphicsRequirements2KHR" => {
-            (true, void_fn!(get_vulkan_graphics_requirements2))
+            (VulkanEnable2, void_fn!(get_vulkan_graphics_requirements2))
         }
-        b"xrCreateVulkanInstanceKHR" => (true, void_fn!(create_vulkan_instance)),
-        b"xrGetVulkanGraphicsDevice2KHR" => (true, void_fn!(get_vulkan_graphics_device2)),
-        b"xrCreateVulkanDeviceKHR" => (true, void_fn!(create_vulkan_device)),
+        b"xrCreateVulkanInstanceKHR" => (VulkanEnable2, void_fn!(create_vulkan_instance)),
+        b"xrGetVulkanGraphicsDevice2KHR" => (VulkanEnable2, void_fn!(get_vulkan_graphics_device2)),
+        b"xrCreateVulkanDeviceKHR" => (VulkanEnable2, void_fn!(create_vulkan_device)),
+        #[cfg(windows)]
+        b"xrGetD3D12GraphicsRequirementsKHR" => {
+            (D3D12Enable, void_fn!(get_d3d12_graphics_requirements))
+        }
         _ => return None,
     })
 }
@@ -132,10 +151,14 @@ unsafe extern "system" fn get_instance_proc_addr(
             _ => return XR_ERROR_HANDLE_INVALID,
         }
     } else {
-        let Some(vulkan_enabled) = runtime::runtime().vulkan_enabled(instance) else {
+        let Some((vulkan_enable2, d3d12_enable)) = runtime::runtime().enabled(instance) else {
             return XR_ERROR_HANDLE_INVALID;
         };
-        function(name).filter(|&(needs_vulkan, _)| !needs_vulkan || vulkan_enabled)
+        function(name).filter(|&(needs, _)| match needs {
+            Needs::Core => true,
+            Needs::VulkanEnable2 => vulkan_enable2,
+            Needs::D3D12Enable => d3d12_enable,
+        })
     };
     match found {
         Some((_, f)) => {

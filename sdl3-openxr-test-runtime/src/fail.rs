@@ -9,8 +9,10 @@
 //!   whose call then returns `RESULT` at once (before looking at its
 //!   arguments, so with nothing written to them); or
 //!   `xrGetInstanceProcAddr:NAME`, the lookup of the function `NAME`; or
-//!   the name of an extension (`XR_KHR_vulkan_enable2`), which the runtime
-//!   then doesn't have (not listed, not enabled);
+//!   `xrGetD3D12GraphicsRequirementsKHR:luid`, whose call then succeeds
+//!   with a LUID no adapter has (its `RESULT` unused); or the name of an
+//!   extension (`XR_KHR_vulkan_enable2`, `XR_KHR_D3D12_enable`), which the
+//!   runtime then doesn't have (not listed, not enabled);
 //! * `@N` makes only the `N`th call (from 1) fail, counting the calls
 //!   (lookups) of that point since the library was loaded; without it,
 //!   every call does;
