@@ -3,7 +3,8 @@
 // Part of the repository's own test code (not a translation); see LICENSE.txt.
 
 //! What each function does is the OpenXR 1.0 specification's (and
-//! `XR_KHR_vulkan_enable2`'s and `XR_KHR_D3D12_enable`'s), for the
+//! `XR_KHR_vulkan_enable2`'s, `XR_KHR_D3D12_enable`'s and, on Android,
+//! `XR_KHR_android_create_instance`'s: see `android.rs`), for the
 //! arguments the specification allows, with the runtime's fixed choices:
 //!
 //! * one system, for the head-mounted form factor (the handheld one is
@@ -291,9 +292,9 @@ fn set_c_text(dst: &mut [c_char], src: &str) {
     dst[n] = 0;
 }
 
-/// The extensions the runtime has (`XR_KHR_vulkan_enable2`, and on
-/// Windows `XR_KHR_D3D12_enable`, unless the failure list removes them):
-/// names and versions.
+/// The extensions the runtime has (`XR_KHR_vulkan_enable2`, on Windows
+/// `XR_KHR_D3D12_enable`, on Android `XR_KHR_android_create_instance`,
+/// unless the failure list removes them): names and versions.
 fn extensions() -> Vec<(&'static str, u32)> {
     let mut list = Vec::new();
     if !fail::extension_removed(XR_KHR_VULKAN_ENABLE2_EXTENSION_NAME) {
@@ -306,6 +307,14 @@ fn extensions() -> Vec<(&'static str, u32)> {
         list.push((
             XR_KHR_D3D12_ENABLE_EXTENSION_NAME,
             XR_KHR_D3D12_ENABLE_SPEC_VERSION,
+        ));
+    }
+    if cfg!(target_os = "android")
+        && !fail::extension_removed(XR_KHR_ANDROID_CREATE_INSTANCE_EXTENSION_NAME)
+    {
+        list.push((
+            XR_KHR_ANDROID_CREATE_INSTANCE_EXTENSION_NAME,
+            XR_KHR_ANDROID_CREATE_INSTANCE_SPEC_VERSION,
         ));
     }
     list
@@ -398,6 +407,11 @@ pub unsafe extern "system" fn enumerate_api_layer_properties(
     _properties: *mut XrApiLayerProperties,
 ) -> XrResult {
     inject!("xrEnumerateApiLayerProperties");
+    // (on Android, in an app's process, after xrInitializeLoaderKHR)
+    #[cfg(target_os = "android")]
+    if !crate::android::global_functions_allowed() {
+        return XR_ERROR_INITIALIZATION_FAILED;
+    }
     // (no layers: called only when the runtime is loaded in the loader's
     // place, the loader must not call the runtime for it)
     // SAFETY: the application's count.
@@ -411,6 +425,11 @@ pub unsafe extern "system" fn enumerate_instance_extension_properties(
     properties: *mut XrExtensionProperties,
 ) -> XrResult {
     inject!("xrEnumerateInstanceExtensionProperties");
+    // (on Android, in an app's process, after xrInitializeLoaderKHR)
+    #[cfg(target_os = "android")]
+    if !crate::android::global_functions_allowed() {
+        return XR_ERROR_INITIALIZATION_FAILED;
+    }
     if !layer_name.is_null() {
         return XR_ERROR_API_LAYER_NOT_PRESENT;
     }
@@ -434,6 +453,11 @@ pub unsafe extern "system" fn create_instance(
     instance: *mut XrInstance,
 ) -> XrResult {
     inject!("xrCreateInstance");
+    // (on Android, in an app's process, after xrInitializeLoaderKHR)
+    #[cfg(target_os = "android")]
+    if !crate::android::global_functions_allowed() {
+        return XR_ERROR_INITIALIZATION_FAILED;
+    }
     // SAFETY: the application's structure.
     valid!(unsafe { required_type(create_info.cast(), XR_TYPE_INSTANCE_CREATE_INFO) });
     valid!(!instance.is_null());
@@ -455,6 +479,8 @@ pub unsafe extern "system" fn create_instance(
     let available = extensions();
     let mut vulkan_enable2 = false;
     let mut d3d12_enable = false;
+    #[cfg(target_os = "android")]
+    let mut android_create_instance = false;
     for k in 0..info.enabled_extension_count as usize {
         valid!(!info.enabled_extension_names.is_null());
         // SAFETY: the application's array of names.
@@ -467,6 +493,19 @@ pub unsafe extern "system" fn create_instance(
         }
         vulkan_enable2 |= name == XR_KHR_VULKAN_ENABLE2_EXTENSION_NAME.as_bytes();
         d3d12_enable |= name == XR_KHR_D3D12_ENABLE_EXTENSION_NAME.as_bytes();
+        #[cfg(target_os = "android")]
+        {
+            android_create_instance |=
+                name == XR_KHR_ANDROID_CREATE_INSTANCE_EXTENSION_NAME.as_bytes();
+        }
+    }
+    // (the app's Java VM and activity, which an Android runtime must have)
+    #[cfg(target_os = "android")]
+    // SAFETY: the application's chain.
+    if let Err(result) =
+        unsafe { crate::android::check_instance_create_info(info.next, android_create_instance) }
+    {
+        return result;
     }
     let handle = rt.handle();
     rt.instances.insert(
