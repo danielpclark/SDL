@@ -165,12 +165,13 @@ jobs:
       # below). Not what a hosted runner doesn't pin down (an audio
       # endpoint, GameInput, a camera). Not vulkan and egl on Windows and
       # macOS either, which a few checks skip by design there: "Check the
-      # GPU skips" below fails on any other skip of them.
+      # GPU skips" below fails on any other skip of them. (On Windows,
+      # openxr-runtime: the OpenXR loader and the test runtime below.)
       LINUX_REQUIRE: x11,xvfb,glx,egl,vulkan,wayland,dbus,pulseaudio,pipewire,alsa,udev,uinput,hidapi,tzdata,locales,android-sdk
       # The Android SDK's build-tools whose dexdump checks the DEX file
       # (android-sdk, with the NDK's jni.h: the runner image has both)
       SDL3_ANDROID_BUILD_TOOLS: "35.0.0"
-      WINDOWS_REQUIRE: wgl
+      WINDOWS_REQUIRE: wgl,openxr-runtime
       # The GPU drivers of the Windows and macOS jobs, pinned: Mesa for
       # Windows (pal1000/mesa-dist-win's MSVC build: llvmpipe OpenGL and
       # EGL, lavapipe Vulkan) with the Khronos Vulkan loader built from its
@@ -181,6 +182,11 @@ jobs:
       VULKAN_LOADER_TAG: vulkan-sdk-1.4.363.0
       VULKAN_LOADER_COMMIT: fa218055ff4948b159f31d43f800c808a13d51df
       MOLTENVK_SHA256: f95765a6229cb7b915990a2890ce12ebe36a730b021545d3d52ae69ce4c4024e
+      # Khronos's OpenXR loader for Windows (OpenXR-SDK-Source's release
+      # zip, Apache-2.0, CI only: never committed), for gpu_openxr's test
+      # runtime scenarios on Direct3D 12 (WARP) and Vulkan (lavapipe)
+      OPENXR_LOADER_VERSION: "1.1.65"
+      OPENXR_LOADER_SHA256: 859d7de35b7a968112db770b09ed8bddeed3cb16fd8ae070643a857676bea6fd
       # Chrome for Testing's headless shell, whose ANGLE (libEGL.so and
       # libGLESv2.so, with SwiftShader) the OpenGL ES 1 renderer's checks
       # draw with on Linux
@@ -242,7 +248,7 @@ jobs:
         uses: actions/cache@v5
         with:
           path: ${{ runner.temp }}/gpu-cache
-          key: gpu-${{ runner.os }}-${{ runner.os == 'Windows' && format('mesa-{0}-loader-{1}', env.MESA_VERSION, env.VULKAN_LOADER_COMMIT) || format('moltenvk-{0}', env.MOLTENVK_VERSION) }}
+          key: gpu-${{ runner.os }}-${{ runner.os == 'Windows' && format('mesa-{0}-loader-{1}-openxr-{2}', env.MESA_VERSION, env.VULKAN_LOADER_COMMIT, env.OPENXR_LOADER_VERSION) || format('moltenvk-{0}', env.MOLTENVK_VERSION) }}
       # Mesa's opengl32.dll next to the test executables, where it's found
       # before System32's (Mesa's per-application deployment), with its
       # libgallium_wgl.dll, libEGL.dll and libGLESv2.dll and the Vulkan
@@ -280,6 +286,17 @@ jobs:
           MSYS_NO_PATHCONV=1 reg add 'HKLM\SOFTWARE\Khronos\Vulkan\Drivers' /v "$(cygpath -w "$G/x64/lvp_icd.x86_64.json")" /t REG_DWORD /d 0 /f
           echo "GALLIUM_DRIVER=llvmpipe" >> "$GITHUB_ENV"
           echo "EGL_PLATFORM=windows" >> "$GITHUB_ENV"
+      # Khronos's OpenXR loader beside the test executables with its core
+      # validation API layer registered, and the repository's test runtime
+      # (built by cargo test) as its active runtime, in the registry (the
+      # loader ignores XR_RUNTIME_JSON and XR_API_LAYER_PATH in an elevated
+      # process, as the runner's): tools/ci/openxr-windows.sh.
+      - name: Install the OpenXR loader and the test runtime (Windows)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          tools/ci/openxr-windows.sh install
+          tools/ci/openxr-windows.sh runtime debug
       # MoltenVK's dylib in /usr/local/lib, where upstream's default
       # libMoltenVK.dylib is found, without a loader: through one, MoltenVK's
       # devices need portability enumeration, which upstream's Vulkan
@@ -355,6 +372,11 @@ jobs:
         env:
           SDL3_TEST_SKIP_LOG: ${{ runner.temp }}/skips.tsv
           SDL3_TEST_REQUIRE: ${{ runner.os == 'Linux' && env.LINUX_REQUIRE || runner.os == 'Windows' && env.WINDOWS_REQUIRE || '' }}
+      # (the release test runtime the loader's active runtime)
+      - name: The release test runtime as the OpenXR runtime (Windows)
+        if: matrix.toolchain == 'pinned' && runner.os == 'Windows'
+        shell: bash
+        run: tools/ci/openxr-windows.sh runtime release
       - name: cargo test --release
         if: matrix.toolchain == 'pinned'
         run: cargo test --workspace --release
