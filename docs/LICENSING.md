@@ -168,6 +168,61 @@ from the NDK's headers: `<android/log.h>`, `<android/asset_manager.h>`,
 are AOSP's, under the Apache License 2.0 (`jni.h` is libnativehelper's),
 but the OpenSL ES ones, which are the Khronos Group's.
 
+## OpenXR (the GPU API's OpenXR functions)
+
+The GPU API's OpenXR functions load the Khronos OpenXR loader at run
+time, by name, as upstream's `SDL_OpenXR_LoadLibrary()` does
+(`openxr_loader.dll`, `libopenxr_loader.dylib`, `libopenxr_loader.so` on
+Android, `libopenxr_loader.so.1`, or the library `SDL_OPENXR_LIBRARY`
+names). The Vulkan loader, MoltenVK and ANGLE are loaded the same way;
+for OpenXR's loader it is the maintainer's decision of 2026-11-04, since
+that loader is no part of the system on Windows or Android, where the
+application ships it (elsewhere it is a system package,
+`libopenxr-loader1` on Debian and Ubuntu). Nothing of
+OpenXR is linked, and the repository ships neither the loader (Khronos's,
+Apache-2.0) nor a runtime (Monado, SteamVR, a headset's: the loader
+finds those, as the Vulkan loader finds drivers).
+
+* **The headers.** Upstream vendors Khronos's `openxr.h` and
+  `openxr_platform.h` (OpenXR 1.1.63, in `src/video/khronos/openxr/`),
+  under `Apache-2.0 OR MIT`. What SDL uses of them is declared by hand
+  (`sdl3/src/gpu/xr/sys.rs`; the test runtime's `src/sys.rs` likewise):
+  interface facts (structure layouts, names, values, function types),
+  the layouts checked against a C program built with those headers, not
+  the headers' expression, as for Vulkan and libdrm (above).
+* **SDL's code.** Upstream's `src/gpu/xr/` (`SDL_openxrdyn.c`,
+  `SDL_openxrdyn.h`, `SDL_openxrsym.h`, `SDL_gpu_openxr.c`,
+  `SDL_gpu_openxr.h`, `SDL_openxr_internal.h`), `SDL_openxr.h` and the
+  backends' OpenXR parts are under the zlib license, as the rest of SDL,
+  and so are their translations.
+* **The test runtime.** `sdl3-openxr-test-runtime` is the repository's
+  own test code, zlib like the rest of it: an OpenXR runtime written from
+  the OpenXR specification and its loader's runtime interface, which
+  translates no runtime's code and reads none. It isn't published, and
+  only the tests use it.
+* **CI-only downloads.** The Windows test job downloads Khronos's loader
+  for Windows (OpenXR-SDK-Source's release zip,
+  `openxr_loader_windows-1.1.65.zip`) and the Android job the loader for
+  Android (the AAR of Maven Central's
+  `org.khronos.openxr:openxr_loader_for_android`, 1.1.65), both under
+  the Apache License 2.0, each checked against the SHA-256 that
+  `.github/workflows/ci.yml` pins (`tools/ci/openxr-windows.sh`,
+  `tools/ci/openxr-android.sh`) and cached, never committed: by the
+  maintainer's decision of 2026-11-04, as the Mesa and MoltenVK builds
+  the GPU jobs download. An Android app package the runner makes holds a
+  loader only when its program asks for one (`libs=libopenxr_loader.so`),
+  from where the user put it (`SDL3_ANDROID_LIBRARY_PATH`).
+* **Monado.** CI's `openxr` job installs Ubuntu's Monado
+  (`monado-service`, `libopenxr1-monado`: the Boost Software License,
+  `BSL-1.0`) with the loader (`libopenxr-loader1`) and its core
+  validation layer (`openxr-layer-corevalidation`), Apache-2.0, from
+  Ubuntu's archive; the test runs Monado's service, and SDL loads the
+  loader, which loads Monado's runtime and the layer, at run time. None
+  of them is in the repository, and none of their code is translated.
+* **The C references.** The expected traces were made by C twins of the
+  test programs over upstream's C SDL (built with its vendored headers),
+  on diagnostic branches only: neither is in the repository.
+
 ## Android apps
 
 What an Android build of this repository contains, as facts about the
@@ -191,7 +246,8 @@ code (how a license applies to an app is not described here):
   (`libc`, `libm`, `libdl`), and, as upstream links them, `liblog`,
   `libandroid` and `libOpenSLES`; the others (EGL, OpenGL ES, Vulkan,
   AAudio, the camera and media NDK) are loaded at run time, as upstream
-  loads them. Linked statically is only what the NDK's clang adds to
+  loads them, and so is the OpenXR loader, which an app that uses the
+  GPU API's OpenXR functions ships (above). Linked statically is only what the NDK's clang adds to
   every program it links for Android: the C runtime's start and end
   objects, and LLVM's runtime libraries (the unwinder, `libunwind`, which
   Rust's standard library needs, and compiler-rt's builtins).
