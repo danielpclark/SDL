@@ -630,7 +630,7 @@ load library: ok
 log 4: Found XR_KHR_vulkan_enable2 extension
 log 4: Found XR_KHR_vulkan_enable2 extension
 device: ok (vulkan)
-session: error -2: 
+session: error -2
 device destroyed
 destroy instance: 0
 library unloaded
@@ -678,7 +678,7 @@ log 4: Found XR_KHR_vulkan_enable2 extension
 device: ok (vulkan)
 session: ok
 formats: 52 4 53 12 29 60
-swapchain: error -2: 
+swapchain: error -2
 destroy session: 0
 device destroyed
 destroy instance: 0
@@ -695,7 +695,7 @@ log 4: Found XR_KHR_vulkan_enable2 extension
 device: ok (vulkan)
 session: ok
 formats: 52 4 53 12 29 60
-swapchain: error -2: 
+swapchain: error -2
 destroy session: 0
 device destroyed
 destroy instance: 0
@@ -712,7 +712,7 @@ log 4: Found XR_KHR_vulkan_enable2 extension
 device: ok (vulkan)
 session: ok
 formats: 52 4 53 12 29 60
-swapchain: error -2: 
+swapchain: error -2
 destroy session: 0
 device destroyed
 destroy instance: 0
@@ -730,7 +730,7 @@ device: ok (vulkan)
 session: ok
 formats: 52 4 53 12 29 60
 swapchain: ok
-destroy swapchain: error -2: 
+destroy swapchain: error -2
 destroy session: 0
 device destroyed
 destroy instance: 0
@@ -748,7 +748,7 @@ device: ok (vulkan)
 session: ok
 formats: 52 4 53 12 29 60
 swapchain: ok
-destroy swapchain: error -2: 
+destroy swapchain: error -2
 destroy session: 0
 device destroyed
 destroy instance: 0
@@ -1042,13 +1042,12 @@ rt-destroy-swapchain: openxr valid usage messages: 0
     }
 
     /// An OpenXR entry point's error as the C program prints it: the
-    /// result and SDL's error (empty when there's none).
+    /// result, and SDL's error when there's one.
     fn xr_error(e: &XrError) -> String {
-        format!(
-            "error {}: {}",
-            e.result().0,
-            e.error().map_or("", |e| e.message())
-        )
+        match e.error() {
+            Some(error) => format!("error {}: {}", e.result().0, error.message()),
+            None => format!("error {}", e.result().0),
+        }
     }
 
     /// A scenario, in the child.
