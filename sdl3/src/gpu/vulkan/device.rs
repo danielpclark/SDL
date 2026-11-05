@@ -744,6 +744,9 @@ fn create_instance(
             pfn_get_instance_proc_addr: Some(vk_get_instance_proc_addr),
             ..Default::default()
         };
+        // Note (upstream): upstream's `vulkanResult` is uninitialized, and
+        // logged below when the runtime's call fails without writing it
+        // (an indeterminate value); here it is VK_SUCCESS then.
         let mut vulkan_result = VK_SUCCESS;
         // SAFETY: the runtime's function, with a valid create info whose
         // structures and strings outlive the call, and out-pointers.
@@ -1692,6 +1695,9 @@ impl PreparedVulkan {
                 pfn_get_instance_proc_addr: Some(self.vk_get_instance_proc_addr),
                 ..Default::default()
             };
+            // Note (upstream): uninitialized in C, and logged below when
+            // the runtime's call fails without writing it (as in
+            // create_instance); VK_SUCCESS here.
             let mut vulkan_result = VK_SUCCESS;
             // SAFETY: the runtime's function, with a valid create info whose
             // chain and arrays outlive the call, and out-pointers.
@@ -2354,6 +2360,15 @@ impl VulkanRenderer {
     /// with `XR_SWAPCHAIN_USAGE_COLOR_ATTACHMENT_BIT`), they have no full
     /// view (they can't be sampled), and their type is 2D whatever the
     /// array size.
+    ///
+    /// FIXME (upstream): so every image is transitioned to the color
+    /// attachment layout, which Vulkan allows only for images made with
+    /// `VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT`: a swapchain without
+    /// `XR_SWAPCHAIN_USAGE_COLOR_ATTACHMENT_BIT`, on a runtime whose images
+    /// have exactly the usage asked for (the repository's test runtime;
+    /// Monado adds that usage itself), gets a validation error an image
+    /// (`VUID-VkImageMemoryBarrier-oldLayout-01208`). Kept, as upstream's
+    /// C does it.
     pub(super) fn create_xr_swapchain(
         &self,
         session: XrSession,
