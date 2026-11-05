@@ -1,0 +1,108 @@
+name: diag uikit keyboard
+
+# (temporary, on the diag branch only: the UIKit programs whose startup
+# events wait for the simulator's keyboard, run several times in a row)
+on:
+  push:
+    branches: [claude/diag-uikit-keyboard]
+
+permissions:
+  contents: read
+
+env:
+  RUST_TOOLCHAIN: "1.99"
+  CARGO_TERM_COLOR: never
+  CARGO_INCREMENTAL: 0
+  RUST_BACKTRACE: 1
+  MOLTENVK_VERSION: v1.4.2
+  MOLTENVK_ALL_SHA256: 562a15a29bc358446a56a4091c5f7e08f604184187c1d34f712148b61ef17276
+  XCODE_VERSION: "16.4"
+  RUST_TEST_NOCAPTURE: 1
+  CARGO_PROFILE_DEV_DEBUG: line-tables-only
+  ROUNDS: 6
+
+jobs:
+  repeat:
+    name: repeat (${{ matrix.os }})
+    runs-on: macos-15
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ios
+            target: aarch64-apple-ios-sim
+            slice: ios-arm64_x86_64-simulator
+            tests: uikit_windows uikit_displays uikit_main uikit_callbacks
+          - os: tvos
+            target: aarch64-apple-tvos-sim
+            slice: tvos-arm64_x86_64-simulator
+            tests: uikit_tvos uikit_main uikit_callbacks
+          - os: visionos
+            target: aarch64-apple-visionos-sim
+            slice: xros-arm64_x86_64-simulator
+            tests: uikit_visionos uikit_main uikit_callbacks
+    env:
+      SDL3_IOS_DEVICE_TYPE: com.apple.CoreSimulator.SimDeviceType.iPhone-16
+      SDL3_IOS_RUNTIME: com.apple.CoreSimulator.SimRuntime.iOS-18-5
+      SDL3_TVOS_DEVICE_TYPE: com.apple.CoreSimulator.SimDeviceType.Apple-TV-4K-3rd-generation-4K
+      SDL3_TVOS_RUNTIME: com.apple.CoreSimulator.SimRuntime.tvOS-18-5
+      SDL3_VISIONOS_DEVICE_TYPE: com.apple.CoreSimulator.SimDeviceType.Apple-Vision-Pro
+      SDL3_VISIONOS_RUNTIME: com.apple.CoreSimulator.SimRuntime.xrOS-2-5
+    steps:
+      - uses: actions/checkout@v5
+      - name: Select Xcode
+        run: sudo xcode-select -s "/Applications/Xcode_$XCODE_VERSION.app"
+      - name: Install Rust
+        run: |
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal --target ${{ matrix.target }}
+          rustup default "$RUST_TOOLCHAIN"
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.os }}
+          save-if: false
+      - name: Boot the simulator
+        shell: bash
+        run: |
+          if [ "${{ matrix.os }}" = ios ]; then arg=; else arg=${{ matrix.os }}; fi
+          id=$(tools/ios_run.py --boot $arg)
+          for v in SDL3_IOS_SIMULATOR SDL3_TVOS_SIMULATOR SDL3_VISIONOS_SIMULATOR; do echo "$v=$id" >> "$GITHUB_ENV"; done
+      - name: Get MoltenVK
+        shell: bash
+        run: |
+          C="$RUNNER_TEMP/moltenvk-cache"
+          mkdir -p "$C"
+          curl -fsSL -o "$C/moltenvk-all.tar" "https://github.com/KhronosGroup/MoltenVK/releases/download/$MOLTENVK_VERSION/MoltenVK-all.tar"
+          echo "$MOLTENVK_ALL_SHA256  $C/moltenvk-all.tar" | shasum -a 256 -c
+          X=MoltenVK/MoltenVK/dynamic/MoltenVK.xcframework
+          tar xf "$C/moltenvk-all.tar" -C "$RUNNER_TEMP" "$X/Info.plist" "$X/${{ matrix.slice }}"
+          echo "SDL3_IOS_MOLTENVK=$RUNNER_TEMP/$X" >> "$GITHUB_ENV"
+      - name: Build the programs
+        shell: bash
+        run: |
+          args=; for t in ${{ matrix.tests }}; do args="$args --test $t"; done
+          cargo test --no-run --target ${{ matrix.target }} -p sdl3 $args
+      - name: Run them ${{ env.ROUNDS }} times
+        shell: bash
+        run: |
+          set +e
+          fails=0
+          L="$RUNNER_TEMP/runs"
+          mkdir -p "$L"
+          for round in $(seq 1 "$ROUNDS"); do
+            for t in ${{ matrix.tests }}; do
+              cargo test --target ${{ matrix.target }} -p sdl3 --test $t > "$L/$t.$round.log" 2>&1
+              rc=$?
+              waited=$(grep -h "startup events:" "$L/$t.$round.log" || true)
+              kb=$(grep -h "uikit_callbacks: .* s: KEYBOARD_ADDED" "$L/$t.$round.log" || true)
+              line=$(grep -h "trace: events: \|^  events: " "$L/$t.$round.log" | head -1 || true)
+              echo "round $round $t: rc=$rc ${waited:-(no wait)} ${kb} [$line]"
+              if [ $rc -ne 0 ]; then
+                fails=$((fails + 1))
+                grep -h -A6 "panicked at\|differs from upstream" "$L/$t.$round.log" | head -40 || true
+                tail -40 "$L/$t.$round.log" || true
+              fi
+            done
+          done
+          echo "failures: $fails"
+          [ $fails -eq 0 ]
