@@ -981,6 +981,7 @@ As upstream's CMake build for Android:
 | camera | android, dummy | the same |
 | file operations, threads, time, timer, `loadso` | POSIX, pthread, Unix, Unix, `dlopen` | the same |
 | process, tray, notification | dummy, dummy, none | the same |
+| the GPU API's OpenXR functions | on the Vulkan backend, with the Khronos loader for Android the app ships (`libopenxr_loader.so`, loaded at run time) | the same (see [OpenXR](#openxr)) |
 
 ## The Linux console and KMS/DRM
 
@@ -1033,6 +1034,188 @@ display server, as root on a virtual console:
   (`kmsdrm_support::connector_name`). `kmsdrm_hardware.rs`'s
   `#[ignore]`d checks are for a GPU and a real display (see
   HARDWARE_TESTING.md).
+
+## OpenXR
+
+The GPU API's OpenXR functions are `sdl3/src/gpu/xr/`: `mod.rs` is
+`SDL_openxr.h` and `SDL_gpu.c`'s four entry points, `openxrdyn.rs`
+`SDL_openxrdyn.c` (with `SDL_openxrdyn.h` and `SDL_openxrsym.h`: the
+loader), `gpu_openxr.rs` `SDL_gpu_openxr.c` (the instance and the
+system), and `sys.rs` the parts of `openxr.h` and `openxr_platform.h`
+SDL uses, declared by hand (their layouts pinned by tests to a C
+program's values). The backends' parts are in `vulkan/device.rs` and
+`d3d12/device.rs` (PrepareDriver's check, CreateDevice's instance and
+device, and the entry points between the two, where upstream has them),
+and the Metal backend's are upstream's stubs. Upstream's CMake defines
+`HAVE_GPU_OPENXR` wherever it builds the GPU API, so it is on for every
+target here, and its stubs for a build without it ("OpenXR is not
+enabled in this build of SDL") aren't translated.
+
+### Ownership
+
+* **Out pointers become accessors.** Upstream's
+  `SDL_PROP_GPU_DEVICE_CREATE_XR_INSTANCE_POINTER` and `..._SYSTEM_ID_POINTER`
+  are pointers the device writes its `XrInstance` and `XrSystemId` to;
+  here they're not read, and the device has them:
+  `Device::xr_instance()` and `Device::xr_system_id()` (`None` for a
+  device made without OpenXR). So upstream's "You must specify an out
+  pointer for the OpenXR instance" can't happen (`Note (upstream)`). The
+  extension and layer names are a `Vec<String>` set with
+  `Properties::set_any`; the handles are `u64`s, as `SDL_openxr.h`
+  declares them without the OpenXR headers, and the loader's
+  `xrGetInstanceProcAddr` a `usize`, as `vulkan_get_vk_get_instance_proc_addr()`'s.
+  A failed entry point is an `XrError`: its `XrResult`, and SDL's error
+  when upstream sets one (it often doesn't: then the Rust's error, where
+  there is one, says which step failed). The swapchain formats are a
+  `Vec<TextureFormat>` (upstream's array is `SDL_malloc`'d and
+  terminated by `SDL_GPU_TEXTUREFORMAT_INVALID`). The create infos are
+  Rust structures without what the device supplies (the system ID, the
+  format); the application's chain of OpenXR structures is an `XrNext`,
+  made with `unsafe`.
+* **`XrSwapchain` owns its textures.** `Device::create_xr_swapchain()`
+  returns the swapchain's handle and a texture of each of its images
+  together, which the front end never releases (`Owner::XrSwapchain`);
+  `XrSwapchain::destroy()` destroys them with the swapchain
+  (`SDL_DestroyGPUXRSwapchain()`) and returns its result, and dropping
+  the value does it too, without the result. Upstream takes the texture
+  array back from the application, which may pass another one ("Invalid
+  GPU Texture handle.", with the textures before it destroyed): here it
+  can't. A swapchain holds a reference to its device, so the backend's
+  device outlives it.
+* **The application owns the OpenXR instance.** The device never
+  destroys it: the application destroys it (`xrDestroyInstance`,
+  through `openxr_get_xr_get_instance_proc_addr()`) after the device and
+  its swapchains, as upstream (whose test program's comment says the
+  device destroys it, which it doesn't). The exception is a device that
+  fails once its instance is made (its Vulkan or Direct3D 12 device, its
+  adapter, ...): in C the application has the instance through the out
+  pointer; here it never sees it, so the backend destroys it
+  (`Note (upstream)`).
+* **The device's reference to the loader is never released**, as
+  upstream's (`SDL_OpenXR_LoadLibrary()` at the device's creation is
+  never undone), so that the application's OpenXR functions stay valid
+  after the device is gone. The
+  instance's function table (`XrInstancePfns`) is the device's and goes
+  with it (upstream leaks it).
+* **On Android the loader is never unloaded.** `openxr_unload_library()`
+  releases the last reference without unloading the library, which keeps
+  its `xrGetInstanceProcAddr` (upstream's: a runtime there can't be
+  initialized again in the process); a later load takes it again, as it
+  is, whatever `SDL_OPENXR_LIBRARY` then says.
+
+On Android the loader is the Khronos loader for Android the app ships
+(`libopenxr_loader.so`), initialized with `xrInitializeLoaderKHR` with
+the app's Java VM and activity, and an instance is made with
+`XR_KHR_android_create_instance` and its structure; Meta's forwardloader
+isn't supported (upstream's comment, kept). The Vulkan backend's
+PrepareDriver returns `true` there before it looks at OpenXR, as
+upstream's (the Quest's runtime can't have an instance made, destroyed
+and made again), so
+`supports_properties()` says yes without a loader or a runtime, and the
+failure comes from CreateDevice.
+
+### Upstream bugs
+
+Fixed here in their own changes, the C references patched the same way:
+
+* Every entry point (`SDL_CreateGPUXRSession()`,
+  `SDL_GetGPUXRSwapchainFormats()`, `SDL_CreateGPUXRSwapchain()`,
+  `SDL_DestroyGPUXRSwapchain()`) dereferences the backend's OpenXR state,
+  NULL on a device made without OpenXR: a crash on Vulkan and Direct3D
+  12. Here they fail with `XR_ERROR_FUNCTION_UNSUPPORTED` and "The GPU
+  device was not created with OpenXR enabled" (the formats with no
+  list).
+* Vulkan's `CreateXRSwapchain` leaves the textures' level and layer
+  counts 0 and their container unset, so their transition to the default
+  usage is a barrier over no subresources (the validation layer's
+  `VUID-VkImageSubresourceRange-levelCount-01720` and `-layerCount-01721`
+  for each image). Here they are the swapchain's mip count and array
+  size.
+* Direct3D 12's `DestroyXRSwapchain` casts each texture container to a
+  texture, so it reads the texture's `externallyManaged` flag from a
+  padding byte of the container's and destroys the container as a
+  texture: an error or a crash, as the byte happens to be (on Windows,
+  "Invalid GPU Texture handle." for every swapchain, which is kept).
+  Here the container's texture is destroyed.
+
+Kept as upstream behaves, marked `FIXME (upstream)`:
+
+* the API layer query (`SDL_OPENXR_INTERNAL_ValidationLayerAvailable()`)
+  leaves the `XrApiLayerProperties`' type unset, which the Khronos loader
+  refuses (1.0.20 and 1.1.65), so with any API layer installed debug
+  mode never enables the core validation layer (`gpu_openxr.rs`);
+* Vulkan's swapchain textures are color targets whatever the swapchain's
+  usage, and every image is transitioned to the color attachment layout,
+  which Vulkan allows only for an image made with
+  `VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT`: on a runtime whose images have
+  exactly the usage asked for (the test runtime's; Monado adds it), a
+  swapchain without `XR_SWAPCHAIN_USAGE_COLOR_ATTACHMENT_BIT` gets a
+  validation error an image; Direct3D 12's take the images to be in the
+  render target state, which a resource without
+  `D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET` can't be in (`create_xr_swapchain`
+  in both);
+* Vulkan's minimum version from the runtime is computed and never used
+  (`prepare_driver`), and Direct3D 12's minimum feature level from the
+  runtime read and never used: the device is made with 11_0 whatever it
+  asks (`create_device`);
+* a swapchain is left alive when a step after its creation fails
+  (`create_xr_swapchain`);
+* Vulkan's PrepareDriver leaves its instance alive when the instance's
+  functions can't be loaded (without them there's no
+  `xrDestroyInstance`).
+
+Kept, marked `Note (upstream)` (where upstream's behaviour can't be had
+here, or is worked around, or is kept as it is):
+
+* `SDL_OPENXR_INTERNAL_GPUInitOpenXR()` is typed `XrResult` but returns
+  `true` and `false` (its callers' `!` makes it work; its Android loader
+  check's `XR_ERROR_INITIALIZATION_FAILED` is taken for success), and
+  leaves an instance whose functions can't be loaded alive (its own
+  note says so), as here;
+* `OPENXR_GetSym()` never sets `*failed`, so a loader missing one of its
+  four global functions is loaded, and the function later called through
+  NULL (here the call fails);
+* the backends never free their instance's function table (owned here),
+  and the device's loader reference and instance stay, as above;
+* `GetXRSwapchainFormats` frees the runtime's array twice and its own
+  never, and returns NULL with no error set when the runtime fails;
+* Vulkan's `DestroyXRSwapchain` never frees each container's texture
+  array, and both backends' read a shorter array than the swapchain's
+  past its end (here the destruction stops at its end);
+* Direct3D 12's CreateDevice leaves the instance when a step after it
+  fails (destroyed here, as above);
+* Vulkan's `CreateInstance` and `CreateLogicalDevice` log the runtime's
+  `VkResult` uninitialized when `xrCreateVulkanInstanceKHR` or
+  `xrCreateVulkanDeviceKHR` fails without writing it: the log line is
+  kept, its value `VK_SUCCESS` here where C's is indeterminate (the C
+  references are patched to `VK_SUCCESS` so that the traces compare);
+* on Android, CreateDevice's debug assertion "This should have failed in
+  PrepareDevice first!" fires whenever the loader can't be loaded or
+  initialized, since PrepareDriver never tries there: kept, in debug
+  builds as upstream's (`create_device`).
+
+Found, not marked in the code yet: Direct3D 12's `GetXRSwapchainFormats`
+matches the runtime's formats against `SDLToD3D12_TextureFormat`, whose
+depth formats' entries are color or typeless formats (D32_FLOAT is
+`DXGI_FORMAT_R32_FLOAT`, D24_UNORM_S8_UINT `DXGI_FORMAT_R24_UNORM_X8_TYPELESS`),
+so a runtime's `DXGI_FORMAT_D32_FLOAT` and `DXGI_FORMAT_D24_UNORM_S8_UINT`
+are never offered (of the test runtime's seven formats, the last two
+depth formats, `gpu_openxr`'s Windows trace has the five color ones).
+
+The API layer query's type, the color attachment transitions, the
+uninitialized `VkResult`, Android's assertion and the Direct3D 12 depth
+formats are kept as upstream behaves until the maintainer decides
+whether they are to be fixed (as the three above were) or stay as they
+are.
+
+Tests: `sdl3/tests/gpu_openxr.rs` (`harness = false`, with
+`tests/openxr_support/`) on Monado's null compositor and on the
+repository's test runtime (`sdl3-openxr-test-runtime`), and
+`android_openxr.rs` and `android_openxr_loader.rs` on the Android
+emulator, all traced against upstream's C twins (on diag branches
+only); `gpu_openxr_hardware.rs`'s `#[ignore]`d checks for a real runtime
+(see HARDWARE_TESTING.md's
+[OpenXR](HARDWARE_TESTING.md#openxr-on-monado-and-the-test-runtime)).
 
 ## Testing
 
