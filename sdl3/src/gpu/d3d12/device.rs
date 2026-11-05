@@ -874,15 +874,30 @@ impl D3D12Renderer {
         }
 
         // We always want to destroy the swapchain images, so don't early return if xrDestroySwapchain fails for some reason
-        // FIXME (upstream): C casts each texture container to a texture
-        // (`D3D12Texture *container = (D3D12Texture *)swapchainImages[i]`),
-        // so it reads `externallyManaged` at the texture's offset (a padding
-        // byte of the container's, uninitialized) and destroys the container
-        // as a texture (its subresources' array is the container's height
-        // and layer count), then frees it twice: an error or a crash, as the
-        // byte happens to be; here it panics.
-        if swapchain_count > 0 && !swapchain_images.is_empty() {
-            panic!("upstream destroys the OpenXR swapchain's texture containers as textures");
+        for image in swapchain_images.iter().take(swapchain_count as usize) {
+            // Note (upstream): C casts each texture container to a texture
+            // (`D3D12Texture *container = (D3D12Texture *)swapchainImages[i]`),
+            // so it reads `externallyManaged` at the texture's offset (a
+            // padding byte of the container's, uninitialized) and destroys
+            // the container as a texture (its subresources' array is the
+            // container's height and layer count), then frees it twice: an
+            // error or a crash, as the byte happens to be. Here the
+            // container's own flag is read, and its texture is destroyed.
+            let container = super::object::<TextureContainer>(image);
+
+            if !container.externally_managed {
+                return Err(XrError::new(
+                    XrResult::ERROR_HANDLE_INVALID,
+                    Error::new("Invalid GPU Texture handle."),
+                ));
+            }
+
+            // (the texture, whose resource stays the runtime's, goes with
+            // its container's last reference)
+            drop(std::mem::take(&mut lock(&container.state).textures));
+
+            // Free the container now that it's unused
+            // (the front end drops its handles next)
         }
 
         // (SDL_free(swapchainImages): the front end's)
