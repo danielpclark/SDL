@@ -60,6 +60,8 @@ jobs:
         env:
           RUNS: 80
           MTL_DEBUG_LAYER: ${{ matrix.debuglayer }}
+          # (as cargo test sets it: where dlopen finds /usr/local/lib's libMoltenVK.dylib by name)
+          DYLD_FALLBACK_LIBRARY_PATH: /Users/runner/lib:/usr/local/lib:/usr/lib
           FILTER: ${{ matrix.filter != 'all' && matrix.filter || '' }}
         shell: bash
         run: |
@@ -94,6 +96,7 @@ jobs:
             if [ "$status" -lt 128 ]; then rm -f "$exe"; fi
           done
           echo "crashes: $crashes / $RUNS"
+          echo "MoltenVK devices in the last run: $(grep -c 'Created VkDevice' "$RUNNER_TEMP/run.log" || true), skips: $(grep -c 'skipping, vulkan unavailable' "$RUNNER_TEMP/run.log" || true)"
           echo "CRASHES=$crashes" >> "$GITHUB_ENV"
       - name: Crash reports
         if: always()
