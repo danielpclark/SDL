@@ -43,6 +43,18 @@ pub(crate) struct GpuOpenXr {
     pub(crate) xr: XrInstancePfns,
 }
 
+/// Destroy the OpenXR instance of a device that fails once its instance
+/// is made, which upstream leaves to the application (it has it through
+/// the out pointer: see the backends' `create_device()` Notes (upstream));
+/// here the application never sees it.
+pub(crate) fn destroy_unreturned_xr_instance(xr_init: Option<&GpuOpenXr>) {
+    if let Some(init) = xr_init {
+        // SAFETY: the instance GPUInitOpenXR made, with nothing of the
+        // device's made from it left.
+        unsafe { (init.xr.xrDestroyInstance)(init.instance) };
+    }
+}
+
 /// The text of a C string array (an `XrApiLayerProperties`'s or
 /// `XrExtensionProperties`'s name).
 pub(crate) fn c_name(name: &[c_char]) -> String {
