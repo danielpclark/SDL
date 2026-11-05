@@ -255,7 +255,7 @@ pub(crate) mod test_support {
         ),
         (
             "openxr-runtime",
-            "the repository's test OpenXR runtime (sdl3-openxr-test-runtime, built), with the OpenXR loader, the core validation API layer and lavapipe",
+            "the repository's test OpenXR runtime (sdl3-openxr-test-runtime, built), with the OpenXR loader, the core validation API layer and lavapipe (on Windows: the loader's registered active runtime, and WARP)",
         ),
         (
             "wayland",
