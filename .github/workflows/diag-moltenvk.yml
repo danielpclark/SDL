@@ -1,0 +1,125 @@
+name: diag-moltenvk
+
+# Throwaway diagnostics (claude/diag-moltenvk-* branches only): loop the
+# sdl3 --lib tests on macOS with MoltenVK as the CI test job installs it,
+# and print the crash reports of the runs that crash.
+on:
+  push:
+    branches: ["claude/diag-moltenvk-debuglayer"]
+
+permissions:
+  contents: read
+
+env:
+  RUST_TOOLCHAIN: "1.99"
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
+  RUST_BACKTRACE: 1
+  MOLTENVK_VERSION: v1.4.2
+  MOLTENVK_SHA256: f95765a6229cb7b915990a2890ce12ebe36a730b021545d3d52ae69ce4c4024e
+  RUST_TEST_NOCAPTURE: 1
+  SDL_ASSERT: abort
+
+jobs:
+  loop:
+    name: loop (${{ matrix.filter }}, MTL_DEBUG_LAYER=${{ matrix.debuglayer }})
+    strategy:
+      fail-fast: false
+      matrix:
+        filter: ["gpu::vulkan"]
+        debuglayer: ["1", "0"]
+    runs-on: macos-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: "pinned"
+      - name: Install the GPU drivers (macOS)
+        run: |
+          C="$RUNNER_TEMP/gpu-cache"
+          mkdir -p "$C"
+          cd "$C"
+          curl -fsSL -o moltenvk.tar "https://github.com/KhronosGroup/MoltenVK/releases/download/$MOLTENVK_VERSION/MoltenVK-macos.tar"
+          echo "$MOLTENVK_SHA256  moltenvk.tar" | shasum -a 256 -c
+          tar xf moltenvk.tar -C "$RUNNER_TEMP" MoltenVK/MoltenVK/dynamic/dylib/macOS/libMoltenVK.dylib
+          sudo mkdir -p /usr/local/lib
+          sudo cp "$RUNNER_TEMP/MoltenVK/MoltenVK/dynamic/dylib/macOS/libMoltenVK.dylib" /usr/local/lib/
+      - name: Build the tests
+        run: |
+          cargo test -p sdl3 --lib --no-run --message-format=json > "$RUNNER_TEMP/build.json"
+          exe="$(python3 -c 'import json, sys; [print(m["executable"]) for m in map(json.loads, open(sys.argv[1])) if m.get("reason") == "compiler-artifact" and m.get("executable") and m["target"]["kind"] == ["lib"]]' "$RUNNER_TEMP/build.json")"
+          test -n "$exe"
+          echo "TEST_EXE=$exe" >> "$GITHUB_ENV"
+          sysctl -n hw.ncpu
+          rm -f ~/Library/Logs/DiagnosticReports/*.ips || true
+      - name: Loop
+        env:
+          RUNS: 80
+          MTL_DEBUG_LAYER: ${{ matrix.debuglayer }}
+          FILTER: ${{ matrix.filter != 'all' && matrix.filter || '' }}
+        shell: bash
+        run: |
+          cd sdl3
+          crashes=0
+          for i in $(seq 1 "$RUNS"); do
+            start=$(date +%s)
+            # cold, as every CI run is: a new copy of the binary (a file
+            # macOS hasn't run, its own Metal cache key) and Metal's caches
+            # cleared
+            rm -rf "$(getconf DARWIN_USER_CACHE_DIR)"com.apple.metal* || true
+            mkdir -p "$RUNNER_TEMP/bin"
+            exe="$RUNNER_TEMP/bin/sdl3-run$i-$RANDOM"
+            cp "$TEST_EXE" "$exe"
+            set +e
+            # (into the job's log, as under cargo test in CI: the runner's
+            # pipe, whose writes can block, not a file)
+            "$exe" $FILTER 2>&1 | tee "$RUNNER_TEMP/run.log"
+            status=${PIPESTATUS[0]}
+            set -e
+            echo "run $i: exit $status ($(( $(date +%s) - start ))s) $(grep -E '^(running [0-9]+ tests|test result:)' "$RUNNER_TEMP/run.log" | tr '\n' ' ')"
+            if [ "$i" -eq 1 ]; then head -5 "$RUNNER_TEMP/run.log"; fi
+            if [ "$status" -ge 128 ]; then
+              crashes=$((crashes + 1))
+              echo "::group::run $i output (last 60 non-extension lines)"
+              grep -v '^	' "$RUNNER_TEMP/run.log" | tail -60
+              echo "::endgroup::"
+            elif [ "$status" -ne 0 ]; then
+              grep -E 'panicked|FAILED|failures:' "$RUNNER_TEMP/run.log" | head -20
+            fi
+            # (kept when it crashed, for the crash report's symbols)
+            if [ "$status" -lt 128 ]; then rm -f "$exe"; fi
+          done
+          echo "crashes: $crashes / $RUNS"
+          echo "CRASHES=$crashes" >> "$GITHUB_ENV"
+      - name: Crash reports
+        if: always()
+        run: |
+          sleep 10
+          ls -l ~/Library/Logs/DiagnosticReports/ || true
+          for f in ~/Library/Logs/DiagnosticReports/*.ips; do
+            [ -f "$f" ] || continue
+            echo "::group::$f"
+            python3 - "$f" <<'EOF'
+          import json, sys
+          text = open(sys.argv[1]).read()
+          head, _, body = text.partition("\n")
+          r = json.loads(body)
+          imgs = r.get("usedImages", [])
+          print("exception:", r.get("exception"), r.get("termination", {}).get("indicator"))
+          print("faulting thread:", r.get("faultingThread"))
+          for n, t in enumerate(r.get("threads", [])):
+              name = t.get("name") or t.get("queue") or ""
+              mark = " CRASHED" if t.get("triggered") else ""
+              print(f"-- thread {n} {name}{mark}")
+              for fr in t.get("frames", [])[:40]:
+                  img = imgs[fr["imageIndex"]] if fr.get("imageIndex") is not None and fr["imageIndex"] < len(imgs) else {}
+                  print(f"   {img.get('name', '?'):28} {fr.get('symbol', hex(fr.get('imageOffset', 0)))} +{fr.get('symbolLocation', '')}")
+          EOF
+            echo "::endgroup::"
+          done
+      - name: Fail on crashes
+        run: test "${CRASHES:-0}" -eq 0
