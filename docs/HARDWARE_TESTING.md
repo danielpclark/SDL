@@ -28,8 +28,8 @@ Every skip names one *capability* (the list is `CAPABILITIES` in
 | `egl` | Linux, Windows, macOS | libEGL and the GL/GLES libraries (Mesa on Linux; on Windows an EGL such as ANGLE's `libEGL.dll`, which Windows doesn't ship, or Mesa's (below) with `EGL_PLATFORM=windows`; on macOS ANGLE's `libEGL.dylib` and `libGLESv2.dylib`, from the directory `SDL3_TEST_ANGLE_DIR` names or the copy the Android emulator ships in `~/Library/Android/sdk/emulator/lib64/gles_angle`). The offscreen driver has EGL only on Linux and the other Unix systems, so the OpenGL ES 2 renderer's checks, which draw on it, skip on Windows, macOS and the Apple Simulators, as the OpenGL renderer's checks on it do on macOS; on Android its EGL needs a device platform (`EGL_EXT_device_enumeration`) that Android's EGL lacks, so they skip there too, and so do the OpenGL renderer's, which Android doesn't build (see [Android emulator](#android-emulator)) |
 | `gles1` | Linux, the Android emulator | OpenGL ES 1.1 contexts through EGL, which the OpenGL ES 1 renderer's checks draw with: Android's (`libGLESv1_CM.so`), or ANGLE's (`libEGL.so` and `libGLESv2.so`, from Chrome for Testing's headless shell, with SwiftShader) on X11, the libraries named by `SDL_EGL_LIBRARY` and `SDL_OPENGL_LIBRARY` (see [Linux](#linux-ubuntu-2404)); Mesa's Ubuntu packages are built without OpenGL ES 1, so the checks skip there (`gles1`, where the OpenGL ES 2 renderer can be made; `egl` where not even that) |
 | `vulkan` | Linux, Windows, macOS, the iOS, tvOS and visionOS Simulators, the Android emulator | a Vulkan loader and a driver with the surface extensions, `VK_EXT_headless_surface` included for the tests of the Vulkan and GPU renderers and of the GPU API's swapchains on offscreen windows (Mesa's lavapipe is enough; on Windows those tests present to the Windows video driver's windows instead, since the GPU drivers there (NVIDIA's, say) have no `VK_EXT_headless_surface`, and only the offscreen driver's own headless-surface check skips; the tests of the GPU API's Vulkan backend and of the GPU renderer run under `VK_LAYER_KHRONOS_validation` when it is installed, and present to an X11 window too when `DISPLAY` is set); on macOS MoltenVK, by upstream's default names: `libMoltenVK.dylib` itself (in `/usr/local/lib`, say), which runs every check, or the Vulkan loader with it (the Cocoa driver's surface check also tries Homebrew's `/opt/homebrew/lib/libvulkan.1.dylib`), through which the Vulkan renderer's checks skip with `VK_ERROR_INCOMPATIBLE_DRIVER`: MoltenVK's devices then need portability enumeration, which upstream's renderer doesn't ask for. Under Metal's API validation, which the GPU API's Metal devices in debug mode turn on for the rest of the process (as upstream's do, setting `MTL_DEBUG_LAYER=1` unless it's set), MoltenVK misdraws the fills after another render state's in a pass in the GPU renderer's render-state test on the CI runners' Apple Paravirtual device (1.3.0 to 1.4.2, reporting no error), so with a MoltenVK device and `MTL_DEBUG_LAYER` set and not `0` those three checks skip (run the test again with `MTL_DEBUG_LAYER=0` for them; with discrete descriptor binding, `MVK_CONFIG_USE_METAL_ARGUMENT_BUFFERS=0`, more of the renderer's checks misdraw under the layer; Khronos' validation layer, with synchronization validation, finds nothing in them on lavapipe, and they pass on Metal under the same validation); on the iOS and tvOS Simulators MoltenVK's framework for the simulator, which `tools/ios_run.py` takes from `SDL3_IOS_MOLTENVK` (see [Apple Simulators](#apple-simulators): there the GPU API's Vulkan checks skip, the simulator's device lacking features the backend asks for, see [iOS Simulator](#ios-simulator)); on the visionOS Simulator it never loads, upstream's `SDL_LoadObject()` loading nothing there (see [visionOS Simulator](#visionos-simulator)); on the Android emulator SwiftShader's Vulkan 1.3 (`libvulkan.so`), which has no `VK_EXT_headless_surface`, so only the checks that need no surface run in spawned programs, and the Vulkan and GPU renderers and the GPU API's swapchains draw on the android video driver's window in the app programs (see [Android emulator](#android-emulator)) |
-| `openxr` | Linux, the Android emulator | the OpenXR loader (`libopenxr_loader.so.1`), Monado's service (`monado-service` in `PATH`), the core validation API layer (`XR_APILAYER_LUNARG_core_validation`) and Mesa's lavapipe (`/usr/share/vulkan/icd.d/lvp_icd.json`): for `gpu_openxr`, the GPU API's OpenXR functions on the Vulkan backend, which starts Monado's service with its null compositor (`XRT_COMPOSITOR_NULL=1`) for its scenarios, as any user, each in a private runtime directory (Ubuntu 24.04: `monado-service libopenxr1-monado libopenxr-loader1 openxr-layer-corevalidation mesa-vulkan-drivers vulkan-validationlayers`). On Android, the Khronos OpenXR loader for Android (`libopenxr_loader.so`, of the Maven package `org.khronos.openxr:openxr_loader_for_android`'s AAR: `prefab/modules/openxr_loader/libs/android.ABI/`) in `android_openxr_loader`'s app package, which the runner takes from `SDL3_ANDROID_LIBRARY_PATH`'s directories (`DIR/ABI/libopenxr_loader.so`): `tools/ci/openxr-android.sh` downloads and unpacks it, as the CI job does |
-| `openxr-runtime` | Linux, Windows, the Android emulator | the repository's test OpenXR runtime (`sdl3-openxr-test-runtime`, a shared library written from the OpenXR specification: OpenXR 1.0, `XR_KHR_vulkan_enable2` and, on Windows, `XR_KHR_D3D12_enable` (WARP's adapter), deterministic, any of its calls made to fail by `SDL3_OPENXR_TEST_RUNTIME_FAIL`), built: `libsdl3_openxr_test_runtime.so` (`sdl3_openxr_test_runtime.dll`) beside the test program (`cargo test -p sdl3` builds it there, sdl3 dev-depending on it), or where `SDL3_OPENXR_TEST_RUNTIME` says; with the OpenXR loader (`libopenxr_loader.so.1`; on Windows Khronos's `openxr_loader.dll` beside the program or in `PATH`), the core validation API layer and Mesa's lavapipe, as for `openxr`: for `gpu_openxr`'s scenarios on it, through the loader (a runtime manifest the test writes, in `XR_RUNTIME_JSON`) and in the loader's place (`SDL_OPENXR_LIBRARY`), the error paths among them (Ubuntu 24.04: `libopenxr-loader1 openxr-layer-corevalidation mesa-vulkan-drivers vulkan-validationlayers`). On Windows the Direct3D 12 backend's scenarios on WARP (`d3d10warp.dll`) and the Vulkan ones on lavapipe (registered as a Vulkan driver), the loader's active runtime a manifest of the test runtime named by `HKLM\SOFTWARE\Khronos\OpenXR\1\ActiveRuntime`, and the core validation layer registered under `HKLM\SOFTWARE\Khronos\OpenXR\1\ApiLayers\Explicit` (the loader ignores `XR_RUNTIME_JSON` and `XR_API_LAYER_PATH` in an elevated process): `tools/ci/openxr-windows.sh` does both, as the CI job does. On Android the runtime alone (with `XR_KHR_loader_init` and `XR_KHR_android_create_instance` there), built for the app's ABI beside the program (`cargo test --target ...-linux-android -p sdl3` builds it), in `android_openxr`'s app package, which loads it in the loader's place |
+| `openxr` | Linux, the Android emulator | the OpenXR loader (`libopenxr_loader.so.1`), Monado's service (`monado-service` in `PATH`), the core validation API layer (`XR_APILAYER_LUNARG_core_validation`) and Mesa's lavapipe (`/usr/share/vulkan/icd.d/lvp_icd.json`): for `gpu_openxr`, the GPU API's OpenXR functions on the Vulkan backend, which starts Monado's service with its null compositor (`XRT_COMPOSITOR_NULL=1`) for its scenarios, as any user, each in a private runtime directory (Ubuntu 24.04: `monado-service libopenxr1-monado libopenxr-loader1 openxr-layer-corevalidation mesa-vulkan-drivers vulkan-validationlayers`). On Android, the Khronos OpenXR loader for Android (`libopenxr_loader.so`, of the Maven package `org.khronos.openxr:openxr_loader_for_android`'s AAR: `prefab/modules/openxr_loader/libs/android.ABI/`) in `android_openxr_loader`'s app package, which the runner takes from `SDL3_ANDROID_LIBRARY_PATH`'s directories (`DIR/ABI/libopenxr_loader.so`): `tools/ci/openxr-android.sh` downloads and unpacks it, as the CI job does (see [OpenXR](#openxr-on-monado-and-the-test-runtime)) |
+| `openxr-runtime` | Linux, Windows, the Android emulator | the repository's test OpenXR runtime (`sdl3-openxr-test-runtime`, a shared library written from the OpenXR specification: OpenXR 1.0, `XR_KHR_vulkan_enable2` and, on Windows, `XR_KHR_D3D12_enable` (WARP's adapter), deterministic, any of its calls made to fail by `SDL3_OPENXR_TEST_RUNTIME_FAIL`), built: `libsdl3_openxr_test_runtime.so` (`sdl3_openxr_test_runtime.dll`) beside the test program (`cargo test -p sdl3` builds it there, sdl3 dev-depending on it), or where `SDL3_OPENXR_TEST_RUNTIME` says; with the OpenXR loader (`libopenxr_loader.so.1`; on Windows Khronos's `openxr_loader.dll` beside the program or in `PATH`), the core validation API layer and Mesa's lavapipe, as for `openxr`: for `gpu_openxr`'s scenarios on it, through the loader (a runtime manifest the test writes, in `XR_RUNTIME_JSON`) and in the loader's place (`SDL_OPENXR_LIBRARY`), the error paths among them (Ubuntu 24.04: `libopenxr-loader1 openxr-layer-corevalidation mesa-vulkan-drivers vulkan-validationlayers`). On Windows the Direct3D 12 backend's scenarios on WARP (`d3d10warp.dll`) and the Vulkan ones on lavapipe (registered as a Vulkan driver), the loader's active runtime a manifest of the test runtime named by `HKLM\SOFTWARE\Khronos\OpenXR\1\ActiveRuntime`, and the core validation layer registered under `HKLM\SOFTWARE\Khronos\OpenXR\1\ApiLayers\Explicit` (the loader ignores `XR_RUNTIME_JSON` and `XR_API_LAYER_PATH` in an elevated process): `tools/ci/openxr-windows.sh` does both, as the CI job does. On Android the runtime alone (with `XR_KHR_loader_init` and `XR_KHR_android_create_instance` there), built for the app's ABI beside the program (`cargo test --target ...-linux-android -p sdl3` builds it), in `android_openxr`'s app package, which loads it in the loader's place (see [OpenXR](#openxr-on-monado-and-the-test-runtime)) |
 | `wayland` | Linux | libwayland-client/-egl/-cursor, libxkbcommon and `sway` (or `weston`) in `PATH`; the input and clipboard tests need sway |
 | `dbus` | Linux | libdbus and `dbus-daemon` (the tests start private buses) |
 | `pulseaudio` | Linux | libpulse, and the `pulseaudio` and `pactl` binaries (the tests start a private server) |
@@ -411,7 +411,7 @@ card for them, as a second client without DRM master:
   discrete GPU): after the trace the program skips the rest, a surface, a
   swapchain and the renderers drawing on it (`vulkan`, by design), which
   `kmsdrm_hardware`'s Vulkan check does on a GPU (see
-  [Hardware checks](#hardware-checks-cargo-test----ignored));
+  [Hardware checks](#hardware-checks-cargo-test------ignored));
 * `kmsdrm_displays`: two displays, on a vkms device of two pipelines the
   runner makes through vkms's configfs (`vkms add`: two connected
   connectors, two CRTCs, each with a primary and a cursor plane) and
@@ -488,7 +488,7 @@ makes its own vkms device through configfs, and removes it). Its one expected sk
 is `kmsdrm_vulkan`'s Vulkan surfaces, by design; any other fails the job.
 
 What vkms can't show is `kmsdrm_hardware`'s (`#[ignore]`d: see
-[Hardware checks](#hardware-checks-cargo-test----ignored)), for a machine
+[Hardware checks](#hardware-checks-cargo-test------ignored)), for a machine
 with a GPU and a real display, each check run alone as root on tty3:
 a GPU's swap paths (the fenced path's GPU fences) and their page-flip
 timing, `DRM_CAP_ASYNC_PAGE_FLIP`, framebuffer modifiers other than
@@ -500,6 +500,181 @@ the CI runner's vkms card (run there once, as root) they all skip: the
 GPU's as `kmsdrm` (the card's DRM driver is vkms), the keymap's as `vt`
 (the console's keymap is US's for its keys), the Vulkan one as `vulkan`
 (lavapipe is no integrated or discrete GPU).
+
+## OpenXR (on Monado and the test runtime)
+
+The GPU API's OpenXR functions (`sdl3::gpu`'s `openxr_*`, the devices
+made with OpenXR, their sessions and swapchains: upstream's
+`src/gpu/xr/` and the OpenXR parts of its Vulkan and Direct3D 12
+backends) are tested by `gpu_openxr` (`harness = false`; on Linux and
+Windows, elsewhere it does nothing), in two parts that each skip without
+their capability:
+
+* on Monado's null compositor (`openxr`, Linux): `no-xr`, a device made
+  without OpenXR, whose entry points fail; `no-runtime`, no OpenXR
+  runtime (`XR_RUNTIME_JSON` names none); `no-service`, Monado's runtime
+  without its service; `main`, on the service: `supports_properties()`
+  with OpenXR, a HANDHELD form factor (no system), an unknown extension
+  (no instance), the device in debug mode with an extension and an API
+  layer of the application's, its instance, system and physical device,
+  the session, the swapchain formats, swapchains of one and two layers
+  and one without `COLOR_ATTACHMENT`, the session's states, frames
+  rendered into the images and read back exactly, the exit and every
+  destruction (the instance last: the application's);
+* on the repository's test runtime, `sdl3-openxr-test-runtime`
+  (`openxr-runtime`, Linux and Windows): `main` again through the
+  loader, the runtime through the loader and in its place
+  (`SDL_OPENXR_LIBRARY`), a loader that can't negotiate with it, and each
+  call SDL makes failing in turn (`SDL3_OPENXR_TEST_RUNTIME_FAIL`), in
+  PrepareDriver and in CreateDevice: 36 scenarios on Linux; on Windows
+  the same on Vulkan (lavapipe) and on Direct3D 12 (WARP: the runtime's
+  adapter, its requirements' lookup, a LUID no adapter has), 59.
+
+Each scenario is a child process of the program's, with a private
+runtime directory (`XDG_RUNTIME_DIR`, mode 0700, in the temporary
+directory), Mesa's lavapipe as the only Vulkan driver
+(`VK_ICD_FILENAMES`) and the offscreen video driver (on Windows the
+windows one: lavapipe has no headless surfaces there). Its trace is what
+the application sees, with SDL's log lines of the GPU category; the
+loader's, the runtimes' and the validation layers' messages stay out of
+it, but the Vulkan validation layer's errors and the OpenXR loader's
+valid usage messages are counted (on Linux the latter are the loader's
+refusals of upstream's API layer query, whose structures upstream
+leaves without their type: see the translation guide's
+[upstream bugs](TRANSLATION_GUIDE.md#upstream-bugs)). The frame period,
+the images' indices and the LUIDs are never traced.
+
+On Linux, as any user (no root, no display):
+
+```sh
+sudo apt-get install -y mesa-vulkan-drivers libvulkan1 vulkan-validationlayers \
+  monado-service libopenxr1-monado libopenxr-loader1 openxr-layer-corevalidation
+cargo test -p sdl3 --test gpu_openxr            # builds the test runtime beside it
+SDL3_TEST_REQUIRE=openxr,openxr-runtime cargo test -p sdl3 --test gpu_openxr
+SDL3_TEST_REQUIRE=openxr,openxr-runtime cargo test -p sdl3 --test gpu_openxr --release
+```
+
+`openxr` needs the OpenXR loader (`libopenxr_loader.so.1`),
+`monado-service` in `PATH`, the core validation API layer
+(`XR_APILAYER_LUNARG_core_validation`) and lavapipe
+(`/usr/share/vulkan/icd.d/lvp_icd.json`); `openxr-runtime` the test
+runtime, the loader, the layer and lavapipe. The program starts Monado's
+service itself for each scenario that needs it, in the scenario's
+runtime directory, with its null compositor (`XRT_COMPOSITOR_NULL=1`) on
+lavapipe and a pipe as its standard input (it exits at once when that is
+`/dev/null`), waits up to 30 s for its socket (`monado_comp_ipc`), and
+stops it by closing the pipe. Those scenarios reach Monado through the
+loader's active runtime, which Monado's package registers
+(`/etc/xdg/openxr/1/active_runtime.json`): with `XR_RUNTIME_JSON` set,
+or another runtime registered for the user
+(`~/.config/openxr/1/active_runtime.json`, which the loader takes
+first), `main` runs on that one and its trace differs. The expected
+traces were made with Ubuntu 24.04's packages, whose versions are their
+first line (the preamble, not compared, printed when a trace differs:
+`libopenxr-loader1` 1.0.20~dfsg1-1build2, `monado-service`
+21.0.0+git2905.e26a272c1~dfsg1-2build2, `mesa-vulkan-drivers`
+25.2.8-0ubuntu0.24.04.4, `openxr-layer-corevalidation`
+1.0.20~dfsg1-1build2, `vulkan-validationlayers` 1.3.275.0-1); another
+release's Monado, loader or Mesa may change the formats and the
+messages.
+
+The test runtime is a `cdylib` that sdl3 dev-depends on, so `cargo test
+-p sdl3` builds it beside the test programs
+(`target/PROFILE/deps/libsdl3_openxr_test_runtime.so`;
+`sdl3_openxr_test_runtime.dll` on Windows); `SDL3_OPENXR_TEST_RUNTIME`
+names another build. The program writes a runtime manifest of it in
+each scenario's directory for the loader (`XR_RUNTIME_JSON`), or names
+it in `SDL_OPENXR_LIBRARY`. Another program can use it the same way:
+
+```sh
+cargo build -p sdl3-openxr-test-runtime
+# in the loader's place, every call it serves logged to the standard error:
+SDL_OPENXR_LIBRARY=$PWD/target/debug/libsdl3_openxr_test_runtime.so \
+  SDL3_OPENXR_TEST_RUNTIME_LOG=1 PROGRAM
+# with xrCreateSession failing (XR_ERROR_RUNTIME_FAILURE):
+SDL_OPENXR_LIBRARY=$PWD/target/debug/libsdl3_openxr_test_runtime.so \
+  SDL3_OPENXR_TEST_RUNTIME_FAIL=xrCreateSession PROGRAM
+```
+
+`SDL3_OPENXR_TEST_RUNTIME_FAIL` is a list of `POINT[@N][=RESULT]`
+separated by commas: a function the runtime serves, the lookup of one
+(`xrGetInstanceProcAddr:NAME`), an extension it then hasn't
+(`XR_KHR_vulkan_enable2`, `XR_KHR_D3D12_enable`), or
+`xrGetD3D12GraphicsRequirementsKHR:luid` (a LUID no adapter has); `@N`
+the `N`th call since the library was loaded (SDL unloads it between
+PrepareDriver and CreateDevice, which starts the counts again, unless
+the program holds a reference of its own, `openxr_load_library()`, as
+`gpu_openxr`'s children do); `RESULT` an `XrResult` (-2 by default, -7
+for a lookup), or `vk:VKRESULT` for `xrCreateVulkanInstanceKHR` and
+`xrCreateVulkanDeviceKHR`. A list it can't parse ends the process. Its
+fixed choices (formats, three images a swapchain, the session's states)
+are in its `runtime.rs`.
+
+On Windows there is no Monado (`openxr` skips), and `openxr-runtime`
+needs the test runtime as the active runtime of Khronos's loader, with
+the core validation layer, both registered (the loader ignores
+`XR_RUNTIME_JSON` and `XR_API_LAYER_PATH` in an elevated process), WARP
+(`d3d10warp.dll`, which Windows has) and lavapipe registered as a Vulkan
+driver (see [Without a GPU driver: Mesa](#without-a-gpu-driver-mesa)).
+`tools/ci/openxr-windows.sh` does it as CI does, from Git Bash, elevated,
+with 7-Zip's `7z` in `PATH` (it takes the loader's version and checksum
+from the environment, and keeps its files in `RUNNER_TEMP`):
+
+```sh
+export RUNNER_TEMP=$(mktemp -d) OPENXR_LOADER_VERSION=1.1.65 \
+  OPENXR_LOADER_SHA256=859d7de35b7a968112db770b09ed8bddeed3cb16fd8ae070643a857676bea6fd
+# openxr_loader.dll of OpenXR-SDK-Source's release zip beside the test
+# programs, its core validation layer under
+# HKLM\SOFTWARE\Khronos\OpenXR\1\ApiLayers\Explicit:
+tools/ci/openxr-windows.sh install
+cargo test -p sdl3 --test gpu_openxr --no-run     # builds the test runtime
+# the debug build's runtime as HKLM\SOFTWARE\Khronos\OpenXR\1\ActiveRuntime:
+tools/ci/openxr-windows.sh runtime debug
+SDL3_TEST_REQUIRE=openxr-runtime cargo test -p sdl3 --test gpu_openxr
+```
+
+(`runtime release` before a `--release` run: the program checks that
+the active runtime is its own build.) `ActiveRuntime` is the machine's
+one active runtime: on a machine with a runtime of its own (SteamVR,
+Windows Mixed Reality, Meta's Link), set it back afterwards.
+
+The expected traces are upstream's C SDL's, from the same program in C
+(on a diag branch only, never committed: upstream at ea7a2da built with
+CMake, with MSVC on Windows), run by this program with `--run-c PATH`
+(the same scenarios, environment and trace) on the CI runners beside the
+translation's: identical traces, in debug and release builds. The C is
+patched with the translation's fixes these paths reach (a device made
+without OpenXR, the Vulkan swapchain textures' subresources, Direct3D
+12's swapchain destruction: see
+[upstream bugs](TRANSLATION_GUIDE.md#upstream-bugs)), and with the
+`VkResult` upstream logs uninitialized when the runtime's Vulkan
+instance or device fails set to `VK_SUCCESS`, so that those log lines
+compare.
+
+CI: the `openxr` job (pinned `ubuntu-24.04`, whose packages the Linux
+traces are made with) installs the packages above (in a job of its own:
+Monado's dependencies are about 36 MB), builds the test runtime, and
+runs `gpu_openxr` in debug and release builds with
+`SDL3_TEST_REQUIRE=openxr,openxr-runtime`; the other Linux jobs don't
+install Monado or the OpenXR loader, so `gpu_openxr` skips there. The
+Windows test job downloads Khronos's loader (OpenXR-SDK-Source's
+`openxr_loader_windows-1.1.65.zip`, checked against its SHA-256 and
+cached with the GPU drivers; Apache-2.0, never committed), registers it
+and the debug build's test runtime with `tools/ci/openxr-windows.sh`
+(the release build's before the release tests), and requires
+`openxr-runtime`; `openxr`'s skip there is by design. On Android the
+same functions are `android_openxr`'s and `android_openxr_loader`'s, in
+the `android` job (see [Android emulator](#android-emulator)).
+
+What neither Monado's null compositor nor the test runtime can show (a
+runtime and an application on different devices, a GPU runtime's own
+formats, its LUID and feature level, a headset) is the hardware checks':
+`gpu_openxr_hardware` on Linux and Windows (see
+[Hardware checks](#hardware-checks-cargo-test------ignored)), run so far
+only on Monado's null compositor, and on a headset
+`android_openxr_loader`'s device check (see
+[A headset's OpenXR runtime](#a-headsets-openxr-runtime)), not yet run on
+one.
 
 ## Windows 11
 
@@ -514,7 +689,10 @@ redistributable; `egl` needs an EGL implementation such as ANGLE's
 test executable or in `PATH`, so leave it out normally; `dxc` needs a
 current DXC's `dxcompiler.dll` and `dxil.dll` next to the test executable
 or in `PATH` (the Windows SDK's, found on its own, only compiles DXIL), so
-leave it out unless you put one there.
+leave it out unless you put one there; and `openxr-runtime` needs
+Khronos's OpenXR loader and the test runtime registered (see
+[OpenXR](#openxr-on-monado-and-the-test-runtime)), so leave it out too
+unless you set them up.
 
 In PowerShell:
 
@@ -2496,6 +2674,11 @@ and sensors. What it can't make is translated but not exercised:
   trip to the background with a camera open;
 * the OpenGL ES 1 renderer's render targets (the emulator's translator
   fails `GL_OES_framebuffer_object`);
+* an OpenXR runtime: the image has no runtime broker, so the Khronos
+  loader finds none (`android_openxr_loader`), and the GPU API's OpenXR
+  functions run on the repository's test runtime in the loader's place
+  (`android_openxr`), on SwiftShader; a headset's runtime is a device
+  check ([below](#a-headsets-openxr-runtime));
 * the screen keyboard through a blocking trip to the background (upstream's
   C trace differs between runs there; the keyboard's restore is checked
   through a rotation).
