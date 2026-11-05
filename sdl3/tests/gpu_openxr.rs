@@ -1,5 +1,6 @@
-// Tests of the GPU API's OpenXR functions on the Vulkan backend, against
-// Monado's null compositor and the repository's test runtime.
+// Tests of the GPU API's OpenXR functions on the Vulkan and Direct3D 12
+// backends, against Monado's null compositor and the repository's test
+// runtime.
 // Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
 // This is an altered (translated) version of the original software; see LICENSE.txt.
 
@@ -81,22 +82,49 @@
 //! `monado-service`, the core validation layer, lavapipe; `openxr-runtime`:
 //! the test runtime, which sdl3's dev-dependency on it builds beside this
 //! program, the loader, the core validation layer, lavapipe), unless
-//! `SDL3_TEST_REQUIRE` asks for them. Elsewhere than Linux it does
-//! nothing.
+//! `SDL3_TEST_REQUIRE` asks for them.
+//!
+//! On Windows, the test runtime's part only (`openxr-runtime`: see
+//! `openxr_support` for what it needs there), on the Direct3D 12 backend on
+//! WARP (the runtime's adapter) and on the Vulkan one on lavapipe, a trace
+//! of its own (the children on the Windows video driver; the loader the
+//! Khronos one, `openxr_loader.dll`, with the runtime as its registered
+//! active runtime):
+//!
+//! * the `d3d12-` scenarios (DXBC and DXIL shaders, so Direct3D 12):
+//!   `d3d12-no-xr`, a device made without OpenXR (upstream's entry points
+//!   crash there: fixed, as Vulkan's); `d3d12-main`, the main scenario
+//!   again, through the loader (WARP's device, in debug mode with the
+//!   Direct3D 12 debug layer, whose messages SDL logs: its warning that the
+//!   runtime's images were made without a clear value, on each clear;
+//!   upstream's DestroyXRSwapchain destroys each texture container as a
+//!   texture, an error or a crash as a padding byte happens to be, on the
+//!   runner "Invalid GPU Texture handle." with every swapchain kept:
+//!   fixed, with the C patched the same way); `d3d12-loader`, `d3d12-hint`,
+//!   `d3d12-negotiate` as on Vulkan; and the failures of each call SDL
+//!   makes (the extension missing, its enumeration in PrepareDriver and in
+//!   CreateDevice, the instance, its functions, the system, the
+//!   requirements and their lookup, a LUID no adapter has (the adapters
+//!   are enumerated past the last), the session, the formats, the
+//!   swapchain, its images, its destruction);
+//! * the `rt-` scenarios, on Vulkan, as on Linux (no Vulkan validation
+//!   layer there).
+//!
+//! Elsewhere than Linux and Windows it does nothing.
 
-#[cfg(not(target_os = "linux"))]
+#[cfg(not(any(target_os = "linux", windows)))]
 fn main() {}
 
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", windows))]
 #[path = "openxr_support/mod.rs"]
 mod openxr_support;
 
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", windows))]
 fn main() -> std::process::ExitCode {
     app::main()
 }
 
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", windows))]
 mod app {
     use std::path::{Path, PathBuf};
     use std::process::ExitCode;
@@ -104,10 +132,11 @@ mod app {
 
     use super::openxr_support::xr::{self, Xr};
     use super::openxr_support::{
-        missing_openxr, missing_openxr_runtime, run_child, skip, test_runtime,
-        write_test_runtime_manifest, Monado, RuntimeDir, Trace, PREFIX, SCENARIO,
-        TEST_RUNTIME_FAIL, XR_VALIDATION_LAYER,
+        missing_openxr, missing_openxr_runtime, run_child, skip, test_runtime, RuntimeDir, Trace,
+        PREFIX, SCENARIO, TEST_RUNTIME_FAIL, XR_VALIDATION_LAYER,
     };
+    #[cfg(target_os = "linux")]
+    use super::openxr_support::{write_test_runtime_manifest, Monado};
     use sdl3::gpu::{
         self, ColorTargetInfo, Device, LoadOp, StoreOp, TextureFormat, TextureRegion,
         TextureTransferInfo, TransferBufferCreateInfo, TransferBufferUsage, XrError,
@@ -216,10 +245,12 @@ main: openxr valid usage messages: 2
 ";
 
     /// A scenario's environment variables.
+    #[cfg(target_os = "linux")]
     type Env = &'static [(&'static str, &'static str)];
 
     /// The scenarios: their names, whether Monado's service runs for them,
     /// and their environment.
+    #[cfg(target_os = "linux")]
     const SCENARIOS: &[(&str, bool, Env)] = &[
         ("no-xr", false, &[]),
         (
@@ -236,6 +267,7 @@ main: openxr valid usage messages: 2
 
     /// Upstream's trace on the test runtime (the C program, patched, by this
     /// harness on the CI runner).
+    #[cfg(target_os = "linux")]
     const EXPECTED_RUNTIME: &str = "\
 versions: libopenxr-loader1 1.0.20~dfsg1-1build2, mesa-vulkan-drivers 25.2.8-0ubuntu0.24.04.4, monado-service 21.0.0+git2905.e26a272c1~dfsg1-2build2, openxr-layer-corevalidation 1.0.20~dfsg1-1build2, vulkan-validationlayers 1.3.275.0-1
 -- rt-main
@@ -760,7 +792,8 @@ rt-destroy-swapchain: openxr valid usage messages: 0
 ";
 
     /// How a scenario reaches the test runtime: through the OpenXR loader
-    /// (`XR_RUNTIME_JSON` names a manifest of it), or in the loader's place
+    /// (`XR_RUNTIME_JSON` names a manifest of it; on Windows, the loader's
+    /// registered active runtime), or in the loader's place
     /// (`SDL_OPENXR_LIBRARY` names it).
     #[derive(Clone, Copy)]
     enum Via {
@@ -895,6 +928,1020 @@ rt-destroy-swapchain: openxr valid usage messages: 0
         "rt-requirements-2",
     ];
 
+    /// Upstream's trace on the test runtime on Windows (the C program,
+    /// patched, by this harness on the CI runner).
+    #[cfg(windows)]
+    const EXPECTED_WINDOWS: &str = "\
+versions: openxr_loader 1.1.65, mesa 26.2.4
+-- d3d12-no-xr
+init: ok (windows)
+log 5: WinPixEventRuntime.dll is not available. It is required for SDL_Push/PopGPUDebugGroup and SDL_InsertGPUDebugLabel to function correctly. See here for instructions on how to obtain it: https://devblogs.microsoft.com/pix/winpixeventruntime/
+device: ok (direct3d12)
+session: error -7: The GPU device was not created with OpenXR enabled
+formats: error: The GPU device was not created with OpenXR enabled
+swapchain: error -7: The GPU device was not created with OpenXR enabled
+device destroyed
+quit
+d3d12-no-xr: exit 0
+d3d12-no-xr: vulkan validation errors: 0
+d3d12-no-xr: openxr valid usage messages: 0
+-- d3d12-main
+init: ok (windows)
+log 4: Found XR_KHR_D3D12_enable extension
+supports xr: true
+log 4: Found XR_KHR_D3D12_enable extension
+log 5: WinPixEventRuntime.dll is not available. It is required for SDL_Push/PopGPUDebugGroup and SDL_InsertGPUDebugLabel to function correctly. See here for instructions on how to obtain it: https://devblogs.microsoft.com/pix/winpixeventruntime/
+log 4: Found XR_KHR_D3D12_enable extension
+log 3: Failed to get OpenXR system
+log 3: Failed to init OpenXR
+handheld: error: Failed to initialize OpenXR
+log 4: Found XR_KHR_D3D12_enable extension
+log 5: WinPixEventRuntime.dll is not available. It is required for SDL_Push/PopGPUDebugGroup and SDL_InsertGPUDebugLabel to function correctly. See here for instructions on how to obtain it: https://devblogs.microsoft.com/pix/winpixeventruntime/
+log 4: Found XR_KHR_D3D12_enable extension
+log 3: Failed to create OpenXR instance
+log 3: Failed to init OpenXR
+unknown extension: failed
+log 4: Found XR_KHR_D3D12_enable extension
+log 5: WinPixEventRuntime.dll is not available. It is required for SDL_Push/PopGPUDebugGroup and SDL_InsertGPUDebugLabel to function correctly. See here for instructions on how to obtain it: https://devblogs.microsoft.com/pix/winpixeventruntime/
+log 4: Found XR_KHR_D3D12_enable extension
+log 4: Validation layers enabled, expect debug level performance!
+device: ok (direct3d12)
+instance: non-null, system: non-null
+device name: Microsoft
+xrGetInstanceProcAddr: ok
+xrCreateDebugUtilsMessengerEXT: 0
+session: ok
+formats: 52 4 53 12 29
+swapchain one layer: ok, 3 images
+swapchain two layers: ok, 3 images
+swapchain no color attachment: ok, 3 images
+reference space: 0
+state 1
+state 2
+begin session: 0
+state 3
+log 5: D3D12 WARNING: ID3D12CommandList::ClearRenderTargetView: The application did not pass any clear value to resource creation. The clear operation is typically slower as a result; but will still clear to the desired value. [EXECUTION WARNING #820]
+log 5: D3D12 WARNING: ID3D12CommandList::ClearRenderTargetView: The application did not pass any clear value to resource creation. The clear operation is typically slower as a result; but will still clear to the desired value. [EXECUTION WARNING #820]
+log 5: D3D12 WARNING: ID3D12CommandList::ClearRenderTargetView: The application did not pass any clear value to resource creation. The clear operation is typically slower as a result; but will still clear to the desired value. [EXECUTION WARNING #820]
+state 4
+state 5
+log 5: D3D12 WARNING: ID3D12CommandList::ClearRenderTargetView: The application did not pass any clear value to resource creation. The clear operation is typically slower as a result; but will still clear to the desired value. [EXECUTION WARNING #820]
+log 5: D3D12 WARNING: ID3D12CommandList::ClearRenderTargetView: The application did not pass any clear value to resource creation. The clear operation is typically slower as a result; but will still clear to the desired value. [EXECUTION WARNING #820]
+log 5: D3D12 WARNING: ID3D12CommandList::ClearRenderTargetView: The application did not pass any clear value to resource creation. The clear operation is typically slower as a result; but will still clear to the desired value. [EXECUTION WARNING #820]
+frame 0: one layer 255,128,0,255 255,128,0,255; two layers 255,0,0,255 255,0,0,255, 0,255,0,191 0,255,0,191
+log 5: D3D12 WARNING: ID3D12CommandList::ClearRenderTargetView: The application did not pass any clear value to resource creation. The clear operation is typically slower as a result; but will still clear to the desired value. [EXECUTION WARNING #820]
+log 5: D3D12 WARNING: ID3D12CommandList::ClearRenderTargetView: The application did not pass any clear value to resource creation. The clear operation is typically slower as a result; but will still clear to the desired value. [EXECUTION WARNING #820]
+log 5: D3D12 WARNING: ID3D12CommandList::ClearRenderTargetView: The application did not pass any clear value to resource creation. The clear operation is typically slower as a result; but will still clear to the desired value. [EXECUTION WARNING #820]
+frame 1: one layer 255,128,64,255 255,128,64,255; two layers 255,0,64,255 255,0,64,255, 0,255,64,191 0,255,64,191
+log 5: D3D12 WARNING: ID3D12CommandList::ClearRenderTargetView: The application did not pass any clear value to resource creation. The clear operation is typically slower as a result; but will still clear to the desired value. [EXECUTION WARNING #820]
+log 5: D3D12 WARNING: ID3D12CommandList::ClearRenderTargetView: The application did not pass any clear value to resource creation. The clear operation is typically slower as a result; but will still clear to the desired value. [EXECUTION WARNING #820]
+log 5: D3D12 WARNING: ID3D12CommandList::ClearRenderTargetView: The application did not pass any clear value to resource creation. The clear operation is typically slower as a result; but will still clear to the desired value. [EXECUTION WARNING #820]
+frame 2: one layer 255,128,128,255 255,128,128,255; two layers 255,0,128,255 255,0,128,255, 0,255,128,191 0,255,128,191
+log 5: D3D12 WARNING: ID3D12CommandList::ClearRenderTargetView: The application did not pass any clear value to resource creation. The clear operation is typically slower as a result; but will still clear to the desired value. [EXECUTION WARNING #820]
+log 5: D3D12 WARNING: ID3D12CommandList::ClearRenderTargetView: The application did not pass any clear value to resource creation. The clear operation is typically slower as a result; but will still clear to the desired value. [EXECUTION WARNING #820]
+log 5: D3D12 WARNING: ID3D12CommandList::ClearRenderTargetView: The application did not pass any clear value to resource creation. The clear operation is typically slower as a result; but will still clear to the desired value. [EXECUTION WARNING #820]
+frame 3: one layer 255,128,191,255 255,128,191,255; two layers 255,0,191,255 255,0,191,255, 0,255,191,191 0,255,191,191
+request exit: 0
+state 4
+state 3
+state 6
+end session: 0
+state 1
+state 8
+session done: true
+destroy swapchain one layer: ok
+destroy swapchain two layers: ok
+destroy swapchain no color attachment: ok
+destroy space: 0
+destroy session: 0
+device destroyed
+destroy instance: 0
+quit
+d3d12-main: exit 0
+d3d12-main: vulkan validation errors: 0
+d3d12-main: openxr valid usage messages: 5
+-- d3d12-loader
+init: ok (windows)
+load library: ok
+log 4: Found XR_KHR_D3D12_enable extension
+log 5: WinPixEventRuntime.dll is not available. It is required for SDL_Push/PopGPUDebugGroup and SDL_InsertGPUDebugLabel to function correctly. See here for instructions on how to obtain it: https://devblogs.microsoft.com/pix/winpixeventruntime/
+log 4: Found XR_KHR_D3D12_enable extension
+device: ok (direct3d12)
+session: ok
+formats: 52 4 53 12 29
+swapchain: ok
+destroy swapchain: ok
+destroy session: 0
+device destroyed
+destroy instance: 0
+library unloaded
+quit
+d3d12-loader: exit 0
+d3d12-loader: vulkan validation errors: 0
+d3d12-loader: openxr valid usage messages: 1
+-- d3d12-negotiate
+init: ok (windows)
+load library: ok
+log 5: D3D12: Failed to find XR_KHR_D3D12_enable extension
+device: error: No supported SDL_GPU backend found!
+library unloaded
+quit
+d3d12-negotiate: exit 0
+d3d12-negotiate: vulkan validation errors: 0
+d3d12-negotiate: openxr valid usage messages: 0
+-- d3d12-hint
+init: ok (windows)
+load library: ok
+log 4: Found XR_KHR_D3D12_enable extension
+log 5: WinPixEventRuntime.dll is not available. It is required for SDL_Push/PopGPUDebugGroup and SDL_InsertGPUDebugLabel to function correctly. See here for instructions on how to obtain it: https://devblogs.microsoft.com/pix/winpixeventruntime/
+log 4: Found XR_KHR_D3D12_enable extension
+device: ok (direct3d12)
+session: ok
+formats: 52 4 53 12 29
+swapchain: ok
+destroy swapchain: ok
+destroy session: 0
+device destroyed
+destroy instance: 0
+library unloaded
+quit
+d3d12-hint: exit 0
+d3d12-hint: vulkan validation errors: 0
+d3d12-hint: openxr valid usage messages: 0
+-- d3d12-no-extension
+init: ok (windows)
+load library: ok
+log 5: D3D12: Failed to find XR_KHR_D3D12_enable extension
+device: error: No supported SDL_GPU backend found!
+library unloaded
+quit
+d3d12-no-extension: exit 0
+d3d12-no-extension: vulkan validation errors: 0
+d3d12-no-extension: openxr valid usage messages: 0
+-- d3d12-extensions
+init: ok (windows)
+load library: ok
+log 5: D3D12: Failed to find XR_KHR_D3D12_enable extension
+device: error: No supported SDL_GPU backend found!
+library unloaded
+quit
+d3d12-extensions: exit 0
+d3d12-extensions: vulkan validation errors: 0
+d3d12-extensions: openxr valid usage messages: 0
+-- d3d12-extensions-2
+init: ok (windows)
+load library: ok
+log 5: D3D12: Failed to find XR_KHR_D3D12_enable extension
+device: error: No supported SDL_GPU backend found!
+library unloaded
+quit
+d3d12-extensions-2: exit 0
+d3d12-extensions-2: vulkan validation errors: 0
+d3d12-extensions-2: openxr valid usage messages: 0
+-- d3d12-extensions-3
+init: ok (windows)
+load library: ok
+log 4: Found XR_KHR_D3D12_enable extension
+log 5: WinPixEventRuntime.dll is not available. It is required for SDL_Push/PopGPUDebugGroup and SDL_InsertGPUDebugLabel to function correctly. See here for instructions on how to obtain it: https://devblogs.microsoft.com/pix/winpixeventruntime/
+log 3: Failed to find a compatible OpenXR D3D12 extension
+device: error: Failed to find XR_KHR_D3D12_enable extension
+library unloaded
+quit
+d3d12-extensions-3: exit 0
+d3d12-extensions-3: vulkan validation errors: 0
+d3d12-extensions-3: openxr valid usage messages: 0
+-- d3d12-instance
+init: ok (windows)
+load library: ok
+log 4: Found XR_KHR_D3D12_enable extension
+log 5: WinPixEventRuntime.dll is not available. It is required for SDL_Push/PopGPUDebugGroup and SDL_InsertGPUDebugLabel to function correctly. See here for instructions on how to obtain it: https://devblogs.microsoft.com/pix/winpixeventruntime/
+log 4: Found XR_KHR_D3D12_enable extension
+log 3: Failed to create OpenXR instance
+log 3: Failed to init OpenXR
+device: error: Failed to initialize OpenXR
+library unloaded
+quit
+d3d12-instance: exit 0
+d3d12-instance: vulkan validation errors: 0
+d3d12-instance: openxr valid usage messages: 0
+-- d3d12-symbols
+init: ok (windows)
+load library: ok
+log 4: Found XR_KHR_D3D12_enable extension
+log 5: WinPixEventRuntime.dll is not available. It is required for SDL_Push/PopGPUDebugGroup and SDL_InsertGPUDebugLabel to function correctly. See here for instructions on how to obtain it: https://devblogs.microsoft.com/pix/winpixeventruntime/
+log 4: Found XR_KHR_D3D12_enable extension
+log 3: Failed to load required OpenXR instance symbols
+log 3: Failed to init OpenXR
+device: error: Failed to initialize OpenXR
+library unloaded
+quit
+d3d12-symbols: exit 0
+d3d12-symbols: vulkan validation errors: 0
+d3d12-symbols: openxr valid usage messages: 0
+-- d3d12-system
+init: ok (windows)
+load library: ok
+log 4: Found XR_KHR_D3D12_enable extension
+log 5: WinPixEventRuntime.dll is not available. It is required for SDL_Push/PopGPUDebugGroup and SDL_InsertGPUDebugLabel to function correctly. See here for instructions on how to obtain it: https://devblogs.microsoft.com/pix/winpixeventruntime/
+log 4: Found XR_KHR_D3D12_enable extension
+log 3: Failed to get OpenXR system
+log 3: Failed to init OpenXR
+device: error: Failed to initialize OpenXR
+library unloaded
+quit
+d3d12-system: exit 0
+d3d12-system: vulkan validation errors: 0
+d3d12-system: openxr valid usage messages: 0
+-- d3d12-requirements
+init: ok (windows)
+load library: ok
+log 4: Found XR_KHR_D3D12_enable extension
+log 5: WinPixEventRuntime.dll is not available. It is required for SDL_Push/PopGPUDebugGroup and SDL_InsertGPUDebugLabel to function correctly. See here for instructions on how to obtain it: https://devblogs.microsoft.com/pix/winpixeventruntime/
+log 4: Found XR_KHR_D3D12_enable extension
+log 3: Failed to get D3D12 graphics requirements, got OpenXR error -2
+device: error: Failed to get XR graphics requirements
+library unloaded
+quit
+d3d12-requirements: exit 0
+d3d12-requirements: vulkan validation errors: 0
+d3d12-requirements: openxr valid usage messages: 0
+-- d3d12-requirements-lookup
+init: ok (windows)
+load library: ok
+log 4: Found XR_KHR_D3D12_enable extension
+log 5: WinPixEventRuntime.dll is not available. It is required for SDL_Push/PopGPUDebugGroup and SDL_InsertGPUDebugLabel to function correctly. See here for instructions on how to obtain it: https://devblogs.microsoft.com/pix/winpixeventruntime/
+log 4: Found XR_KHR_D3D12_enable extension
+log 3: Failed to get xrGetD3D12GraphicsRequirementsKHR
+device: error: Failed to get XR graphics requirements
+library unloaded
+quit
+d3d12-requirements-lookup: exit 0
+d3d12-requirements-lookup: vulkan validation errors: 0
+d3d12-requirements-lookup: openxr valid usage messages: 0
+-- d3d12-luid
+init: ok (windows)
+load library: ok
+log 4: Found XR_KHR_D3D12_enable extension
+log 5: WinPixEventRuntime.dll is not available. It is required for SDL_Push/PopGPUDebugGroup and SDL_InsertGPUDebugLabel to function correctly. See here for instructions on how to obtain it: https://devblogs.microsoft.com/pix/winpixeventruntime/
+log 4: Found XR_KHR_D3D12_enable extension
+log 6: Failed to get an adapter when iterating, i: 2, res: -2005270526
+device: error: Failed to find adapter matching XR LUID
+library unloaded
+quit
+d3d12-luid: exit 0
+d3d12-luid: vulkan validation errors: 0
+d3d12-luid: openxr valid usage messages: 0
+-- d3d12-session
+init: ok (windows)
+load library: ok
+log 4: Found XR_KHR_D3D12_enable extension
+log 5: WinPixEventRuntime.dll is not available. It is required for SDL_Push/PopGPUDebugGroup and SDL_InsertGPUDebugLabel to function correctly. See here for instructions on how to obtain it: https://devblogs.microsoft.com/pix/winpixeventruntime/
+log 4: Found XR_KHR_D3D12_enable extension
+device: ok (direct3d12)
+session: error -2
+device destroyed
+destroy instance: 0
+library unloaded
+quit
+d3d12-session: exit 0
+d3d12-session: vulkan validation errors: 0
+d3d12-session: openxr valid usage messages: 0
+-- d3d12-formats
+init: ok (windows)
+load library: ok
+log 4: Found XR_KHR_D3D12_enable extension
+log 5: WinPixEventRuntime.dll is not available. It is required for SDL_Push/PopGPUDebugGroup and SDL_InsertGPUDebugLabel to function correctly. See here for instructions on how to obtain it: https://devblogs.microsoft.com/pix/winpixeventruntime/
+log 4: Found XR_KHR_D3D12_enable extension
+device: ok (direct3d12)
+session: ok
+formats: failed
+destroy session: 0
+device destroyed
+destroy instance: 0
+library unloaded
+quit
+d3d12-formats: exit 0
+d3d12-formats: vulkan validation errors: 0
+d3d12-formats: openxr valid usage messages: 0
+-- d3d12-formats-2
+init: ok (windows)
+load library: ok
+log 4: Found XR_KHR_D3D12_enable extension
+log 5: WinPixEventRuntime.dll is not available. It is required for SDL_Push/PopGPUDebugGroup and SDL_InsertGPUDebugLabel to function correctly. See here for instructions on how to obtain it: https://devblogs.microsoft.com/pix/winpixeventruntime/
+log 4: Found XR_KHR_D3D12_enable extension
+device: ok (direct3d12)
+session: ok
+formats: failed
+destroy session: 0
+device destroyed
+destroy instance: 0
+library unloaded
+quit
+d3d12-formats-2: exit 0
+d3d12-formats-2: vulkan validation errors: 0
+d3d12-formats-2: openxr valid usage messages: 0
+-- d3d12-swapchain
+init: ok (windows)
+load library: ok
+log 4: Found XR_KHR_D3D12_enable extension
+log 5: WinPixEventRuntime.dll is not available. It is required for SDL_Push/PopGPUDebugGroup and SDL_InsertGPUDebugLabel to function correctly. See here for instructions on how to obtain it: https://devblogs.microsoft.com/pix/winpixeventruntime/
+log 4: Found XR_KHR_D3D12_enable extension
+device: ok (direct3d12)
+session: ok
+formats: 52 4 53 12 29
+swapchain: error -2
+destroy session: 0
+device destroyed
+destroy instance: 0
+library unloaded
+quit
+d3d12-swapchain: exit 0
+d3d12-swapchain: vulkan validation errors: 0
+d3d12-swapchain: openxr valid usage messages: 0
+-- d3d12-images
+init: ok (windows)
+load library: ok
+log 4: Found XR_KHR_D3D12_enable extension
+log 5: WinPixEventRuntime.dll is not available. It is required for SDL_Push/PopGPUDebugGroup and SDL_InsertGPUDebugLabel to function correctly. See here for instructions on how to obtain it: https://devblogs.microsoft.com/pix/winpixeventruntime/
+log 4: Found XR_KHR_D3D12_enable extension
+device: ok (direct3d12)
+session: ok
+formats: 52 4 53 12 29
+swapchain: error -2
+destroy session: 0
+device destroyed
+destroy instance: 0
+library unloaded
+quit
+d3d12-images: exit 0
+d3d12-images: vulkan validation errors: 0
+d3d12-images: openxr valid usage messages: 0
+-- d3d12-images-2
+init: ok (windows)
+load library: ok
+log 4: Found XR_KHR_D3D12_enable extension
+log 5: WinPixEventRuntime.dll is not available. It is required for SDL_Push/PopGPUDebugGroup and SDL_InsertGPUDebugLabel to function correctly. See here for instructions on how to obtain it: https://devblogs.microsoft.com/pix/winpixeventruntime/
+log 4: Found XR_KHR_D3D12_enable extension
+device: ok (direct3d12)
+session: ok
+formats: 52 4 53 12 29
+swapchain: error -2
+destroy session: 0
+device destroyed
+destroy instance: 0
+library unloaded
+quit
+d3d12-images-2: exit 0
+d3d12-images-2: vulkan validation errors: 0
+d3d12-images-2: openxr valid usage messages: 0
+-- d3d12-destroy-images
+init: ok (windows)
+load library: ok
+log 4: Found XR_KHR_D3D12_enable extension
+log 5: WinPixEventRuntime.dll is not available. It is required for SDL_Push/PopGPUDebugGroup and SDL_InsertGPUDebugLabel to function correctly. See here for instructions on how to obtain it: https://devblogs.microsoft.com/pix/winpixeventruntime/
+log 4: Found XR_KHR_D3D12_enable extension
+device: ok (direct3d12)
+session: ok
+formats: 52 4 53 12 29
+swapchain: ok
+destroy swapchain: error -2
+destroy session: 0
+device destroyed
+destroy instance: 0
+library unloaded
+quit
+d3d12-destroy-images: exit 0
+d3d12-destroy-images: vulkan validation errors: 0
+d3d12-destroy-images: openxr valid usage messages: 0
+-- d3d12-destroy-swapchain
+init: ok (windows)
+load library: ok
+log 4: Found XR_KHR_D3D12_enable extension
+log 5: WinPixEventRuntime.dll is not available. It is required for SDL_Push/PopGPUDebugGroup and SDL_InsertGPUDebugLabel to function correctly. See here for instructions on how to obtain it: https://devblogs.microsoft.com/pix/winpixeventruntime/
+log 4: Found XR_KHR_D3D12_enable extension
+device: ok (direct3d12)
+session: ok
+formats: 52 4 53 12 29
+swapchain: ok
+destroy swapchain: error -2
+destroy session: 0
+device destroyed
+destroy instance: 0
+library unloaded
+quit
+d3d12-destroy-swapchain: exit 0
+d3d12-destroy-swapchain: vulkan validation errors: 0
+d3d12-destroy-swapchain: openxr valid usage messages: 0
+-- rt-main
+init: ok (windows)
+log 4: Found XR_KHR_vulkan_enable2 extension
+log 5: Validation layers not found, continuing without validation
+supports xr: true
+log 4: Found XR_KHR_vulkan_enable2 extension
+log 3: Failed to get OpenXR system
+handheld: error: No supported SDL_GPU backend found!
+log 4: Found XR_KHR_vulkan_enable2 extension
+log 4: Found XR_KHR_vulkan_enable2 extension
+log 3: Failed to create OpenXR instance
+log 3: Failed to init OpenXR
+unknown extension: failed
+log 4: Found XR_KHR_vulkan_enable2 extension
+log 5: Validation layers not found, continuing without validation
+log 4: Found XR_KHR_vulkan_enable2 extension
+log 5: Validation layers not found, continuing without validation
+device: ok (vulkan)
+instance: non-null, system: non-null
+device name: llvmpipe
+xrGetInstanceProcAddr: ok
+xrCreateDebugUtilsMessengerEXT: 0
+session: ok
+formats: 52 4 53 12 29 60
+swapchain one layer: ok, 3 images
+swapchain two layers: ok, 3 images
+swapchain no color attachment: ok, 3 images
+reference space: 0
+log 4: Integrated memory detected, allocating TransferBuffers on device-local memory!
+state 1
+state 2
+begin session: 0
+state 3
+state 4
+state 5
+frame 0: one layer 255,128,0,255 255,128,0,255; two layers 255,0,0,255 255,0,0,255, 0,255,0,191 0,255,0,191
+frame 1: one layer 255,128,64,255 255,128,64,255; two layers 255,0,64,255 255,0,64,255, 0,255,64,191 0,255,64,191
+frame 2: one layer 255,128,128,255 255,128,128,255; two layers 255,0,128,255 255,0,128,255, 0,255,128,191 0,255,128,191
+frame 3: one layer 255,128,191,255 255,128,191,255; two layers 255,0,191,255 255,0,191,255, 0,255,191,191 0,255,191,191
+request exit: 0
+state 4
+state 3
+state 6
+end session: 0
+state 1
+state 8
+session done: true
+destroy swapchain one layer: ok
+destroy swapchain two layers: ok
+destroy swapchain no color attachment: ok
+destroy space: 0
+destroy session: 0
+device destroyed
+destroy instance: 0
+quit
+rt-main: exit 0
+rt-main: vulkan validation errors: 0
+rt-main: openxr valid usage messages: 4
+-- rt-loader
+init: ok (windows)
+load library: ok
+log 4: Found XR_KHR_vulkan_enable2 extension
+log 4: Found XR_KHR_vulkan_enable2 extension
+device: ok (vulkan)
+session: ok
+formats: 52 4 53 12 29 60
+swapchain: ok
+destroy swapchain: ok
+destroy session: 0
+device destroyed
+destroy instance: 0
+library unloaded
+quit
+rt-loader: exit 0
+rt-loader: vulkan validation errors: 0
+rt-loader: openxr valid usage messages: 1
+-- rt-negotiate
+init: ok (windows)
+load library: ok
+device: error: No supported SDL_GPU backend found!
+library unloaded
+quit
+rt-negotiate: exit 0
+rt-negotiate: vulkan validation errors: 0
+rt-negotiate: openxr valid usage messages: 0
+-- rt-hint
+init: ok (windows)
+load library: ok
+log 4: Found XR_KHR_vulkan_enable2 extension
+log 4: Found XR_KHR_vulkan_enable2 extension
+device: ok (vulkan)
+session: ok
+formats: 52 4 53 12 29 60
+swapchain: ok
+destroy swapchain: ok
+destroy session: 0
+device destroyed
+destroy instance: 0
+library unloaded
+quit
+rt-hint: exit 0
+rt-hint: vulkan validation errors: 0
+rt-hint: openxr valid usage messages: 0
+-- rt-no-extension
+init: ok (windows)
+load library: ok
+device: error: No supported SDL_GPU backend found!
+library unloaded
+quit
+rt-no-extension: exit 0
+rt-no-extension: vulkan validation errors: 0
+rt-no-extension: openxr valid usage messages: 0
+-- rt-extensions
+init: ok (windows)
+load library: ok
+device: error: No supported SDL_GPU backend found!
+library unloaded
+quit
+rt-extensions: exit 0
+rt-extensions: vulkan validation errors: 0
+rt-extensions: openxr valid usage messages: 0
+-- rt-extensions-2
+init: ok (windows)
+load library: ok
+device: error: No supported SDL_GPU backend found!
+library unloaded
+quit
+rt-extensions-2: exit 0
+rt-extensions-2: vulkan validation errors: 0
+rt-extensions-2: openxr valid usage messages: 0
+-- rt-extensions-3
+init: ok (windows)
+load library: ok
+log 4: Found XR_KHR_vulkan_enable2 extension
+log 3: Failed to find a compatible OpenXR vulkan extension
+device: failed
+library unloaded
+quit
+rt-extensions-3: exit 0
+rt-extensions-3: vulkan validation errors: 0
+rt-extensions-3: openxr valid usage messages: 0
+-- rt-api-layers
+init: ok (windows)
+load library: ok
+log 4: Found XR_KHR_vulkan_enable2 extension
+log 4: Found XR_KHR_vulkan_enable2 extension
+device: ok (vulkan)
+session: ok
+formats: 52 4 53 12 29 60
+swapchain: ok
+destroy swapchain: ok
+destroy session: 0
+device destroyed
+destroy instance: 0
+library unloaded
+quit
+rt-api-layers: exit 0
+rt-api-layers: vulkan validation errors: 0
+rt-api-layers: openxr valid usage messages: 0
+-- rt-instance
+init: ok (windows)
+load library: ok
+log 4: Found XR_KHR_vulkan_enable2 extension
+log 3: Failed to create OpenXR instance
+device: error: No supported SDL_GPU backend found!
+library unloaded
+quit
+rt-instance: exit 0
+rt-instance: vulkan validation errors: 0
+rt-instance: openxr valid usage messages: 0
+-- rt-instance-2
+init: ok (windows)
+load library: ok
+log 4: Found XR_KHR_vulkan_enable2 extension
+log 4: Found XR_KHR_vulkan_enable2 extension
+log 3: Failed to create OpenXR instance
+log 3: Failed to init OpenXR
+device: failed
+library unloaded
+quit
+rt-instance-2: exit 0
+rt-instance-2: vulkan validation errors: 0
+rt-instance-2: openxr valid usage messages: 0
+-- rt-symbols
+init: ok (windows)
+load library: ok
+log 4: Found XR_KHR_vulkan_enable2 extension
+log 3: Failed to load needed OpenXR instance symbols
+device: error: No supported SDL_GPU backend found!
+library unloaded
+quit
+rt-symbols: exit 0
+rt-symbols: vulkan validation errors: 0
+rt-symbols: openxr valid usage messages: 0
+-- rt-symbols-2
+init: ok (windows)
+load library: ok
+log 4: Found XR_KHR_vulkan_enable2 extension
+log 4: Found XR_KHR_vulkan_enable2 extension
+log 3: Failed to load required OpenXR instance symbols
+log 3: Failed to init OpenXR
+device: failed
+library unloaded
+quit
+rt-symbols-2: exit 0
+rt-symbols-2: vulkan validation errors: 0
+rt-symbols-2: openxr valid usage messages: 0
+-- rt-system
+init: ok (windows)
+load library: ok
+log 4: Found XR_KHR_vulkan_enable2 extension
+log 3: Failed to get OpenXR system
+device: error: No supported SDL_GPU backend found!
+library unloaded
+quit
+rt-system: exit 0
+rt-system: vulkan validation errors: 0
+rt-system: openxr valid usage messages: 0
+-- rt-system-2
+init: ok (windows)
+load library: ok
+log 4: Found XR_KHR_vulkan_enable2 extension
+log 4: Found XR_KHR_vulkan_enable2 extension
+log 3: Failed to get OpenXR system
+log 3: Failed to init OpenXR
+device: failed
+library unloaded
+quit
+rt-system-2: exit 0
+rt-system-2: vulkan validation errors: 0
+rt-system-2: openxr valid usage messages: 0
+-- rt-requirements
+init: ok (windows)
+load library: ok
+log 4: Found XR_KHR_vulkan_enable2 extension
+log 3: Failed to get vulkan graphics requirements, got OpenXR error -2
+device: error: No supported SDL_GPU backend found!
+library unloaded
+quit
+rt-requirements: exit 0
+rt-requirements: vulkan validation errors: 0
+rt-requirements: openxr valid usage messages: 0
+-- rt-requirements-2
+init: ok (windows)
+load library: ok
+log 4: Found XR_KHR_vulkan_enable2 extension
+log 4: Found XR_KHR_vulkan_enable2 extension
+log 3: Failed to get vulkan graphics requirements, got OpenXR error -2
+log 3: Failed to get OpenXR graphics requirements
+device: failed
+library unloaded
+quit
+rt-requirements-2: exit 0
+rt-requirements-2: vulkan validation errors: 0
+rt-requirements-2: openxr valid usage messages: 0
+-- rt-requirements-lookup
+init: ok (windows)
+load library: ok
+log 4: Found XR_KHR_vulkan_enable2 extension
+log 3: Failed to get xrGetVulkanGraphicsRequirements2KHR
+device: error: No supported SDL_GPU backend found!
+library unloaded
+quit
+rt-requirements-lookup: exit 0
+rt-requirements-lookup: vulkan validation errors: 0
+rt-requirements-lookup: openxr valid usage messages: 0
+-- rt-vulkan-instance
+init: ok (windows)
+load library: ok
+log 4: Found XR_KHR_vulkan_enable2 extension
+log 3: Failed to create vulkan instance, reason -2, 0
+log 5: Vulkan: Could not create Vulkan instance
+device: error: No supported SDL_GPU backend found!
+library unloaded
+quit
+rt-vulkan-instance: exit 0
+rt-vulkan-instance: vulkan validation errors: 0
+rt-vulkan-instance: openxr valid usage messages: 0
+-- rt-vulkan-instance-2
+init: ok (windows)
+load library: ok
+log 4: Found XR_KHR_vulkan_enable2 extension
+log 4: Found XR_KHR_vulkan_enable2 extension
+log 3: Failed to create vulkan instance, reason -2, 0
+log 5: Vulkan: Could not create Vulkan instance
+device: error: Failed to initialize Vulkan!
+library unloaded
+quit
+rt-vulkan-instance-2: exit 0
+rt-vulkan-instance-2: vulkan validation errors: 0
+rt-vulkan-instance-2: openxr valid usage messages: 0
+-- rt-vulkan-instance-vk
+init: ok (windows)
+load library: ok
+log 4: Found XR_KHR_vulkan_enable2 extension
+log 5: Vulkan: Could not create Vulkan instance
+device: error: No supported SDL_GPU backend found!
+library unloaded
+quit
+rt-vulkan-instance-vk: exit 0
+rt-vulkan-instance-vk: vulkan validation errors: 0
+rt-vulkan-instance-vk: openxr valid usage messages: 0
+-- rt-vulkan-instance-lookup
+init: ok (windows)
+load library: ok
+log 4: Found XR_KHR_vulkan_enable2 extension
+log 3: Failed to get xrCreateVulkanInstanceKHR
+log 5: Vulkan: Could not create Vulkan instance
+device: error: No supported SDL_GPU backend found!
+library unloaded
+quit
+rt-vulkan-instance-lookup: exit 0
+rt-vulkan-instance-lookup: vulkan validation errors: 0
+rt-vulkan-instance-lookup: openxr valid usage messages: 0
+-- rt-graphics-device
+init: ok (windows)
+load library: ok
+log 4: Found XR_KHR_vulkan_enable2 extension
+log 6: xrGetVulkanGraphicsDevice2KHR failed, result: -2
+log 5: Vulkan: Failed to determine a suitable physical device
+device: error: No supported SDL_GPU backend found!
+library unloaded
+quit
+rt-graphics-device: exit 0
+rt-graphics-device: vulkan validation errors: 0
+rt-graphics-device: openxr valid usage messages: 0
+-- rt-graphics-device-2
+init: ok (windows)
+load library: ok
+log 4: Found XR_KHR_vulkan_enable2 extension
+log 4: Found XR_KHR_vulkan_enable2 extension
+log 6: xrGetVulkanGraphicsDevice2KHR failed, result: -2
+log 5: Vulkan: Failed to determine a suitable physical device
+device: error: Failed to initialize Vulkan!
+library unloaded
+quit
+rt-graphics-device-2: exit 0
+rt-graphics-device-2: vulkan validation errors: 0
+rt-graphics-device-2: openxr valid usage messages: 0
+-- rt-graphics-device-lookup
+init: ok (windows)
+load library: ok
+log 4: Found XR_KHR_vulkan_enable2 extension
+log 6: Failed to get xrGetVulkanGraphicsDevice2KHR, result: -7
+log 5: Vulkan: Failed to determine a suitable physical device
+device: error: No supported SDL_GPU backend found!
+library unloaded
+quit
+rt-graphics-device-lookup: exit 0
+rt-graphics-device-lookup: vulkan validation errors: 0
+rt-graphics-device-lookup: openxr valid usage messages: 0
+-- rt-vulkan-device
+init: ok (windows)
+load library: ok
+log 4: Found XR_KHR_vulkan_enable2 extension
+log 4: Found XR_KHR_vulkan_enable2 extension
+log 6: Failed to create OpenXR Vulkan logical device, result -2, 0
+device: error: Failed to create logical device!
+library unloaded
+quit
+rt-vulkan-device: exit 0
+rt-vulkan-device: vulkan validation errors: 0
+rt-vulkan-device: openxr valid usage messages: 0
+-- rt-vulkan-device-vk
+init: ok (windows)
+load library: ok
+log 4: Found XR_KHR_vulkan_enable2 extension
+log 4: Found XR_KHR_vulkan_enable2 extension
+device: error: Failed to create logical device!
+library unloaded
+quit
+rt-vulkan-device-vk: exit 0
+rt-vulkan-device-vk: vulkan validation errors: 0
+rt-vulkan-device-vk: openxr valid usage messages: 0
+-- rt-vulkan-device-lookup
+init: ok (windows)
+load library: ok
+log 4: Found XR_KHR_vulkan_enable2 extension
+log 4: Found XR_KHR_vulkan_enable2 extension
+log 3: Failed to get xrCreateVulkanDeviceKHR
+device: error: Failed to create logical device!
+library unloaded
+quit
+rt-vulkan-device-lookup: exit 0
+rt-vulkan-device-lookup: vulkan validation errors: 0
+rt-vulkan-device-lookup: openxr valid usage messages: 0
+-- rt-session
+init: ok (windows)
+load library: ok
+log 4: Found XR_KHR_vulkan_enable2 extension
+log 4: Found XR_KHR_vulkan_enable2 extension
+device: ok (vulkan)
+session: error -2
+device destroyed
+destroy instance: 0
+library unloaded
+quit
+rt-session: exit 0
+rt-session: vulkan validation errors: 0
+rt-session: openxr valid usage messages: 0
+-- rt-formats
+init: ok (windows)
+load library: ok
+log 4: Found XR_KHR_vulkan_enable2 extension
+log 4: Found XR_KHR_vulkan_enable2 extension
+device: ok (vulkan)
+session: ok
+formats: failed
+destroy session: 0
+device destroyed
+destroy instance: 0
+library unloaded
+quit
+rt-formats: exit 0
+rt-formats: vulkan validation errors: 0
+rt-formats: openxr valid usage messages: 0
+-- rt-formats-2
+init: ok (windows)
+load library: ok
+log 4: Found XR_KHR_vulkan_enable2 extension
+log 4: Found XR_KHR_vulkan_enable2 extension
+device: ok (vulkan)
+session: ok
+formats: failed
+destroy session: 0
+device destroyed
+destroy instance: 0
+library unloaded
+quit
+rt-formats-2: exit 0
+rt-formats-2: vulkan validation errors: 0
+rt-formats-2: openxr valid usage messages: 0
+-- rt-swapchain
+init: ok (windows)
+load library: ok
+log 4: Found XR_KHR_vulkan_enable2 extension
+log 4: Found XR_KHR_vulkan_enable2 extension
+device: ok (vulkan)
+session: ok
+formats: 52 4 53 12 29 60
+swapchain: error -2
+destroy session: 0
+device destroyed
+destroy instance: 0
+library unloaded
+quit
+rt-swapchain: exit 0
+rt-swapchain: vulkan validation errors: 0
+rt-swapchain: openxr valid usage messages: 0
+-- rt-images
+init: ok (windows)
+load library: ok
+log 4: Found XR_KHR_vulkan_enable2 extension
+log 4: Found XR_KHR_vulkan_enable2 extension
+device: ok (vulkan)
+session: ok
+formats: 52 4 53 12 29 60
+swapchain: error -2
+destroy session: 0
+device destroyed
+destroy instance: 0
+library unloaded
+quit
+rt-images: exit 0
+rt-images: vulkan validation errors: 0
+rt-images: openxr valid usage messages: 0
+-- rt-images-2
+init: ok (windows)
+load library: ok
+log 4: Found XR_KHR_vulkan_enable2 extension
+log 4: Found XR_KHR_vulkan_enable2 extension
+device: ok (vulkan)
+session: ok
+formats: 52 4 53 12 29 60
+swapchain: error -2
+destroy session: 0
+device destroyed
+destroy instance: 0
+library unloaded
+quit
+rt-images-2: exit 0
+rt-images-2: vulkan validation errors: 0
+rt-images-2: openxr valid usage messages: 0
+-- rt-destroy-images
+init: ok (windows)
+load library: ok
+log 4: Found XR_KHR_vulkan_enable2 extension
+log 4: Found XR_KHR_vulkan_enable2 extension
+device: ok (vulkan)
+session: ok
+formats: 52 4 53 12 29 60
+swapchain: ok
+destroy swapchain: error -2
+destroy session: 0
+device destroyed
+destroy instance: 0
+library unloaded
+quit
+rt-destroy-images: exit 0
+rt-destroy-images: vulkan validation errors: 0
+rt-destroy-images: openxr valid usage messages: 0
+-- rt-destroy-swapchain
+init: ok (windows)
+load library: ok
+log 4: Found XR_KHR_vulkan_enable2 extension
+log 4: Found XR_KHR_vulkan_enable2 extension
+device: ok (vulkan)
+session: ok
+formats: 52 4 53 12 29 60
+swapchain: ok
+destroy swapchain: error -2
+destroy session: 0
+device destroyed
+destroy instance: 0
+library unloaded
+quit
+rt-destroy-swapchain: exit 0
+rt-destroy-swapchain: vulkan validation errors: 0
+rt-destroy-swapchain: openxr valid usage messages: 0
+";
+
+    /// The test runtime's scenarios on Windows: the Direct3D 12 ones (as
+    /// [`RUNTIME_SCENARIOS`]), then the Vulkan ones.
+    #[cfg(windows)]
+    const D3D12_SCENARIOS: &[(&str, Via, &str)] = &[
+        ("d3d12-no-xr", Via::Hint, ""),
+        ("d3d12-main", Via::Loader, ""),
+        ("d3d12-loader", Via::Loader, ""),
+        (
+            "d3d12-negotiate",
+            Via::Loader,
+            "xrNegotiateLoaderRuntimeInterface",
+        ),
+        ("d3d12-hint", Via::Hint, ""),
+        ("d3d12-no-extension", Via::Hint, "XR_KHR_D3D12_enable"),
+        (
+            "d3d12-extensions",
+            Via::Hint,
+            "xrEnumerateInstanceExtensionProperties",
+        ),
+        (
+            "d3d12-extensions-2",
+            Via::Hint,
+            "xrEnumerateInstanceExtensionProperties@2",
+        ),
+        (
+            "d3d12-extensions-3",
+            Via::Hint,
+            "xrEnumerateInstanceExtensionProperties@3",
+        ),
+        ("d3d12-instance", Via::Hint, "xrCreateInstance"),
+        (
+            "d3d12-symbols",
+            Via::Hint,
+            "xrGetInstanceProcAddr:xrDestroySwapchain",
+        ),
+        ("d3d12-system", Via::Hint, "xrGetSystem"),
+        (
+            "d3d12-requirements",
+            Via::Hint,
+            "xrGetD3D12GraphicsRequirementsKHR",
+        ),
+        (
+            "d3d12-requirements-lookup",
+            Via::Hint,
+            "xrGetInstanceProcAddr:xrGetD3D12GraphicsRequirementsKHR",
+        ),
+        (
+            "d3d12-luid",
+            Via::Hint,
+            "xrGetD3D12GraphicsRequirementsKHR:luid",
+        ),
+        ("d3d12-session", Via::Hint, "xrCreateSession"),
+        ("d3d12-formats", Via::Hint, "xrEnumerateSwapchainFormats"),
+        (
+            "d3d12-formats-2",
+            Via::Hint,
+            "xrEnumerateSwapchainFormats@2",
+        ),
+        ("d3d12-swapchain", Via::Hint, "xrCreateSwapchain"),
+        ("d3d12-images", Via::Hint, "xrEnumerateSwapchainImages"),
+        ("d3d12-images-2", Via::Hint, "xrEnumerateSwapchainImages@2"),
+        (
+            "d3d12-destroy-images",
+            Via::Hint,
+            "xrEnumerateSwapchainImages@3",
+        ),
+        ("d3d12-destroy-swapchain", Via::Hint, "xrDestroySwapchain"),
+    ];
+
+    /// Whether the child's scenario is on Direct3D 12 (a `d3d12-` one: its
+    /// devices take DXBC and DXIL shaders, not SPIR-V).
+    static D3D12: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+    /// The shader formats of the scenario's devices.
+    fn shader_props(props: &Properties) {
+        if D3D12.load(std::sync::atomic::Ordering::Relaxed) {
+            props
+                .set(gpu::PROP_GPU_DEVICE_CREATE_SHADERS_DXBC_BOOLEAN, true)
+                .unwrap();
+            props
+                .set(gpu::PROP_GPU_DEVICE_CREATE_SHADERS_DXIL_BOOLEAN, true)
+                .unwrap();
+        } else {
+            props
+                .set(gpu::PROP_GPU_DEVICE_CREATE_SHADERS_SPIRV_BOOLEAN, true)
+                .unwrap();
+        }
+    }
+
     pub(super) fn main() -> ExitCode {
         if let Ok(scenario) = std::env::var(SCENARIO) {
             return child(&scenario);
@@ -914,6 +1961,13 @@ rt-destroy-swapchain: openxr valid usage messages: 0
 
         // (each part skips without its capability; with --run-c, the
         // reference's traces are printed, not compared)
+        #[cfg(windows)]
+        let monado = {
+            let why = missing_openxr().unwrap_or_default();
+            skip(PROGRAM, "openxr", &why);
+            true
+        };
+        #[cfg(target_os = "linux")]
         let monado = match missing_openxr() {
             Some(why) => {
                 skip(PROGRAM, "openxr", &why);
@@ -986,6 +2040,7 @@ rt-destroy-swapchain: openxr valid usage messages: 0
 
     /// The scenarios on Monado: whether the trace is upstream's (or, with
     /// `--run-c`, printed).
+    #[cfg(target_os = "linux")]
     fn monado_scenarios(program: &Path, run_c: bool) -> bool {
         let Some(mut t) = new_trace() else {
             return false;
@@ -1017,20 +2072,34 @@ rt-destroy-swapchain: openxr valid usage messages: 0
             return false;
         };
         let library = test_runtime().expect("the test runtime");
-        for &(scenario, via, fail) in RUNTIME_SCENARIOS {
+        #[cfg(target_os = "linux")]
+        let (scenarios, expected) = (RUNTIME_SCENARIOS.iter(), EXPECTED_RUNTIME);
+        #[cfg(windows)]
+        let (scenarios, expected) = (
+            D3D12_SCENARIOS.iter().chain(RUNTIME_SCENARIOS),
+            EXPECTED_WINDOWS,
+        );
+        for &(scenario, via, fail) in scenarios {
             t.line(format!("-- {scenario}"));
             let dir = RuntimeDir::new("gpu-openxr");
+            #[cfg(target_os = "linux")]
             let manifest = write_test_runtime_manifest(&dir.0, &library);
+            #[cfg(target_os = "linux")]
             let manifest = manifest.to_string_lossy();
             let library = library.to_string_lossy();
             let mut env = vec![(TEST_RUNTIME_FAIL, fail)];
             match via {
+                // (on Windows, the loader's active runtime is the test
+                // runtime: see missing_openxr_runtime)
+                #[cfg(target_os = "linux")]
                 Via::Loader => env.push(("XR_RUNTIME_JSON", &manifest)),
+                #[cfg(windows)]
+                Via::Loader => {}
                 Via::Hint => env.push(("SDL_OPENXR_LIBRARY", &library)),
             }
             trace_child(&mut t, program, scenario, &dir.0, &env);
         }
-        run_c || t.finish(PROGRAM, EXPECTED_RUNTIME)
+        run_c || t.finish(PROGRAM, expected)
     }
 
     /// A trace line of the child.
@@ -1073,11 +2142,17 @@ rt-destroy-swapchain: openxr valid usage messages: 0
             }
         }
 
+        D3D12.store(
+            scenario.starts_with("d3d12-"),
+            std::sync::atomic::Ordering::Relaxed,
+        );
         match scenario {
-            "no-xr" => no_xr(),
+            "no-xr" | "d3d12-no-xr" => no_xr(),
             "no-runtime" | "no-service" => no_service(),
-            "main" | "rt-main" => main_scenario(),
-            _ if scenario.starts_with("rt-") => runtime_steps(scenario),
+            "main" | "rt-main" | "d3d12-main" => main_scenario(),
+            _ if scenario.starts_with("rt-") || scenario.starts_with("d3d12-") => {
+                runtime_steps(scenario)
+            }
             _ => panic!("unknown scenario {scenario}"),
         }
 
@@ -1086,13 +2161,11 @@ rt-destroy-swapchain: openxr valid usage messages: 0
         ExitCode::SUCCESS
     }
 
-    /// The creation properties of an OpenXR device (SPIR-V, no verbose
-    /// logs).
+    /// The creation properties of an OpenXR device (SPIR-V, or DXBC and
+    /// DXIL in a `d3d12-` scenario; no verbose logs).
     fn xr_props(debug_mode: bool) -> Properties {
         let props = Properties::new();
-        props
-            .set(gpu::PROP_GPU_DEVICE_CREATE_SHADERS_SPIRV_BOOLEAN, true)
-            .unwrap();
+        shader_props(&props);
         props
             .set(gpu::PROP_GPU_DEVICE_CREATE_DEBUGMODE_BOOLEAN, debug_mode)
             .unwrap();
@@ -1108,9 +2181,7 @@ rt-destroy-swapchain: openxr valid usage messages: 0
     /// A device made without OpenXR, whose OpenXR entry points fail.
     fn no_xr() {
         let props = Properties::new();
-        props
-            .set(gpu::PROP_GPU_DEVICE_CREATE_SHADERS_SPIRV_BOOLEAN, true)
-            .unwrap();
+        shader_props(&props);
         props
             .set(gpu::PROP_GPU_DEVICE_CREATE_DEBUGMODE_BOOLEAN, false)
             .unwrap();
