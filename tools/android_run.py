@@ -81,7 +81,23 @@ compressed, with the time Gradle's packager gives them,
 1981-01-01 01:01:02, as Gradle's are), and `permissions=NAME,...`, the
 permissions the manifest asks for (a NAME without a dot is
 `android.permission.NAME`; none is granted: the runner's `permission`
-request grants one). The program is put in an app package
+request grants one), and `libs=NAME,...`, more native libraries the package
+holds beside the program (`lib/ABI/NAME`, uncompressed, as the program's
+libmain.so), which the app loads by name (as `dlopen("NAME")`, an
+OpenXR loader or runtime its program loads at run time): each the first
+of `DIR/ABI/NAME` and `DIR/NAME` (one of the program's ABI) in the
+directories of SDL3_ANDROID_LIBRARY_PATH (separated by colons), then in
+the program's own directory (Cargo's `deps/`, where a `cdylib`
+dev-dependency of its package is built). A library found nowhere is
+left out, with a note; the app gets the names of those its package holds
+in SDL3_ANDROID_RUNNER_LIBS (separated by commas), so that it can tell.
+With SDL3_ANDROID_XR=1, the manifest of any app also has what an OpenXR
+runtime of a headset asks of an app (upstream's test/android/cmake/
+AndroidManifest.xr.xml.cmake's: head tracking as a required feature, the
+Khronos loader's permissions and its queries of the runtime brokers and
+services, the activity's categories of an immersive app, Khronos's and
+Meta's, and Meta's supported devices): for an app run on such a device
+(the emulator has no runtime that needs it). The program is put in an app package
 (APK, as `--apk` writes it), with no Gradle: the SDK's build-tools
 (SDL3_ANDROID_BUILD_TOOLS's version, by default 35.0.0, the one CI uses, or
 the newest installed) link a manifest written here (upstream's
@@ -401,6 +417,11 @@ Environment:
                                (default ~/.android/debug.keystore)
   SDL3_ANDROID_PACKAGE         an app's package name (default
                                org.libsdl.sdl3_rust.NAME)
+  SDL3_ANDROID_LIBRARY_PATH    directories where the libraries of an
+                               app's `libs=` word are looked for first
+                               (separated by colons)
+  SDL3_ANDROID_XR              1: an app's manifest has what an OpenXR
+                               runtime of a headset asks of an app
   ANDROID_HOME, ANDROID_SDK_ROOT
                                the SDK (adb and the emulator from it, else
                                from PATH; the build-tools and platforms from
@@ -1625,15 +1646,47 @@ def word_values(words, key):
     return [w[len(key) + 1:] for w in words if w.startswith(key + "=")]
 
 
-def manifest(package, env, permissions=()):
+# What an OpenXR runtime of a headset asks of an app's manifest
+# (SDL3_ANDROID_XR=1): upstream's test/android/cmake/AndroidManifest.xr.xml.cmake's
+# head tracking, the Khronos loader's permissions and queries, Meta's
+# features and meta-data, and the activity's categories.
+XR_FEATURES = """    <uses-feature android:name="android.hardware.vr.headtracking" android:required="true" android:version="1" />
+    <uses-feature android:name="oculus.software.handtracking" android:required="false" />
+    <uses-permission android:name="org.khronos.openxr.permission.OPENXR" />
+    <uses-permission android:name="org.khronos.openxr.permission.OPENXR_SYSTEM" />
+    <queries>
+        <provider android:authorities="org.khronos.openxr.runtime_broker;org.khronos.openxr.system_runtime_broker" />
+        <intent>
+            <action android:name="org.khronos.openxr.OpenXRRuntimeService" />
+        </intent>
+        <intent>
+            <action android:name="org.khronos.openxr.OpenXRApiLayerService" />
+        </intent>
+    </queries>
+"""
+XR_META_DATA = """        <meta-data android:name="com.oculus.supportedDevices" android:value="quest|quest2|questpro|quest3|quest3s" />
+        <meta-data android:name="com.oculus.vr.focusaware" android:value="true" />
+"""
+XR_CATEGORIES = """                <category android:name="com.oculus.intent.category.VR" />
+                <category android:name="org.khronos.openxr.intent.category.IMMERSIVE_HMD" />
+"""
+
+
+def manifest(package, env, permissions=(), xr=False):
     """The app's AndroidManifest.xml: upstream's android-project's (its
     features and permissions, its application's and activity's
     attributes), with this package's name, the INTERNET permission (for the
-    runner's sockets), the program's own permissions and the variables as
-    `SDL_ENV.NAME` meta-data."""
+    runner's sockets), the program's own permissions, the variables as
+    `SDL_ENV.NAME` meta-data, and with `xr` what an OpenXR runtime of a
+    headset asks for."""
     extra = "".join(
         f'    <uses-permission android:name="{xml_attribute(permission_name(p))}" />\n' for p in permissions
     )
+    if xr:
+        extra += XR_FEATURES
+        meta_xr, categories = XR_META_DATA, XR_CATEGORIES
+    else:
+        meta_xr, categories = "", ""
     meta = "".join(
         f'        <meta-data android:name="SDL_ENV.{xml_attribute(name)}" android:value="{manifest_value(value)}" />\n'
         for name, value in sorted(env.items())
@@ -1657,7 +1710,7 @@ def manifest(package, env, permissions=()):
         android:theme="@style/AppTheme"
         android:enableOnBackInvokedCallback="true"
         android:hardwareAccelerated="true">
-{meta}        <activity android:name="{ACTIVITY}"
+{meta}{meta_xr}        <activity android:name="{ACTIVITY}"
             android:label="@string/app_name"
             android:alwaysRetainTaskState="true"
             android:launchMode="singleTop"
@@ -1667,7 +1720,7 @@ def manifest(package, env, permissions=()):
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
+{categories}            </intent-filter>
             <intent-filter>
                 <action android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED" />
             </intent-filter>
@@ -1698,9 +1751,30 @@ def resources(name):
     }
 
 
-def write_apk(program, elf, out, env, temp):
-    """Write PROGRAM's APK to OUT, with the variables `env` (see above): its
-    package name."""
+def app_libraries(program, elf):
+    """The libraries of the program's `libs=` words, as (name, path) for
+    those found (see above), each of the program's ABI."""
+    abi, _ = elf.abi()
+    dirs = [d for d in os.environ.get("SDL3_ANDROID_LIBRARY_PATH", "").split(":") if d]
+    dirs.append(os.path.dirname(os.path.abspath(program)))
+    found = []
+    for name in (n for value in word_values(elf.words, "libs") for n in value.split(",") if n):
+        if "/" in name or name in ("libmain.so", "") or name in (n for n, _ in found):
+            raise Failure(f"{program}: libs={name}: not a library's file name, or twice")
+        paths = [p for d in dirs for p in (os.path.join(d, abi, name), os.path.join(d, name))]
+        path = next((p for p in paths if os.path.isfile(p) and Elf(p).abi()[0] == abi), None)
+        if path is None:
+            note(f"no {name} for {abi} in SDL3_ANDROID_LIBRARY_PATH's directories or the program's: the package hasn't it")
+            continue
+        if VERBOSE:
+            note(f"lib/{abi}/{name}: {path}")
+        found.append((name, path))
+    return found
+
+
+def write_apk(program, elf, out, env, temp, libs=()):
+    """Write PROGRAM's APK to OUT, with the variables `env` (see above) and
+    the libraries `libs` (from app_libraries()): its package name."""
     abi, _ = elf.abi()
     if elf.dex is None:
         raise Failure(f"{program} has no DEX file of the app's classes (a section .sdl3_android_dex): does it link sdl3?")
@@ -1712,7 +1786,7 @@ def write_apk(program, elf, out, env, temp):
     assets = assets_files(word_values(elf.words, "assets"))
     manifest_path = os.path.join(temp, "AndroidManifest.xml")
     with open(manifest_path, "w", encoding="utf-8") as f:
-        f.write(manifest(package, env, permissions))
+        f.write(manifest(package, env, permissions, os.environ.get("SDL3_ANDROID_XR") == "1"))
     compiled = os.path.join(temp, "compiled")
     os.makedirs(compiled, exist_ok=True)
     for relative, text in resources(program_name(program)).items():
@@ -1739,6 +1813,8 @@ def write_apk(program, elf, out, env, temp):
                 zip_out.writestr(info, f.read())
         # (uncompressed, so that zipalign page-aligns it)
         zip_out.write(program, f"lib/{abi}/libmain.so", compress_type=zipfile.ZIP_STORED)
+        for name, path in libs:
+            zip_out.write(path, f"lib/{abi}/{name}", compress_type=zipfile.ZIP_STORED)
     aligned = os.path.join(temp, "aligned.apk")
     run_tool([os.path.join(tools, "zipalign"), "-P", "16", "-f", "4", unsigned, aligned], timeout=300)
     run_tool([
@@ -1778,7 +1854,8 @@ def cmd_apk(args):
     if elf.abi()[1] is None:
         raise Failure(f"{program} is built for {elf.abi()[0]}, which isn't one of Android's ABIs")
     with tempfile.TemporaryDirectory(prefix="sdl3-android-apk-") as temp:
-        package = write_apk(os.path.abspath(program), elf, os.path.abspath(out), {}, temp)
+        program = os.path.abspath(program)
+        package = write_apk(program, elf, os.path.abspath(out), {}, temp, app_libraries(program, elf))
     print(f"{out}: {package}")
     return 0
 
@@ -2830,8 +2907,11 @@ def launch(serial, program, elf, args):
                 listeners.append(listener)
             ports = [listener.getsockname()[1] for listener in listeners]
             env = app_environment(run, args, ports)
+            libs = app_libraries(program, elf)
+            if libs:
+                env["SDL3_ANDROID_RUNNER_LIBS"] = ",".join(name for name, _ in libs)
             apk = os.path.join(temp, "app.apk")
-            package = write_apk(program, elf, apk, env, temp)
+            package = write_apk(program, elf, apk, env, temp, libs)
             # (one app at a time: each takes the screen)
             with Lock("app"):
                 for port in ports:
