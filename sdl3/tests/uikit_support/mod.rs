@@ -98,6 +98,69 @@ pub fn elapsed() -> f64 {
         .as_secs_f64()
 }
 
+/// How long a program waits for the simulator's keyboard (see
+/// [`startup_events`]).
+pub const KEYBOARD_LIMIT: std::time::Duration = std::time::Duration::from_secs(10);
+
+/// Whether upstream's trace (or the part of it given) has the simulator's
+/// keyboard added (`KEYBOARD_ADDED`), so that a program waits for it (see
+/// [`startup_events`]).
+pub fn keyboard_added(expected: &str) -> bool {
+    expected.contains("KEYBOARD_ADDED")
+}
+
+/// Upstream's line `index` (from 0: the one a trace of that many lines
+/// has next), "" past its end.
+pub fn expected_line(expected: &str, index: usize) -> &str {
+    expected.lines().nth(index).unwrap_or_default()
+}
+
+/// The events the video subsystem's start queued, as `take` collects them
+/// (pumping, then appending what it polls, in order), and, when
+/// upstream's line for them (`expected`) has the simulator's keyboard
+/// added, what it collects (every 10 ms) until that has come too, for at
+/// most [`KEYBOARD_LIMIT`]. The simulator's hardware keyboard is
+/// GameController's coalesced one, which the driver asks for as it starts
+/// (`GCKeyboard.coalescedKeyboard`, which starts GameController's session
+/// when it's the first to ask): it's added then if the session has found
+/// the keyboard by then, else when its `GCKeyboardDidConnectNotification`
+/// comes, a moment later, from the main run loop. A keyboard that comes
+/// later is put where video's start adds it, before the audio subsystem's
+/// devices (audio starts after video), when both start. A line without it
+/// doesn't wait.
+pub fn startup_events(expected: &str, mut take: impl FnMut(&mut Vec<String>)) -> Vec<String> {
+    let mut seen = Vec::new();
+    take(&mut seen);
+    let keyboard = |seen: &[String]| seen.iter().position(|e| e == "KEYBOARD_ADDED");
+    if keyboard_added(expected) && keyboard(&seen).is_none() {
+        let start = std::time::Instant::now();
+        while keyboard(&seen).is_none() && start.elapsed() < KEYBOARD_LIMIT {
+            std::thread::sleep(std::time::Duration::from_millis(10));
+            take(&mut seen);
+        }
+        if let Some(i) = keyboard(&seen) {
+            let audio = seen[..i]
+                .iter()
+                .position(|e| e.starts_with("AUDIO_DEVICE_ADDED"));
+            if let Some(audio) = audio {
+                let event = seen.remove(i);
+                seen.insert(audio, event);
+            }
+        }
+        // (a progress line, not in the trace)
+        println!(
+            "startup events: the keyboard {} after {:.3} s more",
+            if keyboard(&seen).is_some() {
+                "came"
+            } else {
+                "didn't come"
+            },
+            start.elapsed().as_secs_f64()
+        );
+    }
+    seen
+}
+
 /// Compare a trace with upstream's (both printed, with the first line
 /// that differs).
 pub fn check_trace(trace: &[String], expected: &str) {

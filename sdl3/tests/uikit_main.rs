@@ -58,7 +58,9 @@ mod ios {
     use sdl3::video;
 
     use super::uikit_support::objc::{self, Id};
-    use super::uikit_support::{check_trace, checked, elapsed, event_name, exit, request};
+    use super::uikit_support::{
+        check_trace, checked, elapsed, event_name, exit, expected_line, request, startup_events,
+    };
 
     /// Upstream's trace (the C program, on an iPhone 16 simulator with
     /// iOS 18.5).
@@ -206,6 +208,11 @@ quit
         let line = line.into();
         println!("trace: {line}");
         TRACE.lock().unwrap().push(line);
+    }
+
+    /// Upstream's line the trace has next.
+    fn next_expected() -> &'static str {
+        expected_line(EXPECTED, TRACE.lock().unwrap().len())
     }
 
     fn yes_no(b: bool) -> &'static str {
@@ -448,12 +455,8 @@ quit
             m.pixel_density,
             m.refresh_rate
         ));
-        // (the simulator's keyboard is GameController's coalesced keyboard:
-        // added when video starts if GameController has found it by then,
-        // else when its connect notification comes, a moment later)
-        let queued = pump_until(Duration::from_secs(5), "", |seen| {
-            seen.iter().any(|event| event == "KEYBOARD_ADDED")
-        });
+        // (with the simulator's keyboard, which may come a moment later)
+        let queued = startup_events(next_expected(), |seen| seen.extend(take_queued("")));
         t(format!("events: {}", list(queued)));
 
         // The app becomes active around when the main function starts

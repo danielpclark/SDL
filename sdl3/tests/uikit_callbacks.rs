@@ -49,7 +49,8 @@ mod ios {
     use sdl3::init::{self, InitFlags};
 
     use super::uikit_support::{
-        check_trace, checked, elapsed, event_name, exit, objc, print_exit_line,
+        check_trace, checked, elapsed, event_name, exit, keyboard_added, objc, print_exit_line,
+        KEYBOARD_LIMIT,
     };
 
     /// Upstream's trace (the C program, on an iPhone 16 simulator with
@@ -141,6 +142,10 @@ exit: after quit
         warmup: bool,
         active_iterations: u32,
         warmup_start: Instant,
+        /// Whether the warmup waits for the simulator's keyboard (see
+        /// `uikit_support::startup_events()`): upstream's events before its
+        /// end have it, and it hasn't come.
+        keyboard_pending: bool,
     }
 
     fn application_state() -> isize {
@@ -154,8 +159,12 @@ exit: after quit
                 if application_state() == 0 {
                     self.active_iterations += 1;
                 }
-                // (a few more iterations for the rest of the transition)
-                if self.active_iterations >= 10
+                // (a few more iterations for the rest of the transition,
+                // and the simulator's keyboard, which may come a moment
+                // after video starts)
+                let keyboard_pending =
+                    self.keyboard_pending && self.warmup_start.elapsed() < KEYBOARD_LIMIT;
+                if (self.active_iterations >= 10 && !keyboard_pending)
                     || self.warmup_start.elapsed() > Duration::from_secs(30)
                 {
                     self.warmup = false;
@@ -219,7 +228,13 @@ exit: after quit
                 Event::MouseDevice(_) => {}
                 _ if lifecycle && self.warmup => {}
                 Event::Display(d) => t(format!("event {name}({})", d.data1)),
-                _ => t(format!("event {name}")),
+                _ => {
+                    if ty == EventType::KEYBOARD_ADDED {
+                        println!("uikit_callbacks: {:.3} s: {name}", elapsed());
+                        self.keyboard_pending = false;
+                    }
+                    t(format!("event {name}"))
+                }
             }
             AppResult::Continue
         }
@@ -280,10 +295,13 @@ exit: after quit
                     "init video: {}",
                     r.as_ref().map_or_else(|e| e.to_string(), |_| "ok".into())
                 ));
+                // (upstream's events before the warmup's end)
+                let before_warmup = EXPECTED.split("\nwarmup:").next().unwrap_or_default();
                 let app = App {
                     warmup: true,
                     active_iterations: 0,
                     warmup_start: Instant::now(),
+                    keyboard_pending: keyboard_added(before_warmup),
                 };
                 (app, AppResult::Continue)
             });
