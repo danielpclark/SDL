@@ -22,6 +22,7 @@
 //! texture's container is a `Weak` back reference with its index, as
 //! upstream's `container` and `containerIndex`.
 
+use std::mem::ManuallyDrop;
 use std::ptr::NonNull;
 use std::sync::atomic::{AtomicBool, AtomicI32, AtomicPtr, Ordering};
 use std::sync::{Arc, Mutex, Weak};
@@ -148,8 +149,8 @@ pub(super) struct TextureSubresource {
 }
 
 /// Translation of `D3D12Texture`; its destruction
-/// (`D3D12_INTERNAL_DestroyTexture()`) releases the views and the resource
-/// as fields.
+/// (`D3D12_INTERNAL_DestroyTexture()`) releases the views as fields, and
+/// the resource unless it's externally managed.
 #[derive(Debug)]
 pub(super) struct D3D12Texture {
     pub(super) container: Mutex<Option<ContainerRef<TextureContainer>>>,
@@ -157,14 +158,30 @@ pub(super) struct D3D12Texture {
     /// layerCount * num_levels
     pub(super) subresources: Vec<TextureSubresource>,
 
-    pub(super) resource: D3d12Resource,
+    /// The texture's reference to its resource (none for an externally
+    /// managed one, whose resource is only borrowed).
+    pub(super) resource: ManuallyDrop<D3d12Resource>,
     pub(super) srv_handle: Option<StagingDescriptor>,
 
     pub(super) reference_count: AtomicI32,
 
+    /// XR swapchain images are managed by OpenXR runtime
+    pub(super) externally_managed: bool,
+
     /// The container's creation info (`container->header.info`), without
     /// its properties.
     pub(super) info: TextureCreateInfo,
+}
+
+impl Drop for D3D12Texture {
+    /// The resource's part of `D3D12_INTERNAL_DestroyTexture()`.
+    fn drop(&mut self) {
+        // XR swapchain images are owned by the OpenXR runtime
+        if !self.externally_managed {
+            // SAFETY: the texture's own reference, released once, here.
+            unsafe { ManuallyDrop::drop(&mut self.resource) };
+        }
+    }
 }
 
 impl D3D12Texture {
@@ -195,8 +212,6 @@ impl D3D12Buffer {
 
 /// The front end's texture handles. Translation of
 /// `D3D12TextureContainer`.
-///
-/// Not translated: `externallyManaged`, for OpenXR's swapchain images.
 #[derive(Debug)]
 pub(super) struct TextureContainer {
     /// The creation info (`header.info`), with its own copy of the
@@ -205,6 +220,9 @@ pub(super) struct TextureContainer {
     pub(super) state: Mutex<TextureContainerState>,
     /// Swapchain images cannot be cycled
     pub(super) can_be_cycled: bool,
+    /// XR swapchain images are managed by OpenXR runtime
+    #[allow(dead_code)] // (C reads the texture's in its place: see DestroyXRSwapchain)
+    pub(super) externally_managed: bool,
 }
 
 /// The cycled textures of a [`TextureContainer`].
@@ -949,9 +967,10 @@ impl D3D12Renderer {
         Ok(Arc::new(D3D12Texture {
             container: Mutex::new(None),
             subresources,
-            resource: handle,
+            resource: ManuallyDrop::new(handle),
             srv_handle,
             reference_count: AtomicI32::new(0),
+            externally_managed: false,
             info: TextureCreateInfo {
                 props: None,
                 ..createinfo.clone()
@@ -989,6 +1008,7 @@ impl D3D12Renderer {
                 debug_name,
             }),
             can_be_cycled: true,
+            externally_managed: false,
         });
 
         *lock(&texture.container) = Some(ContainerRef {

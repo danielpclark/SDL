@@ -294,9 +294,10 @@ impl D3D12Renderer {
             }],
             // (kept until the swapchain's textures are released; see the
             // module's documentation)
-            resource: swapchain_texture,
+            resource: std::mem::ManuallyDrop::new(swapchain_texture),
             srv_handle: Some(srv_handle),
             reference_count: AtomicI32::new(0),
+            externally_managed: false,
             info: info.clone(),
         });
 
@@ -308,6 +309,7 @@ impl D3D12Renderer {
                 debug_name: None,
             }),
             can_be_cycled: false,
+            externally_managed: false,
         });
 
         *lock(&texture.container) = Some(ContainerRef {
