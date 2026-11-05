@@ -1994,7 +1994,9 @@ fn xr_version_parts(version: XrVersion) -> (u32, u32, u32) {
 ///
 /// With OpenXR, a throwaway OpenXR instance (named "SDL", with the
 /// runtime's Vulkan extension only) checks the runtime's system, its Vulkan
-/// requirements, and the instance and physical device it gives.
+/// requirements, and the instance and physical device it gives; on Android
+/// it says yes without any of that (nor Vulkan's own checks), and
+/// CreateDevice finds out.
 ///
 /// Note (upstream): the errors it sets ("Failed to find a suitable OpenXR
 /// GPU extension.", "Failed to get the minimum supported Vulkan API
@@ -2693,6 +2695,10 @@ pub(super) fn create_device(
 
     if xr {
         if let Err(e) = openxrdyn::load_library() {
+            // Note (upstream): on Android PrepareDriver returns before it
+            // loads the library (see prepare_driver), so a loader that
+            // can't be loaded or initialized gets here, and the debug
+            // build's assertion fails (the error is the load's); kept.
             crate::sdl_assert!(!"This should have failed in PrepareDevice first!");
             crate::video::vulkan::vulkan_unload_library();
             return Err(e);

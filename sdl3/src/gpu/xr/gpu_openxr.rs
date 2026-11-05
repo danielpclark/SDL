@@ -263,6 +263,11 @@ pub(crate) fn gpu_init_openxr(
     xrInstanceCreateInfo.enabled_extension_names = extensionNames.as_ptr();
 
     // Get JNI environment and JavaVM for Android instance creation
+    //
+    // Note (upstream): the activity is a local reference of this thread's
+    // environment that upstream never deletes (nor does this), one more
+    // for each instance; a VM or activity that can't be had is NULL in the
+    // structure, which the runtime refuses.
     #[cfg(target_os = "android")]
     let instanceCreateInfoAndroid = {
         let vm = crate::core::android::env::get_env()
