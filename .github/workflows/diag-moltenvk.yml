@@ -22,22 +22,22 @@ env:
 
 jobs:
   loop:
-    name: loop (${{ matrix.filter }}, MTL_DEBUG_LAYER=${{ matrix.debuglayer }})
+    name: loop (all, ${{ matrix.toolchain }})
     strategy:
       fail-fast: false
       matrix:
-        filter: ["gpu::vulkan"]
-        debuglayer: ["1", "0"]
+        filter: ["all"]
+        toolchain: ["1.99", "1.87"]
     runs-on: macos-latest
-    timeout-minutes: 120
+    timeout-minutes: 150
     steps:
       - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@master
         with:
-          toolchain: ${{ env.RUST_TOOLCHAIN }}
+          toolchain: ${{ matrix.toolchain }}
       - uses: Swatinem/rust-cache@v2
         with:
-          key: "pinned"
+          key: ${{ matrix.toolchain }}
       - name: Install the GPU drivers (macOS)
         run: |
           C="$RUNNER_TEMP/gpu-cache"
@@ -58,8 +58,7 @@ jobs:
           rm -f ~/Library/Logs/DiagnosticReports/*.ips || true
       - name: Loop
         env:
-          RUNS: 80
-          MTL_DEBUG_LAYER: ${{ matrix.debuglayer }}
+          RUNS: 50
           # (as cargo test sets it: where dlopen finds /usr/local/lib's libMoltenVK.dylib by name)
           DYLD_FALLBACK_LIBRARY_PATH: /Users/runner/lib:/usr/local/lib:/usr/lib
           FILTER: ${{ matrix.filter != 'all' && matrix.filter || '' }}
