@@ -1,6 +1,6 @@
 [package]
 name = "sdl3-openxr-test-runtime"
-description = "Internal to the sdl3 crates' tests: a test-only OpenXR runtime (OpenXR 1.0 and XR_KHR_vulkan_enable2, deterministic, with failure injection), written from the OpenXR specification in pure Rust. No C code."
+description = "Internal to the sdl3 crates' tests: a test-only OpenXR runtime (OpenXR 1.0, XR_KHR_vulkan_enable2 and, on Windows, XR_KHR_D3D12_enable, deterministic, with failure injection), written from the OpenXR specification in pure Rust. No C code."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

@@ -159,28 +159,59 @@ fn negotiation_checks_the_loader_structures() {
 
 #[test]
 fn extensions_two_call_idiom() {
+    // (XR_KHR_D3D12_enable on Windows only)
+    let expected: &[(&str, u32)] = if cfg!(windows) {
+        &[
+            (
+                XR_KHR_VULKAN_ENABLE2_EXTENSION_NAME,
+                XR_KHR_VULKAN_ENABLE2_SPEC_VERSION,
+            ),
+            (
+                XR_KHR_D3D12_ENABLE_EXTENSION_NAME,
+                XR_KHR_D3D12_ENABLE_SPEC_VERSION,
+            ),
+        ]
+    } else {
+        &[(
+            XR_KHR_VULKAN_ENABLE2_EXTENSION_NAME,
+            XR_KHR_VULKAN_ENABLE2_SPEC_VERSION,
+        )]
+    };
+    let n = expected.len() as u32;
     let mut count = 0;
-    // SAFETY: the count query, then an array of one.
+    // SAFETY: the count query, then arrays of that many.
     unsafe {
         assert_eq!(
             xrEnumerateInstanceExtensionProperties(null(), 0, &mut count, null_mut()),
             XR_SUCCESS
         );
-        assert_eq!(count, 1);
-        let mut p: XrExtensionProperties = std::mem::zeroed();
+        assert_eq!(count, n);
+        let mut p: Vec<XrExtensionProperties> = (0..n).map(|_| std::mem::zeroed()).collect();
         assert_eq!(
-            xrEnumerateInstanceExtensionProperties(null(), 1, &mut count, &mut p),
+            xrEnumerateInstanceExtensionProperties(null(), n, &mut count, p.as_mut_ptr()),
             XR_ERROR_VALIDATION_FAILURE,
             "untyped"
         );
-        p.ty = XR_TYPE_EXTENSION_PROPERTIES;
+        for p in &mut p {
+            p.ty = XR_TYPE_EXTENSION_PROPERTIES;
+        }
         assert_eq!(
-            xrEnumerateInstanceExtensionProperties(null(), 1, &mut count, &mut p),
+            xrEnumerateInstanceExtensionProperties(null(), n - 1, &mut count, p.as_mut_ptr()),
+            if n > 1 {
+                XR_ERROR_SIZE_INSUFFICIENT
+            } else {
+                XR_SUCCESS
+            }
+        );
+        assert_eq!(
+            xrEnumerateInstanceExtensionProperties(null(), n, &mut count, p.as_mut_ptr()),
             XR_SUCCESS
         );
-        let name = CStr::from_ptr(p.extension_name.as_ptr());
-        assert_eq!(name.to_str().unwrap(), XR_KHR_VULKAN_ENABLE2_EXTENSION_NAME);
-        assert_eq!(p.extension_version, XR_KHR_VULKAN_ENABLE2_SPEC_VERSION);
+        for (p, &(name, version)) in p.iter().zip(expected) {
+            let found = CStr::from_ptr(p.extension_name.as_ptr());
+            assert_eq!(found.to_str().unwrap(), name);
+            assert_eq!(p.extension_version, version);
+        }
         let layer = c"XR_APILAYER_LUNARG_core_validation";
         assert_eq!(
             xrEnumerateInstanceExtensionProperties(layer.as_ptr(), 0, &mut count, null_mut()),
@@ -296,5 +327,57 @@ fn system_requirements_and_session_order() {
         assert_eq!(session, 0);
         assert_eq!(poll_event(instance, &mut event), XR_EVENT_UNAVAILABLE);
         assert_eq!(destroy_instance(instance), XR_SUCCESS);
+    }
+}
+
+/// `XR_KHR_D3D12_enable`'s function with the extension only, its
+/// requirements (the adapter DXGI gives, feature level 11_0), and the
+/// failure point that gives a LUID no adapter has.
+#[cfg(windows)]
+#[test]
+fn d3d12_requirements() {
+    const D3D12: &[&str] = &[XR_KHR_D3D12_ENABLE_EXTENSION_NAME];
+    let plain = instance(VULKAN, API_1_0).unwrap();
+    let with = instance(D3D12, API_1_0).unwrap();
+    assert_eq!(
+        gipa(plain, "xrGetD3D12GraphicsRequirementsKHR"),
+        (XR_ERROR_FUNCTION_UNSUPPORTED, false)
+    );
+    assert_eq!(
+        gipa(with, "xrGetD3D12GraphicsRequirementsKHR"),
+        (XR_SUCCESS, true)
+    );
+    assert_eq!(
+        gipa(with, "xrCreateVulkanInstanceKHR"),
+        (XR_ERROR_FUNCTION_UNSUPPORTED, false)
+    );
+    let mut requirements = XrGraphicsRequirementsD3D12KHR {
+        ty: XR_TYPE_GRAPHICS_REQUIREMENTS_D3D12_KHR,
+        next: null_mut(),
+        adapter_luid: Luid::default(),
+        min_feature_level: 0,
+    };
+    let mut system_id = 0;
+    let get = XrSystemGetInfo {
+        ty: XR_TYPE_SYSTEM_GET_INFO,
+        next: null(),
+        form_factor: XR_FORM_FACTOR_HEAD_MOUNTED_DISPLAY,
+    };
+    // SAFETY: the instances, infos and out-pointers.
+    unsafe {
+        assert_eq!(
+            get_d3d12_graphics_requirements(with, SYSTEM_ID, &mut requirements),
+            XR_ERROR_SYSTEM_INVALID
+        );
+        assert_eq!(get_system(with, &get, &mut system_id), XR_SUCCESS);
+        assert_eq!(
+            get_d3d12_graphics_requirements(with, SYSTEM_ID, &mut requirements),
+            XR_SUCCESS
+        );
+        assert_eq!(requirements.min_feature_level, 0xb000);
+        assert_ne!(requirements.adapter_luid, Luid::default());
+        assert_ne!(requirements.adapter_luid, NO_ADAPTER_LUID);
+        assert_eq!(destroy_instance(with), XR_SUCCESS);
+        assert_eq!(destroy_instance(plain), XR_SUCCESS);
     }
 }

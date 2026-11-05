@@ -3,20 +3,27 @@
 // Part of the repository's own test code (not a translation); see LICENSE.txt.
 
 //! What each function does is the OpenXR 1.0 specification's (and
-//! `XR_KHR_vulkan_enable2`'s), for the arguments the specification allows,
-//! with the runtime's fixed choices:
+//! `XR_KHR_vulkan_enable2`'s and `XR_KHR_D3D12_enable`'s), for the
+//! arguments the specification allows, with the runtime's fixed choices:
 //!
 //! * one system, for the head-mounted form factor (the handheld one is
 //!   `XR_ERROR_FORM_FACTOR_UNSUPPORTED`), with the primary stereo view
 //!   configuration and the opaque blend mode;
 //! * Vulkan 1.0 to 1.3 (`xrGetVulkanGraphicsRequirements2KHR`), the first
 //!   physical device of the application's instance;
-//! * the swapchain formats [`FORMATS`], in that order; [`IMAGE_COUNT`]
-//!   images a swapchain (one for a static one), with exactly the usage
-//!   asked for, made on the application's device in its undefined layout:
-//!   the runtime records no Vulkan commands (it never reads the images, so
-//!   it never transitions them either: the application's own first
-//!   transition, from the undefined layout, is the one they get);
+//! * on Windows, Direct3D 12 with feature level 11_0 on WARP's adapter
+//!   (`xrGetD3D12GraphicsRequirementsKHR`'s LUID: see `d3d12.rs`), whose
+//!   device the session's binding must be made on;
+//! * the swapchain formats [`FORMATS`] (Vulkan) or `d3d12::FORMATS`
+//!   (Direct3D 12), in that order; [`IMAGE_COUNT`] images a swapchain (one
+//!   for a static one), with exactly the usage asked for, made on the
+//!   application's device: Vulkan images in their undefined layout (the
+//!   runtime records no commands: it never reads the images, so it never
+//!   transitions them either: the application's own first transition,
+//!   from the undefined layout, is the one they get), Direct3D 12
+//!   committed resources in the state the specification gives the images
+//!   of their usage (the render target state for a color attachment, the
+//!   depth write state for a depth one), else the common state;
 //! * the session's states: IDLE then READY when it's made, SYNCHRONIZED
 //!   when it begins, VISIBLE and FOCUSED after its first frame; an exit
 //!   request goes VISIBLE, SYNCHRONIZED, STOPPING, then IDLE and EXITING
@@ -31,6 +38,8 @@ use std::ffi::{c_char, c_void, CStr};
 use std::ptr::null_mut;
 use std::sync::{Mutex, MutexGuard};
 
+#[cfg(windows)]
+use crate::d3d12;
 use crate::fail::{self, Outcome};
 use crate::sys::*;
 use crate::vulkan::{self, DeviceFns};
@@ -65,18 +74,73 @@ struct VulkanInstance {
 
 struct Instance {
     vulkan_enable2: bool,
+    d3d12_enable: bool,
     /// Whether `xrGetSystem` gave the system.
     system: bool,
     /// Whether `xrGetVulkanGraphicsRequirements2KHR` was called.
     requirements: bool,
+    /// The LUID `xrGetD3D12GraphicsRequirementsKHR` gave, once called.
+    #[cfg_attr(not(windows), allow(dead_code))]
+    d3d12_luid: Option<Luid>,
     vulkan: Vec<VulkanInstance>,
     events: VecDeque<(XrSession, i32, XrTime)>,
     session: Option<XrSession>,
 }
 
+/// A session's graphics API, and the application's device of its binding.
+#[derive(Clone, Copy)]
+#[allow(clippy::large_enum_variant)] // (one a session, copied out of the lock)
+enum Graphics {
+    Vulkan(DeviceFns),
+    #[cfg(windows)]
+    D3D12(d3d12::Device),
+}
+
+/// A swapchain image: a Vulkan image with its memory, or a Direct3D 12
+/// resource (its address).
+#[derive(Clone, Copy)]
+enum Image {
+    Vulkan(VkImage, VkDeviceMemory),
+    #[cfg(windows)]
+    D3D12(usize),
+}
+
+impl Graphics {
+    /// The swapchain formats of the API.
+    fn formats(&self) -> &'static [i64] {
+        match self {
+            Graphics::Vulkan(_) => &FORMATS,
+            #[cfg(windows)]
+            Graphics::D3D12(_) => &d3d12::FORMATS,
+        }
+    }
+
+    /// Destroy an image this device made.
+    ///
+    /// # Safety
+    ///
+    /// The device is alive, the image one of its, unused.
+    unsafe fn destroy_image(&self, image: Image) {
+        match (self, image) {
+            // SAFETY: the caller's.
+            (Graphics::Vulkan(device), Image::Vulkan(image, memory)) => unsafe {
+                device.destroy_image((image, memory))
+            },
+            // SAFETY: the caller's; the resource's reference is the
+            // runtime's.
+            #[cfg(windows)]
+            (Graphics::D3D12(_), Image::D3D12(resource)) => unsafe {
+                d3d12::release(resource as *mut c_void)
+            },
+            #[cfg(windows)]
+            _ => unreachable!("an image of another graphics API"),
+        }
+    }
+}
+
 struct Session {
     instance: XrInstance,
-    device: DeviceFns,
+    graphics: Graphics,
     state: i32,
     running: bool,
     exit_requested: bool,
@@ -89,7 +153,7 @@ struct Session {
 
 struct Swapchain {
     session: XrSession,
-    images: Vec<(VkImage, VkDeviceMemory)>,
+    images: Vec<Image>,
     array_size: u32,
     is_static: bool,
     /// The acquired images, oldest first, and whether each was waited for.
@@ -139,9 +203,12 @@ impl Runtime {
             .ok_or(XR_ERROR_HANDLE_INVALID)
     }
 
-    /// Whether an instance is alive and was created with `XR_KHR_vulkan_enable2`.
-    pub fn vulkan_enabled(&self, instance: XrInstance) -> Option<bool> {
-        self.instances.get(&instance).map(|i| i.vulkan_enable2)
+    /// Whether an instance is alive, and whether it was created with
+    /// `XR_KHR_vulkan_enable2` and with `XR_KHR_D3D12_enable`.
+    pub fn enabled(&self, instance: XrInstance) -> Option<(bool, bool)> {
+        self.instances
+            .get(&instance)
+            .map(|i| (i.vulkan_enable2, i.d3d12_enable))
     }
 
     fn system(
@@ -182,7 +249,7 @@ impl Runtime {
             for image in sc.images {
                 // SAFETY: the session's device (alive while the session is,
                 // as the specification requires), its images.
-                unsafe { session.device.destroy_image(image) };
+                unsafe { session.graphics.destroy_image(image) };
             }
         }
     }
@@ -224,14 +291,21 @@ fn set_c_text(dst: &mut [c_char], src: &str) {
     dst[n] = 0;
 }
 
-/// The extensions the runtime has (`XR_KHR_vulkan_enable2`, unless the
-/// failure list removes it): names and versions.
+/// The extensions the runtime has (`XR_KHR_vulkan_enable2`, and on
+/// Windows `XR_KHR_D3D12_enable`, unless the failure list removes them):
+/// names and versions.
 fn extensions() -> Vec<(&'static str, u32)> {
     let mut list = Vec::new();
     if !fail::extension_removed(XR_KHR_VULKAN_ENABLE2_EXTENSION_NAME) {
         list.push((
             XR_KHR_VULKAN_ENABLE2_EXTENSION_NAME,
             XR_KHR_VULKAN_ENABLE2_SPEC_VERSION,
+        ));
+    }
+    if cfg!(windows) && !fail::extension_removed(XR_KHR_D3D12_ENABLE_EXTENSION_NAME) {
+        list.push((
+            XR_KHR_D3D12_ENABLE_EXTENSION_NAME,
+            XR_KHR_D3D12_ENABLE_SPEC_VERSION,
         ));
     }
     list
@@ -380,6 +454,7 @@ pub unsafe extern "system" fn create_instance(
     }
     let available = extensions();
     let mut vulkan_enable2 = false;
+    let mut d3d12_enable = false;
     for k in 0..info.enabled_extension_count as usize {
         valid!(!info.enabled_extension_names.is_null());
         // SAFETY: the application's array of names.
@@ -391,14 +466,17 @@ pub unsafe extern "system" fn create_instance(
             return XR_ERROR_EXTENSION_NOT_PRESENT;
         }
         vulkan_enable2 |= name == XR_KHR_VULKAN_ENABLE2_EXTENSION_NAME.as_bytes();
+        d3d12_enable |= name == XR_KHR_D3D12_ENABLE_EXTENSION_NAME.as_bytes();
     }
     let handle = rt.handle();
     rt.instances.insert(
         handle,
         Instance {
             vulkan_enable2,
+            d3d12_enable,
             system: false,
             requirements: false,
+            d3d12_luid: None,
             vulkan: Vec::new(),
             events: VecDeque::new(),
             session: None,
@@ -643,6 +721,44 @@ pub unsafe extern "system" fn create_vulkan_device(
     XR_SUCCESS
 }
 
+// XR_KHR_D3D12_enable
+
+/// A LUID no adapter has (`xrGetD3D12GraphicsRequirementsKHR:luid`).
+#[cfg(windows)]
+pub const NO_ADAPTER_LUID: Luid = Luid {
+    low_part: 0xffff_fff0,
+    high_part: 0x7fff_fff0,
+};
+
+#[cfg(windows)]
+pub unsafe extern "system" fn get_d3d12_graphics_requirements(
+    instance: XrInstance,
+    system_id: XrSystemId,
+    requirements: *mut XrGraphicsRequirementsD3D12KHR,
+) -> XrResult {
+    inject!("xrGetD3D12GraphicsRequirementsKHR");
+    let mut rt = runtime();
+    let i = tri!(rt.system(instance, system_id));
+    // SAFETY: the application's structure.
+    valid!(unsafe { required_type(requirements.cast(), XR_TYPE_GRAPHICS_REQUIREMENTS_D3D12_KHR) });
+    let Some(luid) = d3d12::adapter_luid() else {
+        return XR_ERROR_RUNTIME_FAILURE;
+    };
+    // (the requirements' call made to give a LUID no adapter has)
+    let luid = if fail::call("xrGetD3D12GraphicsRequirementsKHR:luid").is_some() {
+        NO_ADAPTER_LUID
+    } else {
+        luid
+    };
+    i.d3d12_luid = Some(luid);
+    // SAFETY: checked above.
+    unsafe {
+        (*requirements).adapter_luid = luid;
+        (*requirements).min_feature_level = D3D_FEATURE_LEVEL_11_0;
+    }
+    XR_SUCCESS
+}
+
 // Sessions
 
 pub unsafe extern "system" fn create_session(
@@ -660,52 +776,87 @@ pub unsafe extern "system" fn create_session(
     let info = unsafe { &*create_info };
     valid!(info.create_flags == 0);
     let i = tri!(rt.system(instance, info.system_id));
-    if !i.requirements {
+    if !i.requirements && i.d3d12_luid.is_none() {
         return XR_ERROR_GRAPHICS_REQUIREMENTS_CALL_MISSING;
     }
-    // The graphics binding, in the chain
+    // The graphics binding, in the chain (of an enabled extension)
     let mut next = info.next;
-    let binding = loop {
+    let header = loop {
         if next.is_null() {
             return XR_ERROR_GRAPHICS_DEVICE_INVALID;
         }
         // SAFETY: the application's chain of structures.
         let header = unsafe { &*next };
-        if header.ty == XR_TYPE_GRAPHICS_BINDING_VULKAN2_KHR {
-            // SAFETY: a structure of that type.
-            break unsafe { &*next.cast::<XrGraphicsBindingVulkan2KHR>() };
+        if (header.ty == XR_TYPE_GRAPHICS_BINDING_VULKAN2_KHR && i.vulkan_enable2)
+            || (header.ty == XR_TYPE_GRAPHICS_BINDING_D3D12_KHR && i.d3d12_enable)
+        {
+            break next;
         }
         next = header.next;
     };
-    // (made by xrCreateVulkanInstanceKHR, xrGetVulkanGraphicsDevice2KHR's,
-    // made by xrCreateVulkanDeviceKHR)
-    let Some(v) = i.vulkan.iter().find(|v| {
-        v.instance == binding.instance as usize
-            && v.physical_device == binding.physical_device as usize
-            && v.devices.contains(&(binding.device as usize))
-    }) else {
-        return XR_ERROR_GRAPHICS_DEVICE_INVALID;
-    };
-    if i.session.is_some() {
-        return XR_ERROR_LIMIT_REACHED;
-    }
-    // SAFETY: the device made from that instance and physical device.
-    let Some(device) = (unsafe {
-        DeviceFns::load(
-            v.gipa,
-            binding.instance,
-            binding.physical_device,
-            binding.device,
-        )
-    }) else {
-        return XR_ERROR_RUNTIME_FAILURE;
+    // SAFETY: a structure of the binding's type.
+    let graphics = match unsafe { (*header).ty } {
+        XR_TYPE_GRAPHICS_BINDING_VULKAN2_KHR => {
+            if !i.requirements {
+                return XR_ERROR_GRAPHICS_REQUIREMENTS_CALL_MISSING;
+            }
+            // SAFETY: a structure of that type.
+            let binding = unsafe { &*header.cast::<XrGraphicsBindingVulkan2KHR>() };
+            // (made by xrCreateVulkanInstanceKHR, xrGetVulkanGraphicsDevice2KHR's,
+            // made by xrCreateVulkanDeviceKHR)
+            let Some(v) = i.vulkan.iter().find(|v| {
+                v.instance == binding.instance as usize
+                    && v.physical_device == binding.physical_device as usize
+                    && v.devices.contains(&(binding.device as usize))
+            }) else {
+                return XR_ERROR_GRAPHICS_DEVICE_INVALID;
+            };
+            if i.session.is_some() {
+                return XR_ERROR_LIMIT_REACHED;
+            }
+            // SAFETY: the device made from that instance and physical device.
+            let Some(device) = (unsafe {
+                DeviceFns::load(
+                    v.gipa,
+                    binding.instance,
+                    binding.physical_device,
+                    binding.device,
+                )
+            }) else {
+                return XR_ERROR_RUNTIME_FAILURE;
+            };
+            Graphics::Vulkan(device)
+        }
+        #[cfg(windows)]
+        _ => {
+            let Some(luid) = i.d3d12_luid else {
+                return XR_ERROR_GRAPHICS_REQUIREMENTS_CALL_MISSING;
+            };
+            // SAFETY: a structure of that type.
+            let binding = unsafe { &*header.cast::<XrGraphicsBindingD3D12KHR>() };
+            // (the application's device and queue, on the requirements'
+            // adapter)
+            // SAFETY: the application's device, alive while the session is.
+            let Some(device) = (unsafe { d3d12::Device::new(binding.device) }) else {
+                return XR_ERROR_GRAPHICS_DEVICE_INVALID;
+            };
+            if binding.queue.is_null() || device.adapter_luid() != luid {
+                return XR_ERROR_GRAPHICS_DEVICE_INVALID;
+            }
+            if i.session.is_some() {
+                return XR_ERROR_LIMIT_REACHED;
+            }
+            Graphics::D3D12(device)
+        }
+        #[cfg(not(windows))]
+        _ => return XR_ERROR_GRAPHICS_DEVICE_INVALID,
     };
     let handle = rt.handle();
     rt.sessions.insert(
         handle,
         Session {
             instance,
-            device,
+            graphics,
             state: 0,
             running: false,
             exit_requested: false,
@@ -811,11 +962,11 @@ pub unsafe extern "system" fn enumerate_swapchain_formats(
 ) -> XrResult {
     inject!("xrEnumerateSwapchainFormats");
     let mut rt = runtime();
-    tri!(rt.session(session));
+    let list = tri!(rt.session(session)).graphics.formats();
     // SAFETY: the application's count and array of `capacity`.
     unsafe {
-        two_call(capacity, count, FORMATS.len(), |i| {
-            *formats.add(i) = FORMATS[i];
+        two_call(capacity, count, list.len(), |i| {
+            *formats.add(i) = list[i];
             Ok(())
         })
     }
@@ -828,7 +979,7 @@ pub unsafe extern "system" fn create_swapchain(
 ) -> XrResult {
     inject!("xrCreateSwapchain");
     let mut rt = runtime();
-    let device = tri!(rt.session(session)).device;
+    let graphics = tri!(rt.session(session)).graphics;
     // SAFETY: the application's structure.
     valid!(unsafe { required_type(create_info.cast(), XR_TYPE_SWAPCHAIN_CREATE_INFO) });
     valid!(!swapchain.is_null());
@@ -842,7 +993,7 @@ pub unsafe extern "system" fn create_swapchain(
             & !(XR_SWAPCHAIN_CREATE_PROTECTED_CONTENT_BIT | XR_SWAPCHAIN_CREATE_STATIC_IMAGE_BIT)
             == 0
     );
-    if !FORMATS.contains(&info.format) {
+    if !graphics.formats().contains(&info.format) {
         return XR_ERROR_SWAPCHAIN_FORMAT_UNSUPPORTED;
     }
     // (no multisampling, no cube maps)
@@ -852,6 +1003,74 @@ pub unsafe extern "system" fn create_swapchain(
     let size_ok = |n: u32| (1..=MAX_SWAPCHAIN_SIZE).contains(&n);
     valid!(size_ok(info.width) && size_ok(info.height) && size_ok(info.array_size));
     valid!(info.mip_count >= 1 && info.mip_count <= 32);
+    let is_static = info.create_flags & XR_SWAPCHAIN_CREATE_STATIC_IMAGE_BIT != 0;
+    let count = if is_static { 1 } else { IMAGE_COUNT };
+    // SAFETY: the session's device; a create info of valid values.
+    let Some(images) = (unsafe { create_images(&graphics, info, count) }) else {
+        return XR_ERROR_RUNTIME_FAILURE;
+    };
+    let handle = rt.handle();
+    rt.swapchains.insert(
+        handle,
+        Swapchain {
+            session,
+            images,
+            array_size: info.array_size,
+            is_static,
+            acquired: VecDeque::new(),
+            next: 0,
+            acquisitions: 0,
+            released: false,
+        },
+    );
+    // SAFETY: checked above.
+    unsafe { *swapchain = handle };
+    XR_SUCCESS
+}
+
+/// A swapchain's images, made on the session's device, or `None` (with
+/// nothing left).
+///
+/// # Safety
+///
+/// The device is alive; the create info's values are valid for it.
+unsafe fn create_images(
+    graphics: &Graphics,
+    info: &XrSwapchainCreateInfo,
+    count: u32,
+) -> Option<Vec<Image>> {
+    let mut images = Vec::new();
+    for _ in 0..count {
+        // SAFETY: the caller's.
+        let image = unsafe {
+            match graphics {
+                Graphics::Vulkan(device) => vulkan_image(device, info),
+                #[cfg(windows)]
+                Graphics::D3D12(device) => device
+                    .create_image(info)
+                    .map(|resource| Image::D3D12(resource as usize)),
+            }
+        };
+        match image {
+            Some(image) => images.push(image),
+            None => {
+                for image in images {
+                    // SAFETY: the images just made.
+                    unsafe { graphics.destroy_image(image) };
+                }
+                return None;
+            }
+        }
+    }
+    Some(images)
+}
+
+/// A Vulkan swapchain image.
+///
+/// # Safety
+///
+/// As [`create_images`].
+unsafe fn vulkan_image(device: &DeviceFns, info: &XrSwapchainCreateInfo) -> Option<Image> {
     let (usage, flags) = vulkan::image_usage(info.usage_flags);
     let image_info = VkImageCreateInfo {
         s_type: VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
@@ -874,39 +1093,8 @@ pub unsafe extern "system" fn create_swapchain(
         p_queue_family_indices: std::ptr::null(),
         initial_layout: VK_IMAGE_LAYOUT_UNDEFINED,
     };
-    let is_static = info.create_flags & XR_SWAPCHAIN_CREATE_STATIC_IMAGE_BIT != 0;
-    let count = if is_static { 1 } else { IMAGE_COUNT };
-    let mut images = Vec::new();
-    for _ in 0..count {
-        // SAFETY: the session's device; a create info of valid values.
-        match unsafe { device.create_image(&image_info) } {
-            Some(image) => images.push(image),
-            None => {
-                for image in images {
-                    // SAFETY: the images just made.
-                    unsafe { device.destroy_image(image) };
-                }
-                return XR_ERROR_RUNTIME_FAILURE;
-            }
-        }
-    }
-    let handle = rt.handle();
-    rt.swapchains.insert(
-        handle,
-        Swapchain {
-            session,
-            images,
-            array_size: info.array_size,
-            is_static,
-            acquired: VecDeque::new(),
-            next: 0,
-            acquisitions: 0,
-            released: false,
-        },
-    );
-    // SAFETY: checked above.
-    unsafe { *swapchain = handle };
-    XR_SUCCESS
+    // SAFETY: the caller's.
+    unsafe { device.create_image(&image_info) }.map(|(image, memory)| Image::Vulkan(image, memory))
 }
 
 pub unsafe extern "system" fn destroy_swapchain(swapchain: XrSwapchain) -> XrResult {
@@ -930,17 +1118,27 @@ pub unsafe extern "system" fn enumerate_swapchain_images(
     let Some(sc) = rt.swapchains.get(&swapchain) else {
         return XR_ERROR_HANDLE_INVALID;
     };
-    let images = images.cast::<XrSwapchainImageVulkan2KHR>();
     // SAFETY: the application's count and array of `capacity` (of the
     // session's graphics API's structure).
     unsafe {
-        two_call(capacity, count, sc.images.len(), |i| {
-            let image = &mut *images.add(i);
-            if image.ty != XR_TYPE_SWAPCHAIN_IMAGE_VULKAN2_KHR {
-                return Err(XR_ERROR_VALIDATION_FAILURE);
+        two_call(capacity, count, sc.images.len(), |i| match sc.images[i] {
+            Image::Vulkan(vk_image, _) => {
+                let image = &mut *images.cast::<XrSwapchainImageVulkan2KHR>().add(i);
+                if image.ty != XR_TYPE_SWAPCHAIN_IMAGE_VULKAN2_KHR {
+                    return Err(XR_ERROR_VALIDATION_FAILURE);
+                }
+                image.image = vk_image;
+                Ok(())
             }
-            image.image = sc.images[i].0;
-            Ok(())
+            #[cfg(windows)]
+            Image::D3D12(resource) => {
+                let image = &mut *images.cast::<XrSwapchainImageD3D12KHR>().add(i);
+                if image.ty != XR_TYPE_SWAPCHAIN_IMAGE_D3D12_KHR {
+                    return Err(XR_ERROR_VALIDATION_FAILURE);
+                }
+                image.texture = resource as *mut c_void;
+                Ok(())
+            }
         })
     }
 }
