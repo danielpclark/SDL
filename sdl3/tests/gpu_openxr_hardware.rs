@@ -27,8 +27,10 @@
 //! runtime that never makes it visible (a headset not worn) is reported,
 //! with the states it went through. Without the OpenXR loader, a runtime
 //! or its system, a check skips (`openxr`); without the backend, as its
-//! capability (`vulkan`, `d3d12`). Elsewhere than Linux and Windows there
-//! is nothing.
+//! capability (`vulkan`, `d3d12`). The session's part is
+//! `openxr_support/session.rs`, which `android_openxr_loader`'s device
+//! check on a headset runs too (an app, whose main has no test harness).
+//! Elsewhere than Linux and Windows there is nothing here.
 
 #![cfg(any(target_os = "linux", windows))]
 

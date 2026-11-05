@@ -41,6 +41,12 @@
 //!   of both eyes; the exit, the swapchains destroyed, the session, the
 //!   device, the instance (the application's, after the device).
 //!
+//! Then, outside the trace, the runtime's own checks of what SDL gave it:
+//! its `xrInitializeLoaderKHR` called a third time (the failure list's
+//! failure: SDL called it twice), then with a Java VM that isn't the
+//! process's, a string as the context (both refused), and SDL's VM and
+//! activity.
+//!
 //! The SDL log lines of the GPU category are in the trace. The expected
 //! trace is upstream's C SDL's, from the same program in C (built with
 //! upstream's android-project, Gradle and CMake, the test runtime in its
@@ -99,6 +105,58 @@ mod app {
     /// APIs, x86-64, a debug build).
     const EXPECTED: &str = "\
 init: ok (android)
+xrGetInstanceProcAddr: error: The OpenXR loader has not been loaded
+load library: error: Failed to load OpenXR loader library. On Windows, ensure openxr_loader.dll is in your application directory or PATH. On Linux, install the OpenXR loader package (libopenxr-loader) or set LD_LIBRARY_PATH. You can also use the SDL_HINT_OPENXR_LIBRARY hint to specify the loader path.
+supports xr: yes
+assertion: !\"This should have failed in PrepareDevice first!\"
+no loader: error: Failed to load OpenXR loader library. On Windows, ensure openxr_loader.dll is in your application directory or PATH. On Linux, install the OpenXR loader package (libopenxr-loader) or set LD_LIBRARY_PATH. You can also use the SDL_HINT_OPENXR_LIBRARY hint to specify the loader path.
+the program's reference: ok
+assertion: !\"This should have failed in PrepareDevice first!\"
+lookup fails: error: Failed to get xrInitializeLoaderKHR (result: -7)
+assertion: !\"This should have failed in PrepareDevice first!\"
+initialization fails: error: xrInitializeLoaderKHR failed with result -2
+load library: ok
+xrGetInstanceProcAddr: ok
+library unloaded
+xrGetInstanceProcAddr after the unload: ok
+load library with another hint: ok
+library unloaded
+log 4: Found XR_KHR_vulkan_enable2 extension
+log 4: Android OpenXR loader verified (was initialized by SDL_OpenXR_LoadLibrary)
+device: ok (vulkan)
+instance: non-null, system: non-null
+device name: SwiftShader
+session: ok
+formats: 52 4 53 12 29 60
+swapchain one layer: ok, 3 images
+swapchain two layers: ok, 3 images
+reference space: 0
+log 4: Integrated memory detected, allocating TransferBuffers on device-local memory!
+state 1
+state 2
+begin session: 0
+state 3
+state 4
+state 5
+frame 0: one layer 255,128,0,255 255,128,0,255; two layers 255,0,0,255 255,0,0,255, 0,255,0,191 0,255,0,191
+frame 1: one layer 255,128,64,255 255,128,64,255; two layers 255,0,64,255 255,0,64,255, 0,255,64,191 0,255,64,191
+frame 2: one layer 255,128,128,255 255,128,128,255; two layers 255,0,128,255 255,0,128,255, 0,255,128,191 0,255,128,191
+frame 3: one layer 255,128,191,255 255,128,191,255; two layers 255,0,191,255 255,0,191,255, 0,255,191,191 0,255,191,191
+request exit: 0
+state 4
+state 3
+state 6
+end session: 0
+state 1
+state 8
+session done: true
+destroy swapchain one layer: ok
+destroy swapchain two layers: ok
+destroy space: 0
+destroy session: 0
+device destroyed
+destroy instance: 0
+quit
 ";
 
     /// The test runtime's library, in the package.
@@ -215,6 +273,7 @@ init: ok (android)
         no_loader();
         let held = the_runtime_loaded();
         main_scenario();
+        runtime_checks();
         drop(held);
 
         init::quit();
@@ -286,6 +345,63 @@ init: ok (android)
         gpu::openxr_unload_library();
         t("library unloaded");
         held.ok()
+    }
+
+    /// The runtime's own checks of what SDL gave it, not traced (the C
+    /// program doesn't make them): its `xrInitializeLoaderKHR` called
+    /// again, the third call (the failure list's, so SDL called it twice
+    /// and never after Android kept the library), then with a Java VM that
+    /// isn't the process's, an object that isn't an `android.content.Context`,
+    /// and SDL's VM and activity.
+    fn runtime_checks() {
+        use std::ffi::c_void;
+
+        use super::android_support::jni;
+
+        /// `XrLoaderInitInfoAndroidKHR`.
+        #[repr(C)]
+        struct LoaderInitInfoAndroid {
+            ty: i32,
+            next: *const c_void,
+            vm: *mut c_void,
+            context: *mut c_void,
+        }
+        type Initialize = unsafe extern "system" fn(*const LoaderInitInfoAndroid) -> i32;
+
+        let gipa = gpu::openxr_get_xr_get_instance_proc_addr().expect("xrGetInstanceProcAddr");
+        // SAFETY: the runtime's xrGetInstanceProcAddr.
+        let gipa: xr::PfnGetInstanceProcAddr = unsafe { std::mem::transmute(gipa) };
+        let (r, f) = xr::proc_addr(gipa, 0, "xrInitializeLoaderKHR");
+        let f = f.unwrap_or_else(|| panic!("the runtime's xrInitializeLoaderKHR: {r}"));
+        // SAFETY: the function of that name.
+        let initialize: Initialize = unsafe { std::mem::transmute(f) };
+        let env = sdl3::android::jni_env()
+            .expect("the JNI environment")
+            .as_ptr();
+        let vm = jni::java_vm(env).0;
+        let activity = sdl3::android::activity().expect("the activity").as_ptr();
+        let string = jni::new_string(env, "not a context");
+        let mut not_a_vm = 0u8;
+        let not_a_vm: *mut c_void = (&mut not_a_vm as *mut u8).cast();
+        for (what, vm, context, expected) in [
+            ("the third call", vm, activity, -2),
+            ("another VM", not_a_vm, activity, -1),
+            ("a string as the context", vm, string, -1),
+            ("SDL's VM and activity", vm, activity, 0),
+        ] {
+            let info = LoaderInitInfoAndroid {
+                ty: 1000089000, // XR_TYPE_LOADER_INIT_INFO_ANDROID_KHR
+                next: std::ptr::null(),
+                vm,
+                context,
+            };
+            // SAFETY: the runtime's function, with the structure.
+            let r = unsafe { initialize(&info) };
+            println!("rust: the runtime's xrInitializeLoaderKHR, {what}: {r}");
+            assert_eq!(r, expected, "the runtime's xrInitializeLoaderKHR, {what}");
+        }
+        jni::delete_local_ref(env, string);
+        jni::delete_local_ref(env, activity);
     }
 
     /// The swapchains the main scenario makes: name, size, layers.

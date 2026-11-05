@@ -251,11 +251,11 @@ pub(crate) mod test_support {
         ),
         (
             "openxr",
-            "the OpenXR loader (libopenxr_loader.so.1), Monado's service (monado-service, its null compositor), the core validation API layer and lavapipe",
+            "the OpenXR loader (libopenxr_loader.so.1), Monado's service (monado-service, its null compositor), the core validation API layer and lavapipe (on Android: the Khronos loader for Android, libopenxr_loader.so of its AAR, in the app's package)",
         ),
         (
             "openxr-runtime",
-            "the repository's test OpenXR runtime (sdl3-openxr-test-runtime, built), with the OpenXR loader, the core validation API layer and lavapipe (on Windows: the loader's registered active runtime, and WARP)",
+            "the repository's test OpenXR runtime (sdl3-openxr-test-runtime, built), with the OpenXR loader, the core validation API layer and lavapipe (on Windows: the loader's registered active runtime, and WARP; on Android: the runtime alone, in the app's package)",
         ),
         (
             "wayland",

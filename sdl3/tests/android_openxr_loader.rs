@@ -87,6 +87,17 @@ mod app {
     /// APIs, x86-64).
     const EXPECTED: &str = "\
 init: ok (android)
+xrGetInstanceProcAddr: error: The OpenXR loader has not been loaded
+supports xr: yes
+log 3: Failed to find a compatible OpenXR vulkan extension
+device: failed
+load library: ok
+xrGetInstanceProcAddr: ok
+xrEnumerateApiLayerProperties: 0, 0 layers
+xrEnumerateInstanceExtensionProperties: -51
+library unloaded
+xrGetInstanceProcAddr after the unload: ok
+quit
 ";
 
     /// The loader's library, in the package.
