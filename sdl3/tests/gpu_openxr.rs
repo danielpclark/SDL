@@ -1,5 +1,5 @@
 // Tests of the GPU API's OpenXR functions on the Vulkan backend, against
-// Monado's null compositor.
+// Monado's null compositor and the repository's test runtime.
 // Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
 // This is an altered (translated) version of the original software; see LICENSE.txt.
 
@@ -45,13 +45,42 @@
 //! never traced, nor the images' indices (how many frames come before the
 //! FOCUSED state isn't fixed).
 //!
-//! The expected trace is upstream's C SDL's, from the same program in C
+//! Then the same on the repository's test runtime (sdl3-openxr-test-runtime,
+//! deterministic, with its failure injection), a second trace:
+//!
+//! * `rt-main`, through the OpenXR loader (a manifest of the runtime in
+//!   `XR_RUNTIME_JSON`): `main` again (the runtime's formats, 3 images a
+//!   swapchain, the same states); its images have exactly the usage asked
+//!   for, so the swapchain without `COLOR_ATTACHMENT` gets a Vulkan
+//!   validation error an image (3), upstream's transition of every image to
+//!   the color attachment layout (kept, as upstream's C does it; Monado
+//!   adds that usage itself);
+//! * `rt-loader`, through the loader, and `rt-hint`, the runtime loaded in
+//!   the loader's place (`SDL_OPENXR_LIBRARY`): a device, its session, the
+//!   formats, a swapchain and its destruction, the session's, the
+//!   device's and the instance's (the program holds a reference to the
+//!   library of its own, so that the runtime stays loaded and counts its
+//!   calls from the start);
+//! * `rt-negotiate`: the loader can't negotiate with the runtime;
+//! * the other `rt-` scenarios, the same steps with one of the runtime's
+//!   calls failing (`SDL3_OPENXR_TEST_RUNTIME_FAIL`), each call SDL makes,
+//!   in PrepareDriver (the first call) and in CreateDevice (the second),
+//!   the lookups of the extension's functions too: where upstream sets no
+//!   error (the instance, its functions, its system and the requirements in
+//!   CreateDevice; the swapchain formats), the trace says `failed`.
+//!
+//! The expected traces are upstream's C SDL's, from the same program in C
 //! (upstream built with CMake at ea7a2da, patched for the two fixes above,
-//! run by this harness with `--run-c PATH`, on the CI runner). Its first
-//! line, the packages' versions, is the preamble: not compared. Without the
-//! capabilities (`openxr`: the loader, `monado-service`, the core
-//! validation layer, lavapipe) it skips, unless `SDL3_TEST_REQUIRE` asks
-//! for them. Elsewhere than Linux it does nothing.
+//! and with its `VkResult` of the runtime's Vulkan instance and device
+//! initialized, which it logs uninitialized when the runtime's call fails,
+//! run by this harness with `--run-c PATH`, on the CI runner). Their first
+//! lines, the packages' versions, are the preambles: not compared. Without
+//! its capabilities each part skips (`openxr`: the loader,
+//! `monado-service`, the core validation layer, lavapipe; `openxr-runtime`:
+//! the test runtime, which sdl3's dev-dependency on it builds beside this
+//! program, the loader, the core validation layer, lavapipe), unless
+//! `SDL3_TEST_REQUIRE` asks for them. Elsewhere than Linux it does
+//! nothing.
 
 #[cfg(not(target_os = "linux"))]
 fn main() {}
@@ -67,14 +96,15 @@ fn main() -> std::process::ExitCode {
 
 #[cfg(target_os = "linux")]
 mod app {
-    use std::path::PathBuf;
+    use std::path::{Path, PathBuf};
     use std::process::ExitCode;
     use std::time::Duration;
 
     use super::openxr_support::xr::{self, Xr};
     use super::openxr_support::{
-        missing_openxr, run_child, skip, Monado, RuntimeDir, Trace, PREFIX, SCENARIO,
-        XR_VALIDATION_LAYER,
+        missing_openxr, missing_openxr_runtime, run_child, skip, test_runtime,
+        write_test_runtime_manifest, Monado, RuntimeDir, Trace, PREFIX, SCENARIO,
+        TEST_RUNTIME_FAIL, XR_VALIDATION_LAYER,
     };
     use sdl3::gpu::{
         self, ColorTargetInfo, Device, LoadOp, StoreOp, TextureFormat, TextureRegion,
@@ -202,6 +232,631 @@ main: openxr valid usage messages: 2
         ("main", true, &[]),
     ];
 
+    /// Upstream's trace on the test runtime (the C program, patched, by this
+    /// harness on the CI runner).
+    const EXPECTED_RUNTIME: &str = "\
+versions: libopenxr-loader1 1.0.20~dfsg1-1build2, mesa-vulkan-drivers 25.2.8-0ubuntu0.24.04.4, monado-service 21.0.0+git2905.e26a272c1~dfsg1-2build2, openxr-layer-corevalidation 1.0.20~dfsg1-1build2, vulkan-validationlayers 1.3.275.0-1
+-- rt-main
+init: ok (offscreen)
+log 4: Found XR_KHR_vulkan_enable2 extension
+log 4: Validation layers enabled, expect debug level performance!
+supports xr: true
+log 4: Found XR_KHR_vulkan_enable2 extension
+log 3: Failed to get OpenXR system
+handheld: error: No supported SDL_GPU backend found!
+log 4: Found XR_KHR_vulkan_enable2 extension
+log 4: Found XR_KHR_vulkan_enable2 extension
+log 3: Failed to create OpenXR instance
+log 3: Failed to init OpenXR
+unknown extension: failed
+log 4: Found XR_KHR_vulkan_enable2 extension
+log 4: Validation layers enabled, expect debug level performance!
+log 4: Found XR_KHR_vulkan_enable2 extension
+log 4: Validation layers enabled, expect debug level performance!
+device: ok (vulkan)
+instance: non-null, system: non-null
+device name: llvmpipe
+xrGetInstanceProcAddr: ok
+xrCreateDebugUtilsMessengerEXT: 0
+session: ok
+formats: 52 4 53 12 29 60
+swapchain one layer: ok, 3 images
+swapchain two layers: ok, 3 images
+swapchain no color attachment: ok, 3 images
+reference space: 0
+log 4: Integrated memory detected, allocating TransferBuffers on device-local memory!
+state 1
+state 2
+begin session: 0
+state 3
+state 4
+state 5
+frame 0: one layer 255,128,0,255 255,128,0,255; two layers 255,0,0,255 255,0,0,255, 0,255,0,191 0,255,0,191
+frame 1: one layer 255,128,64,255 255,128,64,255; two layers 255,0,64,255 255,0,64,255, 0,255,64,191 0,255,64,191
+frame 2: one layer 255,128,128,255 255,128,128,255; two layers 255,0,128,255 255,0,128,255, 0,255,128,191 0,255,128,191
+frame 3: one layer 255,128,191,255 255,128,191,255; two layers 255,0,191,255 255,0,191,255, 0,255,191,191 0,255,191,191
+request exit: 0
+state 4
+state 3
+state 6
+end session: 0
+state 1
+state 8
+session done: true
+destroy swapchain one layer: ok
+destroy swapchain two layers: ok
+destroy swapchain no color attachment: ok
+destroy space: 0
+destroy session: 0
+device destroyed
+destroy instance: 0
+quit
+rt-main: exit 0
+rt-main: vulkan validation errors: 3
+rt-main: openxr valid usage messages: 2
+-- rt-loader
+init: ok (offscreen)
+load library: ok
+log 4: Found XR_KHR_vulkan_enable2 extension
+log 4: Found XR_KHR_vulkan_enable2 extension
+device: ok (vulkan)
+session: ok
+formats: 52 4 53 12 29 60
+swapchain: ok
+destroy swapchain: ok
+destroy session: 0
+device destroyed
+destroy instance: 0
+library unloaded
+quit
+rt-loader: exit 0
+rt-loader: vulkan validation errors: 0
+rt-loader: openxr valid usage messages: 1
+-- rt-negotiate
+init: ok (offscreen)
+load library: ok
+device: error: No supported SDL_GPU backend found!
+library unloaded
+quit
+rt-negotiate: exit 0
+rt-negotiate: vulkan validation errors: 0
+rt-negotiate: openxr valid usage messages: 0
+-- rt-hint
+init: ok (offscreen)
+load library: ok
+log 4: Found XR_KHR_vulkan_enable2 extension
+log 4: Found XR_KHR_vulkan_enable2 extension
+device: ok (vulkan)
+session: ok
+formats: 52 4 53 12 29 60
+swapchain: ok
+destroy swapchain: ok
+destroy session: 0
+device destroyed
+destroy instance: 0
+library unloaded
+quit
+rt-hint: exit 0
+rt-hint: vulkan validation errors: 0
+rt-hint: openxr valid usage messages: 0
+-- rt-no-extension
+init: ok (offscreen)
+load library: ok
+device: error: No supported SDL_GPU backend found!
+library unloaded
+quit
+rt-no-extension: exit 0
+rt-no-extension: vulkan validation errors: 0
+rt-no-extension: openxr valid usage messages: 0
+-- rt-extensions
+init: ok (offscreen)
+load library: ok
+device: error: No supported SDL_GPU backend found!
+library unloaded
+quit
+rt-extensions: exit 0
+rt-extensions: vulkan validation errors: 0
+rt-extensions: openxr valid usage messages: 0
+-- rt-extensions-2
+init: ok (offscreen)
+load library: ok
+device: error: No supported SDL_GPU backend found!
+library unloaded
+quit
+rt-extensions-2: exit 0
+rt-extensions-2: vulkan validation errors: 0
+rt-extensions-2: openxr valid usage messages: 0
+-- rt-instance
+init: ok (offscreen)
+load library: ok
+log 4: Found XR_KHR_vulkan_enable2 extension
+log 3: Failed to create OpenXR instance
+device: error: No supported SDL_GPU backend found!
+library unloaded
+quit
+rt-instance: exit 0
+rt-instance: vulkan validation errors: 0
+rt-instance: openxr valid usage messages: 0
+-- rt-instance-2
+init: ok (offscreen)
+load library: ok
+log 4: Found XR_KHR_vulkan_enable2 extension
+log 4: Found XR_KHR_vulkan_enable2 extension
+log 3: Failed to create OpenXR instance
+log 3: Failed to init OpenXR
+device: failed
+library unloaded
+quit
+rt-instance-2: exit 0
+rt-instance-2: vulkan validation errors: 0
+rt-instance-2: openxr valid usage messages: 0
+-- rt-symbols
+init: ok (offscreen)
+load library: ok
+log 4: Found XR_KHR_vulkan_enable2 extension
+log 3: Failed to load needed OpenXR instance symbols
+device: error: No supported SDL_GPU backend found!
+library unloaded
+quit
+rt-symbols: exit 0
+rt-symbols: vulkan validation errors: 0
+rt-symbols: openxr valid usage messages: 0
+-- rt-symbols-2
+init: ok (offscreen)
+load library: ok
+log 4: Found XR_KHR_vulkan_enable2 extension
+log 4: Found XR_KHR_vulkan_enable2 extension
+log 3: Failed to load required OpenXR instance symbols
+log 3: Failed to init OpenXR
+device: failed
+library unloaded
+quit
+rt-symbols-2: exit 0
+rt-symbols-2: vulkan validation errors: 0
+rt-symbols-2: openxr valid usage messages: 0
+-- rt-system
+init: ok (offscreen)
+load library: ok
+log 4: Found XR_KHR_vulkan_enable2 extension
+log 3: Failed to get OpenXR system
+device: error: No supported SDL_GPU backend found!
+library unloaded
+quit
+rt-system: exit 0
+rt-system: vulkan validation errors: 0
+rt-system: openxr valid usage messages: 0
+-- rt-system-2
+init: ok (offscreen)
+load library: ok
+log 4: Found XR_KHR_vulkan_enable2 extension
+log 4: Found XR_KHR_vulkan_enable2 extension
+log 3: Failed to get OpenXR system
+log 3: Failed to init OpenXR
+device: failed
+library unloaded
+quit
+rt-system-2: exit 0
+rt-system-2: vulkan validation errors: 0
+rt-system-2: openxr valid usage messages: 0
+-- rt-requirements
+init: ok (offscreen)
+load library: ok
+log 4: Found XR_KHR_vulkan_enable2 extension
+log 3: Failed to get vulkan graphics requirements, got OpenXR error -2
+device: error: No supported SDL_GPU backend found!
+library unloaded
+quit
+rt-requirements: exit 0
+rt-requirements: vulkan validation errors: 0
+rt-requirements: openxr valid usage messages: 0
+-- rt-requirements-2
+init: ok (offscreen)
+load library: ok
+log 4: Found XR_KHR_vulkan_enable2 extension
+log 4: Found XR_KHR_vulkan_enable2 extension
+log 3: Failed to get vulkan graphics requirements, got OpenXR error -2
+log 3: Failed to get OpenXR graphics requirements
+device: failed
+library unloaded
+quit
+rt-requirements-2: exit 0
+rt-requirements-2: vulkan validation errors: 0
+rt-requirements-2: openxr valid usage messages: 0
+-- rt-requirements-lookup
+init: ok (offscreen)
+load library: ok
+log 4: Found XR_KHR_vulkan_enable2 extension
+log 3: Failed to get xrGetVulkanGraphicsRequirements2KHR
+device: error: No supported SDL_GPU backend found!
+library unloaded
+quit
+rt-requirements-lookup: exit 0
+rt-requirements-lookup: vulkan validation errors: 0
+rt-requirements-lookup: openxr valid usage messages: 0
+-- rt-vulkan-instance
+init: ok (offscreen)
+load library: ok
+log 4: Found XR_KHR_vulkan_enable2 extension
+log 3: Failed to create vulkan instance, reason -2, 0
+log 5: Vulkan: Could not create Vulkan instance
+device: error: No supported SDL_GPU backend found!
+library unloaded
+quit
+rt-vulkan-instance: exit 0
+rt-vulkan-instance: vulkan validation errors: 0
+rt-vulkan-instance: openxr valid usage messages: 0
+-- rt-vulkan-instance-2
+init: ok (offscreen)
+load library: ok
+log 4: Found XR_KHR_vulkan_enable2 extension
+log 4: Found XR_KHR_vulkan_enable2 extension
+log 3: Failed to create vulkan instance, reason -2, 0
+log 5: Vulkan: Could not create Vulkan instance
+device: error: Failed to initialize Vulkan!
+library unloaded
+quit
+rt-vulkan-instance-2: exit 0
+rt-vulkan-instance-2: vulkan validation errors: 0
+rt-vulkan-instance-2: openxr valid usage messages: 0
+-- rt-vulkan-instance-vk
+init: ok (offscreen)
+load library: ok
+log 4: Found XR_KHR_vulkan_enable2 extension
+log 5: Vulkan: Could not create Vulkan instance
+device: error: No supported SDL_GPU backend found!
+library unloaded
+quit
+rt-vulkan-instance-vk: exit 0
+rt-vulkan-instance-vk: vulkan validation errors: 0
+rt-vulkan-instance-vk: openxr valid usage messages: 0
+-- rt-vulkan-instance-lookup
+init: ok (offscreen)
+load library: ok
+log 4: Found XR_KHR_vulkan_enable2 extension
+log 3: Failed to get xrCreateVulkanInstanceKHR
+log 5: Vulkan: Could not create Vulkan instance
+device: error: No supported SDL_GPU backend found!
+library unloaded
+quit
+rt-vulkan-instance-lookup: exit 0
+rt-vulkan-instance-lookup: vulkan validation errors: 0
+rt-vulkan-instance-lookup: openxr valid usage messages: 0
+-- rt-graphics-device
+init: ok (offscreen)
+load library: ok
+log 4: Found XR_KHR_vulkan_enable2 extension
+log 6: xrGetVulkanGraphicsDevice2KHR failed, result: -2
+log 5: Vulkan: Failed to determine a suitable physical device
+device: error: No supported SDL_GPU backend found!
+library unloaded
+quit
+rt-graphics-device: exit 0
+rt-graphics-device: vulkan validation errors: 0
+rt-graphics-device: openxr valid usage messages: 0
+-- rt-graphics-device-2
+init: ok (offscreen)
+load library: ok
+log 4: Found XR_KHR_vulkan_enable2 extension
+log 4: Found XR_KHR_vulkan_enable2 extension
+log 6: xrGetVulkanGraphicsDevice2KHR failed, result: -2
+log 5: Vulkan: Failed to determine a suitable physical device
+device: error: Failed to initialize Vulkan!
+library unloaded
+quit
+rt-graphics-device-2: exit 0
+rt-graphics-device-2: vulkan validation errors: 0
+rt-graphics-device-2: openxr valid usage messages: 0
+-- rt-graphics-device-lookup
+init: ok (offscreen)
+load library: ok
+log 4: Found XR_KHR_vulkan_enable2 extension
+log 6: Failed to get xrGetVulkanGraphicsDevice2KHR, result: -7
+log 5: Vulkan: Failed to determine a suitable physical device
+device: error: No supported SDL_GPU backend found!
+library unloaded
+quit
+rt-graphics-device-lookup: exit 0
+rt-graphics-device-lookup: vulkan validation errors: 0
+rt-graphics-device-lookup: openxr valid usage messages: 0
+-- rt-vulkan-device
+init: ok (offscreen)
+load library: ok
+log 4: Found XR_KHR_vulkan_enable2 extension
+log 4: Found XR_KHR_vulkan_enable2 extension
+log 6: Failed to create OpenXR Vulkan logical device, result -2, 0
+device: error: Failed to create logical device!
+library unloaded
+quit
+rt-vulkan-device: exit 0
+rt-vulkan-device: vulkan validation errors: 0
+rt-vulkan-device: openxr valid usage messages: 0
+-- rt-vulkan-device-vk
+init: ok (offscreen)
+load library: ok
+log 4: Found XR_KHR_vulkan_enable2 extension
+log 4: Found XR_KHR_vulkan_enable2 extension
+device: error: Failed to create logical device!
+library unloaded
+quit
+rt-vulkan-device-vk: exit 0
+rt-vulkan-device-vk: vulkan validation errors: 0
+rt-vulkan-device-vk: openxr valid usage messages: 0
+-- rt-vulkan-device-lookup
+init: ok (offscreen)
+load library: ok
+log 4: Found XR_KHR_vulkan_enable2 extension
+log 4: Found XR_KHR_vulkan_enable2 extension
+log 3: Failed to get xrCreateVulkanDeviceKHR
+device: error: Failed to create logical device!
+library unloaded
+quit
+rt-vulkan-device-lookup: exit 0
+rt-vulkan-device-lookup: vulkan validation errors: 0
+rt-vulkan-device-lookup: openxr valid usage messages: 0
+-- rt-session
+init: ok (offscreen)
+load library: ok
+log 4: Found XR_KHR_vulkan_enable2 extension
+log 4: Found XR_KHR_vulkan_enable2 extension
+device: ok (vulkan)
+session: error -2: 
+device destroyed
+destroy instance: 0
+library unloaded
+quit
+rt-session: exit 0
+rt-session: vulkan validation errors: 0
+rt-session: openxr valid usage messages: 0
+-- rt-formats
+init: ok (offscreen)
+load library: ok
+log 4: Found XR_KHR_vulkan_enable2 extension
+log 4: Found XR_KHR_vulkan_enable2 extension
+device: ok (vulkan)
+session: ok
+formats: failed
+destroy session: 0
+device destroyed
+destroy instance: 0
+library unloaded
+quit
+rt-formats: exit 0
+rt-formats: vulkan validation errors: 0
+rt-formats: openxr valid usage messages: 0
+-- rt-formats-2
+init: ok (offscreen)
+load library: ok
+log 4: Found XR_KHR_vulkan_enable2 extension
+log 4: Found XR_KHR_vulkan_enable2 extension
+device: ok (vulkan)
+session: ok
+formats: failed
+destroy session: 0
+device destroyed
+destroy instance: 0
+library unloaded
+quit
+rt-formats-2: exit 0
+rt-formats-2: vulkan validation errors: 0
+rt-formats-2: openxr valid usage messages: 0
+-- rt-swapchain
+init: ok (offscreen)
+load library: ok
+log 4: Found XR_KHR_vulkan_enable2 extension
+log 4: Found XR_KHR_vulkan_enable2 extension
+device: ok (vulkan)
+session: ok
+formats: 52 4 53 12 29 60
+swapchain: error -2: 
+destroy session: 0
+device destroyed
+destroy instance: 0
+library unloaded
+quit
+rt-swapchain: exit 0
+rt-swapchain: vulkan validation errors: 0
+rt-swapchain: openxr valid usage messages: 0
+-- rt-images
+init: ok (offscreen)
+load library: ok
+log 4: Found XR_KHR_vulkan_enable2 extension
+log 4: Found XR_KHR_vulkan_enable2 extension
+device: ok (vulkan)
+session: ok
+formats: 52 4 53 12 29 60
+swapchain: error -2: 
+destroy session: 0
+device destroyed
+destroy instance: 0
+library unloaded
+quit
+rt-images: exit 0
+rt-images: vulkan validation errors: 0
+rt-images: openxr valid usage messages: 0
+-- rt-images-2
+init: ok (offscreen)
+load library: ok
+log 4: Found XR_KHR_vulkan_enable2 extension
+log 4: Found XR_KHR_vulkan_enable2 extension
+device: ok (vulkan)
+session: ok
+formats: 52 4 53 12 29 60
+swapchain: error -2: 
+destroy session: 0
+device destroyed
+destroy instance: 0
+library unloaded
+quit
+rt-images-2: exit 0
+rt-images-2: vulkan validation errors: 0
+rt-images-2: openxr valid usage messages: 0
+-- rt-destroy-images
+init: ok (offscreen)
+load library: ok
+log 4: Found XR_KHR_vulkan_enable2 extension
+log 4: Found XR_KHR_vulkan_enable2 extension
+device: ok (vulkan)
+session: ok
+formats: 52 4 53 12 29 60
+swapchain: ok
+destroy swapchain: error -2: 
+destroy session: 0
+device destroyed
+destroy instance: 0
+library unloaded
+quit
+rt-destroy-images: exit 0
+rt-destroy-images: vulkan validation errors: 0
+rt-destroy-images: openxr valid usage messages: 0
+-- rt-destroy-swapchain
+init: ok (offscreen)
+load library: ok
+log 4: Found XR_KHR_vulkan_enable2 extension
+log 4: Found XR_KHR_vulkan_enable2 extension
+device: ok (vulkan)
+session: ok
+formats: 52 4 53 12 29 60
+swapchain: ok
+destroy swapchain: error -2: 
+destroy session: 0
+device destroyed
+destroy instance: 0
+library unloaded
+quit
+rt-destroy-swapchain: exit 0
+rt-destroy-swapchain: vulkan validation errors: 0
+rt-destroy-swapchain: openxr valid usage messages: 0
+";
+
+    /// How a scenario reaches the test runtime: through the OpenXR loader
+    /// (`XR_RUNTIME_JSON` names a manifest of it), or in the loader's place
+    /// (`SDL_OPENXR_LIBRARY` names it).
+    #[derive(Clone, Copy)]
+    enum Via {
+        Loader,
+        Hint,
+    }
+
+    /// The test runtime's scenarios: their names, how they reach it, and its
+    /// failure list (`SDL3_OPENXR_TEST_RUNTIME_FAIL`: a call of the
+    /// runtime's that fails, all of them or only the `@N`th; in a device's
+    /// creation the first instance is PrepareDriver's, the second
+    /// CreateDevice's).
+    const RUNTIME_SCENARIOS: &[(&str, Via, &str)] = &[
+        ("rt-main", Via::Loader, ""),
+        ("rt-loader", Via::Loader, ""),
+        (
+            "rt-negotiate",
+            Via::Loader,
+            "xrNegotiateLoaderRuntimeInterface",
+        ),
+        ("rt-hint", Via::Hint, ""),
+        ("rt-no-extension", Via::Hint, "XR_KHR_vulkan_enable2"),
+        (
+            "rt-extensions",
+            Via::Hint,
+            "xrEnumerateInstanceExtensionProperties",
+        ),
+        (
+            "rt-extensions-2",
+            Via::Hint,
+            "xrEnumerateInstanceExtensionProperties@2",
+        ),
+        ("rt-instance", Via::Hint, "xrCreateInstance"),
+        ("rt-instance-2", Via::Hint, "xrCreateInstance@2"),
+        (
+            "rt-symbols",
+            Via::Hint,
+            "xrGetInstanceProcAddr:xrDestroySwapchain",
+        ),
+        (
+            "rt-symbols-2",
+            Via::Hint,
+            "xrGetInstanceProcAddr:xrDestroySwapchain@2",
+        ),
+        ("rt-system", Via::Hint, "xrGetSystem"),
+        ("rt-system-2", Via::Hint, "xrGetSystem@2"),
+        (
+            "rt-requirements",
+            Via::Hint,
+            "xrGetVulkanGraphicsRequirements2KHR",
+        ),
+        (
+            "rt-requirements-2",
+            Via::Hint,
+            "xrGetVulkanGraphicsRequirements2KHR@2",
+        ),
+        (
+            "rt-requirements-lookup",
+            Via::Hint,
+            "xrGetInstanceProcAddr:xrGetVulkanGraphicsRequirements2KHR",
+        ),
+        ("rt-vulkan-instance", Via::Hint, "xrCreateVulkanInstanceKHR"),
+        (
+            "rt-vulkan-instance-2",
+            Via::Hint,
+            "xrCreateVulkanInstanceKHR@2",
+        ),
+        (
+            "rt-vulkan-instance-vk",
+            Via::Hint,
+            "xrCreateVulkanInstanceKHR=vk:-3",
+        ),
+        (
+            "rt-vulkan-instance-lookup",
+            Via::Hint,
+            "xrGetInstanceProcAddr:xrCreateVulkanInstanceKHR",
+        ),
+        (
+            "rt-graphics-device",
+            Via::Hint,
+            "xrGetVulkanGraphicsDevice2KHR",
+        ),
+        (
+            "rt-graphics-device-2",
+            Via::Hint,
+            "xrGetVulkanGraphicsDevice2KHR@2",
+        ),
+        (
+            "rt-graphics-device-lookup",
+            Via::Hint,
+            "xrGetInstanceProcAddr:xrGetVulkanGraphicsDevice2KHR",
+        ),
+        ("rt-vulkan-device", Via::Hint, "xrCreateVulkanDeviceKHR"),
+        (
+            "rt-vulkan-device-vk",
+            Via::Hint,
+            "xrCreateVulkanDeviceKHR=vk:-3",
+        ),
+        (
+            "rt-vulkan-device-lookup",
+            Via::Hint,
+            "xrGetInstanceProcAddr:xrCreateVulkanDeviceKHR",
+        ),
+        ("rt-session", Via::Hint, "xrCreateSession"),
+        ("rt-formats", Via::Hint, "xrEnumerateSwapchainFormats"),
+        ("rt-formats-2", Via::Hint, "xrEnumerateSwapchainFormats@2"),
+        ("rt-swapchain", Via::Hint, "xrCreateSwapchain"),
+        ("rt-images", Via::Hint, "xrEnumerateSwapchainImages"),
+        ("rt-images-2", Via::Hint, "xrEnumerateSwapchainImages@2"),
+        (
+            "rt-destroy-images",
+            Via::Hint,
+            "xrEnumerateSwapchainImages@3",
+        ),
+        ("rt-destroy-swapchain", Via::Hint, "xrDestroySwapchain"),
+    ];
+
+    /// The test runtime's scenarios whose device upstream fails to make
+    /// without setting an error (`SDL_GetError()` says what failed before):
+    /// the trace says `failed`, and the Rust's error is a `rust:` line.
+    const DEVICE_FAILS_WITHOUT_ERROR: &[&str] = &[
+        "rt-instance-2",
+        "rt-symbols-2",
+        "rt-system-2",
+        "rt-requirements-2",
+    ];
+
     pub(super) fn main() -> ExitCode {
         if let Ok(scenario) = std::env::var(SCENARIO) {
             return child(&scenario);
@@ -214,22 +869,89 @@ main: openxr valid usage messages: 2
             .and_then(|i| args.get(i + 1))
             .map(PathBuf::from);
 
-        if let Some(why) = missing_openxr() {
-            return skip(PROGRAM, "openxr", &why);
-        }
-
         let program = match &run_c {
             Some(path) => path.clone(),
             None => std::env::current_exe().expect("the program's path"),
         };
 
+        // (each part skips without its capability; with --run-c, the
+        // reference's traces are printed, not compared)
+        let monado = match missing_openxr() {
+            Some(why) => {
+                skip(PROGRAM, "openxr", &why);
+                true
+            }
+            None => monado_scenarios(&program, run_c.is_some()),
+        };
+        let runtime = match missing_openxr_runtime() {
+            Some(why) => {
+                skip(PROGRAM, "openxr-runtime", &why);
+                true
+            }
+            None => runtime_scenarios(&program, run_c.is_some()),
+        };
+        if monado && runtime {
+            ExitCode::SUCCESS
+        } else {
+            ExitCode::FAILURE
+        }
+    }
+
+    /// A new trace, or `None` (a Rust-only failure) when the layouts don't
+    /// match the C's.
+    fn new_trace() -> Option<Trace> {
         let mut t = Trace::new();
         #[cfg(target_pointer_width = "64")]
         if let Some(difference) = xr::check_layouts() {
             t.rust(false, format!("layouts: {difference}"));
-            return t.finish(PROGRAM, EXPECTED);
+            t.finish(PROGRAM, EXPECTED);
+            return None;
         }
+        Some(t)
+    }
 
+    /// A scenario's child, its lines in the trace.
+    fn trace_child(
+        t: &mut Trace,
+        program: &Path,
+        scenario: &str,
+        dir: &Path,
+        env: &[(&str, &str)],
+    ) {
+        let out = run_child(program, scenario, dir, env, Duration::from_secs(300));
+        for line in out.trace {
+            t.line(line);
+        }
+        t.line(format!("{scenario}: {}", out.status));
+        t.line(format!(
+            "{scenario}: vulkan validation errors: {}",
+            out.validation.len()
+        ));
+        t.line(format!(
+            "{scenario}: openxr valid usage messages: {}",
+            out.openxr_usage.len()
+        ));
+        for message in out.validation.iter().chain(&out.openxr_usage).take(30) {
+            println!("{scenario}: validation: {message}");
+        }
+        // (the Rust's errors where upstream sets none, and the C's lines)
+        for line in out.stdout.lines() {
+            if line.starts_with("rust: ") || line.starts_with("c: ") {
+                println!("{scenario}: {line}");
+            }
+        }
+        if out.status != "exit 0" {
+            println!("{scenario}: the child's output:\n{}", out.stdout);
+            println!("{scenario}: the child's errors:\n{}", out.stderr);
+        }
+    }
+
+    /// The scenarios on Monado: whether the trace is upstream's (or, with
+    /// `--run-c`, printed).
+    fn monado_scenarios(program: &Path, run_c: bool) -> bool {
+        let Some(mut t) = new_trace() else {
+            return false;
+        };
         for &(scenario, with_monado, env) in SCENARIOS {
             t.line(format!("-- {scenario}"));
             let dir = RuntimeDir::new("gpu-openxr");
@@ -244,34 +966,33 @@ main: openxr valid usage messages: 2
             } else {
                 None
             };
-            let out = run_child(&program, scenario, &dir.0, env, Duration::from_secs(300));
+            trace_child(&mut t, program, scenario, &dir.0, env);
             drop(monado);
-            for line in out.trace {
-                t.line(line);
-            }
-            t.line(format!("{scenario}: {}", out.status));
-            t.line(format!(
-                "{scenario}: vulkan validation errors: {}",
-                out.validation.len()
-            ));
-            t.line(format!(
-                "{scenario}: openxr valid usage messages: {}",
-                out.openxr_usage.len()
-            ));
-            for message in out.validation.iter().chain(&out.openxr_usage).take(30) {
-                println!("{scenario}: validation: {message}");
-            }
-            if out.status != "exit 0" {
-                println!("{scenario}: the child's output:\n{}", out.stdout);
-                println!("{scenario}: the child's errors:\n{}", out.stderr);
-            }
         }
+        run_c || t.finish(PROGRAM, EXPECTED)
+    }
 
-        if run_c.is_some() {
-            // (the reference's trace, printed above)
-            return ExitCode::SUCCESS;
+    /// The scenarios on the test runtime: whether the trace is upstream's
+    /// (or, with `--run-c`, printed).
+    fn runtime_scenarios(program: &Path, run_c: bool) -> bool {
+        let Some(mut t) = new_trace() else {
+            return false;
+        };
+        let library = test_runtime().expect("the test runtime");
+        for &(scenario, via, fail) in RUNTIME_SCENARIOS {
+            t.line(format!("-- {scenario}"));
+            let dir = RuntimeDir::new("gpu-openxr");
+            let manifest = write_test_runtime_manifest(&dir.0, &library);
+            let manifest = manifest.to_string_lossy();
+            let library = library.to_string_lossy();
+            let mut env = vec![(TEST_RUNTIME_FAIL, fail)];
+            match via {
+                Via::Loader => env.push(("XR_RUNTIME_JSON", &manifest)),
+                Via::Hint => env.push(("SDL_OPENXR_LIBRARY", &library)),
+            }
+            trace_child(&mut t, program, scenario, &dir.0, &env);
         }
-        t.finish(PROGRAM, EXPECTED)
+        run_c || t.finish(PROGRAM, EXPECTED_RUNTIME)
     }
 
     /// A trace line of the child.
@@ -318,7 +1039,8 @@ main: openxr valid usage messages: 2
         match scenario {
             "no-xr" => no_xr(),
             "no-runtime" | "no-service" => no_service(),
-            "main" => main_scenario(),
+            "main" | "rt-main" => main_scenario(),
+            _ if scenario.starts_with("rt-") => runtime_steps(scenario),
             _ => panic!("unknown scenario {scenario}"),
         }
 
@@ -400,6 +1122,118 @@ main: openxr valid usage messages: 2
         match Device::with_properties(&props) {
             Ok(_) => tr("device: ok"),
             Err(e) => tr(format!("device: error: {e}")),
+        }
+    }
+
+    /// A device on the test runtime and its OpenXR objects, step by step,
+    /// each step traced: the session, the swapchain formats, a swapchain
+    /// and its destruction, the session's and the instance's (the
+    /// runtime's injected failure decides where it stops). The program
+    /// holds a reference to the OpenXR library of its own, so that the
+    /// runtime, loaded in the loader's place, stays loaded between
+    /// PrepareDriver's instance and CreateDevice's (its calls are counted
+    /// from its loading).
+    fn runtime_steps(scenario: &str) {
+        match gpu::openxr_load_library() {
+            Ok(()) => tr("load library: ok"),
+            Err(e) => {
+                tr(format!("load library: error: {e}"));
+                return;
+            }
+        }
+        steps_on_device(scenario);
+        gpu::openxr_unload_library();
+        tr("library unloaded");
+    }
+
+    /// [`runtime_steps`]'s device and objects.
+    fn steps_on_device(scenario: &str) {
+        let device = match Device::with_properties(&xr_props(false)) {
+            Ok(device) => device,
+            Err(e) => {
+                if DEVICE_FAILS_WITHOUT_ERROR.contains(&scenario) {
+                    tr("device: failed");
+                    println!("rust: device: {e}");
+                } else {
+                    tr(format!("device: error: {e}"));
+                }
+                return;
+            }
+        };
+        tr(format!("device: ok ({})", device.driver()));
+        let instance = device.xr_instance().unwrap_or(0);
+        let gipa = match gpu::openxr_get_xr_get_instance_proc_addr() {
+            Ok(gipa) => gipa,
+            Err(e) => {
+                tr(format!("xrGetInstanceProcAddr: error: {e}"));
+                return;
+            }
+        };
+        let x = Xr::load(gipa, instance);
+
+        match device.create_xr_session(&XrSessionCreateInfo::default()) {
+            Ok(session) => {
+                tr("session: ok");
+                swapchain_steps(&device, session);
+                // SAFETY: the runtime's function, with the session.
+                tr(format!("destroy session: {}", unsafe {
+                    (x.xrDestroySession)(session)
+                }));
+            }
+            Err(e) => tr(format!("session: {}", xr_error(&e))),
+        }
+        drop(device);
+        tr("device destroyed");
+        // SAFETY: the runtime's function, with the device's instance.
+        tr(format!("destroy instance: {}", unsafe {
+            (x.xrDestroyInstance)(instance)
+        }));
+    }
+
+    /// [`runtime_steps`]'s formats and swapchain.
+    fn swapchain_steps(device: &Device, session: u64) {
+        match device.xr_swapchain_formats(session) {
+            Ok(formats) => tr(format!(
+                "formats: {}",
+                formats
+                    .iter()
+                    .map(|f| f.0.to_string())
+                    .collect::<Vec<_>>()
+                    .join(" ")
+            )),
+            Err(e) => {
+                // (upstream sets no error when the runtime's call fails)
+                tr("formats: failed");
+                println!("rust: formats: {e}");
+                return;
+            }
+        }
+        let createinfo = XrSwapchainCreateInfo {
+            usage_flags: XrSwapchainUsageFlags::COLOR_ATTACHMENT
+                | XrSwapchainUsageFlags::TRANSFER_SRC,
+            sample_count: 1,
+            width: 32,
+            height: 32,
+            face_count: 1,
+            array_size: 2,
+            mip_count: 1,
+            ..Default::default()
+        };
+        let swapchain =
+            match device.create_xr_swapchain(session, &createinfo, TextureFormat::R8G8B8A8_UNORM) {
+                Ok(swapchain) => swapchain,
+                Err(e) => {
+                    tr(format!("swapchain: {}", xr_error(&e)));
+                    return;
+                }
+            };
+        // (the image count isn't traced: the C would ask the runtime, a call
+        // the failure list counts)
+        tr("swapchain: ok");
+        println!("rust: swapchain: {} images", swapchain.textures().len());
+        match swapchain.destroy() {
+            Ok(()) => tr("destroy swapchain: ok"),
+            Err(e) => tr(format!("destroy swapchain: {}", xr_error(&e))),
         }
     }
 

@@ -568,10 +568,12 @@ jobs:
   # The GPU API's OpenXR functions on the Vulkan backend
   # (sdl3/tests/gpu_openxr.rs), against Monado's null compositor on
   # lavapipe: the program starts Monado's service for its scenarios itself,
-  # as the runner user, each in a private runtime directory. In a job of its
-  # own for Monado's dependencies (OpenCV, GDAL: ~36 MB), and pinned to
-  # ubuntu-24.04, whose Monado, OpenXR loader, layers and Mesa the trace is
-  # made on (its preamble: their versions).
+  # as the runner user, each in a private runtime directory; then against
+  # the repository's test runtime (sdl3-openxr-test-runtime), through the
+  # OpenXR loader and in its place, with its injected failures. In a job of
+  # its own for Monado's dependencies (OpenCV, GDAL: ~36 MB), and pinned to
+  # ubuntu-24.04, whose Monado, OpenXR loader, layers and Mesa the traces
+  # are made on (their preambles: their versions).
   openxr:
     name: test (OpenXR on Monado's null compositor)
     if: ${{ !inputs.ios_only && !inputs.tvos_only && !inputs.visionos_only && !inputs.android_only }}
@@ -597,15 +599,20 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y mesa-vulkan-drivers libvulkan1 vulkan-validationlayers \
             monado-service libopenxr1-monado libopenxr-loader1 openxr-layer-corevalidation
+      # (sdl3's dev-dependency on it builds it beside the test programs too)
+      - name: cargo build -p sdl3-openxr-test-runtime
+        run: |
+          cargo build -p sdl3-openxr-test-runtime
+          cargo build -p sdl3-openxr-test-runtime --release
       - name: cargo test gpu_openxr
         run: cargo test -p sdl3 --test gpu_openxr
         env:
-          SDL3_TEST_REQUIRE: openxr
+          SDL3_TEST_REQUIRE: openxr,openxr-runtime
           SDL3_TEST_SKIP_LOG: ${{ runner.temp }}/skips.tsv
       - name: cargo test --release gpu_openxr
         run: cargo test -p sdl3 --test gpu_openxr --release
         env:
-          SDL3_TEST_REQUIRE: openxr
+          SDL3_TEST_REQUIRE: openxr,openxr-runtime
           SDL3_TEST_SKIP_LOG: ${{ runner.temp }}/skips.tsv
       - name: List the skipped checks
         if: always()

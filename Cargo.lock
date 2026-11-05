@@ -14,6 +14,7 @@ version = "3.5.0"
 dependencies = [
  "libc",
  "sdl3-emscripten",
+ "sdl3-openxr-test-runtime",
  "windows-sys",
 ]
 

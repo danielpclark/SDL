@@ -97,6 +97,13 @@ features = [
     "Win32_UI_WindowsAndMessaging",
 ]
 
+# The repository's test OpenXR runtime (a shared library, never linked):
+# a dev-dependency only so that `cargo test` builds it beside the test
+# programs, where gpu_openxr loads it from (through the OpenXR loader, and
+# in the loader's place). No version: it isn't published.
+[target.'cfg(target_os = "linux")'.dev-dependencies]
+sdl3-openxr-test-runtime = { path = "../sdl3-openxr-test-runtime" }
+
 # The Cocoa video driver, which only starts on the main thread: a program of
 # its own without the test harness's threads.
 [[test]]
