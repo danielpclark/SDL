@@ -68,7 +68,9 @@ mod tvos {
     use sdl3::video::{self, DisplayMode, Point, Rect, Window};
 
     use super::uikit_support::objc::{self, Id};
-    use super::uikit_support::{check_trace, checked, elapsed, event_name, exit};
+    use super::uikit_support::{
+        check_trace, checked, elapsed, event_name, exit, expected_line, startup_events,
+    };
 
     /// Upstream's trace (the C program, on an Apple TV 4K (3rd generation)
     /// simulator with tvOS 18.5).
@@ -350,6 +352,11 @@ quit
         let line = line.into();
         println!("trace: {line}");
         TRACE.lock().unwrap().push(line);
+    }
+
+    /// Upstream's line the trace has next.
+    fn next_expected() -> &'static str {
+        expected_line(EXPECTED, TRACE.lock().unwrap().len())
     }
 
     fn yes_no(b: bool) -> &'static str {
@@ -839,22 +846,8 @@ quit
                     .collect()
             )
         ));
-        // (the simulator's keyboard is GameController's coalesced keyboard:
-        // added when video starts, before the audio devices, if
-        // GameController has found it by then, else when its connect
-        // notification comes, a moment later; it's waited for, and traced
-        // where video's start adds it)
-        let mut seen = Vec::new();
-        let end = Instant::now() + Duration::from_secs(5);
-        take_queued(&mut seen);
-        while !seen.iter().any(|e| e == "KEYBOARD_ADDED") && Instant::now() < end {
-            std::thread::sleep(Duration::from_millis(10));
-            take_queued(&mut seen);
-        }
-        if let Some(i) = seen.iter().position(|e| e == "KEYBOARD_ADDED") {
-            let keyboard = seen.remove(i);
-            seen.insert(0, keyboard);
-        }
+        // (with the simulator's keyboard, which may come a moment later)
+        let seen = startup_events(next_expected(), take_queued);
         t(format!("events: {}", list(seen)));
 
         // The app becomes active around when the main function starts

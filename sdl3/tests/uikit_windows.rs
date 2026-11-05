@@ -73,7 +73,9 @@ mod ios {
     use sdl3::video::{self, Window};
 
     use super::uikit_support::objc::{self, Id};
-    use super::uikit_support::{check_trace, checked, elapsed, event_name, exit};
+    use super::uikit_support::{
+        check_trace, checked, elapsed, event_name, exit, expected_line, startup_events,
+    };
 
     /// Upstream's trace (the C program, on an iPhone 16 simulator with
     /// iOS 18.5).
@@ -333,6 +335,11 @@ quit
         let line = line.into();
         println!("trace: {line}");
         TRACE.lock().unwrap().push(line);
+    }
+
+    /// Upstream's line the trace has next.
+    fn next_expected() -> &'static str {
+        expected_line(EXPECTED, TRACE.lock().unwrap().len())
     }
 
     fn yes_no(b: bool) -> &'static str {
@@ -666,8 +673,8 @@ quit
             "video driver: {}",
             video::current_video_driver().unwrap()
         ));
-        let mut seen = Vec::new();
-        take_queued(&mut seen);
+        // (with the simulator's keyboard, which may come a moment later)
+        let seen = startup_events(next_expected(), take_queued);
         t(format!("events: {}", list(seen)));
 
         // The app becomes active around when the main function starts
