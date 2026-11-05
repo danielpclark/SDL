@@ -44,6 +44,7 @@
 
 #![allow(dead_code)] // (each program uses some of it)
 
+pub mod session;
 pub mod xr;
 
 use std::ffi::CStr;

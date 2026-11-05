@@ -28,8 +28,8 @@ Every skip names one *capability* (the list is `CAPABILITIES` in
 | `egl` | Linux, Windows, macOS | libEGL and the GL/GLES libraries (Mesa on Linux; on Windows an EGL such as ANGLE's `libEGL.dll`, which Windows doesn't ship, or Mesa's (below) with `EGL_PLATFORM=windows`; on macOS ANGLE's `libEGL.dylib` and `libGLESv2.dylib`, from the directory `SDL3_TEST_ANGLE_DIR` names or the copy the Android emulator ships in `~/Library/Android/sdk/emulator/lib64/gles_angle`). The offscreen driver has EGL only on Linux and the other Unix systems, so the OpenGL ES 2 renderer's checks, which draw on it, skip on Windows, macOS and the Apple Simulators, as the OpenGL renderer's checks on it do on macOS; on Android its EGL needs a device platform (`EGL_EXT_device_enumeration`) that Android's EGL lacks, so they skip there too, and so do the OpenGL renderer's, which Android doesn't build (see [Android emulator](#android-emulator)) |
 | `gles1` | Linux, the Android emulator | OpenGL ES 1.1 contexts through EGL, which the OpenGL ES 1 renderer's checks draw with: Android's (`libGLESv1_CM.so`), or ANGLE's (`libEGL.so` and `libGLESv2.so`, from Chrome for Testing's headless shell, with SwiftShader) on X11, the libraries named by `SDL_EGL_LIBRARY` and `SDL_OPENGL_LIBRARY` (see [Linux](#linux-ubuntu-2404)); Mesa's Ubuntu packages are built without OpenGL ES 1, so the checks skip there (`gles1`, where the OpenGL ES 2 renderer can be made; `egl` where not even that) |
 | `vulkan` | Linux, Windows, macOS, the iOS, tvOS and visionOS Simulators, the Android emulator | a Vulkan loader and a driver with the surface extensions, `VK_EXT_headless_surface` included for the tests of the Vulkan and GPU renderers and of the GPU API's swapchains on offscreen windows (Mesa's lavapipe is enough; on Windows those tests present to the Windows video driver's windows instead, since the GPU drivers there (NVIDIA's, say) have no `VK_EXT_headless_surface`, and only the offscreen driver's own headless-surface check skips; the tests of the GPU API's Vulkan backend and of the GPU renderer run under `VK_LAYER_KHRONOS_validation` when it is installed, and present to an X11 window too when `DISPLAY` is set); on macOS MoltenVK, by upstream's default names: `libMoltenVK.dylib` itself (in `/usr/local/lib`, say), which runs every check, or the Vulkan loader with it (the Cocoa driver's surface check also tries Homebrew's `/opt/homebrew/lib/libvulkan.1.dylib`), through which the Vulkan renderer's checks skip with `VK_ERROR_INCOMPATIBLE_DRIVER`: MoltenVK's devices then need portability enumeration, which upstream's renderer doesn't ask for. Under Metal's API validation, which the GPU API's Metal devices in debug mode turn on for the rest of the process (as upstream's do, setting `MTL_DEBUG_LAYER=1` unless it's set), MoltenVK misdraws the fills after another render state's in a pass in the GPU renderer's render-state test on the CI runners' Apple Paravirtual device (1.3.0 to 1.4.2, reporting no error), so with a MoltenVK device and `MTL_DEBUG_LAYER` set and not `0` those three checks skip (run the test again with `MTL_DEBUG_LAYER=0` for them; with discrete descriptor binding, `MVK_CONFIG_USE_METAL_ARGUMENT_BUFFERS=0`, more of the renderer's checks misdraw under the layer; Khronos' validation layer, with synchronization validation, finds nothing in them on lavapipe, and they pass on Metal under the same validation); on the iOS and tvOS Simulators MoltenVK's framework for the simulator, which `tools/ios_run.py` takes from `SDL3_IOS_MOLTENVK` (see [Apple Simulators](#apple-simulators): there the GPU API's Vulkan checks skip, the simulator's device lacking features the backend asks for, see [iOS Simulator](#ios-simulator)); on the visionOS Simulator it never loads, upstream's `SDL_LoadObject()` loading nothing there (see [visionOS Simulator](#visionos-simulator)); on the Android emulator SwiftShader's Vulkan 1.3 (`libvulkan.so`), which has no `VK_EXT_headless_surface`, so only the checks that need no surface run in spawned programs, and the Vulkan and GPU renderers and the GPU API's swapchains draw on the android video driver's window in the app programs (see [Android emulator](#android-emulator)) |
-| `openxr` | Linux | the OpenXR loader (`libopenxr_loader.so.1`), Monado's service (`monado-service` in `PATH`), the core validation API layer (`XR_APILAYER_LUNARG_core_validation`) and Mesa's lavapipe (`/usr/share/vulkan/icd.d/lvp_icd.json`): for `gpu_openxr`, the GPU API's OpenXR functions on the Vulkan backend, which starts Monado's service with its null compositor (`XRT_COMPOSITOR_NULL=1`) for its scenarios, as any user, each in a private runtime directory (Ubuntu 24.04: `monado-service libopenxr1-monado libopenxr-loader1 openxr-layer-corevalidation mesa-vulkan-drivers vulkan-validationlayers`) |
-| `openxr-runtime` | Linux, Windows | the repository's test OpenXR runtime (`sdl3-openxr-test-runtime`, a shared library written from the OpenXR specification: OpenXR 1.0, `XR_KHR_vulkan_enable2` and, on Windows, `XR_KHR_D3D12_enable` (WARP's adapter), deterministic, any of its calls made to fail by `SDL3_OPENXR_TEST_RUNTIME_FAIL`), built: `libsdl3_openxr_test_runtime.so` (`sdl3_openxr_test_runtime.dll`) beside the test program (`cargo test -p sdl3` builds it there, sdl3 dev-depending on it), or where `SDL3_OPENXR_TEST_RUNTIME` says; with the OpenXR loader (`libopenxr_loader.so.1`; on Windows Khronos's `openxr_loader.dll` beside the program or in `PATH`), the core validation API layer and Mesa's lavapipe, as for `openxr`: for `gpu_openxr`'s scenarios on it, through the loader (a runtime manifest the test writes, in `XR_RUNTIME_JSON`) and in the loader's place (`SDL_OPENXR_LIBRARY`), the error paths among them (Ubuntu 24.04: `libopenxr-loader1 openxr-layer-corevalidation mesa-vulkan-drivers vulkan-validationlayers`). On Windows the Direct3D 12 backend's scenarios on WARP (`d3d10warp.dll`) and the Vulkan ones on lavapipe (registered as a Vulkan driver), the loader's active runtime a manifest of the test runtime named by `HKLM\SOFTWARE\Khronos\OpenXR\1\ActiveRuntime`, and the core validation layer registered under `HKLM\SOFTWARE\Khronos\OpenXR\1\ApiLayers\Explicit` (the loader ignores `XR_RUNTIME_JSON` and `XR_API_LAYER_PATH` in an elevated process): `tools/ci/openxr-windows.sh` does both, as the CI job does |
+| `openxr` | Linux, the Android emulator | the OpenXR loader (`libopenxr_loader.so.1`), Monado's service (`monado-service` in `PATH`), the core validation API layer (`XR_APILAYER_LUNARG_core_validation`) and Mesa's lavapipe (`/usr/share/vulkan/icd.d/lvp_icd.json`): for `gpu_openxr`, the GPU API's OpenXR functions on the Vulkan backend, which starts Monado's service with its null compositor (`XRT_COMPOSITOR_NULL=1`) for its scenarios, as any user, each in a private runtime directory (Ubuntu 24.04: `monado-service libopenxr1-monado libopenxr-loader1 openxr-layer-corevalidation mesa-vulkan-drivers vulkan-validationlayers`). On Android, the Khronos OpenXR loader for Android (`libopenxr_loader.so`, of the Maven package `org.khronos.openxr:openxr_loader_for_android`'s AAR: `prefab/modules/openxr_loader/libs/android.ABI/`) in `android_openxr_loader`'s app package, which the runner takes from `SDL3_ANDROID_LIBRARY_PATH`'s directories (`DIR/ABI/libopenxr_loader.so`): `tools/ci/openxr-android.sh` downloads and unpacks it, as the CI job does |
+| `openxr-runtime` | Linux, Windows, the Android emulator | the repository's test OpenXR runtime (`sdl3-openxr-test-runtime`, a shared library written from the OpenXR specification: OpenXR 1.0, `XR_KHR_vulkan_enable2` and, on Windows, `XR_KHR_D3D12_enable` (WARP's adapter), deterministic, any of its calls made to fail by `SDL3_OPENXR_TEST_RUNTIME_FAIL`), built: `libsdl3_openxr_test_runtime.so` (`sdl3_openxr_test_runtime.dll`) beside the test program (`cargo test -p sdl3` builds it there, sdl3 dev-depending on it), or where `SDL3_OPENXR_TEST_RUNTIME` says; with the OpenXR loader (`libopenxr_loader.so.1`; on Windows Khronos's `openxr_loader.dll` beside the program or in `PATH`), the core validation API layer and Mesa's lavapipe, as for `openxr`: for `gpu_openxr`'s scenarios on it, through the loader (a runtime manifest the test writes, in `XR_RUNTIME_JSON`) and in the loader's place (`SDL_OPENXR_LIBRARY`), the error paths among them (Ubuntu 24.04: `libopenxr-loader1 openxr-layer-corevalidation mesa-vulkan-drivers vulkan-validationlayers`). On Windows the Direct3D 12 backend's scenarios on WARP (`d3d10warp.dll`) and the Vulkan ones on lavapipe (registered as a Vulkan driver), the loader's active runtime a manifest of the test runtime named by `HKLM\SOFTWARE\Khronos\OpenXR\1\ActiveRuntime`, and the core validation layer registered under `HKLM\SOFTWARE\Khronos\OpenXR\1\ApiLayers\Explicit` (the loader ignores `XR_RUNTIME_JSON` and `XR_API_LAYER_PATH` in an elevated process): `tools/ci/openxr-windows.sh` does both, as the CI job does. On Android the runtime alone (with `XR_KHR_loader_init` and `XR_KHR_android_create_instance` there), built for the app's ABI beside the program (`cargo test --target ...-linux-android -p sdl3` builds it), in `android_openxr`'s app package, which loads it in the loader's place |
 | `wayland` | Linux | libwayland-client/-egl/-cursor, libxkbcommon and `sway` (or `weston`) in `PATH`; the input and clipboard tests need sway |
 | `dbus` | Linux | libdbus and `dbus-daemon` (the tests start private buses) |
 | `pulseaudio` | Linux | libpulse, and the `pulseaudio` and `pactl` binaries (the tests start a private server) |
@@ -107,7 +107,7 @@ doesn't have, and print what they find (so run them with `--nocapture`):
 | `kmsdrm_hardware`'s `hardware_vrr` | Linux | with a `vrr_capable` connector (else it skips, `kmsdrm`): the CRTC's `VRR_ENABLED` is 1 with a window (upstream enables it as it adds the display), and what it was before once the window is destroyed (upstream restores it there) |
 | `kmsdrm_hardware`'s `hardware_panel_orientation` | Linux | with a connector that has a `panel orientation` property (a laptop's or tablet's built-in panel; else it skips, `kmsdrm`): prints the connector's value and SDL's `SDL.display.KMSDRM.panel_orientation`, which must be 0, as upstream's: it looks the property up on the CRTC's ID (`FIXME (upstream)` in `video.rs`), which finds none |
 | `kmsdrm_hardware`'s `hardware_console_keymap` | Linux | a non-US console keymap on tty3 (`sudo loadkeys de`, say; with US's plain entries for the keys it presses it skips, `vt`), with uinput: the keys Q, W, Y, Z, A, M and ; pressed on a uinput keyboard must give the text the console's keymap (`KDGKBENT`) has for them |
-| `gpu_openxr_hardware`'s `hardware_vulkan_openxr_session_on_the_active_runtime` (`cargo test -p sdl3 --test gpu_openxr_hardware -- --ignored --nocapture`) | Linux, Windows | the GPU API's OpenXR functions on the OpenXR loader's active runtime on a GPU (Monado's compositor or SteamVR on Linux; SteamVR, whose null driver needs no headset, Windows Mixed Reality, Meta's Link on Windows): a Vulkan device made with OpenXR on the runtime's physical device (its name printed), the session, the runtime's swapchain formats (printed; an 8-bit color one among them), a two-layer color swapchain, then the session's states and up to 120 rendered frames (each eye's layer cleared, a projection layer submitted) or 10 s, the exit request, the session's end and every destruction. A runtime that never shows the session (a headset not worn) is reported, with its states. Without the loader, a runtime or its system it skips (`openxr`, `vulkan`) |
+| `gpu_openxr_hardware`'s `hardware_vulkan_openxr_session_on_the_active_runtime` (`cargo test -p sdl3 --test gpu_openxr_hardware -- --ignored --nocapture`) | Linux, Windows | the GPU API's OpenXR functions on the OpenXR loader's active runtime on a GPU (Monado's compositor or SteamVR on Linux; SteamVR, whose null driver needs no headset, Windows Mixed Reality, Meta's Link on Windows): a Vulkan device made with OpenXR on the runtime's physical device (its name printed), the session, the runtime's swapchain formats (printed; an 8-bit color one among them), a two-layer color swapchain, then the session's states and up to 120 rendered frames (each eye's layer cleared, a projection layer submitted) or 10 s, the exit request, the session's end and every destruction. A runtime that never shows the session (a headset not worn) is reported, with its states. Without the loader, a runtime or its system it skips (`openxr`, `vulkan`). On a headset (Android) the same check is `android_openxr_loader`'s with `SDL3_OPENXR_DEVICE=1`, an app's (an app's main gets no test harness's arguments): see [A headset's OpenXR runtime](#a-headsets-openxr-runtime) |
 | `gpu_openxr_hardware`'s `hardware_d3d12_openxr_session_on_the_active_runtime` | Windows | the same on Direct3D 12: the adapter of the runtime's LUID, whose requirements are printed (the LUID and the minimum feature level, which upstream ignores: the device is made with 11_0), the session, formats, swapchain and frames on it (it skips as `d3d12`) |
 | `joystick::apple::tests::hardware_mfi_controllers` | macOS | what GameController reports through the MFi driver alone: names, GUIDs, the generated gamepad mapping, SF Symbols names, sensors, LED, battery and rumble. GameController discovers controllers on the main run loop, which a test thread doesn't run, so only the ones it already knew when the driver started are listed |
 
@@ -1937,7 +1937,15 @@ Two more words shape its package: `assets=DIR`, the files of DIR
 (`assets/...`, with Gradle's time for them, 1981-01-01 01:01:02), and
 `permissions=NAME,...`, the permissions its manifest asks for
 (`android.permission.NAME` for a NAME without a dot), none granted (the
-runner's `permission` request grants one); and two its launch:
+runner's `permission` request grants one); `libs=NAME,...`, more native
+libraries beside the program (`lib/ABI/NAME`, uncompressed, which the app
+loads by name: an OpenXR loader or runtime), each the first of
+`DIR/ABI/NAME` and `DIR/NAME` of the program's ABI in the directories of
+`SDL3_ANDROID_LIBRARY_PATH` (separated by colons), then in the program's
+own directory (Cargo's `deps/`, where a `cdylib` dev-dependency is built),
+a library found nowhere left out with a note (the app gets the names of
+those its package holds in `SDL3_ANDROID_RUNNER_LIBS`,
+`android_support::packaged_library()`); and two its launch:
 `data=URI`, launched as another app's "Open with" launches it
 (`ACTION_VIEW` of the URI; `SDL3_ANDROID_LAUNCH_DATA` for any app), and
 `devices=NAME,...`, devices plugged in before the app is launched and
@@ -1961,8 +1969,18 @@ and `java` for `apksigner`):
   `.sdl3_android_dex` section, where sdl3 keeps it;
 * `lib/ABI/libmain.so`: the program, uncompressed and 16 KB-aligned
   (`zipalign -P 16`);
+* `lib/ABI/NAME`: the libraries of its `libs=` word, uncompressed and
+  aligned as the program;
 * signed by `apksigner` with the debug key, `~/.android/debug.keystore`
   (`SDL3_ANDROID_KEYSTORE`), made with `keytool` when there's none.
+
+With `SDL3_ANDROID_XR=1` the manifest also has what an OpenXR runtime of a
+headset asks of an app (upstream's
+`test/android/cmake/AndroidManifest.xr.xml.cmake`'s: head tracking as a
+required feature, the Khronos loader's permissions and its queries of the
+runtime brokers and services, the activity's immersive categories,
+Khronos's and Meta's, and Meta's supported devices); the emulator has no
+runtime that needs it, so the runner's packages don't have it otherwise.
 
 The package is `org.libsdl.sdl3_rust.NAME` (`SDL3_ANDROID_PACKAGE`). The
 runner installs it, launches it (`am start -W`, with a launcher's intent:
@@ -2095,6 +2113,8 @@ against upstream's C (see [The C references](#the-c-references)):
 | `android_joystick` | `app devices=dualsense` | the joystick and haptic drivers |
 | `android_sensor` | `app` | the sensor driver |
 | `android_camera` | `app permissions=CAMERA` | the camera driver |
+| `android_openxr` | `app libs=libsdl3_openxr_test_runtime.so` | the GPU API's OpenXR functions without a loader, then on the repository's test runtime in the loader's place |
+| `android_openxr_loader` | `app libs=libopenxr_loader.so` | the GPU API's OpenXR functions with the Khronos loader for Android and no runtime (a device check with `SDL3_OPENXR_DEVICE=1`: [below](#a-headsets-openxr-runtime)) |
 | `android_hidapi` | `app devices=dualsense permissions=BLUETOOTH_CONNECT` | HIDAPI's backend and the HID device manager (a device check with `SDL3_HIDAPI_DEVICE=1`: [below](#a-usb-or-bluetooth-le-controller-hidapi)) |
 
 What each checks: `sdl3/tests/android_runner.rs` (the runner's
@@ -2319,6 +2339,31 @@ feature report's copy, the open handshake, the interfaces the manager
 takes, the Steam Controller's names and its characteristics' report IDs
 in a spawned program.
 
+And the GPU API's OpenXR functions, against upstream's C too:
+`android_openxr.rs`, whose package holds the repository's test runtime
+(`sdl3-openxr-test-runtime`, which has `XR_KHR_loader_init` and
+`XR_KHR_android_create_instance` on Android, and checks the app's Java VM
+against the process's and the activity and context as references of
+their classes) and no loader: without a loader, the load's error, the
+Vulkan backend saying it supports an OpenXR device all the same (its
+PrepareDriver doesn't look on Android) and the device's error from
+CreateDevice, with the debug build's assertion there (upstream's, which
+Android's PrepareDriver can't satisfy); then the runtime in the loader's
+place (`SDL_OPENXR_LIBRARY`), its `xrInitializeLoaderKHR`'s lookup and
+call made to fail (`SDL3_OPENXR_TEST_RUNTIME_FAIL`), the library loaded,
+unloaded (Android keeps it, initialized) and loaded again with another
+hint (the kept one, not initialized again), and a device on it on
+SwiftShader (its instance with the app's VM and activity), the session,
+the formats, swapchains of one and two layers, the session's states and
+frames cleared and read back exactly, a projection layer, the exit and
+the destructions; and `android_openxr_loader.rs`, whose package holds the
+Khronos loader for Android and no runtime (the emulator has no runtime
+broker): the device fails in CreateDevice once the loader is initialized
+(its Vulkan extension not found, which upstream logs without setting an
+error), the loader's global functions (no layers,
+`XR_ERROR_RUNTIME_UNAVAILABLE` for the extensions), the library kept
+after its unload.
+
 ### The C references
 
 The expected traces of the app programs are upstream's C SDL's: the same
@@ -2340,7 +2385,10 @@ renderer's framebuffer object functions tried before they're taken and
 its textures' address modes set (`android_gles1.rs`, as on iOS and
 tvOS), and the Vulkan
 renderer's pre-rotated swapchain and `VK_EXT_4444_formats` formats
-(`android_vulkan.rs`), a physical audio device opened at the spec
+(`android_vulkan.rs`), upstream's C SDL with the repository's test
+runtime (built for the emulator's ABI) or the Khronos loader in the app's
+`jniLibs` (`android_openxr.rs`, `android_openxr_loader.rs`, unpatched), a
+physical audio device opened at the spec
 asked for (`android_audio.rs`, `android_audio_opensles.rs`: a stream's
 device's format), and the camera's stream configurations read as many as
 there are (`android_camera.rs`: upstream's loop reads four times as many,
@@ -2464,7 +2512,7 @@ lists (USB debugging on, and "Install via USB" where the device has it),
 named by `SDL3_ANDROID_SERIAL` when there are others, for its ABI
 (`aarch64-linux-android` for most; an app needs the device to allow the
 runner's `adb reverse` ports). The traces of the app programs are the
-emulator's, which a device doesn't match. One program has a hardware
+emulator's, which a device doesn't match. Two programs have a hardware
 check there:
 
 #### A USB or Bluetooth LE controller (HIDAPI)
@@ -2503,6 +2551,42 @@ of the enumeration), a Steam Controller connecting and disconnecting
 and Bluetooth (the report characteristic), and the app's controllers
 released while it is in the background (`setFrozen()`). This check
 hasn't been run on a device yet.
+
+#### A headset's OpenXR runtime
+
+`android_openxr_loader` with `SDL3_OPENXR_DEVICE=1` checks the GPU API's
+OpenXR functions on a headset's runtime (a Meta Quest's, an Android XR
+device's), which the Khronos loader in its package finds through the
+device's runtime broker: a Vulkan device made with OpenXR on the
+runtime's choice of GPU (its name, instance and system printed), the
+session, the runtime's swapchain formats (printed, an 8-bit color one
+taken), a two-layer color swapchain, then the session's states and up to
+120 frames rendered (each eye's layer cleared, a projection layer
+submitted) or 10 s, the exit request, the session's end and every
+destruction (`sdl3/tests/openxr_support/session.rs`, the check
+`gpu_openxr_hardware` runs on Linux and Windows); a runtime that never
+shows the session (a headset not worn) is reported, with its states. It
+ends with the exit line, 0 when everything came. The package needs the
+manifest a headset's runtime asks for (`SDL3_ANDROID_XR=1`: an immersive
+activity, the loader's permissions and queries), and the loader of the
+device's ABI in `SDL3_ANDROID_LIBRARY_PATH` (`DIR/arm64-v8a/`, from the
+AAR as `tools/ci/openxr-android.sh` unpacks it):
+
+```sh
+export SDL3_ANDROID_SERIAL=DEVICE   # adb devices
+export SDL3_ANDROID_LIBRARY_PATH=$HOME/openxr-android   # arm64-v8a/libopenxr_loader.so
+SDL3_ANDROID_XR=1 SDL3_OPENXR_DEVICE=1 cargo test --target aarch64-linux-android -p sdl3 --test android_openxr_loader
+```
+
+Put the headset on (or keep its proximity sensor covered) before the
+launch, so that the runtime makes the session visible. Upstream's
+PrepareDriver doesn't make an OpenXR instance on Android (the Quest's
+runtime can't have one made, destroyed and made again), and the library
+is never unloaded there, so the loader is initialized once a process.
+The runner's readiness wait and launch are the emulator's (the launcher's
+focus, the display's cutout): on a headset they may need the device's
+own launcher or settings first. This check hasn't been run on a device
+yet.
 
 #### What else needs a device
 
@@ -2588,10 +2672,17 @@ the image and a booted device's snapshot would take 4 GB of the
 repository's 10 GB of cache to save about 40 s, and the emulator boots
 cold while the programs build (`tools/android_run.py --boot`). The
 runner image's toolchains the job doesn't use are removed first: the
-virtual device's data partition takes 14.4 GB of the disk. The job
+virtual device's data partition takes 14.4 GB of the disk. Khronos's
+OpenXR loader for Android comes from Maven Central (the package
+`org.khronos.openxr:openxr_loader_for_android`'s AAR, 1.1.65, checked
+against its SHA-256 and Maven's SHA-1, cached; Apache-2.0, never
+committed), its `libopenxr_loader.so` of each ABI in
+`SDL3_ANDROID_LIBRARY_PATH` for `android_openxr_loader`'s package
+(`tools/ci/openxr-android.sh`). The job
 runs `cargo test --workspace --target x86_64-linux-android` (the app
 programs as apps, packaged with the runner image's build-tools 35.0.0 and
-android-35 platform), then the app mode once more, with arguments and a
+android-35 platform, with `SDL3_TEST_REQUIRE=openxr,openxr-runtime`, which
+the OpenXR apps' libraries need: an app has no skip log), then the app mode once more, with arguments and a
 variable holding the same string (quotes, a backslash, `<&>`, characters
 beyond ASCII and beyond U+FFFF), which `android_runner` and
 `android_spawned` compare, then both programs with an exit status of 3,
