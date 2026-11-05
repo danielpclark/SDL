@@ -1027,11 +1027,16 @@ def wait_until_ready(serial):
         else:
             note(f"{serial} is ready for apps ({time.monotonic() - start:.0f} s later)")
     if restore_device_overlay(serial):
+        # (the overlay's configuration change relaunches the launcher, which
+        # loses the focus for a moment: ready for 3 checks in a row)
         start = time.monotonic()
-        missing = readiness(serial)
-        while missing and time.monotonic() - start < READY_TIMEOUT:
-            time.sleep(1)
+        steady = 0
+        while time.monotonic() - start < READY_TIMEOUT:
             missing = readiness(serial)
+            steady = 0 if missing else steady + 1
+            if steady == 3:
+                break
+            time.sleep(1)
         if missing:
             note(f"{serial} still isn't ready after {READY_TIMEOUT} s ({', '.join(missing)}): going on")
         else:
@@ -1054,15 +1059,15 @@ def restore_device_overlay(serial):
     (`ro.boot.qemu.avd_name` sdl3-..., avd_name()), once the first-boot
     setup is over (wait_until_ready()):
     the overlay of its profile, DEVICE_OVERLAY (the Pixel 6's camera hole,
-    the display's cutout, among its resources), turned on when the setup
-    left it off. The Google APIs image's first-boot setup turns it on as it
-    provisions the device, but on some boots (one in eight boots on the CI
-    runners, the setup otherwise ending as usual) it doesn't, and the
-    display then has no cutout for the whole boot: the insets are the
-    63 px status bar's alone, and the windows' safe areas, the system's
-    dialogs and the documents' picker lie higher than in upstream's
-    traces, which were captured with the cutout. Whether it turned the
-    overlay on."""
+    the display's cutout, among its resources), turned on when it is still
+    off. The Google APIs image's first-boot setup turns it on, but only
+    around the time readiness() sees the setup end, often a moment after,
+    and on some boots (one of the eight of a CI diagnosis, the setup
+    otherwise ending as usual) never: the display then has no cutout for
+    the whole boot, the insets are the 63 px status bar's alone, and the
+    windows' safe areas, the system's dialogs and the documents' picker
+    lie higher than in upstream's traces, which were captured with the
+    cutout. Whether it turned the overlay on."""
     script = (
         "getprop ro.boot.qemu.avd_name; "
         f"cmd overlay list android 2>&1 | grep -F ' {DEVICE_OVERLAY}' | head -1"
