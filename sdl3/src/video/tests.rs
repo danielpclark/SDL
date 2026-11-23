@@ -1207,7 +1207,7 @@ fn cursor_images_and_animation() {
             (c.format, c.w, c.h, c.hot),
             (PixelFormat::ARGB8888, 8, 2, (2, 1))
         );
-        let inverted = if cfg!(all(windows, not(feature = "gdk"))) {
+        let inverted = if cfg!(windows) {
             0x00FFFFFF
         } else {
             0xFF000000
