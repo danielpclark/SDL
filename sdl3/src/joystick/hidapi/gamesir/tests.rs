@@ -73,6 +73,33 @@ fn supported_devices() {
     ));
 }
 
+/// The interface the commands go to: interface 1, or on Windows interface
+/// 0's second collection (col02), or a gamepad collection of a device
+/// without interfaces.
+#[test]
+fn output_interface() {
+    let info = |interface_number, usage_page, usage| DeviceInfo {
+        path: Some(format!("path{interface_number}")),
+        interface_number,
+        usage_page,
+        usage,
+        ..DeviceInfo::default()
+    };
+    let col02 = || Some("col02".to_owned());
+    assert_eq!(output_path(&info(1, 0, 0), col02).as_deref(), Some("path1"));
+    assert_eq!(
+        output_path(&info(0, 0, 0), col02).as_deref(),
+        cfg!(all(windows, not(feature = "gdk"))).then_some("col02")
+    );
+    assert_eq!(output_path(&info(0, 0, 0), || None), None);
+    assert_eq!(
+        output_path(&info(-1, 0x0001, 0x0005), col02).as_deref(),
+        cfg!(windows).then_some("path-1")
+    );
+    assert_eq!(output_path(&info(-1, 0x0001, 0x0004), col02), None);
+    assert_eq!(output_path(&info(2, 0, 0), col02), None);
+}
+
 #[test]
 fn transcript() {
     let _l = crate::test_support::test_lock();

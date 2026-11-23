@@ -393,8 +393,11 @@ fn set_feature_report(dev: &dyn SteamHid, report: &[u8], actual_data_len: usize)
 
 /// Whether BLE devices get 2 copies of the feature report ID, one that is
 /// removed by ReadFeatureReport, and one that's included in the buffer we
-/// receive (on Windows and macOS).
-const BLE_DUPLICATE_FEATURE_REPORT_ID: bool = cfg!(any(windows, target_os = "macos"));
+/// receive (on Windows and macOS). FIXME (upstream): `SDL_PLATFORM_WIN32`
+/// and macOS only, so WinGDK (the `gdk` feature) reads its Windows's
+/// reports one byte short.
+const BLE_DUPLICATE_FEATURE_REPORT_ID: bool =
+    cfg!(any(all(windows, not(feature = "gdk")), target_os = "macos"));
 
 /// Read a feature report into `report` ([`FEATURE_REPORT_BUFFER_SIZE`]
 /// bytes). Translation of `GetFeatureReport()`.
@@ -1477,7 +1480,9 @@ impl SteamContext {
 
     /// `HIDAPI_DriverSteam_InitDevice()` on `dev`.
     fn init(&mut self, device: &mut DeviceCtx<'_>, dev: &dyn SteamHid) -> Result<()> {
-        if cfg!(windows) && device.serial().is_some() {
+        // FIXME (upstream): SDL_PLATFORM_WIN32 only, so WinGDK (the gdk
+        // feature) keeps its Windows's garbage.
+        if cfg!(all(windows, not(feature = "gdk"))) && device.serial().is_some() {
             // We get a garbage serial number on Windows
             device.clear_device_serial();
         }

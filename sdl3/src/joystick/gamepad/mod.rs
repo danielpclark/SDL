@@ -2587,7 +2587,9 @@ pub(crate) fn should_ignore_gamepad(
 
     let hint = crate::stdlib::getenv_unsafe("SDL_GAMECONTROLLER_ALLOW_STEAM_VIRTUAL_GAMEPAD");
     let allow_steam_virtual_gamepad = hints::string_to_bool(hint.as_deref(), false);
-    #[cfg(windows)]
+    // FIXME (upstream): SDL_PLATFORM_WIN32 only, so WinGDK (the gdk
+    // feature) under Proton or Wine ignores gamepads Steam lets through.
+    #[cfg(all(windows, not(feature = "gdk")))]
     if allow_steam_virtual_gamepad && crate::core::windows::is_wine() {
         // We are launched by Steam and running under Proton or Wine
         // We can't tell whether this controller is a Steam Virtual Gamepad,

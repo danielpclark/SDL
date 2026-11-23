@@ -122,6 +122,23 @@ fn supported_devices() {
     ));
 }
 
+/// The PS3 driver is off by default but on macOS; the driver for Sony's
+/// sixaxis.sys is Windows's, off unless its hint says so.
+#[test]
+fn enabled_drivers() {
+    let _l = crate::test_support::test_lock();
+    hints::reset(hints::JOYSTICK_HIDAPI_PS3);
+    hints::reset(hints::JOYSTICK_HIDAPI_PS3_SIXAXIS_DRIVER);
+    assert_eq!(Ps3Driver.is_enabled(), cfg!(target_os = "macos"));
+    assert!(!Ps3SonySixaxisDriver.is_enabled());
+    hints::set(hints::JOYSTICK_HIDAPI_PS3_SIXAXIS_DRIVER, "1").unwrap();
+    assert_eq!(
+        Ps3SonySixaxisDriver.is_enabled(),
+        cfg!(all(windows, not(feature = "gdk")))
+    );
+    hints::reset(hints::JOYSTICK_HIDAPI_PS3_SIXAXIS_DRIVER);
+}
+
 #[test]
 fn device_kinds() {
     assert!(is_shanwan(USB_VENDOR_SONY, "SHANWAN PS3 GamePad"));
