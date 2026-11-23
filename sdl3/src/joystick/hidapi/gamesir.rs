@@ -234,11 +234,12 @@ fn output_path(
     find_col02: impl FnOnce() -> Option<String>,
 ) -> Option<String> {
     match info.interface_number {
-        // FIXME (upstream): SDL_PLATFORM_WIN32 only ("These APIs are NOT
-        // available on GDK platforms", the Xbox consoles), so WinGDK (the
-        // gdk feature), which has them, has no output interface for a
-        // wired controller: the commands go to its input interface.
-        0 if cfg!(all(windows, not(feature = "gdk"))) => find_col02(),
+        // Note (upstream): SDL_PLATFORM_WIN32 only ("These APIs are NOT
+        // available on GDK platforms", the Xbox consoles), so upstream's
+        // WinGDK, which has them, has no output interface for a wired
+        // controller: the commands go to its input interface. Here the
+        // gdk feature finds it.
+        0 if cfg!(windows) => find_col02(),
         -1 if cfg!(windows) && info.usage_page == 0x0001 && info.usage == 0x0005 => {
             info.path.clone()
         }

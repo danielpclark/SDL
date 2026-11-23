@@ -89,7 +89,7 @@ fn output_interface() {
     assert_eq!(output_path(&info(1, 0, 0), col02).as_deref(), Some("path1"));
     assert_eq!(
         output_path(&info(0, 0, 0), col02).as_deref(),
-        cfg!(all(windows, not(feature = "gdk"))).then_some("col02")
+        cfg!(windows).then_some("col02")
     );
     assert_eq!(output_path(&info(0, 0, 0), || None), None);
     assert_eq!(
