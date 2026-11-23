@@ -76,7 +76,7 @@ fn device_filtering() {
                 USB_USAGEPAGE_GENERIC_DESKTOP,
                 USB_USAGE_GENERIC_MOUSE
             ),
-            cfg!(windows)
+            cfg!(all(windows, not(feature = "gdk")))
         );
         assert!(!ignore(BusType::Usb, USB_VENDOR_VALVE, 0x1102, 0xff00, 1));
         // Flydigi controllers by their vendor usage page

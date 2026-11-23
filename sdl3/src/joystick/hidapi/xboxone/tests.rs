@@ -483,6 +483,41 @@ fn controller_features() {
     assert!(supported(0xff, 71, 208, GamepadType::XboxOne));
     assert!(!supported(0xff, 93, 1, GamepadType::XboxOne));
     assert!(!supported(0, 0, 0, GamepadType::Xbox360));
+
+    // Windows's fake HID endpoint of an XGIP controller isn't used there
+    let fake_endpoint = test_device(&DeviceInfo {
+        path: Some(r"\\?\HID#VID_045E&PID_02EA&IG_00#8&1&0&0000#{4d1e55b2}".to_owned()),
+        vendor_id: USB_VENDOR_MICROSOFT,
+        product_id: USB_PRODUCT_XBOX_ONE_S,
+        ..DeviceInfo::default()
+    });
+    assert_eq!(
+        driver.is_supported_device(
+            Some(&fake_endpoint),
+            "",
+            GamepadType::XboxOne,
+            USB_VENDOR_MICROSOFT,
+            USB_PRODUCT_XBOX_ONE_S,
+            0,
+            0,
+            0,
+            0,
+            0,
+        ),
+        !cfg!(all(windows, not(feature = "gdk")))
+    );
+    assert!(driver.is_supported_device(
+        Some(&xbox_one_s()),
+        "",
+        GamepadType::XboxOne,
+        USB_VENDOR_MICROSOFT,
+        USB_PRODUCT_XBOX_ONE_S,
+        0,
+        0,
+        0,
+        0,
+        0,
+    ));
 }
 
 fn field(usage_page: u16, usage: u16, bit_offset: i32, bit_size: i32) -> DescriptorInputField {

@@ -725,7 +725,9 @@ impl DriverImpl for Ps3Driver {
         let mut default_value = if cfg!(target_os = "macos") {
             // This works well on macOS
             true
-        } else if cfg!(windows) {
+        } else if cfg!(all(windows, not(feature = "gdk"))) {
+            // (WinGDK, the gdk feature, is "Untested, default off" below:
+            // off too)
             /* For official Sony driver (sixaxis.sys) use SDL_HINT_JOYSTICK_HIDAPI_PS3_SIXAXIS_DRIVER.
              *
              * See https://github.com/ViGEm/DsHidMini as an alternative driver
@@ -1119,7 +1121,11 @@ impl DriverImpl for Ps3SonySixaxisDriver {
 
     /// Translation of `HIDAPI_DriverPS3SonySixaxis_IsEnabled()`.
     fn is_enabled(&self) -> bool {
-        cfg!(windows) && hints::get_bool(hints::JOYSTICK_HIDAPI_PS3_SIXAXIS_DRIVER, false)
+        // FIXME (upstream): SDL_PLATFORM_WIN32 only, so WinGDK (the gdk
+        // feature) can't use the driver, though sixaxis.sys is its
+        // Windows's.
+        cfg!(all(windows, not(feature = "gdk")))
+            && hints::get_bool(hints::JOYSTICK_HIDAPI_PS3_SIXAXIS_DRIVER, false)
     }
 
     /// Translation of `HIDAPI_DriverPS3SonySixaxis_IsSupportedDevice()`.

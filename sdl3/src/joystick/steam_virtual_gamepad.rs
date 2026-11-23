@@ -59,12 +59,17 @@ fn file_modification_time(file: &str) -> u64 {
         use std::os::unix::fs::MetadataExt;
         metadata.mtime() as u64
     }
-    #[cfg(windows)]
+    #[cfg(all(windows, not(feature = "gdk")))]
     {
         use std::os::windows::fs::MetadataExt;
         metadata.last_write_time()
     }
-    #[cfg(not(any(unix, windows)))]
+    // FIXME (upstream): the FILETIME is SDL_PLATFORM_WIN32's, so WinGDK
+    // (the gdk feature) has stat()'s st_mtime, in seconds: a rewrite of the
+    // file within the second it was read in isn't seen. (Its path is
+    // passed to stat() as UTF-8, which the C runtime takes in the ANSI code
+    // page; here it's the path itself.)
+    #[cfg(not(any(unix, all(windows, not(feature = "gdk")))))]
     {
         metadata
             .modified()
@@ -243,5 +248,29 @@ mod tests {
         assert_eq!(parse_slot("[slot   -2"), Some(-2));
         assert_eq!(parse_slot("[slot]"), None);
         assert_eq!(parse_slot("slot 1"), None);
+    }
+
+    /// The info file's modification time: a FILETIME on Windows (100 ns
+    /// intervals since 1601), seconds since 1970 elsewhere.
+    #[test]
+    fn modification_time() {
+        let path =
+            std::env::temp_dir().join(format!("sdl3-steam-vgp-mtime-{}", std::process::id()));
+        std::fs::write(&path, "[slot 0]\n").unwrap();
+        let mtime = file_modification_time(path.to_str().unwrap());
+        let seconds = std::fs::metadata(&path)
+            .unwrap()
+            .modified()
+            .unwrap()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
+        std::fs::remove_file(&path).unwrap();
+        if cfg!(all(windows, not(feature = "gdk"))) {
+            assert_eq!(mtime / 10_000_000 - 11_644_473_600, seconds);
+        } else {
+            assert_eq!(mtime, seconds);
+        }
+        assert_eq!(file_modification_time(""), 0);
     }
 }

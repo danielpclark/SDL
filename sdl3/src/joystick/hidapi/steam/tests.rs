@@ -427,6 +427,31 @@ fn transcript() {
     super::super::CHANGE_COUNT.store(0, Ordering::Relaxed);
 }
 
+/// The serial number Windows gives a Steam Controller is garbage: it's
+/// dropped there.
+#[test]
+fn windows_serial() {
+    let _l = crate::test_support::test_lock();
+    let _lock = crate::joystick::lock_joysticks();
+    let device = test_device(&DeviceInfo {
+        vendor_id: USB_VENDOR_VALVE,
+        product_id: 0x1102,
+        interface_number: 2,
+        serial_number: Some("garbage".to_owned()),
+        ..DeviceInfo::default()
+    });
+    let fake = FakeHid::new(false);
+    let mut ctx = SteamContext::default();
+    let (result, _) = run(&device, |d| ctx.init(d, &fake));
+    assert!(result.is_ok());
+    assert_eq!(
+        device.serial().is_none(),
+        cfg!(all(windows, not(feature = "gdk")))
+    );
+    super::super::NUMJOYSTICKS.store(0, Ordering::Relaxed);
+    super::super::CHANGE_COUNT.store(0, Ordering::Relaxed);
+}
+
 #[test]
 fn supported_devices() {
     let driver = SteamDriver;

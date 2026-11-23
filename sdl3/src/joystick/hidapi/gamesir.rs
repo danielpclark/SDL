@@ -214,30 +214,37 @@ fn open_output_handle(device: &HidapiDevice) -> Option<HidDevice> {
     let product_id = device.product_id();
     let devs = crate::hidapi::enumerate(vendor_id, product_id).unwrap_or_default();
     devs.iter().find_map(|info| {
-        let open = |path: Option<&str>| path.and_then(|path| HidDevice::open_path(path).ok());
-        match info.interface_number {
-            0 => {
-                #[cfg(windows)]
-                {
-                    crate::hidapi::find_interface_path(vendor_id, product_id, 2)
-                        .and_then(|col02_path| open(Some(&col02_path)))
-                }
-                #[cfg(not(windows))]
-                {
-                    None
-                }
-            }
-            -1 => {
-                if cfg!(windows) && info.usage_page == 0x0001 && info.usage == 0x0005 {
-                    open(info.path.as_deref())
-                } else {
-                    None
-                }
-            }
-            1 => open(info.path.as_deref()),
-            _ => None,
-        }
+        let path = output_path(info, || {
+            #[cfg(windows)]
+            return crate::hidapi::find_interface_path(vendor_id, product_id, 2);
+            #[cfg(not(windows))]
+            None
+        })?;
+        HidDevice::open_path(&path).ok()
     })
+}
+
+/// The path of the interface the commands go to that an enumerated
+/// interface of the controller leads to (part of `GetOutputHandle()`):
+/// interface 1; on Windows, interface 0's second top-level collection
+/// (`find_col02`: `FindHIDInterfacePath()`), or a gamepad collection of
+/// a device without interfaces.
+fn output_path(
+    info: &crate::hidapi::DeviceInfo,
+    find_col02: impl FnOnce() -> Option<String>,
+) -> Option<String> {
+    match info.interface_number {
+        // FIXME (upstream): SDL_PLATFORM_WIN32 only ("These APIs are NOT
+        // available on GDK platforms", the Xbox consoles), so WinGDK (the
+        // gdk feature), which has them, has no output interface for a
+        // wired controller: the commands go to its input interface.
+        0 if cfg!(all(windows, not(feature = "gdk"))) => find_col02(),
+        -1 if cfg!(windows) && info.usage_page == 0x0001 && info.usage == 0x0005 => {
+            info.path.clone()
+        }
+        1 => info.path.clone(),
+        _ => None,
+    }
 }
 
 /// The name of a controller (part of `HIDAPI_DriverGameSir_InitDevice()`).

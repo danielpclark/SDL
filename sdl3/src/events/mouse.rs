@@ -2043,7 +2043,10 @@ pub fn create_cursor(
     const WHITE: u32 = 0xFFFFFFFF;
     const TRANSPARENT: u32 = 0x00000000;
     // Only Windows backend supports inverted pixels in mono cursors.
-    const INVERTED: u32 = if cfg!(windows) {
+    // FIXME (upstream): SDL_PLATFORM_WIN32 only, so WinGDK (the gdk
+    // feature) makes them black, though its cursors are the same Windows
+    // video driver's.
+    const INVERTED: u32 = if cfg!(all(windows, not(feature = "gdk"))) {
         0x00FFFFFF
     } else {
         0xFF000000

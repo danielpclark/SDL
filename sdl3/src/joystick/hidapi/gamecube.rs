@@ -27,8 +27,10 @@ const MAX_CONTROLLERS: usize = 4;
 const PC_RUMBLE_REFRESH: u64 = 16;
 
 /// Whether each slot of an adapter in PC mode is a separate device
-/// (`SDL_PLATFORM_WIN32`).
-const SEPARATE_SLOT_DEVICES: bool = cfg!(windows);
+/// (`SDL_PLATFORM_WIN32`). FIXME (upstream): so not on WinGDK (the `gdk`
+/// feature), whose Windows makes a device of each slot too: it connects
+/// four joysticks for each of them.
+const SEPARATE_SLOT_DEVICES: bool = cfg!(all(windows, not(feature = "gdk")));
 
 /// The GameCube driver's static functions.
 pub(crate) struct GameCubeDriver;
