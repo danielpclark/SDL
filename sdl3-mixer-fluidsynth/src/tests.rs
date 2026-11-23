@@ -20,16 +20,16 @@
 // FluidSynth 2.5.7 (see NOTICE).
 
 //! The files in `testdata/` are made by `tools/gen_fluidsynth_testdata.py`
-//! (a synthetic SoundFont, MIDI files, broken copies of both, and
-//! `cases.txt`). `testdata/reference.txt` is the output of a C program
-//! built from upstream SDL_mixer's FluidSynth (configured as SDL_mixer's
-//! CMake configures it) and SDL3, which this test repeats and compares
-//! line by line: each case of `cases.txt` sets up the settings, the synth,
-//! a SoundFont loader reading from memory and the player as SDL_mixer's
-//! FluidSynth decoder does, renders 128 frames at a time while the player
-//! plays (up to a limit), and prints the results of the calls, an FNV-1a
-//! hash of the samples' bytes, and the messages logged at every level but
-//! `FLUID_DBG` on the way.
+//! (a synthetic SoundFont, synthetic DLS files, MIDI files, broken copies
+//! of them, and `cases.txt`). `testdata/reference.txt` is the output of a C
+//! program built from upstream SDL_mixer's FluidSynth (configured as
+//! SDL_mixer's CMake configures it) and SDL3, which this test repeats and
+//! compares line by line: each case of `cases.txt` sets up the settings,
+//! the synth, a SoundFont loader reading from memory and the player as
+//! SDL_mixer's FluidSynth decoder does, renders 128 frames at a time while
+//! the player plays (up to a limit), and prints the results of the calls,
+//! an FNV-1a hash of the samples' bytes, and the messages logged at every
+//! level but `FLUID_DBG` on the way.
 //!
 //! Upstream's C was built to use SDL's bundled math functions, as sdl3's
 //! are, rather than the C library's; with its IIR filter compiled without
@@ -44,7 +44,11 @@
 //! `testdata/reference_dls.txt` is the output of another such C program,
 //! which loads each DLS file of `testdata/` through the synth's DLS loader
 //! (`new_fluid_dls_loader()`, private upstream) reading from memory, and
-//! prints the messages logged and whether a SoundFont was made.
+//! prints the messages logged and whether a SoundFont was made; for one
+//! that was, a dump of what the loader made of the file (by a function the
+//! program adds to upstream's fluid_dls.cpp: see `DlsFont::dump()`), then
+//! for each bank select style the presets as the SoundFont iterates them,
+//! and which of them it finds for each bank and program asked.
 //!
 //! `FSREF_CASES`, `FSREF_DIR` and `FSREF_DUMP` (a cases file, its data
 //! directory and where to write the output instead of comparing it) and
@@ -55,6 +59,7 @@ use std::cell::RefCell;
 use std::fmt::Write;
 use std::sync::{Arc, Once};
 
+use crate::sfloader::sfont::{FluidPreset, FluidSfont, SfontData};
 use crate::*;
 
 static REFERENCE: &str = include_str!("../testdata/reference.txt");
@@ -76,6 +81,24 @@ thread_local! {
     static CAPTURE: RefCell<Option<String>> = const { RefCell::new(None) };
 }
 
+/// A message as the reference program prints it: each run of non-ASCII
+/// characters as one '?' (the program prints each run of non-ASCII bytes
+/// so).
+fn ascii(message: &str) -> String {
+    let mut line = String::new();
+    let mut ascii = true;
+    for ch in message.chars() {
+        if ch.is_ascii() {
+            line.push(ch);
+            ascii = true;
+        } else if ascii {
+            line.push('?');
+            ascii = false;
+        }
+    }
+    line
+}
+
 /// Sends the messages of every level but FLUID_DBG to the capturing
 /// thread's buffer (the log functions are global; the tests' threads
 /// capture their own messages).
@@ -89,21 +112,7 @@ fn install_log() {
                 Some(Arc::new(|level: i32, message: &str| {
                     CAPTURE.with(|c| {
                         if let Some(out) = c.borrow_mut().as_mut() {
-                            // (each run of non-ASCII characters prints as
-                            // one '?', as the reference program prints each
-                            // run of non-ASCII bytes)
-                            let mut line = String::new();
-                            let mut ascii = true;
-                            for ch in message.chars() {
-                                if ch.is_ascii() {
-                                    line.push(ch);
-                                    ascii = true;
-                                } else if ascii {
-                                    line.push('?');
-                                    ascii = false;
-                                }
-                            }
-                            let _ = writeln!(out, "  log{} {}", level, line);
+                            let _ = writeln!(out, "  log{} {}", level, ascii(message));
                         }
                     });
                 }))
@@ -186,6 +195,11 @@ macro_rules! testdata {
 /// the tests of the Emscripten build see only their own (in-memory) file
 /// system.
 const TESTDATA: &[(&str, &[u8])] = testdata![
+    "dls_art.dls",
+    "dls_art_cbsize.dls",
+    "dls_art_count.dls",
+    "dls_art_size.dls",
+    "dls_at.dls",
     "dls_badform.dls",
     "dls_badlist.dls",
     "dls_cdl_div0.dls",
@@ -202,14 +216,24 @@ const TESTDATA: &[(&str, &[u8])] = testdata![
     "dls_extra.dls",
     "dls_hint.dls",
     "dls_info.dls",
+    "dls_insh.dls",
+    "dls_lart_cdl.dls",
+    "dls_lart_notlist.dls",
     "dls_nolins.dls",
     "dls_notdls.dls",
     "dls_notriff.dls",
     "dls_nowvpl.dls",
+    "dls_pgal.dls",
+    "dls_pgal_nover.dls",
+    "dls_pgal_short.dls",
+    "dls_pgal_small.dls",
     "dls_ptbl_cbsize.dls",
     "dls_ptbl_cues.dls",
     "dls_ptbl_size.dls",
+    "dls_rgn_lartcdl.dls",
+    "dls_samples.dls",
     "dls_short.dls",
+    "dls_sort.dls",
     "dls_toolong.dls",
     "dls_truncchunk.dls",
     "dls_wave_align.dls",
@@ -224,6 +248,7 @@ const TESTDATA: &[(&str, &[u8])] = testdata![
     "dls_wave_order.dls",
     "dls_wave_short.dls",
     "dls_wave_wsmp.dls",
+    "dls_wlnk.dls",
     "dls_wvpl_chunk.dls",
     "dls_wvpl_size.dls",
     "midi/bad_eot.mid",
@@ -278,6 +303,7 @@ const TESTDATA: &[(&str, &[u8])] = testdata![
     "sf2_version1.sf2",
     "sf2_version3.sf2",
     "sf2_version9.sf2",
+    "test.dls",
     "test.sf2",
     "test_v201.sf2",
 ];
@@ -492,9 +518,59 @@ fn compare(out: &str, reference: &str) {
     assert_eq!(failures, 0, "{} lines differ from the reference", failures);
 }
 
+/// The banks the DLS test asks a SoundFont's get_preset() for (with each
+/// program, 0-127): every bank number a bank select style gives the test
+/// files' instruments, and more.
+const DLS_LOOKUP_BANKS: [std::ops::RangeInclusive<i32>; 6] = [
+    0..=131,
+    256..=258,
+    384..=386,
+    15360..=15360,
+    15488..=15488,
+    16384..=16384,
+];
+
+/// The presets of a SoundFont, as the reference program prints them for
+/// each bank select style: as the SoundFont iterates them (their index,
+/// bank number, program and name), then the index of each that
+/// get_preset() finds for the banks of [`DLS_LOOKUP_BANKS`].
+fn dls_presets(sfont: &mut FluidSfont, out: &mut String) {
+    for (style, style_name) in ["gm", "gs", "xg", "mma"].into_iter().enumerate() {
+        let style = style as i32;
+        let mut list = Vec::new();
+        sfont.iteration_start();
+        while let Some(preset) = sfont.iteration_next() {
+            let _ = writeln!(
+                out,
+                "  {} preset {} {}:{} '{}'",
+                style_name,
+                list.len(),
+                preset.get_banknum(style),
+                preset.get_num(),
+                ascii(preset.get_name())
+            );
+            list.push(preset);
+        }
+        for bank in DLS_LOOKUP_BANKS.into_iter().flatten() {
+            for prog in 0..128 {
+                let Some(preset) = sfont.get_preset(bank, prog, style) else {
+                    continue;
+                };
+                let index = list
+                    .iter()
+                    .position(|p| FluidPreset::ptr_eq(p, &preset))
+                    .map_or(-1, |i| i as i32);
+                let _ = writeln!(out, "  {} find {}:{} {}", style_name, bank, prog, index);
+            }
+        }
+    }
+}
+
 /// Loads a DLS file through the DLS loader reading it from memory, as the
 /// reference program does: the messages logged, then the name, the rate
-/// and whether a SoundFont was made.
+/// and whether a SoundFont was made; for a SoundFont, its name, the dump
+/// of the font ([`DlsFont::dump()`](crate::sfloader::dls::DlsFont::dump))
+/// and its presets ([`dls_presets()`]).
 fn load_dls(name: &str, data: &[u8], rate: i32, out: &mut String) {
     let settings = Settings::new();
     settings.setnum("synth.sample-rate", rate as f64);
@@ -509,7 +585,7 @@ fn load_dls(name: &str, data: &[u8], rate: i32, out: &mut String) {
             pos: 0,
         }))
     }));
-    let sfont = loader.load("&FAKESFNAME&");
+    let mut sfont = loader.load("&FAKESFNAME&");
     out.push_str(&capture_take());
     let _ = writeln!(
         out,
@@ -518,6 +594,15 @@ fn load_dls(name: &str, data: &[u8], rate: i32, out: &mut String) {
         rate,
         if sfont.is_some() { "ok" } else { "null" }
     );
+    if let Some(sfont) = &mut sfont {
+        let _ = writeln!(out, "  name '{}'", sfont.get_name());
+        if let SfontData::Dls(dlsfont) = &sfont.data {
+            for line in dlsfont.dump() {
+                let _ = writeln!(out, "{}", ascii(&line));
+            }
+        }
+        dls_presets(sfont, out);
+    }
     drop(sfont);
     out.push_str(&capture_take());
 }
