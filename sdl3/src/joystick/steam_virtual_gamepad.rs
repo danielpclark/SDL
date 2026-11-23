@@ -59,17 +59,17 @@ fn file_modification_time(file: &str) -> u64 {
         use std::os::unix::fs::MetadataExt;
         metadata.mtime() as u64
     }
-    #[cfg(all(windows, not(feature = "gdk")))]
+    // Note (upstream): the FILETIME is SDL_PLATFORM_WIN32's, so upstream's
+    // WinGDK has stat()'s st_mtime, in seconds (a rewrite of the file
+    // within the second it was read in isn't seen), from its UTF-8 path in
+    // the C runtime's ANSI code page; here the gdk feature has the
+    // FILETIME.
+    #[cfg(windows)]
     {
         use std::os::windows::fs::MetadataExt;
         metadata.last_write_time()
     }
-    // FIXME (upstream): the FILETIME is SDL_PLATFORM_WIN32's, so WinGDK
-    // (the gdk feature) has stat()'s st_mtime, in seconds: a rewrite of the
-    // file within the second it was read in isn't seen. (Its path is
-    // passed to stat() as UTF-8, which the C runtime takes in the ANSI code
-    // page; here it's the path itself.)
-    #[cfg(not(any(unix, all(windows, not(feature = "gdk")))))]
+    #[cfg(not(any(unix, windows)))]
     {
         metadata
             .modified()
@@ -266,7 +266,7 @@ mod tests {
             .unwrap()
             .as_secs();
         std::fs::remove_file(&path).unwrap();
-        if cfg!(all(windows, not(feature = "gdk"))) {
+        if cfg!(windows) {
             assert_eq!(mtime / 10_000_000 - 11_644_473_600, seconds);
         } else {
             assert_eq!(mtime, seconds);
