@@ -1,0 +1,676 @@
+# Throwaway diag workflow (claude/diag-fluidsynth-dls-2 only, never merged):
+# PR 2 of the FluidSynth DLS phase. Rebuilds the C reference of
+# sdl3-mixer-fluidsynth's src/tests.rs as PR 0 did (libsdl-org/fluidsynth
+# b53de28 as SDL_mixer's CMake configures it, SDL's bundled libm from
+# upstream SDL at ea7a2da, the IIR filter without -ffast-math, the Note
+# (upstream) patches, -ffp-contract=off), checks it still reproduces
+# testdata/reference.txt, then loads each testdata/dls_*.dls through the
+# private DLS loader over memory (plain and ASan builds) and checks the
+# output is testdata/reference_dls.txt byte for byte; then checks the
+# committed generator reproduces the test data and runs the crate's
+# reference tests. The C and the scripts are in this file (no C file is
+# committed). GCC/libstdc++ on ubuntu-latest, as the plan's D5.
+name: fluidsynth-dls-diag-2
+
+on:
+  push:
+    branches: [claude/diag-fluidsynth-dls-2]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  SDL_COMMIT: ea7a2dabfd1ab6b0a5720568ffd207f5825e47f1
+  FLUIDSYNTH_COMMIT: b53de2809bc5e4bffdaec59f447f81ba55ce4fe1
+  RUST_TOOLCHAIN: "1.99"
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
+
+jobs:
+  cref:
+    name: C reference of the DLS load test
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build
+          gcc --version | head -n 1; g++ --version | head -n 1; cmake --version | head -n 1; python3 --version
+          echo "user $(id -un), ulimit -l $(ulimit -l), ulimit -v $(ulimit -v)"
+      - name: Write the C and the scripts
+        run: |
+          FSD="$RUNNER_TEMP/fsd"; mkdir -p "$FSD"
+          cat > "$FSD/sdlmath.h" <<'FSD_EOF_sdlmath_h'
+          /* forced include of the C reference's C files: SDL's bundled math functions
+           * (src/libm, which SDL_sin() and friends call only where the C library has
+           * none; sdl3's math always uses them) */
+          #ifndef FSREF_SDLMATH_H
+          #define FSREF_SDLMATH_H
+          #ifdef __cplusplus
+          #include <cmath>
+          extern "C" {
+          #else
+          #include <math.h>
+          #endif
+          extern double SDL_uclibc_cos(double x);
+          extern double SDL_uclibc_exp(double x);
+          extern double SDL_uclibc_log(double x);
+          extern double SDL_uclibc_log10(double x);
+          extern double SDL_uclibc_pow(double x, double y);
+          extern double SDL_uclibc_sin(double x);
+          extern double SDL_uclibc_sqrt(double x);
+          static inline float fsref_powf(float x, float y) { return (float)SDL_uclibc_pow(x, y); }
+          static inline float fsref_sinf(float x) { return (float)SDL_uclibc_sin(x); }
+          static inline float fsref_cosf(float x) { return (float)SDL_uclibc_cos(x); }
+          static inline float fsref_sqrtf(float x) { return (float)SDL_uclibc_sqrt(x); }
+          static inline float fsref_logf(float x) { return (float)SDL_uclibc_log(x); }
+          static inline float fsref_log10f(float x) { return (float)SDL_uclibc_log10(x); }
+          static inline float fsref_expf(float x) { return (float)SDL_uclibc_exp(x); }
+          #ifdef __cplusplus
+          }
+          #else
+          #define pow SDL_uclibc_pow
+          #define powf fsref_powf
+          #define sin SDL_uclibc_sin
+          #define sinf fsref_sinf
+          #define cos SDL_uclibc_cos
+          #define cosf fsref_cosf
+          #define sqrt SDL_uclibc_sqrt
+          #define sqrtf fsref_sqrtf
+          #define log SDL_uclibc_log
+          #define logf fsref_logf
+          #define log10 SDL_uclibc_log10
+          #define log10f fsref_log10f
+          #define exp SDL_uclibc_exp
+          #define expf fsref_expf
+          #endif
+          #endif
+          FSD_EOF_sdlmath_h
+          cat > "$FSD/patch.sh" <<'FSD_EOF_patch_sh'
+          #!/bin/bash
+          # usage: patch.sh FLUIDSYNTH_DIR : the reference's patches (see the crate's src/tests.rs)
+          set -euo pipefail
+          F="$1"
+          python3 -I - "$F" <<'PY'
+          import sys
+          F = sys.argv[1]
+          def sub(path, old, new, count=1):
+              p = F + '/' + path
+              s = open(p).read()
+              assert s.count(old) == count, (path, old, s.count(old))
+              s = s.replace(old, new)
+              open(p, 'w').write(s)
+          # the IIR filter without -ffast-math
+          sub('src/CMakeLists.txt',
+              '  set_source_files_properties(rvoice/fluid_iir_filter_impl.cpp PROPERTIES COMPILE_FLAGS "-fno-math-errno -ffast-math")\n', '')
+          # SDL's math in the one C++ file that calls the C library's (C files: the forced include)
+          # (the forced include declares them in C++ too)
+          sub('src/rvoice/fluid_iir_filter_impl.cpp', 'std::sin(omega)', 'fsref_sinf(omega)')
+          sub('src/rvoice/fluid_iir_filter_impl.cpp', 'std::cos(omega)', 'fsref_cosf(omega)')
+          sub('src/rvoice/fluid_iir_filter_impl.cpp', 'std::sqrt(q)', 'fsref_sqrtf(q)')
+          # Note (upstream) of fluid_voice.c: modulator destinations past the generators
+          sub('src/synth/fluid_voice.c',
+              '''        int dest_gen_index = mod->dest;
+                  fluid_gen_t *dest_gen = &voice->gen[dest_gen_index];
+                  dest_gen->mod += modval;
+          ''', '''        int dest_gen_index = mod->dest;
+                  if(dest_gen_index < GEN_LAST)
+                  {
+                  fluid_gen_t *dest_gen = &voice->gen[dest_gen_index];
+                  dest_gen->mod += modval;
+                  }
+          ''')
+          sub('src/synth/fluid_voice.c',
+              '''    unsigned int count, z;
+              fluid_real_t x = fluid_voice_gen_value(voice, gen);
+          ''', '''    unsigned int count, z;
+              fluid_real_t x;
+              if((unsigned int)gen >= GEN_LAST)
+              {
+                  return;
+              }
+              x = fluid_voice_gen_value(voice, gen);
+          ''')
+          sub('src/synth/fluid_voice.c',
+              '''            gen = fluid_mod_get_dest(mod);
+          ''', '''            gen = fluid_mod_get_dest(mod);
+                      if(gen >= GEN_LAST)
+                      {
+                          continue;
+                      }
+          ''')
+          # Note (upstream) of fluid_midi.c: a negative skip of a non-track chunk
+          sub('src/midi/fluid_midi.c',
+              '''            skip = fluid_getlength(length);
+          ''', '''            skip = fluid_getlength(length);
+                      if(skip < 0)
+                      {
+                          FLUID_LOG(FLUID_ERR, "Failed to seek position in file");
+                          return FLUID_FAILED;
+                      }
+          ''')
+          # Note (upstream) of fluid_rev.c: the parameters start at 0
+          sub('src/rvoice/fluid_rev.c',
+              '''    FLUID_MEMSET(&rev->late, 0,  sizeof(fluid_late));
+          ''', '''    FLUID_MEMSET(rev, 0,  sizeof(*rev));
+          ''')
+          PY
+          FSD_EOF_patch_sh
+          cat > "$FSD/build.sh" <<'FSD_EOF_build_sh'
+          #!/bin/bash
+          # usage: build.sh OUT [extra cmake args...]: fluidsynth b53de28 patched as the reference, static
+          # (-ffp-contract=off: no FMA contraction where the compiler targets x86-64-v3 by default, as
+          # ubuntu-latest's GCC 15 does; the reference's GCC 13 targeted baseline x86-64, without FMA)
+          set -euo pipefail
+          D=$(cd "$(dirname "$0")" && pwd)
+          OUT="$1"; shift
+          SRC=$D/../sdlorg-fluidsynth
+          rm -rf "$OUT"
+          mkdir -p "$OUT"
+          (cd "$SRC" && git archive --format=tar HEAD) | tar -x -C "$OUT" --one-top-level=src-fs
+          "$D/patch.sh" "$OUT/src-fs"
+          OFF="enable-alsa enable-aufile enable-dbus enable-ipv6 enable-jack enable-ladspa
+            enable-libinstpatch enable-libsndfile enable-midishare enable-opensles enable-oboe enable-network
+            enable-oss enable-dsound enable-wasapi enable-waveout enable-winmidi enable-sdl3 enable-pulseaudio
+            enable-pipewire enable-readline enable-threads enable-openmp enable-unicode enable-native enable-signalsmith
+            enable-framework enable-systemd enable-coreaudio enable-coremidi enable-dart enable-kai"
+          ARGS=()
+          for o in $OFF; do ARGS+=("-D$o=OFF"); done
+          cmake -S "$OUT/src-fs" -B "$OUT/b" -G Ninja -DCMAKE_BUILD_TYPE=${BUILD_TYPE:-Release} -Dosal=cpp11 -DBUILD_SHARED_LIBS=OFF \
+            "-DCMAKE_C_FLAGS=-include $D/sdlmath.h -ffp-contract=off ${EXTRA_CFLAGS:-}" \
+            "-DCMAKE_CXX_FLAGS=-include $D/sdlmath.h -ffp-contract=off ${EXTRA_CXXFLAGS:-}" "${ARGS[@]}" "$@" > "$OUT/cmake.log" 2>&1 || { tail -n 40 "$OUT/cmake.log"; exit 1; }
+          cmake --build "$OUT/b" --target libfluidsynth > "$OUT/build.log" 2>&1 || { tail -n 60 "$OUT/build.log"; exit 1; }
+          find "$OUT/b" -name 'libfluidsynth*.a'
+          FSD_EOF_build_sh
+          cat > "$FSD/fsref.c" <<'FSD_EOF_fsref_c'
+          /* The C reference of sdl3-mixer-fluidsynth's src/tests.rs (rebuilt from
+           * its description): each cases.txt line as SDL_mixer's FluidSynth decoder
+           * runs it, over a memory SoundFont loader. Diag only, never committed. */
+          #include <stdio.h>
+          #include <stdlib.h>
+          #include <string.h>
+          #include <stdint.h>
+          #include <fluidsynth.h>
+          
+          #ifdef FSREF_DLS
+          /* private (src/sfloader/fluid_dls.h) */
+          fluid_sfloader_t *new_fluid_dls_loader(fluid_synth_t *synth, fluid_settings_t *settings);
+          #endif
+          
+          static void log_fn(int level, const char *message, void *data)
+          {
+              (void)data;
+              printf("  log%d ", level);
+              int ascii = 1;
+              for (const unsigned char *p = (const unsigned char *)message; *p; p++) {
+                  if (*p < 0x80) {
+                      putchar(*p);
+                      ascii = 1;
+                  } else if (ascii) {
+                      putchar('?');
+                      ascii = 0;
+                  }
+              }
+              putchar('\n');
+          }
+          
+          typedef struct {
+              const unsigned char *data;
+              long long len;
+              long long pos;
+          } memfile;
+          
+          static const unsigned char *g_sf;
+          static long long g_sflen;
+          
+          static void *mf_open(const char *filename)
+          {
+              if (strcmp(filename, "&FAKESFNAME&") != 0) {
+                  return NULL;
+              }
+              memfile *m = calloc(1, sizeof(*m));
+              m->data = g_sf;
+              m->len = g_sflen;
+              return m;
+          }
+          
+          static int mf_read(void *buf, fluid_long_long_t count, void *handle)
+          {
+              memfile *m = handle;
+              if (count > 0xFFFFFFFFLL || count < 0) {
+                  return FLUID_FAILED;
+              }
+              long long avail = m->len - m->pos;
+              long long n = count < avail ? count : avail;
+              if (n < 0) {
+                  n = 0;
+              }
+              if (n > 0) {
+                  memcpy(buf, m->data + m->pos, (size_t)n);
+              }
+              m->pos += n;
+              return n == count ? FLUID_OK : FLUID_FAILED;
+          }
+          
+          static int mf_seek(void *handle, fluid_long_long_t offset, int origin)
+          {
+              memfile *m = handle;
+              long long base;
+              switch (origin) {
+              case SEEK_SET: base = 0; break;
+              case SEEK_CUR: base = m->pos; break;
+              case SEEK_END: base = m->len; break;
+              default: return FLUID_FAILED;
+              }
+              long long pos = (long long)((unsigned long long)base + (unsigned long long)offset);
+              if (pos < 0) {
+                  return FLUID_FAILED;
+              }
+              m->pos = pos < m->len ? pos : m->len;
+              return FLUID_OK;
+          }
+          
+          static fluid_long_long_t mf_tell(void *handle)
+          {
+              return ((memfile *)handle)->pos;
+          }
+          
+          static int mf_close(void *handle)
+          {
+              free(handle);
+              return FLUID_OK;
+          }
+          
+          static const char *g_dir;
+          
+          static unsigned char *slurp(const char *name, long long *len)
+          {
+              char path[4096];
+              snprintf(path, sizeof(path), "%s/%s", g_dir, name);
+              FILE *f = fopen(path, "rb");
+              if (!f) {
+                  return NULL;
+              }
+              fseek(f, 0, SEEK_END);
+              long n = ftell(f);
+              fseek(f, 0, SEEK_SET);
+              unsigned char *buf = malloc(n ? n : 1);
+              if (fread(buf, 1, n, f) != (size_t)n) {
+                  n = 0;
+              }
+              fclose(f);
+              *len = n;
+              return buf;
+          }
+          
+          static uint64_t fnv(uint64_t h, const unsigned char *d, size_t n)
+          {
+              for (size_t i = 0; i < n; i++) {
+                  h ^= d[i];
+                  h *= 1099511628211ULL;
+              }
+              return h;
+          }
+          
+          static void apply_setting(fluid_settings_t *settings, const char *kv)
+          {
+              char k[256];
+              const char *eq = strchr(kv, '=');
+              if (!eq || (size_t)(eq - kv) >= sizeof(k)) {
+                  return;
+              }
+              memcpy(k, kv, eq - kv);
+              k[eq - kv] = 0;
+              const char *v = eq + 1;
+              switch (fluid_settings_get_type(settings, k)) {
+              case FLUID_NUM_TYPE: fluid_settings_setnum(settings, k, atof(v)); break;
+              case FLUID_INT_TYPE: fluid_settings_setint(settings, k, atoi(v)); break;
+              case FLUID_STR_TYPE: fluid_settings_setstr(settings, k, v); break;
+              default: break;
+              }
+          }
+          
+          static void run_case(char *line)
+          {
+              char *tok[64];
+              int ntok = 0;
+              for (char *t = strtok(line, " \t\r\n"); t && ntok < 64; t = strtok(NULL, " \t\r\n")) {
+                  tok[ntok++] = t;
+              }
+              if (ntok < 5) {
+                  return;
+              }
+              int rate = atoi(tok[3]);
+              long long maxframes = atoll(tok[4]);
+              unsigned char *sf = NULL;
+              long long sflen = 0;
+              int dls = 0;
+              const char *sfname = tok[1];
+              if (strncmp(sfname, "dls:", 4) == 0) {
+                  dls = 1;
+                  sfname += 4;
+              }
+              if (strcmp(sfname, "-") != 0) {
+                  sf = slurp(sfname, &sflen);
+              }
+              long long midlen = 0;
+              unsigned char *mid = slurp(tok[2], &midlen);
+          
+              fluid_settings_t *settings = new_fluid_settings();
+              double sr = 0;
+              fluid_settings_setnum(settings, "synth.gain", 1.0);
+              fluid_settings_setnum(settings, "synth.sample-rate", (double)rate);
+              fluid_settings_getnum(settings, "synth.sample-rate", &sr);
+              fluid_settings_setnum(settings, "synth.chorus.depth", 5.0);
+              fluid_settings_setnum(settings, "synth.chorus.level", 0.35);
+              fluid_settings_setnum(settings, "synth.reverb.damp", 0.4);
+              fluid_settings_setnum(settings, "synth.reverb.level", 0.15);
+              fluid_settings_setnum(settings, "synth.reverb.width", 4);
+              fluid_settings_setnum(settings, "synth.reverb.room-size", 0.6);
+              for (int i = 5; i < ntok; i++) {
+                  apply_setting(settings, tok[i]);
+              }
+              fluid_synth_t *synth = new_fluid_synth(settings);
+              if (!synth) {
+                  printf("%s synth=fail\n", tok[0]);
+                  delete_fluid_settings(settings);
+                  free(sf);
+                  free(mid);
+                  return;
+              }
+              int sfid = -2;
+              if (sf) {
+                  fluid_sfloader_t *loader;
+          #ifdef FSREF_DLS
+                  if (dls) {
+                      loader = new_fluid_dls_loader(synth, settings);
+                  } else
+          #endif
+                  {
+                      loader = new_fluid_defsfloader(settings);
+                  }
+                  g_sf = sf;
+                  g_sflen = sflen;
+                  fluid_sfloader_set_callbacks(loader, mf_open, mf_read, mf_seek, mf_tell, mf_close);
+                  fluid_synth_add_sfloader(synth, loader);
+                  sfid = fluid_synth_sfload(synth, "&FAKESFNAME&", 1);
+              }
+              fluid_player_t *player = new_fluid_player(synth);
+              if (!player) {
+                  printf("%s sf=%d player=fail\n", tok[0], sfid);
+                  delete_fluid_synth(synth);
+                  delete_fluid_settings(settings);
+                  free(sf);
+                  free(mid);
+                  return;
+              }
+              static const unsigned char empty[1];
+              int add = fluid_player_add_mem(player, mid ? (const void *)mid : (const void *)empty, mid ? (size_t)midlen : 0);
+              int play = fluid_player_play(player);
+              long long frames = 0;
+              uint64_t h = 14695981039346656037ULL;
+              float samples[256];
+              int trace = getenv("FSREF_TRACE") != NULL;
+              while (frames < maxframes && fluid_player_get_status(player) == FLUID_PLAYER_PLAYING) {
+                  if (fluid_synth_write_float(synth, 128, samples, 0, 2, samples, 1, 2) != FLUID_OK) {
+                      break;
+                  }
+                  h = fnv(h, (const unsigned char *)samples, sizeof(samples));
+                  if (getenv("FSREF_RAW")) {
+                      FILE *rf = fopen(getenv("FSREF_RAW"), "ab");
+                      fwrite(samples, 1, sizeof(samples), rf);
+                      fclose(rf);
+                  }
+                  frames += 128;
+                  if (trace && frames % 4096 == 0) {
+                      fprintf(stderr, "%s %lld %016llx\n", tok[0], frames, (unsigned long long)h);
+                  }
+              }
+              printf("%s sf=%d add=%d play=%d frames=%lld status=%d ticks=%d total=%d voices=%d hash=%016llx\n",
+                     tok[0], sfid, add, play, frames, fluid_player_get_status(player),
+                     fluid_player_get_current_tick(player), fluid_player_get_total_ticks(player),
+                     fluid_synth_get_active_voice_count(synth), (unsigned long long)h);
+              fluid_player_stop(player);
+              delete_fluid_player(player);
+              delete_fluid_synth(synth);
+              delete_fluid_settings(settings);
+              free(sf);
+              free(mid);
+          }
+          
+          int main(int argc, char **argv)
+          {
+              if (argc < 3) {
+                  fprintf(stderr, "usage: fsref CASES DIR\n");
+                  return 2;
+              }
+              setvbuf(stdout, NULL, _IOFBF, 1 << 16);
+              g_dir = argv[2];
+              for (int level = 0; level < LAST_LOG_LEVEL; level++) {
+                  fluid_set_log_function(level, level == FLUID_DBG ? NULL : log_fn, NULL);
+              }
+              FILE *f = fopen(argv[1], "r");
+              if (!f) {
+                  return 2;
+              }
+              char line[8192];
+              while (fgets(line, sizeof(line), f)) {
+                  if (line[0] == '#' || line[0] == '\n' || line[0] == 0) {
+                      continue;
+                  }
+                  run_case(line);
+              }
+              fclose(f);
+              fflush(stdout);
+              return 0;
+          }
+          FSD_EOF_fsref_c
+          cat > "$FSD/fsdls.c" <<'FSD_EOF_fsdls_c'
+          /* The C reference of sdl3-mixer-fluidsynth's DLS load test (src/tests.rs,
+           * reference_dls): each DLS file of the test data loaded through the
+           * synth's private DLS loader over memory, as the crate's test does, with
+           * the messages logged (every level but FLUID_DBG) and the result. Diag
+           * only, never committed.
+           * usage: fsdls DIR NAME... (the names in byte order; each loads at
+           * 44100 Hz, and those named dls_cdl_* again at 48000 Hz) */
+          #include "fluid_synth.h"
+          #include "fluid_sfont.h"
+          #include <stdio.h>
+          #include <stdlib.h>
+          #include <string.h>
+          
+          fluid_sfloader_t *new_fluid_dls_loader(fluid_synth_t *synth, fluid_settings_t *settings);
+          
+          static void log_fn(int level, const char *message, void *data)
+          {
+              (void)data;
+              printf("  log%d ", level);
+              int ascii = 1;
+              for (const unsigned char *p = (const unsigned char *)message; *p; p++) {
+                  if (*p < 0x80) {
+                      putchar(*p);
+                      ascii = 1;
+                  } else if (ascii) {
+                      putchar('?');
+                      ascii = 0;
+                  }
+              }
+              putchar('\n');
+          }
+          
+          typedef struct { const unsigned char *data; long long len, pos; } memfile;
+          static unsigned char *g_sf;
+          static long long g_sflen;
+          
+          static void *mf_open(const char *filename)
+          {
+              if (strcmp(filename, "&FAKESFNAME&") != 0) return NULL;
+              memfile *m = calloc(1, sizeof(*m));
+              m->data = g_sf; m->len = g_sflen;
+              return m;
+          }
+          static int mf_read(void *buf, fluid_long_long_t count, void *handle)
+          {
+              memfile *m = handle;
+              if (count > 0xFFFFFFFFLL || count < 0) return FLUID_FAILED;
+              long long avail = m->len - m->pos, n = count < avail ? count : avail;
+              if (n < 0) n = 0;
+              if (n > 0) memcpy(buf, m->data + m->pos, (size_t)n);
+              m->pos += n;
+              return n == count ? FLUID_OK : FLUID_FAILED;
+          }
+          static int mf_seek(void *handle, fluid_long_long_t offset, int origin)
+          {
+              memfile *m = handle;
+              long long base;
+              switch (origin) {
+              case SEEK_SET: base = 0; break;
+              case SEEK_CUR: base = m->pos; break;
+              case SEEK_END: base = m->len; break;
+              default: return FLUID_FAILED;
+              }
+              long long pos = (long long)((unsigned long long)base + (unsigned long long)offset);
+              if (pos < 0) return FLUID_FAILED;
+              m->pos = pos < m->len ? pos : m->len;
+              return FLUID_OK;
+          }
+          static fluid_long_long_t mf_tell(void *handle) { return ((memfile *)handle)->pos; }
+          static int mf_close(void *handle) { free(handle); return FLUID_OK; }
+          
+          static void load(const char *name, int rate)
+          {
+              fluid_settings_t *settings = new_fluid_settings();
+              fluid_settings_setnum(settings, "synth.sample-rate", (double)rate);
+              fluid_synth_t *synth = new_fluid_synth(settings);
+              fluid_sfloader_t *loader = new_fluid_dls_loader(synth, settings);
+              fluid_sfloader_set_callbacks(loader, mf_open, mf_read, mf_seek, mf_tell, mf_close);
+              fluid_sfont_t *sfont = fluid_sfloader_load(loader, "&FAKESFNAME&");
+              printf("%s %d sfont=%s\n", name, rate, sfont ? "ok" : "null");
+              if (sfont) {
+                  fluid_sfont_delete_internal(sfont);
+              }
+              loader->free(loader);
+              delete_fluid_synth(synth);
+              delete_fluid_settings(settings);
+          }
+          
+          int main(int argc, char **argv)
+          {
+              if (argc < 2) return 2;
+              setvbuf(stdout, NULL, _IOFBF, 1 << 16);
+              for (int level = 0; level < LAST_LOG_LEVEL; level++)
+                  fluid_set_log_function(level, level == FLUID_DBG ? NULL : log_fn, NULL);
+              for (int i = 2; i < argc; i++) {
+                  char path[4096];
+                  snprintf(path, sizeof(path), "%s/%s", argv[1], argv[i]);
+                  FILE *f = fopen(path, "rb");
+                  if (!f) return 2;
+                  fseek(f, 0, SEEK_END); g_sflen = ftell(f); fseek(f, 0, SEEK_SET);
+                  g_sf = malloc(g_sflen + 1);
+                  if (fread(g_sf, 1, g_sflen, f) != (size_t)g_sflen) return 2;
+                  fclose(f);
+                  load(argv[i], 44100);
+                  if (strncmp(argv[i], "dls_cdl_", 8) == 0) {
+                      load(argv[i], 48000);
+                  }
+                  free(g_sf);
+              }
+              fflush(stdout);
+              return 0;
+          }
+          FSD_EOF_fsdls_c
+          cat > "$FSD/compile.sh" <<'FSD_EOF_compile_sh'
+          #!/bin/bash
+          # usage: compile.sh D : the harness binaries over D/fs1 (plain) and D/fs2 (ASan):
+          # fsref (src/tests.rs's reference) and fsdls (its reference_dls)
+          set -euo pipefail
+          D="$1"; cd "$D"
+          for v in 1 2; do
+            B=fs$v; F=$B/src-fs/src
+            INC="-I $B/b -I $B/b/include -I $B/src-fs/include -I $F -I $F/utils -I $F/synth -I $F/sfloader -I $F/rvoice -I $F/midi -I $F/bindings -I $F/drivers"
+            X="-ffp-contract=off"; [ $v = 2 ] && X="-ffp-contract=off -fsanitize=address -fno-omit-frame-pointer -g"
+            LIBS="$B/b/src/libfluidsynth.a sdl/lib/libSDL3.a -lstdc++ -lm -lpthread -ldl"
+            N=""; [ $v = 2 ] && N="_asan"
+            gcc -O2 $X -I $B/src-fs/include -I $B/b/include fsref.c $LIBS -o fsref$N
+            gcc -O1 $X -include "$D/sdlmath.h" $INC fsdls.c $LIBS -o fsdls$N
+          done
+          ls -la fsref fsdls fsref_asan fsdls_asan
+          FSD_EOF_compile_sh
+          chmod +x "$FSD"/*.sh
+          ls -la "$FSD"
+      - name: Build upstream SDL at ea7a2da (static, console, the stdlib only)
+        run: |
+          FSD="$RUNNER_TEMP/fsd"
+          git clone -q --filter=blob:none https://github.com/libsdl-org/SDL "$RUNNER_TEMP/sdl-src"
+          git -C "$RUNNER_TEMP/sdl-src" checkout -q "$SDL_COMMIT"
+          git -C "$RUNNER_TEMP/sdl-src" log --oneline -1
+          cmake -S "$RUNNER_TEMP/sdl-src" -B "$RUNNER_TEMP/sdl-build" -G Ninja -DCMAKE_BUILD_TYPE=Release \
+            -DSDL_SHARED=OFF -DSDL_STATIC=ON -DSDL_TEST_LIBRARY=OFF -DSDL_TESTS=OFF -DSDL_EXAMPLES=OFF \
+            -DSDL_UNIX_CONSOLE_BUILD=ON -DSDL_VIDEO=OFF -DSDL_RENDER=OFF -DSDL_GPU=OFF -DSDL_AUDIO=OFF \
+            -DSDL_JOYSTICK=OFF -DSDL_HAPTIC=OFF -DSDL_SENSOR=OFF -DSDL_CAMERA=OFF -DSDL_HIDAPI=OFF \
+            -DSDL_DIALOG=OFF -DSDL_POWER=OFF -DSDL_TRAY=OFF -DCMAKE_INSTALL_PREFIX="$FSD/sdl" -DCMAKE_C_FLAGS=-ffp-contract=off \
+            > "$RUNNER_TEMP/sdl.cmake.log" 2>&1 || { tail -n 60 "$RUNNER_TEMP/sdl.cmake.log"; exit 1; }
+          cmake --build "$RUNNER_TEMP/sdl-build" > "$RUNNER_TEMP/sdl.build.log" 2>&1 || { tail -n 60 "$RUNNER_TEMP/sdl.build.log"; exit 1; }
+          cmake --install "$RUNNER_TEMP/sdl-build" > /dev/null
+          nm "$FSD/sdl/lib/libSDL3.a" | grep -E " T SDL_uclibc_(pow|sin|cos|log|sqrt)$"
+      - name: Build fluidsynth at b53de28 (patched as the reference; plain and ASan)
+        run: |
+          FSD="$RUNNER_TEMP/fsd"
+          git clone -q --filter=blob:none https://github.com/libsdl-org/fluidsynth "$RUNNER_TEMP/sdlorg-fluidsynth"
+          git -C "$RUNNER_TEMP/sdlorg-fluidsynth" checkout -q "$FLUIDSYNTH_COMMIT"
+          git -C "$RUNNER_TEMP/sdlorg-fluidsynth" log --oneline -1
+          "$FSD/build.sh" "$FSD/fs1"
+          grep -E "Support for DLS files|OS abstraction" "$FSD/fs1/cmake.log" || true
+          EXTRA_CFLAGS="-fsanitize=address -fno-omit-frame-pointer -g" EXTRA_CXXFLAGS="-fsanitize=address -fno-omit-frame-pointer -g" \
+            "$FSD/build.sh" "$FSD/fs2"
+          "$FSD/compile.sh" "$FSD"
+      - name: The C reference still reproduces testdata/reference.txt
+        run: |
+          FSD="$RUNNER_TEMP/fsd"; T="$GITHUB_WORKSPACE/sdl3-mixer-fluidsynth/testdata"
+          "$FSD/fsref" "$T/cases.txt" "$T" > "$FSD/out.txt"
+          sha256sum "$FSD/out.txt" "$T/reference.txt"
+          if cmp "$FSD/out.txt" "$T/reference.txt"; then echo "reference.txt reproduced byte for byte"; else diff "$FSD/out.txt" "$T/reference.txt" | head -n 40; exit 1; fi
+      - name: The DLS loads give testdata/reference_dls.txt (plain and ASan)
+        run: |
+          FSD="$RUNNER_TEMP/fsd"; T="$GITHUB_WORKSPACE/sdl3-mixer-fluidsynth/testdata"
+          NAMES=$(cd "$T" && LC_ALL=C ls dls_*.dls)
+          echo "$(echo $NAMES | wc -w) DLS files"
+          "$FSD/fsdls" "$T" $NAMES > "$FSD/out_dls.txt"
+          ASAN_OPTIONS=detect_leaks=1 "$FSD/fsdls_asan" "$T" $NAMES > "$FSD/out_dls_asan.txt" 2> "$FSD/asan.err"
+          wc -l "$FSD/out_dls.txt" "$FSD/out_dls_asan.txt" "$T/reference_dls.txt" "$FSD/asan.err"
+          sha256sum "$FSD/out_dls.txt" "$FSD/out_dls_asan.txt" "$T/reference_dls.txt"
+          cat "$FSD/asan.err"
+          test ! -s "$FSD/asan.err"
+          cmp "$FSD/out_dls.txt" "$FSD/out_dls_asan.txt"
+          if cmp "$FSD/out_dls.txt" "$T/reference_dls.txt"; then echo "reference_dls.txt reproduced byte for byte"; else diff "$FSD/out_dls.txt" "$T/reference_dls.txt" | head -n 60; exit 1; fi
+          grep -c "LIST\[lins\] chunk" "$FSD/out_dls.txt"
+          grep -c "not supported by this translation" "$FSD/out_dls.txt" && exit 1 || echo "(no Rust-only message in the reference)"
+      - name: The generator reproduces the test data
+        run: |
+          python3 -B tools/gen_fluidsynth_testdata.py
+          git status --short
+          git diff --exit-code --stat
+          test -z "$(git status --porcelain)"
+          echo "the committed test data is the generator's"
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+      - name: The crate's reference tests (Rust)
+        run: cargo test -p sdl3-mixer-fluidsynth --lib -- reference testdata_is_every_file dls
+      - name: Output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fluidsynth-dls-2
+          path: |
+            ${{ runner.temp }}/fsd/out.txt
+            ${{ runner.temp }}/fsd/out_dls.txt
+            ${{ runner.temp }}/fsd/out_dls_asan.txt
+            ${{ runner.temp }}/fsd/asan.err
+          if-no-files-found: ignore
