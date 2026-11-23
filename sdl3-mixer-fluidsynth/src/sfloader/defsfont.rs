@@ -40,7 +40,7 @@ use crate::sfloader::samplecache::{fluid_samplecache_load, fluid_samplecache_unl
 use crate::sfloader::sffile::*;
 use crate::sfloader::sfont::{
     fluid_sample_sanitize_loop, fluid_sample_validate, new_fluid_sample, FluidFileCallbacks,
-    FluidSfont, Sample, SfLoader,
+    FluidSfont, Sample, SfLoader, SfontData,
 };
 use crate::synth::chan::FluidChannel;
 use crate::synth::gen::*;
@@ -209,7 +209,7 @@ pub(crate) fn fluid_defsfloader_load(loader: &SfLoader, filename: &str) -> Optio
 
     Some(FluidSfont {
         default_mod_list: defsfont.default_mod_list.clone(),
-        data: defsfont,
+        data: SfontData::Def(defsfont),
         id: 0,
         bankofs: 0,
     })
