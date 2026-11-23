@@ -24,6 +24,7 @@ permissions:
   contents: read
 
 env:
+  DLS_FIXES: "" # the fixes of fluid_dls.cpp that patch.sh applies
   SDL_COMMIT: ea7a2dabfd1ab6b0a5720568ffd207f5825e47f1
   FLUIDSYNTH_COMMIT: b53de2809bc5e4bffdaec59f447f81ba55ce4fe1
   SDL_MIXER_COMMIT: df66ae893c91b0f6fa5d026a195bb278213d007d
@@ -98,12 +99,14 @@ jobs:
           FSD_EOF_sdlmath_h
           cat > "$FSD/patch.sh" <<'FSD_EOF_patch_sh'
           #!/bin/bash
-          # usage: patch.sh FLUIDSYNTH_DIR : the reference's patches (see the crate's src/tests.rs)
+          # usage: [DLS_FIXES="u1 u2 u3"] patch.sh FLUIDSYNTH_DIR : the reference's patches (see the
+          # crate's src/tests.rs), with the DLS fixes DLS_FIXES names (default: all three)
           set -euo pipefail
           F="$1"
-          python3 -I - "$F" <<'PY'
+          python3 -I - "$F" "${DLS_FIXES-u1 u2 u3}" <<'PY'
           import sys
           F = sys.argv[1]
+          FIXES = sys.argv[2].split()
           def sub(path, old, new, count=1):
               p = F + '/' + path
               s = open(p).read()
@@ -163,6 +166,49 @@ jobs:
           sub('src/rvoice/fluid_rev.c',
               '''    FLUID_MEMSET(&rev->late, 0,  sizeof(fluid_late));
           ''', '''    FLUID_MEMSET(rev, 0,  sizeof(*rev));
+          ''')
+          # Note (upstream) of fluid_dls.cpp's parse_lart(): a false condition bypasses the list (U1)
+          if 'u1' in FIXES:
+              sub('src/sfloader/fluid_dls.cpp',
+                  '''                if(!execute_cdls(pos + headersize, subchunk.size))
+                          {
+                              bypassed = false;
+          ''', '''                if(!execute_cdls(pos + headersize, subchunk.size))
+                          {
+                              bypassed = true;
+          ''')
+          # Note (upstream) of fluid_dls.cpp's execute_cdls(): a QUERY pushes its value only (U2)
+          if 'u2' in FIXES:
+              sub('src/sfloader/fluid_dls.cpp',
+                  '''            push(result.has_value() ? 1 : 0); // Query_Supported
+          ''', '''            else
+                      {
+                          push(result.has_value() ? 1 : 0); // Query_Supported
+                      }
+          ''')
+          # Note (upstream) of fluid_dls.cpp's parse_ins(): the first list's Key Number generator (U3)
+          if 'u3' in FIXES:
+              sub('src/sfloader/fluid_dls.cpp',
+                  '''                    articulation_index = static_cast<size_t>(-1);
+                          }
+          
+                          break;
+                      }
+          
+                      parse_lart(pos, articulations[articulation_index]);
+                      instrument.keynum_scale = articulations[articulation_index].keynum_scale;
+          ''', '''                    articulation_index = static_cast<size_t>(-1);
+                          }
+                          else
+                          {
+                              instrument.keynum_scale = articulations[articulation_index].keynum_scale;
+                          }
+          
+                          break;
+                      }
+          
+                      parse_lart(pos, articulations[articulation_index]);
+                      instrument.keynum_scale = articulations[articulation_index].keynum_scale;
           ''')
           PY
           FSD_EOF_patch_sh
@@ -1234,9 +1280,9 @@ jobs:
           for bd in "$C"/b*; do
             if ! cmp -s "$bd/c_dls.txt" "$bd/r_dls.txt"; then
               echo "== $bd: the dump lines that differ (the U5 note expects preset order only)"
-              diff "$bd/c_dls.txt" "$bd/r_dls.txt" | grep '^[<>]' | sed 's/^[<>] *//' | awk '{print $1, $2}' | sort | uniq -c
+              { diff "$bd/c_dls.txt" "$bd/r_dls.txt" || true; } | grep '^[<>]' | sed 's/^[<>] *//' | awk '{print $1, $2}' | sort | uniq -c
             fi
-            if ! cmp -s "$bd/c_ref.txt" "$bd/r_ref.txt"; then echo "== $bd: renders differ"; diff "$bd/c_ref.txt" "$bd/r_ref.txt" | head -n 20; exit 1; fi
+            if ! cmp -s "$bd/c_ref.txt" "$bd/r_ref.txt"; then echo "== $bd: renders differ"; diff "$bd/c_ref.txt" "$bd/r_ref.txt" | head -n 20 || true; exit 1; fi
           done
           "$FSD/fuzzasan.sh" "$C" "$FSD" 3000000
       - name: Upstream SDL_mixer at df66ae8 with a DLS file as its SoundFont (sdl3-mixer's dlssf lines)
