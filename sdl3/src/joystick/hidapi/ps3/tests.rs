@@ -132,10 +132,7 @@ fn enabled_drivers() {
     assert_eq!(Ps3Driver.is_enabled(), cfg!(target_os = "macos"));
     assert!(!Ps3SonySixaxisDriver.is_enabled());
     hints::set(hints::JOYSTICK_HIDAPI_PS3_SIXAXIS_DRIVER, "1").unwrap();
-    assert_eq!(
-        Ps3SonySixaxisDriver.is_enabled(),
-        cfg!(all(windows, not(feature = "gdk")))
-    );
+    assert_eq!(Ps3SonySixaxisDriver.is_enabled(), cfg!(windows));
     hints::reset(hints::JOYSTICK_HIDAPI_PS3_SIXAXIS_DRIVER);
 }
 
