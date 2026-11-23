@@ -217,9 +217,9 @@ fn steam_virtual_gamepad_allowed() {
 
     crate::stdlib::setenv_unsafe(ALLOW, "1", true).unwrap();
     assert!(!steam(0));
-    #[cfg(all(windows, not(feature = "gdk")))]
+    #[cfg(windows)]
     let under_wine = crate::core::windows::is_wine();
-    #[cfg(not(all(windows, not(feature = "gdk"))))]
+    #[cfg(not(windows))]
     let under_wine = false;
     assert_eq!(should_ignore_gamepad(0x1234, 0x5678, 0, None), !under_wine);
 
