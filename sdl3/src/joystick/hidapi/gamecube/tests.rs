@@ -131,11 +131,7 @@ fn adapter_reports_and_rumble() {
         USB_VENDOR_DRAGONRISE,
         USB_PRODUCT_EVORETRO_GAMECUBE_ADAPTER1,
     );
-    let platform = if cfg!(all(windows, not(feature = "gdk"))) {
-        "windows"
-    } else {
-        "unix"
-    };
+    let platform = if cfg!(windows) { "windows" } else { "unix" };
     let mut checked = false;
     let mut calls = data::CALLS
         .iter()
