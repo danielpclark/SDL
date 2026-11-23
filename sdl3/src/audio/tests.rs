@@ -969,12 +969,17 @@ fn recording_swizzle_handles_float_data() {
     let _l = crate::test_support::test_lock();
     let tmp = crate::test_support::TempDir::new("diskswizzle");
     let input = tmp.path("in.raw");
-    // S16 stereo frames, left 1000 and right -2000.
+    // S16 stereo frames, left 1000 and right -2000: a megabyte of them. The
+    // disk driver reads one device buffer from the file per iteration and
+    // records silence once the file runs out, and the device thread starts
+    // with the device, before the stream is bound below: a file shorter
+    // than a buffer (as this one was, 64 frames) is read whole into a
+    // buffer that may be dropped unbound, after which only silence comes.
     let frame: Vec<u8> = [1000i16, -2000]
         .iter()
         .flat_map(|x| x.to_le_bytes())
         .collect();
-    std::fs::write(&input, frame.repeat(64)).unwrap();
+    std::fs::write(&input, frame.repeat(256 * 1024)).unwrap();
 
     crate::hints::set(crate::hints::AUDIO_DRIVER, "disk").unwrap();
     crate::hints::set(crate::hints::AUDIO_DISK_TIMESCALE, "0.05").unwrap();
@@ -1011,9 +1016,13 @@ fn recording_swizzle_handles_float_data() {
             .collect()
     };
 
-    // At unit gain the swizzle runs on the device's own S16 data.
+    // At unit gain the swizzle runs on the device's own S16 data (the
+    // file's frames, not silence: a silent recording must not pass).
     let full = record(1.0);
-    assert!(full.iter().all(|&f| f == full[0]), "{full:?}");
+    assert!(
+        full.iter().all(|&f| f == full[0]) && full[0] != (0, 0),
+        "{full:?}"
+    );
     // At half gain it runs on F32 data, and must give the same layout.
     let half = record(0.5);
     for &(l, r) in &half {
