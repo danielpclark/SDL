@@ -18,11 +18,12 @@
  */
 // Modified 2026-10-17: translated into Rust from fluid_sfont.c,
 // fluid_sfont.h and include/fluidsynth/sfont.h in SDL_mixer 3.3.0's
-// FluidSynth 2.5.7 (see NOTICE). SDL_mixer only uses the default
-// SoundFont 2 loader (fluid_defsfont.c), so the "virtual" SoundFont,
-// preset and loader method tables are that loader's functions here; the
-// reference counts and notifications that only serve dynamic sample
-// loading and SoundFont unloading are the `Arc`s.
+// FluidSynth 2.5.7 (see NOTICE). The "virtual" SoundFont, preset and
+// loader method tables are enums of the loaders' kinds here (SDL_mixer
+// only uses the default SoundFont 2 loader, fluid_defsfont.c; the synth
+// also has the DLS loader, fluid_dls.cpp); the reference counts and
+// notifications that only serve dynamic sample loading and SoundFont
+// unloading are the `Arc`s.
 
 use std::fs::File;
 use std::sync::Arc;
@@ -196,12 +197,28 @@ impl SfLoader {
     }
 }
 
+/// The data of a [`FluidSfont`] (`fluid_sfont_t`'s user data, whose
+/// loader's methods the SoundFont's are).
+#[derive(Debug)]
+pub(crate) enum SfontData {
+    /// A SoundFont 2 file's (`fluid_defsfont_t`).
+    Def(DefSfont),
+}
+
+/// The data of a [`FluidPreset`] (`fluid_preset_t`'s user data, whose
+/// loader's methods the preset's are).
+#[derive(Clone, Debug)]
+pub(crate) enum PresetData {
+    /// A SoundFont 2 preset (`fluid_defpreset_t`).
+    Def(Arc<DefPreset>),
+}
+
 /// Translation of `fluid_sfont_t`: virtual SoundFont instance structure.
 #[derive(Debug)]
 pub(crate) struct FluidSfont {
-    pub data: DefSfont, /* User defined data */
-    pub id: i32,        /* SoundFont ID */
-    pub bankofs: i32,   /* Bank offset */
+    pub data: SfontData, /* User defined data */
+    pub id: i32,         /* SoundFont ID */
+    pub bankofs: i32,    /* Bank offset */
 
     #[allow(dead_code)]
     pub default_mod_list: Option<Arc<Vec<FluidMod>>>, /* If not NULL, a list of default modulators for that soundfont (e.g. read from DMOD, or DLS compatibility default mods) */
@@ -219,14 +236,27 @@ impl FluidSfont {
     /// SoundFont instance.
     #[allow(dead_code)]
     pub(crate) fn get_name(&self) -> &str {
-        self.data.get_name()
+        match &self.data {
+            SfontData::Def(defsfont) => defsfont.get_name(),
+        }
     }
 
     /// Translation of `fluid_sfont_get_preset()`: retrieve the preset
     /// assigned the a SoundFont instance for the given bank and preset
     /// number.
-    pub(crate) fn get_preset(&self, bank: i32, prenum: i32) -> Option<FluidPreset> {
-        self.data.get_preset(bank, prenum).map(|data| FluidPreset {
+    ///
+    /// `_bank_select` is the synth's (`synth->bank_select`, which the DLS
+    /// loader's method reads through its synth pointer).
+    pub(crate) fn get_preset(
+        &self,
+        bank: i32,
+        prenum: i32,
+        _bank_select: i32,
+    ) -> Option<FluidPreset> {
+        let data = match &self.data {
+            SfontData::Def(defsfont) => defsfont.get_preset(bank, prenum).map(PresetData::Def),
+        };
+        data.map(|data| FluidPreset {
             sfont_id: self.id,
             data,
         })
@@ -236,7 +266,9 @@ impl FluidSfont {
     /// virtual preset iteration in a SoundFont.
     #[allow(dead_code)]
     pub(crate) fn iteration_start(&mut self) {
-        self.data.iteration_start();
+        match &mut self.data {
+            SfontData::Def(defsfont) => defsfont.iteration_start(),
+        }
     }
 
     /// Translation of `fluid_sfont_iteration_next()`: virtual SoundFont
@@ -244,24 +276,27 @@ impl FluidSfont {
     #[allow(dead_code)]
     pub(crate) fn iteration_next(&mut self) -> Option<FluidPreset> {
         let id = self.id;
-        self.data
-            .iteration_next()
-            .map(|data| FluidPreset { sfont_id: id, data })
+        let data = match &mut self.data {
+            SfontData::Def(defsfont) => defsfont.iteration_next().map(PresetData::Def),
+        };
+        data.map(|data| FluidPreset { sfont_id: id, data })
     }
 }
 
-/// Translation of `fluid_preset_t`: virtual SoundFont preset (here a
-/// preset of the default SoundFont loader, with the ID of its SoundFont).
+/// Translation of `fluid_preset_t`: virtual SoundFont preset (with the
+/// ID of its SoundFont).
 #[derive(Clone, Debug)]
 pub(crate) struct FluidPreset {
-    pub sfont_id: i32,        /* Parent virtual SoundFont */
-    pub data: Arc<DefPreset>, /* User supplied data */
+    pub sfont_id: i32,    /* Parent virtual SoundFont */
+    pub data: PresetData, /* User supplied data */
 }
 
 impl FluidPreset {
     /// The C pointer comparison of two presets.
     pub(crate) fn ptr_eq(a: &FluidPreset, b: &FluidPreset) -> bool {
-        Arc::ptr_eq(&a.data, &b.data)
+        match (&a.data, &b.data) {
+            (PresetData::Def(a), PresetData::Def(b)) => Arc::ptr_eq(a, b),
+        }
     }
 
     /// The C pointer comparison of two presets that may be NULL.
@@ -276,19 +311,28 @@ impl FluidPreset {
     /// Translation of `fluid_preset_get_name()`.
     #[allow(dead_code)]
     pub(crate) fn get_name(&self) -> &str {
-        self.data.get_name()
+        match &self.data {
+            PresetData::Def(defpreset) => defpreset.get_name(),
+        }
     }
 
     /// Translation of `fluid_preset_get_banknum()`.
+    ///
+    /// `_bank_select` is the synth's (`synth->bank_select`, which the DLS
+    /// loader's method reads through its synth pointer).
     #[allow(dead_code)]
-    pub(crate) fn get_banknum(&self) -> i32 {
-        self.data.get_banknum()
+    pub(crate) fn get_banknum(&self, _bank_select: i32) -> i32 {
+        match &self.data {
+            PresetData::Def(defpreset) => defpreset.get_banknum(),
+        }
     }
 
     /// Translation of `fluid_preset_get_num()`.
     #[allow(dead_code)]
     pub(crate) fn get_num(&self) -> i32 {
-        self.data.get_num()
+        match &self.data {
+            PresetData::Def(defpreset) => defpreset.get_num(),
+        }
     }
 
     /// Translation of `fluid_preset_get_sfont()` (its ID).

@@ -2583,7 +2583,7 @@ impl FluidSynthInner {
         prognum: i32,
     ) -> Option<FluidPreset> {
         for sfont in &self.sfont {
-            let preset = sfont.get_preset(banknum - sfont.bankofs, prognum);
+            let preset = sfont.get_preset(banknum - sfont.bankofs, prognum, self.bank_select);
 
             if preset.is_some() {
                 return preset;

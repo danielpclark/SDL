@@ -24,6 +24,7 @@ use std::sync::atomic::Ordering;
 use crate::fluidsynth_h::*;
 use crate::midi::midi::PORTAMENTO_CTRL;
 use crate::sfloader::defsfont::fluid_zone_inside_range;
+use crate::sfloader::sfont::PresetData;
 use crate::synth::chan::*;
 use crate::synth::synth::FluidSynthInner;
 use crate::synth::voice::*;
@@ -414,7 +415,8 @@ impl FluidSynthInner {
         self.fluid_preset_noteon(chan, key, vel)
     }
 
-    /// `fluid_preset_noteon(channel->preset, synth, chan, key, vel)`.
+    /// `fluid_preset_noteon(channel->preset, synth, chan, key, vel)`: the
+    /// preset's noteon method.
     fn fluid_preset_noteon(&mut self, chan: i32, key: i32, vel: i32) -> i32 {
         let Some(preset) = self.channel[chan as usize].preset.clone() else {
             // Note (upstream): reached without a preset (through breath
@@ -422,7 +424,9 @@ impl FluidSynthInner {
             // here it fails.
             return FLUID_FAILED;
         };
-        self.fluid_defpreset_noteon(&preset.data, chan, key, vel)
+        match &preset.data {
+            PresetData::Def(defpreset) => self.fluid_defpreset_noteon(defpreset, chan, key, vel),
+        }
     }
 
     /// Translation of `fluid_synth_noteoff_monopoly()`: plays noteoff for
