@@ -600,3 +600,294 @@ sf_badsm24 sf=1 add=0 play=0 frames=178944 status=3 ticks=937 total=228 voices=0
   log2 No preset found on channel 1 [bank=0 prog=1]
   log2 No preset found on channel 2 [bank=0 prog=2]
 sf_badinst sf=-1 add=0 play=0 frames=136704 status=3 ticks=708 total=228 voices=0 hash=e08119cdb8ae78a9
+  log2 DLS wsmp chunk cbSize < 20. The file is probably corrupted.
+  log2 DLS wsmp chunk loop cbSize < 16. The file is probably corrupted.
+  log2 Unknown DLS chunk in LIST[wave] 'smpl'
+  log2 Unknown DLS chunk in LIST[wave] 'wavu'
+  log2 Invalid loop type 2, defaulting to loop and release
+  log2 Instrument not found on channel 10 [bank=0 prog=1], substituted [bank=0 prog=0]
+  log2 End of the MIDI file reached, but not all notes have received a note off event! OFFing them now! Run with --verbose to spot pending voices.
+dls_basic sf=1 add=0 play=0 frames=153216 status=3 ticks=666 total=258 voices=0 hash=54da8860caf1c1c1
+  log2 DLS wsmp chunk cbSize < 20. The file is probably corrupted.
+  log2 DLS wsmp chunk loop cbSize < 16. The file is probably corrupted.
+  log2 Unknown DLS chunk in LIST[wave] 'smpl'
+  log2 Unknown DLS chunk in LIST[wave] 'wavu'
+  log2 Invalid loop type 2, defaulting to loop and release
+  log2 Instrument not found on channel 10 [bank=0 prog=1], substituted [bank=0 prog=0]
+  log2 End of the MIDI file reached, but not all notes have received a note off event! OFFing them now! Run with --verbose to spot pending voices.
+dls_basic48k sf=1 add=0 play=0 frames=166784 status=3 ticks=667 total=258 voices=0 hash=7d8cb3b620044aab
+  log2 DLS wsmp chunk cbSize < 20. The file is probably corrupted.
+  log2 DLS wsmp chunk loop cbSize < 16. The file is probably corrupted.
+  log2 Unknown DLS chunk in LIST[wave] 'smpl'
+  log2 Unknown DLS chunk in LIST[wave] 'wavu'
+  log2 Invalid loop type 2, defaulting to loop and release
+  log2 Instrument not found on channel 10 [bank=0 prog=1], substituted [bank=0 prog=0]
+  log2 End of the MIDI file reached, but not all notes have received a note off event! OFFing them now! Run with --verbose to spot pending voices.
+dls_basic22k sf=1 add=0 play=0 frames=76672 status=3 ticks=667 total=258 voices=0 hash=a9c27b425a9f1d28
+  log2 DLS wsmp chunk cbSize < 20. The file is probably corrupted.
+  log2 DLS wsmp chunk loop cbSize < 16. The file is probably corrupted.
+  log2 Unknown DLS chunk in LIST[wave] 'smpl'
+  log2 Unknown DLS chunk in LIST[wave] 'wavu'
+  log2 Invalid loop type 2, defaulting to loop and release
+  log2 Instrument not found on channel 10 [bank=0 prog=1], substituted [bank=0 prog=0]
+  log2 End of the MIDI file reached, but not all notes have received a note off event! OFFing them now! Run with --verbose to spot pending voices.
+dls_basic8k sf=1 add=0 play=0 frames=28032 status=3 ticks=670 total=258 voices=0 hash=02de40d5beab6c67
+  log2 DLS wsmp chunk cbSize < 20. The file is probably corrupted.
+  log2 DLS wsmp chunk loop cbSize < 16. The file is probably corrupted.
+  log2 Unknown DLS chunk in LIST[wave] 'smpl'
+  log2 Unknown DLS chunk in LIST[wave] 'wavu'
+  log2 Invalid loop type 2, defaulting to loop and release
+  log2 Instrument not found on channel 10 [bank=0 prog=1], substituted [bank=0 prog=0]
+  log2 End of the MIDI file reached, but not all notes have received a note off event! OFFing them now! Run with --verbose to spot pending voices.
+dls_basic_dry sf=1 add=0 play=0 frames=153216 status=3 ticks=666 total=258 voices=0 hash=0720ae891ce8dc2a
+  log2 DLS wsmp chunk cbSize < 20. The file is probably corrupted.
+  log2 DLS wsmp chunk loop cbSize < 16. The file is probably corrupted.
+  log2 Unknown DLS chunk in LIST[wave] 'smpl'
+  log2 Unknown DLS chunk in LIST[wave] 'wavu'
+  log2 Invalid loop type 2, defaulting to loop and release
+  log2 Instrument not found on channel 0 [bank=0 prog=48], substituted [bank=0 prog=0]
+  log2 Instrument not found on channel 0 [bank=0 prog=1], substituted [bank=0 prog=0]
+  log2 Instrument not found on channel 0 [bank=127 prog=0], substituted [bank=0 prog=0]
+  log2 Instrument not found on channel 0 [bank=0 prog=8], substituted [bank=0 prog=0]
+  log2 Instrument not found on channel 0 [bank=1 prog=2], substituted [bank=0 prog=0]
+  log2 Instrument not found on channel 0 [bank=2 prog=0], substituted [bank=0 prog=0]
+  log2 Instrument not found on channel 9 [bank=128 prog=2], substituted [bank=128 prog=0]
+  log2 Instrument not found on channel 9 [bank=248 prog=0], substituted [bank=128 prog=0]
+dls_banks_gs sf=1 add=0 play=0 frames=119808 status=3 ticks=869 total=216 voices=0 hash=71dbda65ddaefd78
+  log2 DLS wsmp chunk cbSize < 20. The file is probably corrupted.
+  log2 DLS wsmp chunk loop cbSize < 16. The file is probably corrupted.
+  log2 Unknown DLS chunk in LIST[wave] 'smpl'
+  log2 Unknown DLS chunk in LIST[wave] 'wavu'
+  log2 Invalid loop type 2, defaulting to loop and release
+  log2 Instrument not found on channel 0 [bank=0 prog=48], substituted [bank=0 prog=0]
+  log2 Instrument not found on channel 0 [bank=0 prog=48], substituted [bank=0 prog=0]
+  log2 Instrument not found on channel 0 [bank=0 prog=48], substituted [bank=0 prog=0]
+  log2 Instrument not found on channel 0 [bank=0 prog=8], substituted [bank=0 prog=0]
+  log2 Instrument not found on channel 0 [bank=0 prog=2], substituted [bank=0 prog=0]
+dls_banks_gm sf=1 add=0 play=0 frames=118400 status=3 ticks=859 total=216 voices=0 hash=3fc307bfb8aa5f26
+  log2 DLS wsmp chunk cbSize < 20. The file is probably corrupted.
+  log2 DLS wsmp chunk loop cbSize < 16. The file is probably corrupted.
+  log2 Unknown DLS chunk in LIST[wave] 'smpl'
+  log2 Unknown DLS chunk in LIST[wave] 'wavu'
+  log2 Invalid loop type 2, defaulting to loop and release
+  log2 Instrument not found on channel 0 [bank=0 prog=48], substituted [bank=0 prog=0]
+  log2 Instrument not found on channel 0 [bank=0 prog=8], substituted [bank=0 prog=0]
+  log2 Instrument not found on channel 0 [bank=1 prog=2], substituted [bank=0 prog=0]
+  log2 Instrument not found on channel 0 [bank=1 prog=0], substituted [bank=0 prog=0]
+  log2 Instrument not found on channel 9 [bank=0 prog=8], substituted [bank=0 prog=0]
+  log2 Instrument not found on channel 9 [bank=0 prog=25], substituted [bank=0 prog=0]
+  log2 Instrument not found on channel 9 [bank=0 prog=2], substituted [bank=0 prog=0]
+  log2 Instrument not found on channel 9 [bank=0 prog=2], substituted [bank=0 prog=0]
+  log2 Instrument not found on channel 9 [bank=1 prog=8], substituted [bank=0 prog=0]
+dls_banks_xg sf=1 add=0 play=0 frames=121472 status=3 ticks=880 total=216 voices=0 hash=c9cd5bcdc8ce17ce
+  log2 DLS wsmp chunk cbSize < 20. The file is probably corrupted.
+  log2 DLS wsmp chunk loop cbSize < 16. The file is probably corrupted.
+  log2 Unknown DLS chunk in LIST[wave] 'smpl'
+  log2 Unknown DLS chunk in LIST[wave] 'wavu'
+  log2 Invalid loop type 2, defaulting to loop and release
+  log2 Instrument not found on channel 0 [bank=128 prog=48], substituted [bank=0 prog=0]
+  log2 Instrument not found on channel 0 [bank=2 prog=48], substituted [bank=0 prog=0]
+  log2 Instrument not found on channel 0 [bank=0 prog=1], substituted [bank=0 prog=0]
+  log2 Instrument not found on channel 0 [bank=16256 prog=0], substituted [bank=0 prog=0]
+  log2 Instrument not found on channel 0 [bank=0 prog=8], substituted [bank=0 prog=0]
+  log2 Instrument not found on channel 0 [bank=129 prog=2], substituted [bank=0 prog=0]
+  log2 Instrument not found on channel 0 [bank=257 prog=0], substituted [bank=0 prog=0]
+  log2 Instrument not found on channel 9 [bank=0 prog=8], substituted [bank=128 prog=8]
+  log2 Instrument not found on channel 9 [bank=0 prog=25], substituted [bank=128 prog=25]
+  log2 Instrument not found on channel 9 [bank=0 prog=2], substituted [bank=128 prog=2]
+  log2 Instrument not found on channel 9 [bank=1 prog=8], substituted [bank=128 prog=8]
+dls_banks_mma sf=1 add=0 play=0 frames=118400 status=3 ticks=859 total=216 voices=0 hash=24be0f8416614b97
+  log2 DLS wsmp chunk cbSize < 20. The file is probably corrupted.
+  log2 DLS wsmp chunk loop cbSize < 16. The file is probably corrupted.
+  log2 Unknown DLS chunk in LIST[wave] 'smpl'
+  log2 Unknown DLS chunk in LIST[wave] 'wavu'
+  log2 Invalid loop type 2, defaulting to loop and release
+  log3 Successfully configured channel group, from channel 0 up to including chan 16 to mode 0x1
+  log3 Successfully configured channel group, from channel 0 up to including chan 16 to mode 0x0
+  log2 Failed to set channel 1 to POLY_OFF: Operation illegal, because channel is currently no basic channel.
+  log3 Successfully configured channel group, from channel 0 up to including chan 1 to mode 0x2
+  log3 Successfully configured channel group, from channel 0 up to including chan 16 to mode 0x0
+dls_mono sf=1 add=0 play=0 frames=176512 status=3 ticks=768 total=324 voices=0 hash=892ddb170d0a1c47
+  log2 DLS wsmp chunk cbSize < 20. The file is probably corrupted.
+  log2 DLS wsmp chunk loop cbSize < 16. The file is probably corrupted.
+  log2 Unknown DLS chunk in LIST[wave] 'smpl'
+  log2 Unknown DLS chunk in LIST[wave] 'wavu'
+  log2 Invalid loop type 2, defaulting to loop and release
+  log3 Successfully configured channel group, from channel 0 up to including chan 16 to mode 0x1
+  log3 Successfully configured channel group, from channel 0 up to including chan 16 to mode 0x0
+  log2 Failed to set channel 1 to POLY_OFF: Operation illegal, because channel is currently no basic channel.
+  log3 Successfully configured channel group, from channel 0 up to including chan 1 to mode 0x2
+  log3 Successfully configured channel group, from channel 0 up to including chan 16 to mode 0x0
+dls_mono_xg sf=1 add=0 play=0 frames=176512 status=3 ticks=768 total=324 voices=0 hash=a57511688d6fb5ad
+  log2 DLS wsmp chunk cbSize < 20. The file is probably corrupted.
+  log2 DLS wsmp chunk loop cbSize < 16. The file is probably corrupted.
+  log2 Unknown DLS chunk in LIST[wave] 'smpl'
+  log2 Unknown DLS chunk in LIST[wave] 'wavu'
+  log2 Invalid loop type 2, defaulting to loop and release
+  log2 End of the MIDI file reached, but not all notes have received a note off event! OFFing them now! Run with --verbose to spot pending voices.
+dls_many sf=1 add=0 play=0 frames=168320 status=3 ticks=366 total=144 voices=0 hash=eb4613a102772d2b
+  log2 DLS wsmp chunk cbSize < 20. The file is probably corrupted.
+  log2 DLS wsmp chunk loop cbSize < 16. The file is probably corrupted.
+  log2 Unknown DLS chunk in LIST[wave] 'smpl'
+  log2 Unknown DLS chunk in LIST[wave] 'wavu'
+  log2 Invalid loop type 2, defaulting to loop and release
+  log2 End of the MIDI file reached, but not all notes have received a note off event! OFFing them now! Run with --verbose to spot pending voices.
+dls_many_poly8 sf=1 add=0 play=0 frames=168320 status=3 ticks=366 total=144 voices=0 hash=3cab1b78baa5f941
+  log2 DLS wsmp chunk cbSize < 20. The file is probably corrupted.
+  log2 DLS wsmp chunk loop cbSize < 16. The file is probably corrupted.
+  log2 Unknown DLS chunk in LIST[wave] 'smpl'
+  log2 Unknown DLS chunk in LIST[wave] 'wavu'
+  log2 Invalid loop type 2, defaulting to loop and release
+  log2 End of the MIDI file reached, but not all notes have received a note off event! OFFing them now! Run with --verbose to spot pending voices.
+dls_tuning sf=1 add=0 play=0 frames=105600 status=3 ticks=459 total=72 voices=0 hash=0f10da93f425e20d
+  log2 DLS wsmp chunk cbSize < 20. The file is probably corrupted.
+  log2 DLS wsmp chunk loop cbSize < 16. The file is probably corrupted.
+  log2 Unknown DLS chunk in LIST[wave] 'smpl'
+  log2 Unknown DLS chunk in LIST[wave] 'wavu'
+  log2 Invalid loop type 2, defaulting to loop and release
+  log2 Instrument not found on channel 1 [bank=0 prog=2], substituted [bank=0 prog=0]
+  log2 Instrument not found on channel 1 [bank=1 prog=0], substituted [bank=0 prog=0]
+  log3 SysEx GS DT1: dropping invalid rhythm part message
+  log3 SysEx GS DT1: dropping message on addr 0x40007f due to incorrect checksum 0x0. Correct checksum: 0x41
+  log2 Instrument not found on channel 3 [bank=1 prog=0], substituted [bank=0 prog=0]
+dls_sysex sf=1 add=0 play=0 frames=130432 status=3 ticks=567 total=180 voices=0 hash=f8664ea412685c7d
+  log2 DLS wsmp chunk cbSize < 20. The file is probably corrupted.
+  log2 DLS wsmp chunk loop cbSize < 16. The file is probably corrupted.
+  log2 Unknown DLS chunk in LIST[wave] 'smpl'
+  log2 Unknown DLS chunk in LIST[wave] 'wavu'
+  log2 Invalid loop type 2, defaulting to loop and release
+  log2 Instrument not found on channel 1 [bank=0 prog=1], substituted [bank=0 prog=0]
+  log2 Instrument not found on channel 9 [bank=128 prog=99], substituted [bank=128 prog=0]
+  log2 Instrument not found on channel 3 [bank=0 prog=5], substituted [bank=0 prog=0]
+  log2 Instrument not found on channel 4 [bank=0 prog=77], substituted [bank=0 prog=0]
+dls_nrpn sf=1 add=0 play=0 frames=138624 status=3 ticks=603 total=216 voices=0 hash=be9bea5f9513add0
+  log2 DLS wsmp chunk cbSize < 20. The file is probably corrupted.
+  log2 DLS wsmp chunk loop cbSize < 16. The file is probably corrupted.
+  log2 Unknown DLS chunk in LIST[wave] 'smpl'
+  log2 Unknown DLS chunk in LIST[wave] 'wavu'
+  log2 DLS pgal aliasing from non-existing instrument at entry 2: bank 0/0 pc 8 -> bank 0/0 pc 9
+  log2 DLS pgal aliasing from non-existing instrument at entry 3: bank 2/1 pc 7 -> bank 0/0 pc 10
+  log2 Invalid loop type 2, defaulting to loop and release
+  log2 No preset found on channel 9 [bank=128 prog=0]
+  log2 End of the MIDI file reached, but not all notes have received a note off event! OFFing them now! Run with --verbose to spot pending voices.
+dls_pgal sf=1 add=0 play=0 frames=111104 status=3 ticks=483 total=96 voices=0 hash=24e4170a928de826
+  log2 DLS wsmp chunk cbSize < 20. The file is probably corrupted.
+  log2 DLS wsmp chunk loop cbSize < 16. The file is probably corrupted.
+  log2 Unknown DLS chunk in LIST[wave] 'smpl'
+  log2 Unknown DLS chunk in LIST[wave] 'wavu'
+  log2 Unknown DLS chunk 'abcd' ofs=0x2be in LIST[ins]
+  log2 Ignoring connection block with RPN 1 source
+  log2 Ignoring connection block with RPN 2 source
+  log2 Ignoring connection block with EG1 source
+  log2 LFO source is inverted or transformed, ignoring transform
+  log2 Ignoring connection block with unsupported source for srcOper: 1
+  log2 Inverted or transformed vibrato LFO source is not supported, ignoring transform
+  log2 Ignoring connection block with unsupported source for srcOper: 9
+  log2 EG2 source is transformed, ignoring transform
+  log2 Ignoring connection block with unsupported source for srcOper: 5
+  log2 Output transform in connection block is not supported, set to to linear
+  log2 Ignoring connection block with unsupported source for srcOper: 80
+  log2 Ignoring connection block with unsupported source for amtSrcOper: 131
+  log2 Invalid DLS transform enum, ignoring connection block
+  log2 Invalid DLS transform enum, ignoring connection block
+  log2 Unknown DLS chunk 'abcd' ofs=0x432 in LIST[lart]
+  log2 Unknown DLS chunk 'zzzz' ofs=0x43c in LIST[lart]
+  log2 Nonstandard LIST[art1/2] chunk; 'art1/2' is legal ofs=0x454
+  log2 Ignoring connection block with unsupported source for amtSrcOper: 1
+  log2 DLS wsmp chunk cbSize < 20. The file is probably corrupted.
+  log2 Key Number Generator is not allowed in region articulation, ignoring
+  log2 Unknown DLS chunk 'abcd' ofs=0x518 in LIST[rgn]
+  log2 Unknown DLS chunk 'abcd' ofs=0x5de in LIST[lrgn]
+  log2 Unknown DLS chunk 'zyxw' ofs=0x678 in LIST[lins]
+  log2 Invalid loop type 2, defaulting to loop and release
+  log2 No preset found on channel 9 [bank=128 prog=0]
+  log2 Instrument not found on channel 1 [bank=1 prog=48], substituted [bank=0 prog=0]
+  log2 Instrument not found on channel 2 [bank=0 prog=16], substituted [bank=0 prog=0]
+  log2 Instrument not found on channel 4 [bank=0 prog=40], substituted [bank=0 prog=0]
+  log2 Instrument not found on channel 5 [bank=0 prog=41], substituted [bank=0 prog=0]
+  log2 Instrument not found on channel 6 [bank=121 prog=1], substituted [bank=0 prog=1]
+  log2 Instrument not found on channel 7 [bank=120 prog=0], substituted [bank=0 prog=0]
+  log2 Instrument not found on channel 8 [bank=0 prog=4], substituted [bank=0 prog=0]
+  log2 invalid loop type of region wsmp, set to loop and release
+  log2 invalid loop type of region wsmp, set to loop and release
+  log2 No preset found on channel 9 [bank=128 prog=25]
+  log2 No preset found on channel 9 [bank=129 prog=2]
+dls_art sf=1 add=0 play=0 frames=148352 status=3 ticks=645 total=258 voices=0 hash=340f3ecab19f8fff
+  log2 Sample 'Empty ?chantillon wi': invalid start/end file positions
+  log2 Some invalid DLS sample loops were sanitized! If you experience audible glitches, start fluidsynth in verbose mode for detailed information.
+  log2 No preset found on channel 9 [bank=128 prog=0]
+  log2 Instrument not found on channel 1 [bank=1 prog=48], substituted [bank=0 prog=0]
+  log2 Instrument not found on channel 2 [bank=0 prog=16], substituted [bank=0 prog=0]
+  log2 Instrument not found on channel 3 [bank=0 prog=80], substituted [bank=0 prog=0]
+  log2 Instrument not found on channel 4 [bank=0 prog=40], substituted [bank=0 prog=0]
+  log2 Instrument not found on channel 5 [bank=0 prog=41], substituted [bank=0 prog=0]
+  log2 Instrument not found on channel 6 [bank=121 prog=1], substituted [bank=0 prog=0]
+  log2 Instrument not found on channel 7 [bank=120 prog=0], substituted [bank=0 prog=0]
+  log2 Instrument not found on channel 8 [bank=0 prog=4], substituted [bank=0 prog=0]
+  log2 No preset found on channel 9 [bank=128 prog=8]
+  log2 Instrument not found on channel 10 [bank=0 prog=1], substituted [bank=0 prog=0]
+  log2 No preset found on channel 9 [bank=128 prog=25]
+  log2 No preset found on channel 9 [bank=129 prog=2]
+dls_samples sf=1 add=0 play=0 frames=148352 status=3 ticks=645 total=258 voices=0 hash=64c403cf9ed2a7fe
+  log2 DLS wsmp chunk cbSize < 20. The file is probably corrupted.
+  log2 DLS wsmp chunk loop cbSize < 16. The file is probably corrupted.
+  log2 Unknown DLS chunk in LIST[wave] 'smpl'
+  log2 Unknown DLS chunk in LIST[wave] 'wavu'
+  log2 No preset found on channel 9 [bank=128 prog=0]
+  log2 Instrument not found on channel 0 [bank=3 prog=4], substituted [bank=0 prog=4]
+  log2 Instrument not found on channel 0 [bank=130 prog=48], substituted [bank=0 prog=0]
+  log2 Instrument not found on channel 0 [bank=128 prog=48], substituted [bank=0 prog=0]
+  log2 Instrument not found on channel 0 [bank=2 prog=48], substituted [bank=0 prog=0]
+  log2 Instrument not found on channel 0 [bank=15488 prog=1], substituted [bank=0 prog=0]
+  log2 Instrument not found on channel 0 [bank=15360 prog=0], substituted [bank=0 prog=0]
+  log2 Instrument not found on channel 0 [bank=0 prog=1], substituted [bank=0 prog=0]
+  log2 Instrument not found on channel 0 [bank=16256 prog=0], substituted [bank=0 prog=0]
+  log2 Instrument not found on channel 0 [bank=0 prog=8], substituted [bank=0 prog=0]
+  log2 Instrument not found on channel 0 [bank=129 prog=2], substituted [bank=0 prog=0]
+  log2 Instrument not found on channel 0 [bank=257 prog=0], substituted [bank=0 prog=0]
+  log2 Instrument not found on channel 9 [bank=0 prog=8], substituted [bank=128 prog=8]
+  log2 No preset found on channel 9 [bank=0 prog=25]
+  log2 No preset found on channel 9 [bank=128 prog=2]
+  log2 No preset found on channel 9 [bank=0 prog=2]
+  log2 No preset found on channel 9 [bank=15360 prog=0]
+  log2 Instrument not found on channel 9 [bank=1 prog=8], substituted [bank=128 prog=8]
+dls_sort sf=1 add=0 play=0 frames=118016 status=3 ticks=856 total=216 voices=0 hash=1dc4d0ba5b5915a1
+  log2 DLS wsmp chunk cbSize < 20. The file is probably corrupted.
+  log2 DLS wsmp chunk loop cbSize < 16. The file is probably corrupted.
+  log2 Unknown DLS chunk in LIST[wave] 'smpl'
+  log2 Unknown DLS chunk in LIST[wave] 'wavu'
+  log1 Exception thrown in fluid_dls_font constructor
+  log1 exc: Exception thrown while parsing instruments
+  log1  exc: visit in LIST 'lins' ofs=0x8c -> LIST 'ins ' ofs=0x98
+  log1   exc: visit in LIST 'ins ' ofs=0x98 -> LIST 'lar2' ofs=0xb8
+  log1    exc: visit in LIST 'lar2' ofs=0xb8 -> 'cdl ' ofs=0xc4
+  log1     exc: std::exception
+  log1 fluid_sfloader_load(): Failed to open '&FAKESFNAME&': File does not exist.
+  log1 Unable to open file '&FAKESFNAME&'
+  log1 fluid_sfloader_load(): Failed to open '&FAKESFNAME&': File does not exist.
+  log1 Exception thrown in fluid_dls_font constructor
+  log1 exc: Unable to open file '&FAKESFNAME&'
+  log1 Failed to load SoundFont "&FAKESFNAME&"
+  log2 No preset found on channel 0 [bank=0 prog=0]
+  log2 No preset found on channel 1 [bank=1 prog=48]
+  log2 No preset found on channel 2 [bank=0 prog=16]
+  log2 No preset found on channel 3 [bank=0 prog=80]
+  log2 No preset found on channel 4 [bank=0 prog=40]
+  log2 No preset found on channel 5 [bank=0 prog=41]
+  log2 No preset found on channel 6 [bank=121 prog=1]
+  log2 No preset found on channel 7 [bank=120 prog=0]
+  log2 No preset found on channel 8 [bank=0 prog=4]
+  log2 No preset found on channel 9 [bank=128 prog=8]
+  log2 No preset found on channel 10 [bank=0 prog=1]
+  log2 No preset found on channel 9 [bank=128 prog=25]
+  log2 No preset found on channel 9 [bank=129 prog=2]
+dls_fail sf=-1 add=0 play=0 frames=147456 status=3 ticks=642 total=258 voices=0 hash=06666c4e76e71484
+  log1 Not a SoundFont file
+  log2 DLS wsmp chunk cbSize < 20. The file is probably corrupted.
+  log2 DLS wsmp chunk loop cbSize < 16. The file is probably corrupted.
+  log2 Unknown DLS chunk in LIST[wave] 'smpl'
+  log2 Unknown DLS chunk in LIST[wave] 'wavu'
+  log2 Invalid loop type 2, defaulting to loop and release
+  log2 Instrument not found on channel 10 [bank=0 prog=1], substituted [bank=0 prog=0]
+  log2 End of the MIDI file reached, but not all notes have received a note off event! OFFing them now! Run with --verbose to spot pending voices.
+dls_path sf=1 add=0 play=0 frames=153216 status=3 ticks=666 total=258 voices=0 hash=54da8860caf1c1c1

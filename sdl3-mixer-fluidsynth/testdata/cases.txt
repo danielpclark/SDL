@@ -73,3 +73,25 @@ sf_badsamples sf2_badsamples.sf2 midi/many.mid 44100 300000
 sf_badsamples9 sf2_badsamples.sf2 midi/nrpn.mid 44100 300000
 sf_badsm24 sf2_badsm24.sf2 midi/basic.mid 44100 300000
 sf_badinst sf2_badinst.sf2 midi/basic.mid 44100 300000
+dls_basic dls:test.dls midi/dls_basic.mid 44100 400000
+dls_basic48k dls:test.dls midi/dls_basic.mid 48000 400000
+dls_basic22k dls:test.dls midi/dls_basic.mid 22050 200000
+dls_basic8k dls:test.dls midi/dls_basic.mid 8000 100000
+dls_basic_dry dls:test.dls midi/dls_basic.mid 44100 400000 synth.reverb.active=0 synth.chorus.active=0
+dls_banks_gs dls:test.dls midi/dls_banks.mid 44100 400000 synth.midi-bank-select=gs
+dls_banks_gm dls:test.dls midi/dls_banks.mid 44100 400000 synth.midi-bank-select=gm
+dls_banks_xg dls:test.dls midi/dls_banks.mid 44100 400000 synth.midi-bank-select=xg
+dls_banks_mma dls:test.dls midi/dls_banks.mid 44100 400000 synth.midi-bank-select=mma
+dls_mono dls:test.dls midi/dls_mono.mid 44100 400000
+dls_mono_xg dls:test.dls midi/dls_mono.mid 44100 400000 synth.portamento-time=xg-gs
+dls_many dls:test.dls midi/dls_many.mid 44100 400000
+dls_many_poly8 dls:test.dls midi/dls_many.mid 44100 400000 synth.polyphony=8
+dls_tuning dls:test.dls midi/dls_tuning.mid 44100 400000
+dls_sysex dls:test.dls midi/sysex.mid 44100 400000
+dls_nrpn dls:test.dls midi/nrpn.mid 44100 400000
+dls_pgal dls:dls_pgal.dls midi/dls_drums.mid 44100 400000
+dls_art dls:dls_art.dls midi/dls_basic.mid 44100 400000
+dls_samples dls:dls_samples.dls midi/dls_basic.mid 44100 400000
+dls_sort dls:dls_sort.dls midi/dls_banks.mid 44100 400000 synth.midi-bank-select=mma
+dls_fail dls:dls_lart_cdl.dls midi/dls_basic.mid 44100 300000
+dls_path path:test.dls midi/dls_basic.mid 44100 400000
