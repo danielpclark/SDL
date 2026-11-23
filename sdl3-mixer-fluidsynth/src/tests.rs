@@ -29,7 +29,11 @@
 //! SDL_mixer's FluidSynth decoder does, renders 128 frames at a time while
 //! the player plays (up to a limit), and prints the results of the calls,
 //! an FNV-1a hash of the samples' bytes, and the messages logged at every
-//! level but `FLUID_DBG` on the way.
+//! level but `FLUID_DBG` on the way. A SoundFont named `dls:NAME` is a DLS
+//! file read through the synth's DLS loader (`new_fluid_dls_loader()`,
+//! private upstream) from memory instead; one named `path:NAME` is a file
+//! the synth loads by its path (`Synth::sfload()`, a copy of the file in
+//! the temporary directory here), through its own loaders.
 //!
 //! Upstream's C was built to use SDL's bundled math functions, as sdl3's
 //! are, rather than the C library's; with its IIR filter compiled without
@@ -260,6 +264,12 @@ const TESTDATA: &[(&str, &[u8])] = testdata![
     "midi/bad_varlen.mid",
     "midi/basic.mid",
     "midi/big_param.mid",
+    "midi/dls_banks.mid",
+    "midi/dls_basic.mid",
+    "midi/dls_drums.mid",
+    "midi/dls_many.mid",
+    "midi/dls_mono.mid",
+    "midi/dls_tuning.mid",
     "midi/empty.mid",
     "midi/fast.mid",
     "midi/format1.mid",
@@ -382,8 +392,12 @@ fn run_case(line: &str, out: &mut String) {
     }
     let rate = atoi(tok[3]);
     let maxframes: i64 = tok[4].parse().unwrap();
-    let sf = if tok[1] != "-" {
-        testdata(tok[1])
+    let (kind, sfname) = match tok[1].split_once(':') {
+        Some((kind, name)) => (kind, name),
+        None => ("", tok[1]),
+    };
+    let sf = if sfname != "-" {
+        testdata(sfname)
     } else {
         None
     };
@@ -409,8 +423,23 @@ fn run_case(line: &str, out: &mut String) {
         return;
     };
     let mut sfid = -2;
-    if let Some(sf) = sf {
-        let mut loader = SfLoader::new_defsfloader(&settings);
+    if let (Some(sf), "path") = (&sf, kind) {
+        // (a copy of the file in the temporary directory, for the synth to
+        // load by its path)
+        let path = std::env::temp_dir().join(format!(
+            "sdl3-mixer-fluidsynth-{}-{}",
+            std::process::id(),
+            sfname
+        ));
+        std::fs::write(&path, sf).unwrap();
+        sfid = synth.sfload(path.to_str().unwrap(), true);
+        let _ = std::fs::remove_file(&path);
+    } else if let Some(sf) = sf {
+        let mut loader = if kind == "dls" {
+            SfLoader::new_fluid_dls_loader(&settings)
+        } else {
+            SfLoader::new_defsfloader(&settings)
+        };
         let data: Arc<[u8]> = sf.into();
         loader.set_callbacks(Arc::new(move |name: &str| -> Option<Box<dyn SfFile>> {
             if name != "&FAKESFNAME&" {
