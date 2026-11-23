@@ -30,6 +30,7 @@ use std::sync::Arc;
 
 use crate::fluidsynth_h::*;
 use crate::sfloader::defsfont::{DefPreset, DefSfont};
+use crate::sfloader::dls::{DlsFont, DlsPreset};
 use crate::synth::modulator::FluidMod;
 use crate::utils::settings::Settings;
 use crate::utils::sys::{
@@ -203,6 +204,8 @@ impl SfLoader {
 pub(crate) enum SfontData {
     /// A SoundFont 2 file's (`fluid_defsfont_t`).
     Def(DefSfont),
+    /// A DLS file's (`fluid_dls_font`).
+    Dls(Box<DlsFont>),
 }
 
 /// The data of a [`FluidPreset`] (`fluid_preset_t`'s user data, whose
@@ -211,6 +214,8 @@ pub(crate) enum SfontData {
 pub(crate) enum PresetData {
     /// A SoundFont 2 preset (`fluid_defpreset_t`).
     Def(Arc<DefPreset>),
+    /// A DLS instrument or alias (`fluid_dls_instrument_fluid_data`).
+    Dls(Arc<DlsPreset>),
 }
 
 /// Translation of `fluid_sfont_t`: virtual SoundFont instance structure.
@@ -238,6 +243,7 @@ impl FluidSfont {
     pub(crate) fn get_name(&self) -> &str {
         match &self.data {
             SfontData::Def(defsfont) => defsfont.get_name(),
+            SfontData::Dls(dlsfont) => dlsfont.get_name(),
         }
     }
 
@@ -245,16 +251,19 @@ impl FluidSfont {
     /// assigned the a SoundFont instance for the given bank and preset
     /// number.
     ///
-    /// `_bank_select` is the synth's (`synth->bank_select`, which the DLS
+    /// `bank_select` is the synth's (`synth->bank_select`, which the DLS
     /// loader's method reads through its synth pointer).
     pub(crate) fn get_preset(
         &self,
         bank: i32,
         prenum: i32,
-        _bank_select: i32,
+        bank_select: i32,
     ) -> Option<FluidPreset> {
         let data = match &self.data {
             SfontData::Def(defsfont) => defsfont.get_preset(bank, prenum).map(PresetData::Def),
+            SfontData::Dls(dlsfont) => dlsfont
+                .get_preset(bank, prenum, bank_select)
+                .map(PresetData::Dls),
         };
         data.map(|data| FluidPreset {
             sfont_id: self.id,
@@ -268,6 +277,7 @@ impl FluidSfont {
     pub(crate) fn iteration_start(&mut self) {
         match &mut self.data {
             SfontData::Def(defsfont) => defsfont.iteration_start(),
+            SfontData::Dls(dlsfont) => dlsfont.iteration_start(),
         }
     }
 
@@ -278,6 +288,7 @@ impl FluidSfont {
         let id = self.id;
         let data = match &mut self.data {
             SfontData::Def(defsfont) => defsfont.iteration_next().map(PresetData::Def),
+            SfontData::Dls(dlsfont) => dlsfont.iteration_next().map(PresetData::Dls),
         };
         data.map(|data| FluidPreset { sfont_id: id, data })
     }
@@ -296,6 +307,8 @@ impl FluidPreset {
     pub(crate) fn ptr_eq(a: &FluidPreset, b: &FluidPreset) -> bool {
         match (&a.data, &b.data) {
             (PresetData::Def(a), PresetData::Def(b)) => Arc::ptr_eq(a, b),
+            (PresetData::Dls(a), PresetData::Dls(b)) => Arc::ptr_eq(a, b),
+            _ => false,
         }
     }
 
@@ -313,17 +326,19 @@ impl FluidPreset {
     pub(crate) fn get_name(&self) -> &str {
         match &self.data {
             PresetData::Def(defpreset) => defpreset.get_name(),
+            PresetData::Dls(dlspreset) => dlspreset.get_name(),
         }
     }
 
     /// Translation of `fluid_preset_get_banknum()`.
     ///
-    /// `_bank_select` is the synth's (`synth->bank_select`, which the DLS
+    /// `bank_select` is the synth's (`synth->bank_select`, which the DLS
     /// loader's method reads through its synth pointer).
     #[allow(dead_code)]
-    pub(crate) fn get_banknum(&self, _bank_select: i32) -> i32 {
+    pub(crate) fn get_banknum(&self, bank_select: i32) -> i32 {
         match &self.data {
             PresetData::Def(defpreset) => defpreset.get_banknum(),
+            PresetData::Dls(dlspreset) => dlspreset.get_banknum(bank_select),
         }
     }
 
@@ -332,6 +347,7 @@ impl FluidPreset {
     pub(crate) fn get_num(&self) -> i32 {
         match &self.data {
             PresetData::Def(defpreset) => defpreset.get_num(),
+            PresetData::Dls(dlspreset) => dlspreset.get_num(),
         }
     }
 

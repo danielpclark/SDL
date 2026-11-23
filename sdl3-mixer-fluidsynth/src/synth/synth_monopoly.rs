@@ -426,6 +426,7 @@ impl FluidSynthInner {
         };
         match &preset.data {
             PresetData::Def(defpreset) => self.fluid_defpreset_noteon(defpreset, chan, key, vel),
+            PresetData::Dls(dlspreset) => self.fluid_dls_preset_noteon(dlspreset, chan, key, vel),
         }
     }
 
