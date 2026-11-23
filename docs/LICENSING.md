@@ -223,6 +223,42 @@ finds those, as the Vulkan loader finds drivers).
   test programs over upstream's C SDL (built with its vendored headers),
   on diagnostic branches only: neither is in the repository.
 
+## FluidSynth's DLS loader (`sdl3-mixer-fluidsynth`)
+
+`sdl3-mixer-fluidsynth` translates FluidSynth's native DLS loader
+(`src/sfloader/fluid_dls.cpp`) with the rest of FluidSynth, under
+FluidSynth's LGPL: the file has no notice of its own, and FluidSynth's
+`LICENSE` covers it (the crate's `NOTICE` says so).
+
+* **libsndfile.** Upstream reads waves in formats other than PCM through
+  libsndfile (`LGPL-2.1-or-later`) when FluidSynth is built with it.
+  SDL_mixer's CMake builds FluidSynth without libsndfile, so that path is
+  left out, as SF3 samples are: such a wave fails to load, with
+  upstream's message for a build without libsndfile. Nothing of
+  libsndfile is translated or linked.
+* **The C++ library.** `fluid_dls.cpp` is C++17, and a few of its
+  messages are its C++ library's (the `what()` of `std::bad_alloc`,
+  `std::exception` and `vector::at()`'s `std::out_of_range`). The
+  translation has libstdc++'s strings (GCC's library, under the GPL with
+  its runtime library exception, the one upstream's C was checked with),
+  short messages copied as data; none of libstdc++'s code is translated
+  (its `std::sort` among it: the translation sorts with Rust's stable
+  sort, and says where the order can differ).
+* **The rest of the file.** Its `string_format()` is based on a
+  StackOverflow answer under CC0 1.0 (the translation uses Rust's
+  `format!`), and its DLSIDs are those of Microsoft's DLS Level 2 header
+  file, `dls2.h` ("Released for public use"): values, as the file has
+  them.
+* **The test data.** The DLS files in `testdata/` are made by
+  `tools/gen_fluidsynth_testdata.py`, the repository's own code, written
+  from the DLS specifications, not from FluidSynth's code. Upstream's test
+  bank (`VintageDreamsWaves-v2.dls`, freeware whose terms allow converted
+  copies for private use only) and Microsoft's `gm.dls` (proprietary)
+  are not in the repository; the first was only downloaded on diagnostic
+  branches.
+* **The C references.** The expected output was made by C programs over
+  upstream's FluidSynth and SDL_mixer, on diagnostic branches only.
+
 ## Android apps
 
 What an Android build of this repository contains, as facts about the

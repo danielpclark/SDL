@@ -15,31 +15,42 @@ FluidSynth computes its lookup tables with, as FluidSynth vendors it there
 It is NOT the original FluidSynth or gcem, nor SDL_mixer's copies of them.
 
 How and when they were changed: on 2026-10-17, the parts of FluidSynth's C
-and C++ sources that SDL_mixer's FluidSynth decoder (src/decoder_fluidsynth.c)
-reaches, built as SDL_mixer's CMake configures FluidSynth (double-precision
-samples, no libsndfile, no threads, no audio or MIDI drivers), were
-translated function by function into the Rust source files in src/, which
-keep the original copyright notices and comments: the synthesizer, its
-voices, channels, generators, modulators and tunings, the rvoice DSP,
-mixer, reverb and chorus, the SoundFont 2 loader and sample cache, the
-MIDI file player, the settings and the lookup tables (with the gcem
-functions they are computed with, in src/gcem.rs). Each file says so in a
-line under its copyright notice. The translation works on Rust types
-(vectors, indices and reference counts rather than pointers and linked
-lists, a mutex for the synth's recursive API lock), and does something
-defined where corrupt input makes the C code read or write out of bounds,
-convert out of range or loop forever (the places marked "FIXME (upstream)"
-in the source). Otherwise it renders bit-for-bit what the C code does,
-which its tests check against upstream's C built with the same math
-functions (upstream compiles its IIR filter with -ffast-math, whose
-results depend on the compiler and the CPU; the translation evaluates the
-filter as written). Left out, as SDL_mixer doesn't reach them: the audio
-and MIDI drivers, the shell and server, the sequencer, the MIDI router,
-LADSPA, reading DLS files, compressed (SF3) samples (which a build without
-libsndfile ignores too), the player's system timer, the settings' realtime
-callbacks, SoundFont unloading and most of the remaining public API. The
-changes are freely available as part of
-https://github.com/danielpclark/SDL.
+and C++ sources that SDL_mixer's FluidSynth decoder
+(src/decoder_fluidsynth.c) reaches, built as SDL_mixer's CMake configures
+FluidSynth (double-precision samples, no libsndfile, no threads, no audio
+or MIDI drivers), were translated function by function into the Rust source
+files in src/, which keep the original copyright notices and comments: the
+synthesizer, its voices, channels, generators, modulators and tunings, the
+rvoice DSP, mixer, reverb and chorus, the SoundFont 2 loader and sample
+cache, the MIDI file player, the settings and the lookup tables (with the
+gcem functions they are computed with, in src/gcem.rs). On 2026-11-23, the
+native DLS loader (src/sfloader/fluid_dls.cpp, with the DLS default
+modulators of src/synth/fluid_synth.c), which SDL_mixer's FluidSynth builds
+in but SDL_mixer can't reach, was translated the same way, into
+src/sfloader/dls.rs: it reads the DLS files a synth loads by their path.
+Each file says so in a line under its copyright notice. The translation
+works on Rust types (vectors, indices and reference counts rather than
+pointers and linked lists, a mutex for the synth's recursive API lock), and
+does something defined where corrupt input makes the C code read or write
+out of bounds, convert out of range or loop forever (the places marked
+"FIXME (upstream)" in the source). Otherwise it renders bit-for-bit what
+the C code does, which its tests check against upstream's C built with the
+same math functions (upstream compiles its IIR filter with -ffast-math,
+whose results depend on the compiler and the CPU; the translation evaluates
+the filter as written). Left out, as SDL_mixer doesn't reach them: the
+audio and MIDI drivers, the shell and server, the sequencer, the MIDI
+router, LADSPA, compressed (SF3) samples (which a build without libsndfile
+ignores too), the player's system timer, the settings' realtime callbacks,
+SoundFont unloading and most of the remaining public API. Of the DLS
+loader, left out are its libsndfile path (waves in other formats than PCM,
+which a build without libsndfile fails on too, as the translation does) and
+pinning its sample data to RAM (mlock(), whose failure upstream only warns
+about; the SoundFont 2 sample cache leaves it out too). Where the DLS
+loader's messages are the C++ library's (the what() of std::bad_alloc,
+std::exception and vector::at()'s std::out_of_range), the translation has
+libstdc++'s strings, the C++ library upstream's C was checked with; no code
+of the C++ library is translated. The changes are freely available as part
+of https://github.com/danielpclark/SDL.
 
 License
 -------
@@ -49,21 +60,26 @@ License, version 2.1 or (at your option) any later version: see COPYING
 (FluidSynth's LICENSE, verbatim from SDL_mixer). Its source files say so in
 their headers; the few without a header (fluid_lfo.c, fluid_dls.cpp, the
 gentables sources and some headers) are covered by that LICENSE as part of
-FluidSynth. gcem is licensed under the Apache License, version 2.0: see
-LICENSE.gcem (gcem's LICENSE, verbatim from SDL_mixer). So is this crate:
-its SPDX license expression is "LGPL-2.1-or-later AND Apache-2.0" (the
-translation of gcem, src/gcem.rs, is under the Apache License; everything
-else is under the LGPL). The Apache License 2.0 is compatible only with
-version 3 of the LGPL (the Free Software Foundation considers it
-incompatible with version 2.1), so the combined crate is effectively
-distributed under the terms of the LGPL 3.0 or later, which FluidSynth's
-"or any later version" allows; the SPDX expression stays the components'.
+FluidSynth. In fluid_dls.cpp, string_format() is based on a StackOverflow
+answer under CC0 1.0 (the translation formats with Rust's format! instead),
+and the DLSID values are those of the DLS Level 2 header file, dls2.h
+("Written by Microsoft 1998. Released for public use."). gcem is licensed
+under the Apache License, version 2.0: see LICENSE.gcem (gcem's LICENSE,
+verbatim from SDL_mixer). So is this crate: its SPDX license expression is
+"LGPL-2.1-or-later AND Apache-2.0" (the translation of gcem, src/gcem.rs,
+is under the Apache License; everything else is under the LGPL). The Apache
+License 2.0 is compatible only with version 3 of the LGPL (the Free
+Software Foundation considers it incompatible with version 2.1), so the
+combined crate is effectively distributed under the terms of the LGPL 3.0
+or later, which FluidSynth's "or any later version" allows; the SPDX
+expression stays the components'.
 
 This is, with sdl3-mixer-timidity, one of the parts of the repository that
 aren't under the zlib license. sdl3-mixer uses it to play MIDI through its
 `fluidsynth` Cargo feature, which is on by default; build sdl3-mixer with
 `default-features = false` to leave it (and MIDI) out.
 
-No SoundFonts are bundled. The test data in testdata/ (a small synthetic
-SoundFont, MIDI files, broken copies of both, and the list of test cases)
-is generated by tools/gen_fluidsynth_testdata.py in the repository.
+No SoundFonts or DLS files are bundled. The test data in testdata/ (a
+small synthetic SoundFont, synthetic DLS files written from the DLS
+specifications, MIDI files, broken copies of them, and the list of test
+cases) is generated by tools/gen_fluidsynth_testdata.py in the repository.
