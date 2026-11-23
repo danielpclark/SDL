@@ -2000,13 +2000,15 @@ impl DlsFont {
                                 )));
                             }
                         }
+                    } else {
+                        // Note (upstream): upstream pushes the "supported"
+                        // flag after a QUERY's value too (DLS-2.2 has a
+                        // QUERY push its value only), so an expression that
+                        // uses the value sees the flag instead, and every
+                        // value under it is one place off. Fixed here: only
+                        // a QUERY_SUPPORTED pushes the flag.
+                        push(&mut stack, &mut sp, result.is_some() as u32)?; // Query_Supported
                     }
-
-                    // FIXME (upstream): a QUERY pushes the "supported" flag
-                    // over its value too (DLS-2.2 has it push the value
-                    // only), so an expression that uses the value sees the
-                    // flag instead.
-                    push(&mut stack, &mut sp, result.is_some() as u32)?; // Query_Supported
                     pc += 16; // sizeof(DLSID)
                 }
 
