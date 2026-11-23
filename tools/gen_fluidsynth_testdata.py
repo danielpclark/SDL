@@ -930,15 +930,17 @@ def dls_files():
     for guid in (DLSID_GM, DLSID_GS, DLSID_XG, DLSID_DLS1, DLSID_DLS2, DLSID_MEMORY, DLSID_MANUFACTURER,
                  DLSID_PRODUCT, DLSID_RATE):
         ops += check([cdl_supported(guid)], 1)
-    # (FluidSynth's QUERY pushes the "supported" flag over the value)
-    ops += check([cdl_query(DLSID_GM), cdl_op(CDL_EQ)], 1)
-    ops += check([cdl_query(DLSID_MANUFACTURER), cdl_op(CDL_SUBTRACT)], 1 - 0x4000)
-    ops += check([cdl_query(DLSID_MEMORY), cdl_op(CDL_SUBTRACT)], 1 - 0xFFFFFFFF // 4 * 3)
+    # (a QUERY pushes the value only, where FluidSynth pushes the "supported"
+    # flag over it: see the Note (upstream) in execute_cdls())
+    ops += check([cdl_query(DLSID_GM)], 1)
+    ops += check([cdl_query(DLSID_MANUFACTURER)], 0x4000)
+    ops += check([cdl_query(DLSID_MEMORY)], 0xFFFFFFFF // 4 * 3)
+    ops += check([cdl_const(0), cdl_query(DLSID_GM), cdl_op(CDL_AND)], 0)
+    ops += check([cdl_query(DLSID_PRODUCT), cdl_query(DLSID_MANUFACTURER), cdl_op(CDL_SUBTRACT)], 0x4000 - 0x0d000721)
     write('dls_cdl_ops.dls', cdl(*ops, **nolins))
     write('dls_cdl_false.dls', cdl(cdl_const(0)))
-    # 44100 - the rate: false at 44.1 kHz (see dls_cdl_ops.dls for the QUERY)
-    write('dls_cdl_rate.dls', cdl(cdl_query(DLSID_RATE), cdl_op(CDL_SUBTRACT), cdl_const(44099), cdl_op(CDL_ADD),
-                                  **nolins))
+    # 44100 - the rate: false at 44.1 kHz
+    write('dls_cdl_rate.dls', cdl(cdl_query(DLSID_RATE), cdl_const(44100), cdl_op(CDL_SUBTRACT), **nolins))
     write('dls_cdl_overflow.dls', cdl(*[cdl_const(1)] * 65))
     write('dls_cdl_empty.dls', cdl())
     write('dls_cdl_div0.dls', cdl(cdl_const(0), cdl_const(5), cdl_op(CDL_DIVIDE)))

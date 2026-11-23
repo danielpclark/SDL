@@ -44,7 +44,8 @@
 //! its first blocks with uninitialized parameters), and where it fixes
 //! upstream's bugs (the `Note (upstream)` notes of fluid_dls.cpp: in
 //! `parse_lart()`, a false condition bypasses an articulation list
-//! rather than failing the file). The files here don't
+//! rather than failing the file; in `execute_cdls()`, a QUERY pushes its
+//! value only). The files here don't
 //! hit the other places where the translation does something defined where
 //! upstream reads or writes out of bounds.
 //!
