@@ -38,11 +38,18 @@ fn main() {
         RegisterAppConstrainedChangeNotification(Some(on_constrained), std::ptr::null(), &mut creg)
     };
     println!("result = {r} (0x{r:08x}), registration = 0x{creg:x}");
-    if r == 0 && creg != 0 {
+    if r == 0 {
+        // (as upstream's GDK_UnregisterChangeNotifications() does, whatever
+        // the registration is, a null one too)
         // SAFETY: the registration made above.
         unsafe { UnregisterAppConstrainedChangeNotification(creg) };
-        println!("UnregisterAppConstrainedChangeNotification: returned");
+        println!("UnregisterAppConstrainedChangeNotification(0x{creg:x}): returned");
     }
+    println!("== UnregisterAppStateChangeNotification(0)");
+    // SAFETY: a null registration (what upstream's static holds when the
+    // registration failed or never ran).
+    unsafe { UnregisterAppStateChangeNotification(0) };
+    println!("returned");
 }
 
 #[cfg(not(windows))]
