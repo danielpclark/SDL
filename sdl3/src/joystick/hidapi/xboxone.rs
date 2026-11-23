@@ -1945,11 +1945,10 @@ impl DriverImpl for XboxOneDriver {
         #[cfg(not(target_os = "macos"))]
         let _ = (vendor_id, product_id);
 
-        // FIXME (upstream): SDL_PLATFORM_WIN32 only, so WinGDK (the gdk
-        // feature) uses the fake endpoint, which its Windows provides too.
-        if cfg!(all(windows, not(feature = "gdk")))
-            && device.is_some_and(|d| d.path().starts_with(r"\\?\HID#"))
-        {
+        // Note (upstream): SDL_PLATFORM_WIN32 only, so upstream's WinGDK
+        // uses the fake endpoint, which its Windows provides too; here the
+        // gdk feature doesn't.
+        if cfg!(windows) && device.is_some_and(|d| d.path().starts_with(r"\\?\HID#")) {
             // Windows provides a fake HID endpoint for XGIP controllers, don't use this
             return false;
         }
