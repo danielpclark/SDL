@@ -2736,6 +2736,129 @@ impl DlsFont {
     }
 }
 
+#[cfg(test)]
+impl DlsFont {
+    /// The lines of the reference program's dump of a loaded font (a
+    /// function the program adds to upstream's fluid_dls.cpp): the
+    /// instruments in their order, the articulations, the samples and the
+    /// drum note aliasing table, each number as C's printf() prints it and
+    /// each `fluid_real_t` as its bits.
+    pub(crate) fn dump(&self) -> Vec<String> {
+        let mut out = Vec::new();
+        let mut instruments: Vec<&Arc<DlsInstrument>> = Vec::new();
+
+        // (each instrument's preset, then its aliases')
+        for preset in &self.presets {
+            if !instruments
+                .last()
+                .is_some_and(|last| Arc::ptr_eq(last, &preset.instrument))
+            {
+                instruments.push(&preset.instrument);
+            }
+        }
+
+        for (i, ins) in instruments.iter().enumerate() {
+            out.push(format!(
+                "  instrument {} '{}' msb={} lsb={} pc={} drums={} keynum={:016x} regions={}",
+                i,
+                c_str(&ins.name),
+                ins.bankmsb,
+                ins.banklsb,
+                ins.pcnum,
+                ins.is_drums as i32,
+                ins.keynum_scale.to_bits(),
+                ins.regions.len()
+            ));
+
+            for r in &ins.regions {
+                out.push(format!(
+                    "   region keys={}-{} vels={}-{} excl={} art={} sample={} mode={} gain={:016x}",
+                    r.range.keylo,
+                    r.range.keyhi,
+                    r.range.vello,
+                    r.range.velhi,
+                    r.exclusive_class,
+                    r.artindex,
+                    r.sampleindex,
+                    r.samplemode_inherited,
+                    r.gain_inherited.to_bits()
+                ));
+
+                if let Some(w) = &r.wsmp {
+                    out.push(format!(
+                        "    wsmp unity={} fine={} gain={} type={} start={} length={}",
+                        w.unity_note, w.fine_tune, w.gain, w.loop_type, w.loop_start, w.loop_length
+                    ));
+                }
+            }
+        }
+
+        // (the instruments share the font's articulations)
+        let articulations = instruments
+            .first()
+            .map(|ins| &ins.articulations[..])
+            .unwrap_or(&[]);
+
+        for (i, a) in articulations.iter().enumerate() {
+            out.push(format!(
+                "  articulation {} keynum={:016x} k2p={:016x} mods={}",
+                i,
+                a.keynum_scale.to_bits(),
+                a.key_to_pitch.amount.to_bits(),
+                a.mods.len()
+            ));
+
+            for (g, value) in a.gens.iter().enumerate() {
+                if let Some(value) = value {
+                    out.push(format!("   gen {} {:016x}", g, value.to_bits()));
+                }
+            }
+
+            for m in &a.mods {
+                out.push(format!(
+                    "   mod dest={} src1={} flags1={} src2={} flags2={} trans={} amount={:016x}",
+                    m.dest,
+                    m.src1,
+                    m.flags1,
+                    m.src2,
+                    m.flags2,
+                    m.trans,
+                    m.amount.to_bits()
+                ));
+            }
+        }
+
+        for (i, s) in self.samples_fluid.iter().enumerate() {
+            out.push(format!(
+                "  sample {} '{}' start={} end={} loop={}-{} rate={} pitch={} adj={} type={} mods={}",
+                i,
+                s.name,
+                s.start,
+                s.end,
+                s.loopstart,
+                s.loopend,
+                s.samplerate,
+                s.origpitch,
+                s.pitchadj,
+                s.sampletype,
+                s.default_modulators.is_some() as i32
+            ));
+        }
+
+        if let Some(table) = &self.drum_note_aliasing {
+            for (k, row) in table.chunks(16).enumerate() {
+                let mut line = format!("  aliasing {}:", k * 16);
+                for note in row {
+                    line += &format!(" {}", note);
+                }
+                out.push(line);
+            }
+        }
+
+        out
+    }
+}
+
 // fluid sfloader interfaces implementation
 
 // (`fluid_dls_loader_data`, `new_fluid_dls_loader()` and
