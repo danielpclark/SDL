@@ -193,3 +193,39 @@ fn ignored_gamepads() {
         Some("Xbox Controller")
     ));
 }
+
+/// `SDL_GAMECONTROLLER_ALLOW_STEAM_VIRTUAL_GAMEPAD`: the Steam Virtual
+/// Gamepad is ignored without it; with it, on Windows under Wine (launched
+/// by Steam, under Proton), no gamepad is ignored by its VID/PID, not even
+/// one `SDL_HINT_GAMECONTROLLER_IGNORE_DEVICES` names.
+#[test]
+fn steam_virtual_gamepad_allowed() {
+    const ALLOW: &str = "SDL_GAMECONTROLLER_ALLOW_STEAM_VIRTUAL_GAMEPAD";
+    let _l = crate::test_support::test_lock();
+    let steam = |v| {
+        use crate::joystick::usb_ids::{USB_PRODUCT_STEAM_VIRTUAL_GAMEPAD, USB_VENDOR_VALVE};
+        should_ignore_gamepad(USB_VENDOR_VALVE, USB_PRODUCT_STEAM_VIRTUAL_GAMEPAD, v, None)
+    };
+    let previous = crate::stdlib::getenv_unsafe(ALLOW);
+    IGNORED_GAMEPADS.load_from_hints(Some("0x1234/0x5678"), None);
+
+    crate::stdlib::unsetenv_unsafe(ALLOW).unwrap();
+    if !cfg!(target_os = "macos") {
+        assert!(steam(0));
+    }
+    assert!(should_ignore_gamepad(0x1234, 0x5678, 0, None));
+
+    crate::stdlib::setenv_unsafe(ALLOW, "1", true).unwrap();
+    assert!(!steam(0));
+    #[cfg(windows)]
+    let under_wine = crate::core::windows::is_wine();
+    #[cfg(not(windows))]
+    let under_wine = false;
+    assert_eq!(should_ignore_gamepad(0x1234, 0x5678, 0, None), !under_wine);
+
+    match previous {
+        Some(value) => crate::stdlib::setenv_unsafe(ALLOW, &value, true).unwrap(),
+        None => crate::stdlib::unsetenv_unsafe(ALLOW).unwrap(),
+    }
+    IGNORED_GAMEPADS.free();
+}
