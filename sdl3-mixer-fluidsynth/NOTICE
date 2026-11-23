@@ -37,25 +37,26 @@ out of bounds, convert out of range or loop forever (the places marked
 (marked "Note (upstream)"; upstream's C was patched the same way for the
 tests): an articulation list whose condition is false is bypassed, where
 upstream fails the whole file; a conditional expression's QUERY pushes its
-value only, where upstream also pushes the "supported" flag over it.
-Otherwise it renders bit-for-bit what the C code does, which its tests
-check against upstream's C built with the same math functions (upstream
-compiles its IIR filter with -ffast-math, whose results depend on the
-compiler and the CPU; the translation evaluates the filter as written).
-Left out, as SDL_mixer doesn't reach them: the audio and MIDI drivers, the
-shell and server, the sequencer, the MIDI router, LADSPA, compressed (SF3)
-samples (which a build without libsndfile ignores too), the player's system
-timer, the settings' realtime callbacks, SoundFont unloading and most of
-the remaining public API. Of the DLS loader, left out are its libsndfile
-path (waves in other formats than PCM, which a build without libsndfile
-fails on too, as the translation does) and pinning its sample data to RAM
-(mlock(), whose failure upstream only warns about; the SoundFont 2 sample
-cache leaves it out too). Where the DLS loader's messages are the C++
-library's (the what() of std::bad_alloc, std::exception and vector::at()'s
-std::out_of_range), the translation has libstdc++'s strings, the C++
-library upstream's C was checked with; no code of the C++ library is
-translated. The changes are freely available as part of
-https://github.com/danielpclark/SDL.
+value only, where upstream also pushes the "supported" flag over it; and an
+instrument's Key Number generator is taken from its first articulation list
+too, where upstream takes it from a second one only. Otherwise it renders
+bit-for-bit what the C code does, which its tests check against upstream's
+C built with the same math functions (upstream compiles its IIR filter with
+-ffast-math, whose results depend on the compiler and the CPU; the
+translation evaluates the filter as written). Left out, as SDL_mixer
+doesn't reach them: the audio and MIDI drivers, the shell and server, the
+sequencer, the MIDI router, LADSPA, compressed (SF3) samples (which a build
+without libsndfile ignores too), the player's system timer, the settings'
+realtime callbacks, SoundFont unloading and most of the remaining public
+API. Of the DLS loader, left out are its libsndfile path (waves in other
+formats than PCM, which a build without libsndfile fails on too, as the
+translation does) and pinning its sample data to RAM (mlock(), whose
+failure upstream only warns about; the SoundFont 2 sample cache leaves it
+out too). Where the DLS loader's messages are the C++ library's (the what()
+of std::bad_alloc, std::exception and vector::at()'s std::out_of_range),
+the translation has libstdc++'s strings, the C++ library upstream's C was
+checked with; no code of the C++ library is translated. The changes are
+freely available as part of https://github.com/danielpclark/SDL.
 
 License
 -------

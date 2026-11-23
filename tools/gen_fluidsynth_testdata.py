@@ -1138,8 +1138,9 @@ def make_test_dls():
     ], larts=[organ]))
     d.instruments.append(dls_instrument(b'GM2 Rhythm', 120 << 8, 0, [dls_rgn((0, 127), square)]))
     d.instruments.append(dls_instrument(b'XG voice', 3, 4, [dls_rgn((0, 127), square, wsmp=dls_wsmp(60))]))
-    # the Key Number generator (x 0.5): FluidSynth takes the instrument's
-    # from a second articulation list only
+    # the Key Number generator (x 0.5), in the first of two articulation
+    # lists and in the only one (FluidSynth takes the instrument's from a
+    # second list only: see the Note (upstream) in parse_ins())
     keynum = dls_lart([dls_art([conn(SRC_KEY, SRC_NONE, DST_KEYNUMBER, 0, 6400),
                                 conn(SRC_NONE, SRC_NONE, DST_EG1_RELEASE, 0, -4000)])])
     split = [dls_rgn((0, 40), saw), dls_rgn((41, 127), long_sine)]

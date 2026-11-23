@@ -2348,15 +2348,20 @@ impl DlsFont {
                             flog!(FLUID_DBG, "A instrument lart chunk is bypassed by cdl");
                             this.articulations.pop();
                             articulation_index = usize::MAX;
+                        } else {
+                            // Note (upstream): upstream takes the
+                            // instrument's Key Number generator only from a
+                            // second articulation list (below), so with the
+                            // usual one it is ignored. Fixed here: the first
+                            // one's counts too.
+                            instrument.keynum_scale =
+                                this.articulations[articulation_index].keynum_scale;
                         }
 
                         return Ok(());
                     }
 
                     this.parse_lart_at(pos, articulation_index)?;
-                    // FIXME (upstream): the instrument's Key Number generator
-                    // is only taken from a second articulation list: with
-                    // the usual one, it is ignored.
                     instrument.keynum_scale = this.articulations[articulation_index].keynum_scale;
                 }
 
