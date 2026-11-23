@@ -2587,7 +2587,14 @@ pub(crate) fn should_ignore_gamepad(
 
     let hint = crate::stdlib::getenv_unsafe("SDL_GAMECONTROLLER_ALLOW_STEAM_VIRTUAL_GAMEPAD");
     let allow_steam_virtual_gamepad = hints::string_to_bool(hint.as_deref(), false);
-    // (The WIN_IsWine() check arrives with the Windows platform layer.)
+    #[cfg(windows)]
+    if allow_steam_virtual_gamepad && crate::core::windows::is_wine() {
+        // We are launched by Steam and running under Proton or Wine
+        // We can't tell whether this controller is a Steam Virtual Gamepad,
+        // so assume that is doing the appropriate filtering of controllers
+        // and anything we see here is fine to use.
+        return false;
+    }
 
     if is_joystick_steam_virtual_gamepad(vendor_id, product_id, version) {
         return !allow_steam_virtual_gamepad;
