@@ -447,9 +447,9 @@ def sysex_events():
     ]
 
 
-def mono_events():
+def mono_events(prog1=2):
     return [
-        (0, prog(0, 0)), (0, prog(1, 2)),
+        (0, prog(0, 0)), (0, prog(1, prog1)),
         (0, cc(0, 126, 0)),                                             # mono on (poly off)
         (0, on(0, 60)), (24, on(0, 62)), (24, off(0, 60)), (12, on(0, 64)), (24, off(0, 62)),
         (0, off(0, 64)),
@@ -491,14 +491,89 @@ def nrpn_events():
     return ev
 
 
-def many_notes():
-    ev = [(0, prog(0, 1)), (0, prog(1, 0)), (0, prog(2, 2))]
+def many_notes(progs=(1, 0, 2), drums=()):
+    ev = [(0, prog(c, p)) for c, p in enumerate(progs)] + list(drums)
     for i in range(40):
         ev.append((3, on(i % 3, 36 + (i * 7) % 60, 40 + (i * 13) % 80)))
     ev.append((24, cc(0, 123, 0)))
     for i in range(40):
         ev.append((0, off(1, 36 + (i * 7) % 60)))
     ev += [(0, on(9, 36)), (0, on(9, 42)), (0, on(9, 46))]
+    return ev
+
+
+def dls_basic_events():
+    """test.dls's instruments (GS bank numbers): chords, bends and
+    controllers, velocity layers, conditional regions, the Key Number
+    generator, the drum kits' key groups, and a program that isn't there."""
+    return [
+        (0, tempo(500000)),
+        (0, meta(0x03, b'dls basic')),
+        (0, prog(0, 0)),                                                # Piano
+        (0, cc(1, 0, 1)), (0, cc(1, 32, 2)), (0, prog(1, 48)),          # Strings (bank 1/2)
+        (0, prog(2, 16)), (0, prog(3, 80)),                             # Organ, Square lead
+        (0, prog(4, 40)), (0, prog(5, 41)),                             # Keynum two, Keynum one
+        (0, cc(6, 0, 121)), (0, prog(6, 1)),                            # Bright GM2
+        (0, cc(7, 0, 120)), (0, prog(7, 0)),                            # GM2 Rhythm
+        (0, prog(8, 4)), (0, prog(9, 8)), (0, prog(10, 1)),             # XG voice, Kit, none
+        (0, cc(0, 7, 100)), (0, cc(0, 10, 30)), (0, cc(1, 10, 100)), (0, cc(1, 11, 90)),
+        (0, cc(0, 91, 80)), (0, cc(1, 93, 100)), (0, cc(2, 91, 40)),
+    ] + rpn(0, 0, 0, 12) + rpn(1, 0, 0, 2) + [
+        (12, on(0, 60)), (0, on(0, 64)), (0, on(0, 67)), (0, on(9, 36, 120)),
+        (24, on(1, 57, 40)), (0, on(1, 64, 110)), (0, on(2, 52)), (0, on(2, 76, 90)),
+        (12, bend(0, 0x2000 + 2000)), (0, bend(1, 0x2000 - 3000)), (6, bend(0, 0x2000)),
+        (0, cc(1, 1, 90)), (0, bytes([0xD1, 70])), (0, bytes([0xA1, 64, 60])),
+        (0, on(9, 42, 90)), (12, on(9, 46, 100)),
+        (12, off(0, 60)), (0, off(0, 64)), (0, off(0, 67)), (0, off(9, 36)),
+        (0, on(3, 72)), (0, on(4, 30)), (0, on(4, 60)), (0, on(5, 60)), (0, on(6, 60)), (0, on(7, 50)),
+        (0, on(8, 64)), (0, on(10, 72)),
+        (24, off(1, 57)), (0, off(1, 64)), (0, off(2, 52)), (0, off(2, 76)), (0, cc(1, 1, 0)),
+        (0, off(3, 72)), (0, off(4, 30)), (0, off(4, 60)), (0, off(5, 60)), (0, off(6, 60)), (0, off(7, 50)),
+        (0, off(8, 64)), (0, off(10, 72)),
+        (0, prog(9, 25)), (0, on(9, 42)), (12, on(9, 44)), (12, on(9, 46)), (12, on(9, 38)),   # key group 1
+        (0, cc(0, 64, 127)), (0, on(0, 72)), (24, off(0, 72)), (12, cc(0, 64, 0)),
+        (0, cc(9, 0, 1)), (0, prog(9, 2)), (0, on(9, 40)), (0, on(9, 70)),
+        (24, off(9, 40)), (0, off(9, 42)), (0, off(9, 44)), (0, off(9, 46)), (0, off(9, 38)), (0, off(9, 70)),
+        (12, on(0, 62, 110)), (0, on(1, 50, 20)), (48, off(0, 62)), (0, off(1, 50)),
+    ]
+
+
+def dls_bank_events():
+    """Bank selects (MSB, LSB) and programs on a melodic and the drum
+    channel, which each bank select style reads its own way."""
+    ev = [(0, tempo(300000))]
+    for msb, lsb, p in [(0, 0, 0), (0, 3, 4), (1, 2, 48), (1, 0, 48), (0, 2, 48), (121, 0, 1), (120, 0, 0),
+                        (0, 0, 1), (127, 0, 0), (0, 0, 8), (1, 1, 2), (2, 1, 0)]:
+        ev += [(0, cc(0, 0, msb)), (0, cc(0, 32, lsb)), (0, prog(0, p)), (0, on(0, 60)), (12, off(0, 60))]
+    for msb, lsb, p in [(0, 0, 8), (0, 0, 25), (1, 0, 2), (0, 0, 2), (120, 0, 0), (0, 1, 8)]:
+        ev += [(0, cc(9, 0, msb)), (0, cc(9, 32, lsb)), (0, prog(9, p)), (0, on(9, 42)), (0, on(9, 46)),
+               (12, off(9, 42)), (0, off(9, 46))]
+    return ev
+
+
+def dls_tuning_events():
+    """A channel's MIDI tuning moves the key a region is chosen by: an
+    octave tuning (+60 cents on D#), then single note tunings."""
+    octave = sysex(bytes([0x7E, 0x7F, 0x08, 0x08, 0x03, 0x7F, 0x7F]) + bytes(
+        [0x40 + 60 if i == 3 else 0x40 for i in range(12)]))
+    notes = sysex(bytes([0x7F, 0x7F, 0x08, 0x02, 0x03, 0x02, 62, 66, 0x00, 0x00, 70, 57, 0x40, 0x00]))
+    return [
+        (0, prog(0, 0)), (0, prog(1, 40)), (0, prog(9, 8)),
+        (0, octave),
+        (0, on(0, 63)), (0, on(1, 63)), (0, on(9, 63)), (24, off(0, 63)), (0, off(1, 63)), (0, off(9, 63)),
+        (0, notes),
+    ] + rpn(0, 0, 4, 0) + rpn(0, 0, 3, 3) + rpn(1, 0, 4, 0) + rpn(1, 0, 3, 3) + [
+        (0, on(0, 62)), (0, on(1, 62)), (24, off(0, 62)), (0, off(1, 62)),
+        (0, on(0, 70)), (0, on(1, 70)), (24, off(0, 70)), (0, off(1, 70)),
+    ]
+
+
+def dls_drum_events():
+    """dls_pgal.dls's drum note aliasing and instrument aliases."""
+    ev = [(0, prog(9, 8)), (0, prog(0, 3)), (0, cc(1, 0, 1)), (0, cc(1, 32, 5)), (0, prog(1, 81))]
+    for key in (35, 36, 40, 82, 100, 127):
+        ev += [(0, on(9, key)), (12, off(9, key))]
+    ev += [(0, on(0, 60)), (0, on(1, 72)), (24, off(0, 60)), (0, off(1, 72))]
     return ev
 
 
@@ -556,6 +631,14 @@ def midi_files():
     write('midi/big_param.mid', midi(0, [track([(0, bytes([0x90, 0xC8, 0x64])), (0, bytes([0xB0, 0x07, 0xFF])),
                                                 (0, bytes([0x90, 60, 0xF0])), (48, bytes([0x80, 60, 0]))])]))
     write('midi/not_midi.mid', b'RIFF\0\0\0\0RMIDdata')
+    # for test.dls (and the other DLS files that load)
+    write('midi/dls_basic.mid', midi(0, [track(dls_basic_events())]))
+    write('midi/dls_banks.mid', midi(0, [track(dls_bank_events())]))
+    write('midi/dls_tuning.mid', midi(0, [track(dls_tuning_events())]))
+    write('midi/dls_drums.mid', midi(0, [track(dls_drum_events())]))
+    # Strings: two velocity layers, a region articulation on one
+    write('midi/dls_mono.mid', midi(0, [track([(0, cc(1, 0, 1)), (0, cc(1, 32, 2))] + mono_events(48))]))
+    write('midi/dls_many.mid', midi(0, [track(many_notes((16, 0, 80), [(0, prog(9, 25))]))], division=48))
 
 
 def soundfonts():
@@ -1256,6 +1339,32 @@ CASES = [
     ('sf_badsamples9', 'sf2_badsamples.sf2', 'nrpn.mid', 44100, 300000, ''),
     ('sf_badsm24', 'sf2_badsm24.sf2', 'basic.mid', 44100, 300000, ''),
     ('sf_badinst', 'sf2_badinst.sf2', 'basic.mid', 44100, 300000, ''),
+    # DLS files, through the synth's DLS loader reading from memory
+    ('dls_basic', 'dls:test.dls', 'dls_basic.mid', 44100, 400000, ''),
+    ('dls_basic48k', 'dls:test.dls', 'dls_basic.mid', 48000, 400000, ''),
+    ('dls_basic22k', 'dls:test.dls', 'dls_basic.mid', 22050, 200000, ''),
+    ('dls_basic8k', 'dls:test.dls', 'dls_basic.mid', 8000, 100000, ''),
+    ('dls_basic_dry', 'dls:test.dls', 'dls_basic.mid', 44100, 400000,
+     'synth.reverb.active=0 synth.chorus.active=0'),
+    ('dls_banks_gs', 'dls:test.dls', 'dls_banks.mid', 44100, 400000, 'synth.midi-bank-select=gs'),
+    ('dls_banks_gm', 'dls:test.dls', 'dls_banks.mid', 44100, 400000, 'synth.midi-bank-select=gm'),
+    ('dls_banks_xg', 'dls:test.dls', 'dls_banks.mid', 44100, 400000, 'synth.midi-bank-select=xg'),
+    ('dls_banks_mma', 'dls:test.dls', 'dls_banks.mid', 44100, 400000, 'synth.midi-bank-select=mma'),
+    ('dls_mono', 'dls:test.dls', 'dls_mono.mid', 44100, 400000, ''),
+    ('dls_mono_xg', 'dls:test.dls', 'dls_mono.mid', 44100, 400000, 'synth.portamento-time=xg-gs'),
+    ('dls_many', 'dls:test.dls', 'dls_many.mid', 44100, 400000, ''),
+    ('dls_many_poly8', 'dls:test.dls', 'dls_many.mid', 44100, 400000, 'synth.polyphony=8'),
+    ('dls_tuning', 'dls:test.dls', 'dls_tuning.mid', 44100, 400000, ''),
+    ('dls_sysex', 'dls:test.dls', 'sysex.mid', 44100, 400000, ''),
+    ('dls_nrpn', 'dls:test.dls', 'nrpn.mid', 44100, 400000, ''),
+    ('dls_pgal', 'dls:dls_pgal.dls', 'dls_drums.mid', 44100, 400000, ''),
+    ('dls_art', 'dls:dls_art.dls', 'dls_basic.mid', 44100, 400000, ''),
+    ('dls_samples', 'dls:dls_samples.dls', 'dls_basic.mid', 44100, 400000, ''),
+    ('dls_sort', 'dls:dls_sort.dls', 'dls_banks.mid', 44100, 400000, 'synth.midi-bank-select=mma'),
+    ('dls_fail', 'dls:dls_lart_cdl.dls', 'dls_basic.mid', 44100, 300000, ''),
+    # test.dls by its path, through the synth's own loaders (the SoundFont
+    # loader's, then the DLS loader's)
+    ('dls_path', 'path:test.dls', 'dls_basic.mid', 44100, 400000, ''),
 ]
 
 
