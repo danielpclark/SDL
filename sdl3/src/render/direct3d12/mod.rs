@@ -49,6 +49,7 @@ use std::ffi::c_void;
 use std::ptr::{null, null_mut, NonNull};
 
 use windows_sys::Win32::Foundation::{CloseHandle, GetLastError, HANDLE, HWND};
+#[cfg(not(feature = "gdk"))]
 use windows_sys::Win32::System::LibraryLoader::{GetModuleHandleW, GetProcAddress};
 use windows_sys::Win32::System::Threading::{WaitForSingleObjectEx, INFINITE};
 
@@ -1280,15 +1281,23 @@ impl D3d12Renderer {
     /// Create resources that depend on the device. Translation of
     /// `D3D12_CreateDeviceResources()` (the failure of a failed `HRESULT`).
     fn create_device_resources(&mut self) -> Result<()> {
-        type PfnCreateEventExW =
-            unsafe extern "system" fn(*const c_void, *const u16, u32, u32) -> HANDLE;
+        type PfnCreateEventExW = unsafe extern "system" fn(
+            *const windows_sys::Win32::Security::SECURITY_ATTRIBUTES,
+            *const u16,
+            u32,
+            u32,
+        ) -> HANDLE;
 
         let mut creation_flags = 0;
 
         // See if we need debug interfaces
         let create_debug = hints::get_bool(hints::RENDER_DIRECT3D11_DEBUG, false);
 
+        #[cfg(feature = "gdk")]
+        let p_create_event_ex_w: Option<PfnCreateEventExW> =
+            Some(windows_sys::Win32::System::Threading::CreateEventExW);
         // CreateEventExW() arrived in Vista, so we need to load it with GetProcAddress for XP.
+        #[cfg(not(feature = "gdk"))]
         let p_create_event_ex_w: Option<PfnCreateEventExW> = {
             let name: Vec<u16> = "kernel32.dll\0".encode_utf16().collect();
             // SAFETY: a NUL-terminated module name.

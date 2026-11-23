@@ -757,6 +757,9 @@ pub fn quit() {
 }
 
 /// Get the name of the platform. Translation of `SDL_GetPlatform()`.
+///
+/// On Windows it's "Windows", or "WinGDK" with the `gdk` feature (see
+/// `sdl3/Cargo.toml`).
 pub const fn platform() -> &'static str {
     if cfg!(target_os = "android") {
         "Android"
@@ -776,8 +779,10 @@ pub const fn platform() -> &'static str {
         "OpenBSD"
     } else if cfg!(target_os = "solaris") || cfg!(target_os = "illumos") {
         "Solaris"
-    } else if cfg!(target_os = "windows") {
+    } else if cfg!(all(windows, not(feature = "gdk"))) {
         "Windows"
+    } else if cfg!(all(windows, feature = "gdk")) {
+        "WinGDK"
     } else if cfg!(target_os = "visionos") {
         "visionOS"
     } else if cfg!(all(target_vendor = "apple", not(target_os = "macos"))) {
@@ -837,7 +842,9 @@ impl FormFactor {
 /// device's user interface idiom, and Android its `SDLActivity`
 /// (`getDeviceFormFactor()`: TV, headset, tablet, from a diagonal of 7
 /// inches, or phone; `Unknown` in a program that isn't an app, which has
-/// no Java VM); other platforms are fixed.
+/// no Java VM); other platforms are fixed (`Unknown` on Windows with the
+/// `gdk` feature, as upstream's WinGDK build, which can't tell a PC from
+/// an Xbox).
 pub fn device_form_factor() -> FormFactor {
     #[cfg(all(target_vendor = "apple", not(target_os = "macos")))]
     return crate::core::apple::uikit::device_form_factor();
@@ -849,6 +856,9 @@ pub fn device_form_factor() -> FormFactor {
     )))]
     if cfg!(target_os = "horizon") {
         FormFactor::Handheld
+    } else if cfg!(all(windows, feature = "gdk")) {
+        // TODO: GDK can be either desktop Windows or XBox
+        FormFactor::Unknown
     } else {
         FormFactor::Desktop
     }
@@ -1037,6 +1047,21 @@ pub(crate) mod tests {
         let _ = device_form_factor();
         let _ = (is_phone(), is_tablet(), is_tv());
         let _ = sandbox();
+    }
+
+    /// `SDL_GetPlatform()`'s name and the form factor on Windows, and with
+    /// the `gdk` feature (upstream's WinGDK build).
+    #[cfg(windows)]
+    #[test]
+    fn windows_platform() {
+        if cfg!(feature = "gdk") {
+            assert_eq!(platform(), "WinGDK");
+            assert_eq!(device_form_factor(), FormFactor::Unknown);
+        } else {
+            assert_eq!(platform(), "Windows");
+            assert_eq!(device_form_factor(), FormFactor::Desktop);
+        }
+        assert!(!is_phone() && !is_tablet() && !is_tv());
     }
 
     /// `SDL_GetPlatform()`'s names on Apple platforms (SDL_PLATFORM_IOS is

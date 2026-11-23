@@ -1035,6 +1035,38 @@ display server, as root on a virtual console:
   `#[ignore]`d checks are for a GPU and a real display (see
   HARDWARE_TESTING.md).
 
+## Windows and the GDK
+
+### Platform macros
+
+| C | Rust |
+|---|------|
+| `SDL_PLATFORM_WINDOWS`, `_WIN32` | `windows` |
+| `SDL_PLATFORM_WIN32` | `all(windows, not(feature = "gdk"))` |
+| `SDL_PLATFORM_WINGDK`, `SDL_PLATFORM_GDK` | `all(windows, feature = "gdk")` |
+| `SDL_PLATFORM_XBOXONE`, `SDL_PLATFORM_XBOXSERIES` | not translated (never defined) |
+
+* The `gdk` feature (off by default) is upstream's WinGDK build: the
+  Microsoft GDK for PC's configuration of SDL (VisualC-GDK's
+  `Gaming.Desktop.x64`), which defines `SDL_PLATFORM_GDK` and not
+  `SDL_PLATFORM_WIN32`. It does nothing on other targets. No part of the
+  GDK is downloaded, read or linked. The Xbox consoles (GDKX:
+  `SDL_PLATFORM_XBOXONE`, `SDL_PLATFORM_XBOXSERIES`) aren't translated:
+  their SDK is under NDA, with headers and shader compilers that aren't
+  public, and there's no target to build or test them on.
+* Upstream's `SDL_PLATFORM_WIN32`-only branches in code WinGDK shares
+  with Win32 (the mouse's inverted cursor pixels, the HIDAPI drivers'
+  Windows quirks, ...) are lost on WinGDK, which is the same desktop
+  Windows: they're `FIXME (upstream)` where they're kept as upstream's,
+  and `Note (upstream)` where WinGDK gets Win32's branch here.
+* The drivers are Win32's. Upstream's WinGDK project builds the dummy
+  camera in Media Foundation's place (its own `!!! FIXME`), no offscreen
+  video driver, no OpenXR (`HAVE_GPU_OPENXR`) and the dummy
+  notifications: each was added to the Win32 project only. The drivers
+  here are CMake's (as for OpenXR), and CMake doesn't build WinGDK.
+* `SDL_MAIN_NEEDED` (WinGDK's, as iOS's and Android's) isn't
+  translated: `init::init()` doesn't need `run_app()` first.
+
 ## OpenXR
 
 The GPU API's OpenXR functions are `sdl3/src/gpu/xr/`: `mod.rs` is
