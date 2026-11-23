@@ -1194,7 +1194,7 @@ here, or is worked around, or is kept as it is):
   initialized, since PrepareDriver never tries there: kept, in debug
   builds as upstream's (`create_device`).
 
-Found, not marked in the code yet: Direct3D 12's `GetXRSwapchainFormats`
+Kept and marked `FIXME (upstream)` (`get_xr_swapchain_formats`): Direct3D 12's `GetXRSwapchainFormats`
 matches the runtime's formats against `SDLToD3D12_TextureFormat`, whose
 depth formats' entries are color or typeless formats (D32_FLOAT is
 `DXGI_FORMAT_R32_FLOAT`, D24_UNORM_S8_UINT `DXGI_FORMAT_R24_UNORM_X8_TYPELESS`),
@@ -1204,9 +1204,8 @@ depth formats, `gpu_openxr`'s Windows trace has the five color ones).
 
 The API layer query's type, the color attachment transitions, the
 uninitialized `VkResult`, Android's assertion and the Direct3D 12 depth
-formats are kept as upstream behaves until the maintainer decides
-whether they are to be fixed (as the three above were) or stay as they
-are.
+formats are kept as upstream behaves, by the maintainer's decision of
+2026-11-23 (unlike the three fixed above).
 
 Tests: `sdl3/tests/gpu_openxr.rs` (`harness = false`, with
 `tests/openxr_support/`) on Monado's null compositor and on the

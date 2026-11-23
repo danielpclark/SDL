@@ -928,6 +928,14 @@ impl D3D12Renderer {
     /// with no error set; and it frees the runtime's array twice and its
     /// own never (harmless where `SDL_stack_alloc` is `alloca`). Here the
     /// error says which call failed, and the arrays are owned.
+    ///
+    /// FIXME (upstream): the runtime's formats are matched against
+    /// `SDL_TO_D3D12_TEXTURE_FORMAT`, whose depth formats' entries are color
+    /// or typeless formats (D32_FLOAT is `DXGI_FORMAT_R32_FLOAT`,
+    /// D24_UNORM_S8_UINT `DXGI_FORMAT_R24_UNORM_X8_TYPELESS`), not against
+    /// `SDL_TO_D3D12_DEPTH_FORMAT`: a runtime's `DXGI_FORMAT_D32_FLOAT` and
+    /// `DXGI_FORMAT_D24_UNORM_S8_UINT` are never offered, so Direct3D 12
+    /// has no depth swapchains. Kept, as upstream's.
     pub(super) fn get_xr_swapchain_formats(
         &self,
         session: XrSession,
