@@ -88,14 +88,21 @@ jobs:
           toolchain: ${{ env.RUST_TOOLCHAIN }}
           # Intel Macs: the x86-64 build is linted on the Apple Silicon
           # runner; Emscripten, iOS, tvOS and visionOS (the devices, the
-          # arm64 Simulators and the x86-64 ones) and Android (its four
-          # ABIs) on the Linux one (no emcc, SDK or NDK is needed to lint;
+          # arm64 Simulators and the x86-64 ones), Android (its four ABIs)
+          # and Windows's GNU target with the `gdk` feature on the Linux one
+          # (no emcc, SDK, NDK or MinGW is needed to lint;
           # rust-src builds the standard library of x86_64-apple-tvos, a
           # tier 3 target)
           components: ${{ matrix.os == 'ubuntu-latest' && 'clippy,rust-src' || 'clippy' }}
-          targets: ${{ matrix.os == 'macos-latest' && 'x86_64-apple-darwin' || matrix.os == 'ubuntu-latest' && 'wasm32-unknown-emscripten,aarch64-apple-ios,aarch64-apple-ios-sim,x86_64-apple-ios,aarch64-apple-tvos,aarch64-apple-tvos-sim,aarch64-apple-visionos,aarch64-apple-visionos-sim,aarch64-linux-android,armv7-linux-androideabi,x86_64-linux-android,i686-linux-android' || '' }}
+          targets: ${{ matrix.os == 'macos-latest' && 'x86_64-apple-darwin' || matrix.os == 'ubuntu-latest' && 'wasm32-unknown-emscripten,aarch64-apple-ios,aarch64-apple-ios-sim,x86_64-apple-ios,aarch64-apple-tvos,aarch64-apple-tvos-sim,aarch64-apple-visionos,aarch64-apple-visionos-sim,aarch64-linux-android,armv7-linux-androideabi,x86_64-linux-android,i686-linux-android,x86_64-pc-windows-gnu' || '' }}
       - uses: Swatinem/rust-cache@v2
       - run: cargo clippy --workspace --all-targets -- -D warnings
+      # (the `gdk` feature: upstream's WinGDK build of Windows, on MSVC here
+      # and on the GNU target below)
+      - if: matrix.os == 'windows-latest'
+        run: cargo clippy --workspace --all-targets --features sdl3/gdk -- -D warnings
+      - if: matrix.os == 'ubuntu-latest'
+        run: cargo clippy --workspace --all-targets --target x86_64-pc-windows-gnu --features sdl3/gdk -- -D warnings
       - if: matrix.os == 'macos-latest'
         run: cargo clippy --workspace --all-targets --target x86_64-apple-darwin -- -D warnings
       - if: matrix.os == 'ubuntu-latest'

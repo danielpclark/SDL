@@ -31,6 +31,13 @@ assert-level-3 = []
 # that name does) and runs the main function once it's loaded. It links
 # emscripten's IDBFS library (-lidbfs.js) itself. Nothing on other targets.
 emscripten-persistent-path = ["sdl3-emscripten/idbfs"]
+# Windows: the Microsoft GDK for PC's build of SDL (upstream's
+# SDL_PLATFORM_WINGDK configuration, which defines SDL_PLATFORM_GDK and not
+# SDL_PLATFORM_WIN32): SDL_GetPlatform() is "WinGDK", the device's form
+# factor is unknown. Nothing is linked: no part of the GDK is needed to
+# build. The Xbox consoles (GDKX) aren't translated. Nothing on other
+# targets. See docs/TRANSLATION_GUIDE.md, "Windows and the GDK".
+gdk = []
 
 [dependencies]
 # The platform-independent core uses no third-party crates. The platform

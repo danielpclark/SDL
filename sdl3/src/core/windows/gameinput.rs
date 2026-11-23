@@ -53,8 +53,9 @@ use crate::hints;
 pub(crate) const GAMEINPUT_API_VERSION: u32 = 3;
 
 /// The default of `SDL_HINT_JOYSTICK_GAMEINPUT`. Translation of
-/// `SDL_GAMEINPUT_DEFAULT` (true from GameInput API version 3).
-pub(crate) const GAMEINPUT_DEFAULT: bool = GAMEINPUT_API_VERSION >= 3;
+/// `SDL_GAMEINPUT_DEFAULT` (true on the GDK and from GameInput API version
+/// 3).
+pub(crate) const GAMEINPUT_DEFAULT: bool = cfg!(feature = "gdk") || GAMEINPUT_API_VERSION >= 3;
 
 /// `IID_IGameInput` (of the v3 API).
 pub(crate) const IID_IGAMEINPUT: GUID = GUID::from_u128(0x20efc1c7_5d9a_43ba_b26f_b807fa48609c);
