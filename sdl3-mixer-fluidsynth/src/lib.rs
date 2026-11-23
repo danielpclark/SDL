@@ -59,13 +59,21 @@
 //! results depend on the compiler and the CPU; the translation evaluates
 //! the filter as written).
 //!
-//! What SDL_mixer doesn't reach is left out: the audio and MIDI drivers,
-//! the shell, the sequencer, the MIDI router, LADSPA, reading DLS files
-//! (SDL_mixer gives FluidSynth its SoundFont through loader callbacks
-//! under a name only they open; the DLS loader fails to open it, as
-//! upstream's does), the system timer of the player (the `"system"`
-//! `player.timing-source`), SoundFont unloading, the realtime settings
-//! callbacks, and most getters and setters.
+//! DLS files load too, through the synth's own DLS loader, when
+//! [`Synth::sfload()`] is given a file's path, as upstream's
+//! `fluid_synth_sfload()` loads them. SDL_mixer can't reach that loader:
+//! it gives FluidSynth its SoundFont through a SoundFont 2 loader's
+//! callbacks, under a name only they open, so a DLS file given to it as a
+//! SoundFont fails to load, as upstream's does. The DLS loader's
+//! libsndfile path (waves in other formats than PCM) is left out, as
+//! SDL_mixer builds FluidSynth without libsndfile, and so is pinning its
+//! sample data to RAM (`mlock()`).
+//!
+//! Otherwise, what SDL_mixer doesn't reach is left out: the audio and
+//! MIDI drivers, the shell, the sequencer, the MIDI router, LADSPA, the
+//! system timer of the player (the `"system"` `player.timing-source`),
+//! SoundFont unloading, the realtime settings callbacks, and most getters
+//! and setters.
 
 #![forbid(unsafe_code)]
 #![warn(missing_debug_implementations)]
