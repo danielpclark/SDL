@@ -1,0 +1,91 @@
+# Throwaway diag workflow (claude/diag-gdk-probe only, never merged): the
+# GDK phase's PR 0, part A. No Microsoft GDK is downloaded or read (the
+# owner's decision D5): the runner's own state, and a Rust probe that loads
+# the system's xgameruntime.dll by name (if any) and asks it only for
+# documented names.
+name: gdk-probe
+
+on:
+  push:
+    branches: [claude/diag-gdk-probe]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    name: probe (windows-latest)
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - name: The OS
+        shell: pwsh
+        run: |
+          $os = Get-CimInstance Win32_OperatingSystem
+          "Caption: $($os.Caption)"
+          "Version: $($os.Version) build $($os.BuildNumber)"
+          "OperatingSystemSKU: $($os.OperatingSystemSKU), ProductType: $($os.ProductType)"
+          $cv = Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion'
+          "EditionID: $($cv.EditionID), InstallationType: $($cv.InstallationType), DisplayVersion: $($cv.DisplayVersion), UBR: $($cv.UBR)"
+          "ImageOS: $env:ImageOS, ImageVersion: $env:ImageVersion"
+      - name: Gaming Services and the Gaming Runtime
+        shell: pwsh
+        run: |
+          try {
+            $p = @(Get-AppxPackage -AllUsers *GamingServices* -ErrorAction Stop)
+            "Get-AppxPackage -AllUsers *GamingServices*: $($p.Count) package(s)"
+            $p | ForEach-Object { "  $($_.PackageFullName) $($_.Version) $($_.InstallLocation)" }
+          } catch { "Get-AppxPackage -AllUsers failed: $_" }
+          try {
+            $p = @(Get-AppxPackage *GamingServices* -ErrorAction Stop)
+            "Get-AppxPackage *GamingServices* (this user): $($p.Count) package(s)"
+          } catch { "Get-AppxPackage failed: $_" }
+          try {
+            $p = @(Get-AppxPackage -AllUsers *Gaming* -ErrorAction Stop)
+            "Get-AppxPackage -AllUsers *Gaming*: $($p.Count) package(s)"
+            $p | ForEach-Object { "  $($_.PackageFullName)" }
+          } catch { "Get-AppxPackage *Gaming* failed: $_" }
+          Get-Service -Name GamingServices, GamingServicesNet -ErrorAction SilentlyContinue | Format-Table -AutoSize Name, Status, StartType | Out-String
+          foreach ($f in 'C:\Windows\System32\xgameruntime.dll', 'C:\Windows\SysWOW64\xgameruntime.dll') {
+            if (Test-Path $f) {
+              $i = (Get-Item $f).VersionInfo
+              "${f}: exists, FileVersion $($i.FileVersion), ProductVersion $($i.ProductVersion), $((Get-Item $f).Length) bytes"
+            } else { "${f}: does not exist" }
+          }
+      - name: GameInput and GameInputRedist
+        shell: pwsh
+        run: |
+          foreach ($f in 'C:\Windows\System32\GameInput.dll', 'C:\Windows\System32\GameInputRedist.dll') {
+            if (Test-Path $f) {
+              $i = (Get-Item $f).VersionInfo
+              "${f}: FileVersion $($i.FileVersion), ProductVersion $($i.ProductVersion)"
+            } else { "${f}: does not exist" }
+          }
+          $k = 'HKLM:\SOFTWARE\Microsoft\GameInput'
+          if (Test-Path $k) { "${k}:"; Get-ItemProperty $k | Format-List | Out-String } else { "${k}: no key" }
+          $k = 'HKLM:\SOFTWARE\WOW6432Node\Microsoft\GameInput'
+          if (Test-Path $k) { "${k}:"; Get-ItemProperty $k | Format-List | Out-String } else { "${k}: no key" }
+          $dirs = @('C:\Program Files\Microsoft GameInput', 'C:\Program Files (x86)\Microsoft GameInput')
+          foreach ($d in $dirs) {
+            if (Test-Path $d) {
+              Get-ChildItem -Recurse -Filter *.dll $d | ForEach-Object { "  $($_.FullName) $($_.VersionInfo.FileVersion)" }
+            } else { "${d}: does not exist" }
+          }
+          $u = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*', 'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*'
+          Get-ItemProperty $u -ErrorAction SilentlyContinue | Where-Object { $_.DisplayName -match 'GameInput|Gaming|GDK|Xbox' } |
+            ForEach-Object { "installed: $($_.DisplayName) $($_.DisplayVersion)" }
+          try {
+            @(Get-AppxPackage -AllUsers *GameInput* -ErrorAction Stop) | ForEach-Object { "appx: $($_.PackageFullName)" }
+          } catch { "Get-AppxPackage *GameInput* failed: $_" }
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.99"
+      - name: The Rust probe (msvc)
+        shell: bash
+        working-directory: diag/gdk-probe
+        run: |
+          cargo build --bins 2>&1 | tail -3
+          echo "##### runtime"; ./target/debug/runtime.exe || echo "runtime: exit $?"
+          echo "##### appnotify"; ./target/debug/appnotify.exe || echo "appnotify: exit $?"

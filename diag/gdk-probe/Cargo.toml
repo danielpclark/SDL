@@ -1,0 +1,22 @@
+# Throwaway diag probe (claude/diag-gdk-probe only, never merged): the
+# Gaming Runtime and appnotify questions of the GDK phase's PR 0 (part A).
+# No Microsoft GDK is downloaded or read: the system's xgameruntime.dll is
+# loaded by name, if there is one, and asked only for documented names.
+[package]
+name = "gdk-probe"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+# Not a member of the repository's workspace.
+[workspace]
+
+[target.'cfg(windows)'.dependencies.windows-sys]
+version = "0.61"
+features = [
+    "Win32_Foundation",
+    "Win32_Storage_FileSystem",
+    "Win32_System_LibraryLoader",
+    "Win32_System_SystemInformation",
+    "Win32_UI_Shell",
+]
