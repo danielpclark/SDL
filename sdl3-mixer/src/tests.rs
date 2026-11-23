@@ -51,7 +51,8 @@
 //!   configuration);
 //! - with the `fluidsynth` feature, sdl3-mixer-fluidsynth's MIDI files
 //!   played with its SoundFont, given as a path or a stream, with
-//!   FluidSynth settings, broken or missing;
+//!   FluidSynth settings, broken or missing, and with its DLS file in its
+//!   place;
 //! - with the `gme` feature, sdl3-mixer-gme's rips through the GME decoder
 //!   (`testdata/reference_gme.txt`; upstream's C was built with its GME
 //!   decoder over the libgme it vendors, built as its CMake builds it):
@@ -2009,7 +2010,7 @@ static FLUIDSYNTH_FILES: &[&str] = &[
 ];
 
 /// The FLUIDSYNTH decoder with a SoundFont: by path, from a stream, with
-/// settings, and with broken or missing SoundFonts.
+/// settings, with broken or missing SoundFonts, and with a DLS file.
 #[cfg(feature = "fluidsynth")]
 fn fstest(out: &mut String, sf2path: &std::path::Path, name: &str, data: &[u8]) {
     use crate::internal::{
@@ -2081,6 +2082,35 @@ fn fstest(out: &mut String, sf2path: &std::path::Path, name: &str, data: &[u8]) 
     let _ = std::fs::remove_file(&bad);
     write!(out, "nosf: ").unwrap();
     decode_props(out, data, None, true, None, Some(&p3));
+
+    // A DLS file as the SoundFont: the decoder gives FluidSynth whatever
+    // the file holds through a SoundFont 2 loader's callbacks, under a name
+    // only they open, so it fails to load (FluidSynth's own DLS loader
+    // can't open that name), as upstream's does.
+    let dls = std::fs::read(sf2path.with_file_name("test.dls")).unwrap();
+    let dlspath = std::env::temp_dir().join(format!(
+        "sdl3-mixer-fluidsynth-test-{}.dls",
+        std::process::id()
+    ));
+    std::fs::write(&dlspath, &dls).unwrap();
+    let p4 = Properties::new();
+    p4.set(
+        PROP_DECODER_FLUIDSYNTH_SOUNDFONT_PATH_STRING,
+        dlspath.to_str().unwrap(),
+    )
+    .unwrap();
+    write!(out, "dlssf: ").unwrap();
+    decode_props(out, data, None, true, None, Some(&p4));
+    mixtest_props(out, "dlssf mix", data, false, Some(&p4));
+    let _ = std::fs::remove_file(&dlspath);
+    let p5 = Properties::new();
+    p5.set_any(
+        PROP_DECODER_FLUIDSYNTH_SOUNDFONT_IOSTREAM_POINTER,
+        std::sync::Mutex::new(mem_io(&dls)),
+    )
+    .unwrap();
+    write!(out, "dlssf stream: ").unwrap();
+    decode_props(out, data, None, true, None, Some(&p5));
 }
 
 /// MIDI through the FLUIDSYNTH decoder with sdl3-mixer-fluidsynth's
