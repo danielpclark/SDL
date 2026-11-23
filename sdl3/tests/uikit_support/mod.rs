@@ -126,7 +126,10 @@ pub fn expected_line(expected: &str, index: usize) -> &str {
 /// the keyboard by then, else when its `GCKeyboardDidConnectNotification`
 /// comes, a moment later, from the main run loop. A keyboard that comes
 /// later is put where video's start adds it, before the audio subsystem's
-/// devices (audio starts after video), when both start. A line without it
+/// devices (audio starts after video), when both start and upstream's line
+/// has it there: whether it came during the wait or already in the first
+/// collection (its notification handled while the audio devices were
+/// queued, as the runner's tvOS Simulator once did). A line without it
 /// doesn't wait.
 pub fn startup_events(expected: &str, mut take: impl FnMut(&mut Vec<String>)) -> Vec<String> {
     let mut seen = Vec::new();
@@ -138,15 +141,6 @@ pub fn startup_events(expected: &str, mut take: impl FnMut(&mut Vec<String>)) ->
             std::thread::sleep(std::time::Duration::from_millis(10));
             take(&mut seen);
         }
-        if let Some(i) = keyboard(&seen) {
-            let audio = seen[..i]
-                .iter()
-                .position(|e| e.starts_with("AUDIO_DEVICE_ADDED"));
-            if let Some(audio) = audio {
-                let event = seen.remove(i);
-                seen.insert(audio, event);
-            }
-        }
         // (a progress line, not in the trace)
         println!(
             "startup events: the keyboard {} after {:.3} s more",
@@ -157,6 +151,22 @@ pub fn startup_events(expected: &str, mut take: impl FnMut(&mut Vec<String>)) ->
             },
             start.elapsed().as_secs_f64()
         );
+    }
+    // (upstream's line has the keyboard before the audio devices: video's
+    // start adds it, then audio starts)
+    let keyboard_first = expected
+        .find("KEYBOARD_ADDED")
+        .is_some_and(|k| expected.find("AUDIO_DEVICE_ADDED").is_none_or(|a| k < a));
+    if keyboard_first {
+        if let Some(i) = keyboard(&seen) {
+            let audio = seen[..i]
+                .iter()
+                .position(|e| e.starts_with("AUDIO_DEVICE_ADDED"));
+            if let Some(audio) = audio {
+                let event = seen.remove(i);
+                seen.insert(audio, event);
+            }
+        }
     }
     seen
 }
