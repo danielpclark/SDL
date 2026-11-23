@@ -2395,11 +2395,12 @@ impl DlsFont {
                 // (the chunk size is passed as an int, see the top-level
                 // cdl)
                 if !this.execute_cdls(pos + headersize as i64, subchunk.size as i32)? {
-                    // FIXME (upstream): bypassed should be true here (as in
-                    // parse_rgn()): an articulation list whose condition is
-                    // false fails the whole file, with "std::exception" at
-                    // the bottom of the chain, instead of being bypassed.
-                    bypassed = false;
+                    // Note (upstream): upstream sets bypassed to false here
+                    // (parse_rgn() sets it to true), so an articulation list
+                    // whose condition is false fails the whole file, with
+                    // "std::exception" at the bottom of the chain, instead
+                    // of being bypassed. Fixed here: it is bypassed.
+                    bypassed = true;
                     return Err(DlsException::std());
                 }
 
