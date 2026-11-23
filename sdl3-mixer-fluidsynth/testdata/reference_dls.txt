@@ -888,7 +888,7 @@ test.dls 44100 sfont=ok
   instrument 4 'Keynum two' msb=0 lsb=0 pc=40 drums=0 keynum=3fe0000000000000 regions=2
    region keys=0-40 vels=0-127 excl=0 art=3 sample=2 mode=3 gain=c018000000000000
    region keys=41-127 vels=0-127 excl=0 art=3 sample=4 mode=1 gain=c02e000000000000
-  instrument 5 'Keynum one' msb=0 lsb=0 pc=41 drums=0 keynum=3ff0000000000000 regions=2
+  instrument 5 'Keynum one' msb=0 lsb=0 pc=41 drums=0 keynum=3fe0000000000000 regions=2
    region keys=0-40 vels=0-127 excl=0 art=4 sample=2 mode=3 gain=c018000000000000
    region keys=41-127 vels=0-127 excl=0 art=4 sample=4 mode=1 gain=c02e000000000000
   instrument 6 'Square lead' msb=0 lsb=0 pc=80 drums=0 keynum=3ff0000000000000 regions=1
