@@ -121,6 +121,16 @@ fn default_fopen(path: &str) -> Option<Box<dyn SfFile>> {
     }
 }
 
+/// Which loader a [`SfLoader`] is (upstream, its `load` and `free`
+/// methods).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum SfLoaderKind {
+    /// The default SoundFont 2 loader (`new_fluid_defsfloader()`).
+    Def,
+    /// The synth's DLS loader (`new_fluid_dls_loader()`).
+    Dls,
+}
+
 /// Translation of `fluid_sfloader_t`: a SoundFont loader.
 ///
 /// This is the default SoundFont 2 loader (`new_fluid_defsfloader()`),
@@ -132,9 +142,8 @@ pub struct SfLoader {
     /* Callback structure specifying file operations used during soundfont loading to allow custom loading, such as from memory */
     pub(crate) file_callbacks: FluidFileCallbacks,
 
-    /// The synth's DLS loader (`new_fluid_dls_loader()`) rather than a
-    /// SoundFont 2 loader.
-    pub(crate) dls: bool,
+    /* (the load and free methods: which loader this is) */
+    pub(crate) kind: SfLoaderKind,
 }
 
 impl SfLoader {
@@ -152,7 +161,7 @@ impl SfLoader {
             file_callbacks: FluidFileCallbacks {
                 fopen: Arc::new(default_fopen),
             },
-            dls: false,
+            kind: SfLoaderKind::Def,
         }
     }
 
@@ -160,7 +169,7 @@ impl SfLoader {
     /// has (see `crate::sfloader::dls`).
     pub(crate) fn new_fluid_dls_loader(settings: &Settings) -> SfLoader {
         SfLoader {
-            dls: true,
+            kind: SfLoaderKind::Dls,
             ..SfLoader::new_defsfloader(settings)
         }
     }
@@ -177,13 +186,12 @@ impl SfLoader {
         FLUID_OK
     }
 
-    /// Translation of `fluid_sfloader_load()` (the default loader's
-    /// `fluid_defsfloader_load()`).
+    /// Translation of `fluid_sfloader_load()` (the loader's `load`
+    /// method: `fluid_defsfloader_load()` or `fluid_dls_loader_load()`).
     pub(crate) fn load(&self, filename: &str) -> Option<FluidSfont> {
-        if self.dls {
-            crate::sfloader::dls::fluid_dls_loader_load(self, filename)
-        } else {
-            crate::sfloader::defsfont::fluid_defsfloader_load(self, filename)
+        match self.kind {
+            SfLoaderKind::Def => crate::sfloader::defsfont::fluid_defsfloader_load(self, filename),
+            SfLoaderKind::Dls => crate::sfloader::dls::fluid_dls_loader_load(self, filename),
         }
     }
 }
