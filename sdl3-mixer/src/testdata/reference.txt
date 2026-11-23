@@ -18248,6 +18248,9 @@ settings mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 fb640340
 badsf: err: Failed to load FluidSynth soundfont
 badsf mix: dur=-1 play=0 pos=0 replay=0 seek=0 pos=0 playing=0 0c8210784d8af5a5
 nosf: FLUIDSYNTH 0x8120 2 48000 | 1189888 7e350389a1978fd6 end=0
+dlssf: err: Failed to load FluidSynth soundfont
+dlssf mix: dur=-1 play=0 pos=0 replay=0 seek=0 pos=0 playing=0 0c8210784d8af5a5
+dlssf stream: err: Failed to load FluidSynth soundfont
 == fluidsynth format1.mid
 open: FLUIDSYNTH 0x8120 2 48000 | 1531904 b45db601f95542e0 end=0
 s16m22: 175930 5dedcb2ab90592ce end=0
@@ -18273,6 +18276,9 @@ settings mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 97b6d6f4
 badsf: err: Failed to load FluidSynth soundfont
 badsf mix: dur=-1 play=0 pos=0 replay=0 seek=0 pos=0 playing=0 0c8210784d8af5a5
 nosf: FLUIDSYNTH 0x8120 2 48000 | 1113088 bb7d42e54b0cb926 end=0
+dlssf: err: Failed to load FluidSynth soundfont
+dlssf mix: dur=-1 play=0 pos=0 replay=0 seek=0 pos=0 playing=0 0c8210784d8af5a5
+dlssf stream: err: Failed to load FluidSynth soundfont
 == fluidsynth mono.mid
 open: FLUIDSYNTH 0x8120 2 48000 | 1502208 c73bda1be5a6538c end=0
 s16m22: 172520 2c87ceddf97ea562 end=0
@@ -18298,6 +18304,9 @@ settings mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 0bca9360
 badsf: err: Failed to load FluidSynth soundfont
 badsf mix: dur=-1 play=0 pos=0 replay=0 seek=0 pos=0 playing=0 0c8210784d8af5a5
 nosf: FLUIDSYNTH 0x8120 2 48000 | 1416192 41c4b0da6321df10 end=0
+dlssf: err: Failed to load FluidSynth soundfont
+dlssf mix: dur=-1 play=0 pos=0 replay=0 seek=0 pos=0 playing=0 0c8210784d8af5a5
+dlssf stream: err: Failed to load FluidSynth soundfont
 == fluidsynth nrpn.mid
 open: FLUIDSYNTH 0x8120 2 48000 | 1339392 3cabd98662eb3fb9 end=0
 s16m22: 153822 4d50999b5cd57ab5 end=0
@@ -18323,6 +18332,9 @@ settings mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 e11c5367
 badsf: err: Failed to load FluidSynth soundfont
 badsf mix: dur=-1 play=0 pos=0 replay=0 seek=0 pos=0 playing=0 0c8210784d8af5a5
 nosf: FLUIDSYNTH 0x8120 2 48000 | 1200128 7737b7bd17574bda end=0
+dlssf: err: Failed to load FluidSynth soundfont
+dlssf mix: dur=-1 play=0 pos=0 replay=0 seek=0 pos=0 playing=0 0c8210784d8af5a5
+dlssf stream: err: Failed to load FluidSynth soundfont
 == fluidsynth sysex.mid
 open: FLUIDSYNTH 0x8120 2 48000 | 1638400 a9758f463872fd87 end=0
 s16m22: 188160 b47774fafbfac2a7 end=0
@@ -18348,3 +18360,6 @@ settings mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 c29f2aa2
 badsf: err: Failed to load FluidSynth soundfont
 badsf mix: dur=-1 play=0 pos=0 replay=0 seek=0 pos=0 playing=0 0c8210784d8af5a5
 nosf: FLUIDSYNTH 0x8120 2 48000 | 1128448 c7618444131443be end=0
+dlssf: err: Failed to load FluidSynth soundfont
+dlssf mix: dur=-1 play=0 pos=0 replay=0 seek=0 pos=0 playing=0 0c8210784d8af5a5
+dlssf stream: err: Failed to load FluidSynth soundfont
