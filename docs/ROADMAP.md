@@ -610,12 +610,20 @@ In dependency order, after the core each one needs exists:
    monophonic modes, voices, modulators, tunings, the rvoice DSP, mixer,
    reverb and chorus, the SoundFont 2 loader with its sample cache and
    loader callbacks, and the MIDI file player; the drivers, shell,
-   sequencer, MIDI router, LADSPA, reading DLS files and SF3 samples are
-   left out. It is checked bit-for-bit against upstream's C on a synthetic
-   SoundFont and MIDI files from `tools/gen_fluidsynth_testdata.py` (sample
-   rates, settings, broken files, every message logged, and a fuzz pass;
-   upstream's IIR filter, which its CMake compiles with `-ffast-math`,
-   evaluated as written), and through the mixer. Game music through the
+   sequencer, MIDI router, LADSPA and SF3 samples are left out. FluidSynth's
+   DLS files are done too: its native DLS loader (`fluid_dls.cpp`, DLS
+   Level 1 and 2 instruments, articulations, conditional chunks and
+   MobileBAE aliasing), which SDL_mixer builds in but can't reach (it gives
+   FluidSynth its SoundFont under a name only its own loader opens, so a
+   DLS file fails there, as upstream), loads a DLS file `Synth::sfload()`
+   is given by its path; its libsndfile path and pinning samples to RAM
+   are left out. It is checked bit-for-bit against upstream's C on a
+   synthetic SoundFont, DLS files written from the DLS specifications and
+   MIDI files from `tools/gen_fluidsynth_testdata.py` (sample rates,
+   settings, broken files, every message logged, what the DLS loader makes
+   of each file, and fuzz passes; upstream's IIR filter, which its CMake
+   compiles with `-ffast-math`, evaluated as written), and through the
+   mixer. Game music through the
    Game_Music_Emu that SDL_mixer vendors (`decoder_gme.c` over
    Game_Music_Emu 0.6.5, behind the `gme` feature, on by default as
    upstream's SDLMIXER_GME is, registered after WavPack as upstream; built
@@ -741,12 +749,10 @@ In dependency order, after the core each one needs exists:
 
 ## Next
 
-After OpenXR, in this order:
+After OpenXR and FluidSynth's DLS files (both done, above):
 
-1. **Xbox (GDK)**: the Xbox parts of the Direct3D 12 renderer and GPU
-   backend, and `core/gdk/`.
-2. **FluidSynth's DLS files**: reading DLS instruments in
-   `sdl3-mixer-fluidsynth`, which leaves them out today.
+1. **Xbox (GDK)**, under way: the Xbox parts of the Direct3D 12 renderer
+   and GPU backend, and `core/gdk/`.
 
 Deferred: Emscripten's build with threads (pthreads; see above).
 

@@ -6,10 +6,11 @@ Everything here is synthetic, made by this script: a small SoundFont 2.04
 generators FluidSynth implements, and modulators, linked ones among them),
 MIDI files exercising the synth's channel messages, SYSEX handling,
 monophonic modes, NRPNs and the player, deliberately broken SoundFonts and
-MIDI files, DLS files (written from the DLS specifications: broken ones,
-and ones without instruments), and `cases.txt`, the list of renderings the
-test compares (a SoundFont, a MIDI file, a sample rate, a frame limit and
-settings). No instrument data comes from anywhere else.
+MIDI files, DLS files (written from the DLS specifications: instruments
+with their regions, articulations and aliases, broken files, and files
+without instruments), and `cases.txt`, the list of renderings the test
+compares (a SoundFont or DLS file, a MIDI file, a sample rate, a frame
+limit and settings). No instrument data comes from anywhere else.
 
 The output is deterministic (integer arithmetic and a fixed LCG), so
 regenerating the files gives the same bytes. If they change, the
