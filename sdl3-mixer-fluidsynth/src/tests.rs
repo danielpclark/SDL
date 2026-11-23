@@ -438,6 +438,42 @@ fn reference() {
     assert_eq!(failures, 0, "{} lines differ from the reference", failures);
 }
 
+/// The DLS loader's log_exception() prints a chain of nested exceptions
+/// one level of indentation deeper each, an allocation failure at
+/// FLUID_PANIC (as the reference program shows for a `colh` too large to
+/// allocate, which the committed files don't have: whether such an
+/// allocation fails depends on the machine), each message up to a NUL,
+/// and stops after 16 levels.
+#[test]
+fn dls_log_exception() {
+    use crate::sfloader::dls::{log_exception, DlsException};
+    capture_start();
+    let exc = DlsException::runtime("Exception thrown while reading RIFF form").nest(
+        DlsException::runtime("visit in LIST 'DLS ' ofs=0x0 -> 'colh' ofs=0xc")
+            .nest(DlsException::bad_alloc()),
+    );
+    log_exception(FLUID_ERR, &exc, 0);
+    log_exception(FLUID_ERR, &DlsException::std(), 0);
+    log_exception(FLUID_WARN, &DlsException::runtime("cut\0here"), 3);
+    let mut deep = DlsException::runtime("level 20");
+    for level in (0..20).rev() {
+        deep = DlsException::runtime(format!("level {level}")).nest(deep);
+    }
+    log_exception(FLUID_ERR, &deep, 0);
+    let mut want = String::from(
+        "  log1 exc: Exception thrown while reading RIFF form\n\
+         \x20 log1  exc: visit in LIST 'DLS ' ofs=0x0 -> 'colh' ofs=0xc\n\
+         \x20 log0   Out of memory!!: std::bad_alloc\n\
+         \x20 log1 exc: std::exception\n\
+         \x20 log2    exc: cut\n",
+    );
+    for level in 0..16 {
+        let _ = writeln!(want, "  log1 {}exc: level {level}", " ".repeat(level));
+    }
+    let _ = writeln!(want, "  log1 {}...", " ".repeat(15));
+    assert_eq!(capture_stop(), want);
+}
+
 /// The gentables computed at run time give the tables upstream's C++
 /// compiler computes at build time with gcem (FNV-1a hashes of the C
 /// tables' bytes).
