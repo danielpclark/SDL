@@ -41,9 +41,15 @@
 //! hit the other places where the translation does something defined where
 //! upstream reads or writes out of bounds.
 //!
+//! `testdata/reference_dls.txt` is the output of another such C program,
+//! which loads each DLS file of `testdata/` through the synth's DLS loader
+//! (`new_fluid_dls_loader()`, private upstream) reading from memory, and
+//! prints the messages logged and whether a SoundFont was made.
+//!
 //! `FSREF_CASES`, `FSREF_DIR` and `FSREF_DUMP` (a cases file, its data
 //! directory and where to write the output instead of comparing it) and
-//! `FSREF_TRACE` (a hash every 4096 frames on stderr) are for debugging.
+//! `FSREF_TRACE` (a hash every 4096 frames on stderr) are for debugging;
+//! `FSREF_DLS_DUMP` writes the DLS test's output.
 
 use std::cell::RefCell;
 use std::fmt::Write;
@@ -52,6 +58,7 @@ use std::sync::{Arc, Once};
 use crate::*;
 
 static REFERENCE: &str = include_str!("../testdata/reference.txt");
+static REFERENCE_DLS: &str = include_str!("../testdata/reference_dls.txt");
 static CASES: &str = include_str!("../testdata/cases.txt");
 
 const FNV0: u64 = 14695981039346656037;
@@ -174,10 +181,51 @@ macro_rules! testdata {
     };
 }
 
-/// The SoundFonts and MIDI files of testdata/, in name order, embedded:
+/// The SoundFonts, DLS files and MIDI files of testdata/, in name order,
+/// embedded:
 /// the tests of the Emscripten build see only their own (in-memory) file
 /// system.
 const TESTDATA: &[(&str, &[u8])] = testdata![
+    "dls_badform.dls",
+    "dls_badlist.dls",
+    "dls_cdl_div0.dls",
+    "dls_cdl_empty.dls",
+    "dls_cdl_end.dls",
+    "dls_cdl_false.dls",
+    "dls_cdl_opcode.dls",
+    "dls_cdl_ops.dls",
+    "dls_cdl_overflow.dls",
+    "dls_cdl_query.dls",
+    "dls_cdl_rate.dls",
+    "dls_cdl_supported.dls",
+    "dls_colh.dls",
+    "dls_extra.dls",
+    "dls_hint.dls",
+    "dls_info.dls",
+    "dls_nolins.dls",
+    "dls_notdls.dls",
+    "dls_notriff.dls",
+    "dls_nowvpl.dls",
+    "dls_ptbl_cbsize.dls",
+    "dls_ptbl_cues.dls",
+    "dls_ptbl_size.dls",
+    "dls_short.dls",
+    "dls_toolong.dls",
+    "dls_truncchunk.dls",
+    "dls_wave_align.dls",
+    "dls_wave_bits.dls",
+    "dls_wave_channels.dls",
+    "dls_wave_cue.dls",
+    "dls_wave_format.dls",
+    "dls_wave_list.dls",
+    "dls_wave_loops.dls",
+    "dls_wave_nodata.dls",
+    "dls_wave_notlist.dls",
+    "dls_wave_order.dls",
+    "dls_wave_short.dls",
+    "dls_wave_wsmp.dls",
+    "dls_wvpl_chunk.dls",
+    "dls_wvpl_size.dls",
     "midi/bad_eot.mid",
     "midi/bad_keysig.mid",
     "midi/bad_mthd_len.mid",
@@ -245,7 +293,7 @@ fn testdata(name: &str) -> Option<Vec<u8>> {
         .map(|&(_, data)| data.to_vec())
 }
 
-/// [`TESTDATA`] has every SoundFont and MIDI file of testdata/.
+/// [`TESTDATA`] has every SoundFont, DLS file and MIDI file of testdata/.
 #[test]
 #[cfg_attr(target_os = "emscripten", ignore = "host file system")]
 fn testdata_is_every_file() {
@@ -422,9 +470,15 @@ fn reference() {
             return;
         }
     }
+    compare(&out, REFERENCE);
+}
+
+/// Compares the output of a reference test with its reference, line by
+/// line.
+fn compare(out: &str, reference: &str) {
     let mut failures = 0;
     let got: Vec<&str> = out.lines().collect();
-    let want: Vec<&str> = REFERENCE.lines().collect();
+    let want: Vec<&str> = reference.lines().collect();
     for i in 0..got.len().max(want.len()) {
         let g = got.get(i).copied().unwrap_or("<missing>");
         let w = want.get(i).copied().unwrap_or("<missing>");
@@ -436,6 +490,61 @@ fn reference() {
         }
     }
     assert_eq!(failures, 0, "{} lines differ from the reference", failures);
+}
+
+/// Loads a DLS file through the DLS loader reading it from memory, as the
+/// reference program does: the messages logged, then the name, the rate
+/// and whether a SoundFont was made.
+fn load_dls(name: &str, data: &[u8], rate: i32, out: &mut String) {
+    let settings = Settings::new();
+    settings.setnum("synth.sample-rate", rate as f64);
+    let mut loader = SfLoader::new_fluid_dls_loader(&settings);
+    let data: Arc<[u8]> = data.into();
+    loader.set_callbacks(Arc::new(move |name: &str| -> Option<Box<dyn SfFile>> {
+        if name != "&FAKESFNAME&" {
+            return None;
+        }
+        Some(Box::new(MemFile {
+            data: data.clone(),
+            pos: 0,
+        }))
+    }));
+    let sfont = loader.load("&FAKESFNAME&");
+    out.push_str(&capture_take());
+    let _ = writeln!(
+        out,
+        "{} {} sfont={}",
+        name,
+        rate,
+        if sfont.is_some() { "ok" } else { "null" }
+    );
+    drop(sfont);
+    out.push_str(&capture_take());
+}
+
+/// Each DLS file of testdata/, in name order, loaded at 44100 Hz (and the
+/// conditional chunk ones, `dls_cdl_*`, again at 48000 Hz, the rate they
+/// can query), compared with the reference program's output.
+#[test]
+fn reference_dls() {
+    let _lock = SYNTH_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    capture_start();
+    let mut out = String::new();
+    for &(name, data) in TESTDATA {
+        if !name.ends_with(".dls") {
+            continue;
+        }
+        let data = testdata(name).unwrap_or_else(|| data.to_vec());
+        load_dls(name, &data, 44100, &mut out);
+        if name.starts_with("dls_cdl_") {
+            load_dls(name, &data, 48000, &mut out);
+        }
+    }
+    capture_stop();
+    if let Some(path) = std::env::var_os("FSREF_DLS_DUMP") {
+        std::fs::write(path, &out).unwrap();
+    }
+    compare(&out, REFERENCE_DLS);
 }
 
 /// The DLS loader's log_exception() prints a chain of nested exceptions
