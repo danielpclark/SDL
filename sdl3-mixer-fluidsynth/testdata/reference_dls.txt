@@ -292,13 +292,22 @@ dls_insh.dls 44100 sfont=null
   log2 DLS wsmp chunk loop cbSize < 16. The file is probably corrupted.
   log2 Unknown DLS chunk in LIST[wave] 'smpl'
   log2 Unknown DLS chunk in LIST[wave] 'wavu'
-  log1 Exception thrown in fluid_dls_font constructor
-  log1 exc: Exception thrown while parsing instruments
-  log1  exc: visit in LIST 'lins' ofs=0x8c -> LIST 'ins ' ofs=0x98
-  log1   exc: visit in LIST 'ins ' ofs=0x98 -> LIST 'lar2' ofs=0xb8
-  log1    exc: visit in LIST 'lar2' ofs=0xb8 -> 'cdl ' ofs=0xc4
-  log1     exc: std::exception
-dls_lart_cdl.dls 44100 sfont=null
+dls_lart_cdl.dls 44100 sfont=ok
+  name '&FAKESFNAME&'
+  instrument 0 'False lart' msb=0 lsb=0 pc=0 drums=0 keynum=3ff0000000000000 regions=1
+   region keys=0-127 vels=0-127 excl=0 art=4294967295 sample=0 mode=1 gain=0000000000000000
+  sample 0 'Sine 16' start=0 end=47 loop=8-48 rate=22050 pitch=60 adj=0 type=1 mods=1
+  sample 1 'Square 8 bit' start=48 end=95 loop=0-0 rate=11025 pitch=0 adj=0 type=1 mods=1
+  sample 2 'Saw' start=96 end=135 loop=100-130 rate=32000 pitch=67 adj=-10 type=1 mods=1
+  sample 3 '' start=136 end=167 loop=136-152 rate=22050 pitch=60 adj=5 type=1 mods=1
+  gm preset 0 0:0 'False lart'
+  gm find 0:0 0
+  gs preset 0 0:0 'False lart'
+  gs find 0:0 0
+  xg preset 0 0:0 'False lart'
+  xg find 0:0 0
+  mma preset 0 0:0 'False lart'
+  mma find 0:0 0
   log2 DLS wsmp chunk cbSize < 20. The file is probably corrupted.
   log2 DLS wsmp chunk loop cbSize < 16. The file is probably corrupted.
   log2 Unknown DLS chunk in LIST[wave] 'smpl'
@@ -494,15 +503,22 @@ dls_ptbl_size.dls 44100 sfont=null
   log2 DLS wsmp chunk loop cbSize < 16. The file is probably corrupted.
   log2 Unknown DLS chunk in LIST[wave] 'smpl'
   log2 Unknown DLS chunk in LIST[wave] 'wavu'
-  log1 Exception thrown in fluid_dls_font constructor
-  log1 exc: Exception thrown while parsing instruments
-  log1  exc: visit in LIST 'lins' ofs=0x8c -> LIST 'ins ' ofs=0x98
-  log1   exc: visit in LIST 'ins ' ofs=0x98 -> LIST 'lrgn' ofs=0xb8
-  log1    exc: visit in LIST 'lrgn' ofs=0xb8 -> LIST 'rgn ' ofs=0xc4
-  log1     exc: visit in LIST 'rgn ' ofs=0xc4 -> LIST 'lar2' ofs=0xe4
-  log1      exc: visit in LIST 'lar2' ofs=0xe4 -> 'cdl ' ofs=0xf0
-  log1       exc: std::exception
-dls_rgn_lartcdl.dls 44100 sfont=null
+dls_rgn_lartcdl.dls 44100 sfont=ok
+  name '&FAKESFNAME&'
+  instrument 0 'False region lart' msb=0 lsb=0 pc=0 drums=0 keynum=3ff0000000000000 regions=1
+   region keys=0-127 vels=0-127 excl=0 art=4294967295 sample=0 mode=1 gain=0000000000000000
+  sample 0 'Sine 16' start=0 end=47 loop=8-48 rate=22050 pitch=60 adj=0 type=1 mods=1
+  sample 1 'Square 8 bit' start=48 end=95 loop=0-0 rate=11025 pitch=0 adj=0 type=1 mods=1
+  sample 2 'Saw' start=96 end=135 loop=100-130 rate=32000 pitch=67 adj=-10 type=1 mods=1
+  sample 3 '' start=136 end=167 loop=136-152 rate=22050 pitch=60 adj=5 type=1 mods=1
+  gm preset 0 0:0 'False region lart'
+  gm find 0:0 0
+  gs preset 0 0:0 'False region lart'
+  gs find 0:0 0
+  xg preset 0 0:0 'False region lart'
+  xg find 0:0 0
+  mma preset 0 0:0 'False region lart'
+  mma find 0:0 0
   log2 Sample 'Empty ?chantillon wi': invalid start/end file positions
   log2 Some invalid DLS sample loops were sanitized! If you experience audible glitches, start fluidsynth in verbose mode for detailed information.
 dls_samples.dls 44100 sfont=ok

@@ -33,14 +33,17 @@ works on Rust types (vectors, indices and reference counts rather than
 pointers and linked lists, a mutex for the synth's recursive API lock), and
 does something defined where corrupt input makes the C code read or write
 out of bounds, convert out of range or loop forever (the places marked
-"FIXME (upstream)" in the source). Otherwise it renders bit-for-bit what
-the C code does, which its tests check against upstream's C built with the
-same math functions (upstream compiles its IIR filter with -ffast-math,
-whose results depend on the compiler and the CPU; the translation evaluates
-the filter as written). Left out, as SDL_mixer doesn't reach them: the
-audio and MIDI drivers, the shell and server, the sequencer, the MIDI
-router, LADSPA, compressed (SF3) samples (which a build without libsndfile
-ignores too), the player's system timer, the settings' realtime callbacks,
+"FIXME (upstream)" in the source). It also fixes bugs of the DLS loader
+(marked "Note (upstream)"; upstream's C was patched the same way for the
+tests): an articulation list whose condition is false is bypassed, where
+upstream fails the whole file. Otherwise it renders bit-for-bit what the C
+code does, which its tests check against upstream's C built with the same
+math functions (upstream compiles its IIR filter with -ffast-math, whose
+results depend on the compiler and the CPU; the translation evaluates the
+filter as written). Left out, as SDL_mixer doesn't reach them: the audio
+and MIDI drivers, the shell and server, the sequencer, the MIDI router,
+LADSPA, compressed (SF3) samples (which a build without libsndfile ignores
+too), the player's system timer, the settings' realtime callbacks,
 SoundFont unloading and most of the remaining public API. Of the DLS
 loader, left out are its libsndfile path (waves in other formats than PCM,
 which a build without libsndfile fails on too, as the translation does) and

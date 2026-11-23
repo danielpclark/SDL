@@ -859,9 +859,10 @@ dls_sort sf=1 add=0 play=0 frames=118016 status=3 ticks=856 total=216 voices=0 h
   log1 Exception thrown in fluid_dls_font constructor
   log1 exc: Exception thrown while parsing instruments
   log1  exc: visit in LIST 'lins' ofs=0x8c -> LIST 'ins ' ofs=0x98
-  log1   exc: visit in LIST 'ins ' ofs=0x98 -> LIST 'lar2' ofs=0xb8
-  log1    exc: visit in LIST 'lar2' ofs=0xb8 -> 'cdl ' ofs=0xc4
-  log1     exc: std::exception
+  log1   exc: visit in LIST 'ins ' ofs=0x98 -> LIST 'lrgn' ofs=0xb8
+  log1    exc: visit in LIST 'lrgn' ofs=0xb8 -> LIST 'rgn ' ofs=0xc4
+  log1     exc: visit in LIST 'rgn ' ofs=0xc4 -> 'wlnk' ofs=0xe4
+  log1      exc: Sample index 9 is out of range
   log1 fluid_sfloader_load(): Failed to open '&FAKESFNAME&': File does not exist.
   log1 Unable to open file '&FAKESFNAME&'
   log1 fluid_sfloader_load(): Failed to open '&FAKESFNAME&': File does not exist.

@@ -1170,7 +1170,8 @@ def dls_instrument_files():
     write('dls_at.dls', one(b'No link', 0, 0, [dls_rgn((0, 127), 0, wlnk=False)]).build(cues=[]))
     false = dls_cdl(cdl_const(0))
     art = dls_art([conn(SRC_NONE, SRC_NONE, DST_PAN, 0, 100)])
-    # (FluidSynth fails the file where a false condition should bypass the articulation)
+    # (a false condition bypasses the articulation list, where FluidSynth
+    # fails the file: see the Note (upstream) in parse_lart())
     write('dls_lart_cdl.dls', one(b'False lart', 0, 0, rgn, larts=[dls_lart([false, art])]).build())
     write('dls_rgn_lartcdl.dls', one(b'False region lart', 0, 0, [
         dls_rgn((0, 127), 0, chunks=[dls_lart([false, art])])]).build())
@@ -1362,7 +1363,7 @@ CASES = [
     ('dls_art', 'dls:dls_art.dls', 'dls_basic.mid', 44100, 400000, ''),
     ('dls_samples', 'dls:dls_samples.dls', 'dls_basic.mid', 44100, 400000, ''),
     ('dls_sort', 'dls:dls_sort.dls', 'dls_banks.mid', 44100, 400000, 'synth.midi-bank-select=mma'),
-    ('dls_fail', 'dls:dls_lart_cdl.dls', 'dls_basic.mid', 44100, 300000, ''),
+    ('dls_fail', 'dls:dls_wlnk.dls', 'dls_basic.mid', 44100, 300000, ''),
     # test.dls by its path, through the synth's own loaders (the SoundFont
     # loader's, then the DLS loader's)
     ('dls_path', 'path:test.dls', 'dls_basic.mid', 44100, 400000, ''),

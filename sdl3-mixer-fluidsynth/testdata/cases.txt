@@ -93,5 +93,5 @@ dls_pgal dls:dls_pgal.dls midi/dls_drums.mid 44100 400000
 dls_art dls:dls_art.dls midi/dls_basic.mid 44100 400000
 dls_samples dls:dls_samples.dls midi/dls_basic.mid 44100 400000
 dls_sort dls:dls_sort.dls midi/dls_banks.mid 44100 400000 synth.midi-bank-select=mma
-dls_fail dls:dls_lart_cdl.dls midi/dls_basic.mid 44100 300000
+dls_fail dls:dls_wlnk.dls midi/dls_basic.mid 44100 300000
 dls_path path:test.dls midi/dls_basic.mid 44100 400000
