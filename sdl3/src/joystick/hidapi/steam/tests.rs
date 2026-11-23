@@ -444,10 +444,7 @@ fn windows_serial() {
     let mut ctx = SteamContext::default();
     let (result, _) = run(&device, |d| ctx.init(d, &fake));
     assert!(result.is_ok());
-    assert_eq!(
-        device.serial().is_none(),
-        cfg!(all(windows, not(feature = "gdk")))
-    );
+    assert_eq!(device.serial().is_none(), cfg!(windows));
     super::super::NUMJOYSTICKS.store(0, Ordering::Relaxed);
     super::super::CHANGE_COUNT.store(0, Ordering::Relaxed);
 }
