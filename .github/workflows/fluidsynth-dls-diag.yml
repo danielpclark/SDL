@@ -40,6 +40,8 @@ jobs:
           sudo apt-get install -y ninja-build
           gcc --version | head -n 1; g++ --version | head -n 1; cmake --version | head -n 1
           echo "user $(id -un), ulimit -l $(ulimit -l), ulimit -v $(ulimit -v)"
+          gcc -Q --help=target 2>/dev/null | grep -E "^ +-march=|^ +-mfma " || true
+          echo | gcc -dM -E - | grep -E "__FMA__|__AVX2__" || echo "(no __FMA__/__AVX2__ by default)"
       - name: Write the C and the scripts
         run: |
           FSD="$RUNNER_TEMP/fsd"; mkdir -p "$FSD"
@@ -162,6 +164,8 @@ jobs:
           cat > "$FSD/build.sh" <<'FSD_EOF_build_sh'
           #!/bin/bash
           # usage: build.sh OUT [extra cmake args...]: fluidsynth b53de28 patched as the reference, static
+          # (-ffp-contract=off: no FMA contraction where the compiler targets x86-64-v3 by default, as
+          # ubuntu-latest's GCC 15 does; the reference's GCC 13 targeted baseline x86-64, without FMA)
           set -euo pipefail
           D=$(cd "$(dirname "$0")" && pwd)
           OUT="$1"; shift
@@ -169,9 +173,6 @@ jobs:
           rm -rf "$OUT"
           mkdir -p "$OUT"
           (cd "$SRC" && git archive --format=tar HEAD) | tar -x -C "$OUT" --one-top-level=src-fs
-          mkdir -p "$OUT/src-fs/sdlorg_fork"
-          # (the vendored gcem is a submodule at b53de28: copy it over)
-          if [ -d "$SRC/sdlorg_fork/gcem/include" ]; then cp -r "$SRC/sdlorg_fork/gcem" "$OUT/src-fs/sdlorg_fork/"; fi
           "$D/patch.sh" "$OUT/src-fs"
           OFF="enable-alsa enable-aufile enable-dbus enable-ipv6 enable-jack enable-ladspa
             enable-libinstpatch enable-libsndfile enable-midishare enable-opensles enable-oboe enable-network
@@ -181,8 +182,8 @@ jobs:
           ARGS=()
           for o in $OFF; do ARGS+=("-D$o=OFF"); done
           cmake -S "$OUT/src-fs" -B "$OUT/b" -G Ninja -DCMAKE_BUILD_TYPE=${BUILD_TYPE:-Release} -Dosal=cpp11 -DBUILD_SHARED_LIBS=OFF \
-            "-DCMAKE_C_FLAGS=-include $D/sdlmath.h ${EXTRA_CFLAGS:-}" \
-            "-DCMAKE_CXX_FLAGS=-include $D/sdlmath.h ${EXTRA_CXXFLAGS:-}" "${ARGS[@]}" "$@" > "$OUT/cmake.log" 2>&1 || { tail -n 40 "$OUT/cmake.log"; exit 1; }
+            "-DCMAKE_C_FLAGS=-include $D/sdlmath.h -ffp-contract=off ${EXTRA_CFLAGS:-}" \
+            "-DCMAKE_CXX_FLAGS=-include $D/sdlmath.h -ffp-contract=off ${EXTRA_CXXFLAGS:-}" "${ARGS[@]}" "$@" > "$OUT/cmake.log" 2>&1 || { tail -n 40 "$OUT/cmake.log"; exit 1; }
           cmake --build "$OUT/b" --target libfluidsynth > "$OUT/build.log" 2>&1 || { tail -n 60 "$OUT/build.log"; exit 1; }
           find "$OUT/b" -name 'libfluidsynth*.a'
           FSD_EOF_build_sh
@@ -594,7 +595,7 @@ jobs:
           for v in 1 2; do
             B=fs$v; F=$B/src-fs/src
             INC="-I $B/b -I $B/b/include -I $B/src-fs/include -I $F -I $F/utils -I $F/synth -I $F/sfloader -I $F/rvoice -I $F/midi -I $F/bindings -I $F/drivers"
-            X=""; [ $v = 2 ] && X="-fsanitize=address -fno-omit-frame-pointer -g"
+            X="-ffp-contract=off"; [ $v = 2 ] && X="-ffp-contract=off -fsanitize=address -fno-omit-frame-pointer -g"
             LIBS="$B/b/src/libfluidsynth.a sdl/lib/libSDL3.a -lstdc++ -lm -lpthread -ldl"
             N=""; [ $v = 2 ] && N="_asan"
             gcc -O2 $X -I $B/src-fs/include -I $B/b/include fsref.c $LIBS -o fsref$N
@@ -907,7 +908,7 @@ jobs:
             -DSDL_SHARED=OFF -DSDL_STATIC=ON -DSDL_TEST_LIBRARY=OFF -DSDL_TESTS=OFF -DSDL_EXAMPLES=OFF \
             -DSDL_UNIX_CONSOLE_BUILD=ON -DSDL_VIDEO=OFF -DSDL_RENDER=OFF -DSDL_GPU=OFF -DSDL_AUDIO=OFF \
             -DSDL_JOYSTICK=OFF -DSDL_HAPTIC=OFF -DSDL_SENSOR=OFF -DSDL_CAMERA=OFF -DSDL_HIDAPI=OFF \
-            -DSDL_DIALOG=OFF -DSDL_POWER=OFF -DSDL_TRAY=OFF -DCMAKE_INSTALL_PREFIX="$FSD/sdl" \
+            -DSDL_DIALOG=OFF -DSDL_POWER=OFF -DSDL_TRAY=OFF -DCMAKE_INSTALL_PREFIX="$FSD/sdl" -DCMAKE_C_FLAGS=-ffp-contract=off \
             > "$RUNNER_TEMP/sdl.cmake.log" 2>&1 || { tail -n 60 "$RUNNER_TEMP/sdl.cmake.log"; exit 1; }
           cmake --build "$RUNNER_TEMP/sdl-build" > "$RUNNER_TEMP/sdl.build.log" 2>&1 || { tail -n 60 "$RUNNER_TEMP/sdl.build.log"; exit 1; }
           cmake --install "$RUNNER_TEMP/sdl-build" > /dev/null
