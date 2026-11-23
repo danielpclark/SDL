@@ -41,7 +41,10 @@
 //! the compiler and the CPU); and patched where the translation works
 //! around upstream's memory errors and hangs (the `Note (upstream)` notes
 //! of fluid_voice.c, fluid_midi.c and fluid_rev.c, whose reverb renders
-//! its first blocks with uninitialized parameters). The files here don't
+//! its first blocks with uninitialized parameters), and where it fixes
+//! upstream's bugs (the `Note (upstream)` notes of fluid_dls.cpp: in
+//! `parse_lart()`, a false condition bypasses an articulation list
+//! rather than failing the file). The files here don't
 //! hit the other places where the translation does something defined where
 //! upstream reads or writes out of bounds.
 //!

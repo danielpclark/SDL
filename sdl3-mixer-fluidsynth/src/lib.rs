@@ -67,7 +67,9 @@
 //! SoundFont fails to load, as upstream's does. The DLS loader's
 //! libsndfile path (waves in other formats than PCM) is left out, as
 //! SDL_mixer builds FluidSynth without libsndfile, and so is pinning its
-//! sample data to RAM (`mlock()`).
+//! sample data to RAM (`mlock()`). Where the translation fixes a bug of
+//! upstream's DLS loader, a `Note (upstream)` says so (and the C the tests
+//! compare with is patched the same way).
 //!
 //! Otherwise, what SDL_mixer doesn't reach is left out: the audio and
 //! MIDI drivers, the shell, the sequencer, the MIDI router, LADSPA, the
