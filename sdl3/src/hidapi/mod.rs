@@ -953,10 +953,11 @@ pub(crate) fn should_ignore_device(
         if vendor_id == USB_VENDOR_VALVE {
             // Ignore the mouse/keyboard interface on Steam Controllers
             // (on Windows the usage page and usage are checked on both USB
-            // and Bluetooth, elsewhere only on USB; FIXME (upstream):
-            // SDL_PLATFORM_WIN32 only, so WinGDK, the gdk feature, checks
-            // them on USB only, though its HID devices are Windows's)
-            if (cfg!(all(windows, not(feature = "gdk"))) || bus == BusType::Usb)
+            // and Bluetooth, elsewhere only on USB; Note (upstream):
+            // SDL_PLATFORM_WIN32 only, so upstream's WinGDK checks them on
+            // USB only, though its HID devices are Windows's; here the gdk
+            // feature checks both)
+            if (cfg!(windows) || bus == BusType::Usb)
                 && usage_page == USB_USAGEPAGE_GENERIC_DESKTOP
                 && (usage == USB_USAGE_GENERIC_KEYBOARD || usage == USB_USAGE_GENERIC_MOUSE)
             {
