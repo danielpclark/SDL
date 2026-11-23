@@ -504,7 +504,7 @@ fn controller_features() {
             0,
             0,
         ),
-        !cfg!(all(windows, not(feature = "gdk")))
+        !cfg!(windows)
     );
     assert!(driver.is_supported_device(
         Some(&xbox_one_s()),
