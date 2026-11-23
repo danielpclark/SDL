@@ -607,7 +607,7 @@ sf_badinst sf=-1 add=0 play=0 frames=136704 status=3 ticks=708 total=228 voices=
   log2 Invalid loop type 2, defaulting to loop and release
   log2 Instrument not found on channel 10 [bank=0 prog=1], substituted [bank=0 prog=0]
   log2 End of the MIDI file reached, but not all notes have received a note off event! OFFing them now! Run with --verbose to spot pending voices.
-dls_basic sf=1 add=0 play=0 frames=153216 status=3 ticks=666 total=258 voices=0 hash=54da8860caf1c1c1
+dls_basic sf=1 add=0 play=0 frames=153216 status=3 ticks=666 total=258 voices=0 hash=0e40e161190d6186
   log2 DLS wsmp chunk cbSize < 20. The file is probably corrupted.
   log2 DLS wsmp chunk loop cbSize < 16. The file is probably corrupted.
   log2 Unknown DLS chunk in LIST[wave] 'smpl'
@@ -615,7 +615,7 @@ dls_basic sf=1 add=0 play=0 frames=153216 status=3 ticks=666 total=258 voices=0 
   log2 Invalid loop type 2, defaulting to loop and release
   log2 Instrument not found on channel 10 [bank=0 prog=1], substituted [bank=0 prog=0]
   log2 End of the MIDI file reached, but not all notes have received a note off event! OFFing them now! Run with --verbose to spot pending voices.
-dls_basic48k sf=1 add=0 play=0 frames=166784 status=3 ticks=667 total=258 voices=0 hash=7d8cb3b620044aab
+dls_basic48k sf=1 add=0 play=0 frames=166784 status=3 ticks=667 total=258 voices=0 hash=21385d4028b26b9f
   log2 DLS wsmp chunk cbSize < 20. The file is probably corrupted.
   log2 DLS wsmp chunk loop cbSize < 16. The file is probably corrupted.
   log2 Unknown DLS chunk in LIST[wave] 'smpl'
@@ -623,7 +623,7 @@ dls_basic48k sf=1 add=0 play=0 frames=166784 status=3 ticks=667 total=258 voices
   log2 Invalid loop type 2, defaulting to loop and release
   log2 Instrument not found on channel 10 [bank=0 prog=1], substituted [bank=0 prog=0]
   log2 End of the MIDI file reached, but not all notes have received a note off event! OFFing them now! Run with --verbose to spot pending voices.
-dls_basic22k sf=1 add=0 play=0 frames=76672 status=3 ticks=667 total=258 voices=0 hash=a9c27b425a9f1d28
+dls_basic22k sf=1 add=0 play=0 frames=76672 status=3 ticks=667 total=258 voices=0 hash=ada22648e52a8202
   log2 DLS wsmp chunk cbSize < 20. The file is probably corrupted.
   log2 DLS wsmp chunk loop cbSize < 16. The file is probably corrupted.
   log2 Unknown DLS chunk in LIST[wave] 'smpl'
@@ -631,7 +631,7 @@ dls_basic22k sf=1 add=0 play=0 frames=76672 status=3 ticks=667 total=258 voices=
   log2 Invalid loop type 2, defaulting to loop and release
   log2 Instrument not found on channel 10 [bank=0 prog=1], substituted [bank=0 prog=0]
   log2 End of the MIDI file reached, but not all notes have received a note off event! OFFing them now! Run with --verbose to spot pending voices.
-dls_basic8k sf=1 add=0 play=0 frames=28032 status=3 ticks=670 total=258 voices=0 hash=02de40d5beab6c67
+dls_basic8k sf=1 add=0 play=0 frames=28032 status=3 ticks=670 total=258 voices=0 hash=1f5345d16695f63b
   log2 DLS wsmp chunk cbSize < 20. The file is probably corrupted.
   log2 DLS wsmp chunk loop cbSize < 16. The file is probably corrupted.
   log2 Unknown DLS chunk in LIST[wave] 'smpl'
@@ -639,7 +639,7 @@ dls_basic8k sf=1 add=0 play=0 frames=28032 status=3 ticks=670 total=258 voices=0
   log2 Invalid loop type 2, defaulting to loop and release
   log2 Instrument not found on channel 10 [bank=0 prog=1], substituted [bank=0 prog=0]
   log2 End of the MIDI file reached, but not all notes have received a note off event! OFFing them now! Run with --verbose to spot pending voices.
-dls_basic_dry sf=1 add=0 play=0 frames=153216 status=3 ticks=666 total=258 voices=0 hash=0720ae891ce8dc2a
+dls_basic_dry sf=1 add=0 play=0 frames=153216 status=3 ticks=666 total=258 voices=0 hash=c23064d7a94f791e
   log2 DLS wsmp chunk cbSize < 20. The file is probably corrupted.
   log2 DLS wsmp chunk loop cbSize < 16. The file is probably corrupted.
   log2 Unknown DLS chunk in LIST[wave] 'smpl'
@@ -891,4 +891,4 @@ dls_fail sf=-1 add=0 play=0 frames=147456 status=3 ticks=642 total=258 voices=0 
   log2 Invalid loop type 2, defaulting to loop and release
   log2 Instrument not found on channel 10 [bank=0 prog=1], substituted [bank=0 prog=0]
   log2 End of the MIDI file reached, but not all notes have received a note off event! OFFing them now! Run with --verbose to spot pending voices.
-dls_path sf=1 add=0 play=0 frames=153216 status=3 ticks=666 total=258 voices=0 hash=54da8860caf1c1c1
+dls_path sf=1 add=0 play=0 frames=153216 status=3 ticks=666 total=258 voices=0 hash=0e40e161190d6186

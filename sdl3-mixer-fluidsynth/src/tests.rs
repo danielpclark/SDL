@@ -45,7 +45,8 @@
 //! upstream's bugs (the `Note (upstream)` notes of fluid_dls.cpp: in
 //! `parse_lart()`, a false condition bypasses an articulation list
 //! rather than failing the file; in `execute_cdls()`, a QUERY pushes its
-//! value only). The files here don't
+//! value only; in `parse_ins()`, an instrument's Key Number generator
+//! comes from its first articulation list too). The files here don't
 //! hit the other places where the translation does something defined where
 //! upstream reads or writes out of bounds.
 //!
