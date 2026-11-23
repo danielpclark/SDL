@@ -621,8 +621,9 @@ def soundfonts():
 # dls2.h, which decide whether what holds them is used. A chunk's size
 # doesn't count the pad byte that keeps the next chunk at an even offset.
 #
-# The test files here stop at the instruments: the broken files fail
+# The first test files stop at the instruments: the broken files fail
 # before them, and the files that read everything else have no 'lins'.
+# test.dls and the files after it have instruments.
 
 def dls_ck(cid, data, size=None):
     """A chunk with the given data and, if given, a size other than the
@@ -888,6 +889,292 @@ def dls_files():
     write('dls_wave_cue.dls', d.build(cues=[cues[0], 0x10000] + cues[2:]))
 
 
+# Articulation: an instrument's or a region's 'LIST' 'lart' (DLS Level 1,
+# of 'art1' chunks) or 'LIST' 'lar2' (Level 2, of 'art2' chunks) holds
+# connection blocks, each a source, a control (a second source scaling the
+# first), a destination, a transform and a 16.16 fixed-point scale (in the
+# destination's unit: cents, time cents, centibels or tenths of a percent).
+# Level 1's transform is one 4-bit curve for both sources; Level 2's has a
+# curve, polarity and direction for each, and an output curve.
+
+# connection block sources
+SRC_NONE, SRC_LFO, SRC_VELOCITY, SRC_KEY, SRC_EG1, SRC_EG2, SRC_BEND = 0, 1, 2, 3, 4, 5, 6
+SRC_POLYPRESSURE, SRC_CHANPRESSURE, SRC_VIBRATO = 7, 8, 9
+SRC_CC1, SRC_CC7, SRC_CC10, SRC_CC11, SRC_CC91, SRC_CC93 = 0x81, 0x87, 0x8A, 0x8B, 0xDB, 0xDD
+SRC_RPN0, SRC_RPN1, SRC_RPN2 = 0x100, 0x101, 0x102
+# destinations
+DST_NONE, DST_GAIN, DST_RESERVED, DST_PITCH, DST_PAN, DST_KEYNUMBER = 0, 1, 2, 3, 4, 5
+DST_LEFT, DST_CHORUS, DST_REVERB = 0x10, 0x80, 0x81
+DST_LFO_FREQ, DST_LFO_DELAY, DST_VIB_FREQ, DST_VIB_DELAY = 0x104, 0x105, 0x114, 0x115
+DST_EG1_ATTACK, DST_EG1_DECAY, DST_EG1_RESERVED, DST_EG1_RELEASE = 0x206, 0x207, 0x208, 0x209
+DST_EG1_SUSTAIN, DST_EG1_DELAY, DST_EG1_HOLD, DST_EG1_SHUTDOWN = 0x20A, 0x20B, 0x20C, 0x20D
+DST_EG2_ATTACK, DST_EG2_DECAY, DST_EG2_RESERVED, DST_EG2_RELEASE = 0x30A, 0x30B, 0x30C, 0x30D
+DST_EG2_SUSTAIN, DST_EG2_DELAY, DST_EG2_HOLD = 0x30E, 0x30F, 0x310
+DST_FILTER_CUTOFF, DST_FILTER_Q = 0x500, 0x501
+# curves
+TRN_NONE, TRN_CONCAVE, TRN_CONVEX, TRN_SWITCH = 0, 1, 2, 3
+
+
+def trn(src=0, ctl=0, src_bip=False, src_inv=False, ctl_bip=False, ctl_inv=False, out=0):
+    """A Level 2 transform: each source's curve, polarity and direction,
+    and the output's curve."""
+    return (src_inv << 15) | (src_bip << 14) | (src << 10) | (ctl_inv << 9) | (ctl_bip << 8) | (ctl << 4) | out
+
+
+def conn(source, control, dest, transform, scale):
+    """A connection block; the scale is a whole number of units."""
+    return struct.pack('<HHHHi', source, control, dest, transform, scale * 65536)
+
+
+def dls_art(blocks, level1=False, cbsize=8, count=None, size=None, as_list=False):
+    """An 'art2' (or Level 1 'art1') chunk; cbsize, count and size override
+    the structure's own (the corrupt ones); as_list writes it as a 'LIST'
+    (which isn't standard)."""
+    n = len(blocks) if count is None else count
+    data = struct.pack('<II', cbsize, n) + b'\0' * max(cbsize - 8, 0) + b''.join(blocks)
+    cid = b'art1' if level1 else b'art2'
+    return dls_list(cid, [data]) if as_list else dls_ck(cid, data, size)
+
+
+def dls_lart(chunks, level1=False):
+    return dls_list(b'lart' if level1 else b'lar2', chunks)
+
+
+def dls_cdl(*ops):
+    return dls_ck(b'cdl ', b''.join(ops))
+
+
+def dls_rgn(keys, wave, vels=(0, 127), wsmp=None, group=0, options=1, rgn2=False, chunks=(), before=(),
+            wlnk=True):
+    """A region: the rgnh (key and velocity ranges, options, key group), a
+    wsmp chunk if given, other chunks, then the wave link (unless not
+    wlnk); before goes first."""
+    body = list(before) + [dls_ck(b'rgnh', struct.pack('<HHHHHH', keys[0], keys[1], vels[0], vels[1], options,
+                                                         group))]
+    if wsmp:
+        body.append(wsmp)
+    body += list(chunks)
+    if wlnk:
+        body.append(dls_ck(b'wlnk', struct.pack('<HHII', 0, 0, 1, wave)))
+    return dls_list(b'rgn2' if rgn2 else b'rgn ', body)
+
+
+def dls_instrument(name, bank, prog, rgns, drums=False, larts=(), chunks=(), cregions=None, insh_size=None):
+    """An instrument of the given regions (dls_rgn()), articulation lists
+    and other chunks, its insh counting cregions regions if given."""
+    n = len(rgns) if cregions is None else cregions
+    insh = struct.pack('<III', n, bank | (0x80000000 if drums else 0), prog)
+    if insh_size is not None:
+        insh = insh[:insh_size]
+    return dls_list(b'ins ', [dls_ck(b'insh', insh)] + list(chunks) + list(larts) +
+                    [dls_list(b'lrgn', rgns), dls_info(name)])
+
+
+def dls_pgal(table, aliases, version=1, count=None):
+    """MobileBAE's 'pgal' chunk: a version (unless None), the drum note
+    aliasing table (128 notes), then the instrument aliases, each (bank,
+    program) of the alias and of the instrument, a bank being MSB << 7 |
+    LSB."""
+    data = (b'' if version is None else struct.pack('<I', version)) + bytes(table)
+    data += struct.pack('<I', len(aliases) if count is None else count)
+    for (bank2, pc2), (bank, pc) in aliases:
+        data += struct.pack('<HBBHBB', bank2, pc2, 0, bank, pc, 0)
+    return dls_ck(b'pgal', data)
+
+
+def make_test_dls():
+    """test.dls: make_dls()'s waves and instruments, and more (no two of
+    them at one bank and program), in no order: an articulation at each
+    level, both DLS levels, velocity layers, key groups, conditional
+    regions, the Key Number generator, and the banks of each bank select
+    style."""
+    d = make_dls()
+    sine, square, saw = 0, 1, 2
+    long_sine = d.wave([dls_fmt(16, 32000), dls_wsmp(69, -7, -65536 * 15, (0, 32, 96)),
+                        dls_data(dls_values('sine', 128, 32, 80)), dls_info(b'Long sine')])
+    strings = dls_lart([dls_art([
+        conn(SRC_NONE, SRC_NONE, DST_EG1_ATTACK, 0, -3986), conn(SRC_NONE, SRC_NONE, DST_EG1_DECAY, 0, -2000),
+        conn(SRC_NONE, SRC_NONE, DST_EG1_SUSTAIN, 0, 700), conn(SRC_NONE, SRC_NONE, DST_EG1_RELEASE, 0, -3000),
+        conn(SRC_NONE, SRC_NONE, DST_EG1_DELAY, 0, -12000), conn(SRC_NONE, SRC_NONE, DST_EG1_HOLD, 0, -10000),
+        conn(SRC_NONE, SRC_NONE, DST_LFO_FREQ, 0, -500), conn(SRC_NONE, SRC_NONE, DST_LFO_DELAY, 0, -9000),
+        conn(SRC_NONE, SRC_NONE, DST_VIB_FREQ, 0, 300), conn(SRC_NONE, SRC_NONE, DST_VIB_DELAY, 0, -8000),
+        conn(SRC_LFO, SRC_NONE, DST_PITCH, trn(src_bip=True), 20),
+        conn(SRC_VIBRATO, SRC_CC1, DST_PITCH, trn(src_bip=True), 50),
+        conn(SRC_LFO, SRC_CHANPRESSURE, DST_PITCH, trn(src_bip=True), 30),
+        conn(SRC_LFO, SRC_NONE, DST_FILTER_CUTOFF, trn(src_bip=True), 200),
+        conn(SRC_LFO, SRC_NONE, DST_GAIN, trn(src_bip=True), 10),
+        conn(SRC_NONE, SRC_NONE, DST_EG2_ATTACK, 0, -6000), conn(SRC_NONE, SRC_NONE, DST_EG2_DECAY, 0, -1000),
+        conn(SRC_NONE, SRC_NONE, DST_EG2_SUSTAIN, 0, 800), conn(SRC_NONE, SRC_NONE, DST_EG2_RELEASE, 0, -2500),
+        conn(SRC_NONE, SRC_NONE, DST_EG2_DELAY, 0, -11000), conn(SRC_NONE, SRC_NONE, DST_EG2_HOLD, 0, -9000),
+        conn(SRC_EG2, SRC_NONE, DST_PITCH, 0, 100), conn(SRC_EG2, SRC_NONE, DST_FILTER_CUTOFF, 0, 1200),
+        conn(SRC_NONE, SRC_NONE, DST_FILTER_CUTOFF, 0, 9000), conn(SRC_NONE, SRC_NONE, DST_FILTER_Q, 0, 30),
+        conn(SRC_NONE, SRC_NONE, DST_PAN, 0, -200), conn(SRC_NONE, SRC_NONE, DST_CHORUS, 0, 300),
+        conn(SRC_NONE, SRC_NONE, DST_REVERB, 0, 400),
+        conn(SRC_VELOCITY, SRC_NONE, DST_GAIN, trn(TRN_CONCAVE, src_inv=True), -960),
+        conn(SRC_KEY, SRC_NONE, DST_PITCH, 0, 10000),
+        conn(SRC_CC7, SRC_NONE, DST_GAIN, trn(TRN_CONCAVE, src_inv=True), -960),
+        conn(SRC_CC10, SRC_NONE, DST_PAN, trn(src_bip=True), 500),
+        conn(SRC_CC11, SRC_NONE, DST_GAIN, trn(TRN_CONCAVE, src_inv=True), -960),
+        conn(SRC_CC91, SRC_NONE, DST_REVERB, 0, 1000), conn(SRC_CC93, SRC_NONE, DST_CHORUS, 0, 500),
+        conn(SRC_BEND, SRC_RPN0, DST_PITCH, trn(src_bip=True), 12800),
+        conn(SRC_POLYPRESSURE, SRC_NONE, DST_GAIN, 0, -100),
+        conn(SRC_KEY, SRC_NONE, DST_EG1_DECAY, 0, -100),
+        conn(SRC_VELOCITY, SRC_NONE, DST_FILTER_CUTOFF, trn(TRN_CONVEX), 2400),
+        conn(SRC_CC1, SRC_VELOCITY, DST_PAN, trn(TRN_SWITCH, TRN_CONCAVE, ctl_inv=True), 300),
+    ])])
+    # (a region articulation replaces the instrument's)
+    release = dls_lart([dls_art([conn(SRC_NONE, SRC_NONE, DST_EG1_RELEASE, 0, -1000),
+                                 conn(SRC_CC1, SRC_NONE, DST_PITCH, 0, 25)])])
+    d.instruments.append(dls_instrument(b'Strings', 1 << 8 | 2, 48, [
+        dls_rgn((0, 127), long_sine, (0, 63)),
+        dls_rgn((0, 127), saw, (64, 127), dls_wsmp(64, 20, -65536 * 30, (0, 8, 24)), rgn2=True,
+                chunks=[release]),
+    ], larts=[strings]))
+    hats = [dls_rgn((36, 36), square), dls_rgn((38, 38), square, group=0),
+            dls_rgn((42, 42), sine, wsmp=dls_wsmp(42), group=1),
+            dls_rgn((44, 44), sine, wsmp=dls_wsmp(44, 30), group=1, options=0),
+            dls_rgn((46, 46), long_sine, wsmp=dls_wsmp(46, 0, 0, (1, 32, 96)), group=1)]
+    d.instruments.append(dls_instrument(b'Kit 2', 0, 25, hats, drums=True))
+    d.instruments.append(dls_instrument(b'Bright GM2', 121 << 8, 1, [dls_rgn((0, 127), sine)]))
+    # DLS Level 1 (art1), whose transform the loader makes a Level 2 one
+    organ = dls_lart([dls_art([
+        conn(SRC_NONE, SRC_NONE, DST_EG1_ATTACK, 0, -6000), conn(SRC_NONE, SRC_NONE, DST_EG1_RELEASE, 0, -2000),
+        conn(SRC_NONE, SRC_NONE, DST_EG1_SUSTAIN, 0, 1000),
+        conn(SRC_VELOCITY, SRC_NONE, DST_GAIN, TRN_CONCAVE, -960),
+        conn(SRC_CC7, SRC_NONE, DST_GAIN, TRN_CONCAVE, -960), conn(SRC_CC11, SRC_NONE, DST_GAIN, TRN_CONCAVE, -960),
+        conn(SRC_LFO, SRC_NONE, DST_PITCH, 0, 15), conn(SRC_LFO, SRC_CC1, DST_PITCH, 0, 50),
+        conn(SRC_BEND, SRC_RPN0, DST_PITCH, 0, 12800), conn(SRC_CC10, SRC_NONE, DST_PAN, 0, 500),
+    ], level1=True)], level1=True)
+    d.instruments.append(dls_instrument(b'Organ', 0, 16, [
+        dls_rgn((0, 59), long_sine, chunks=[dls_cdl(cdl_supported(DLSID_GM))]),
+        dls_rgn((60, 127), sine, wsmp=dls_wsmp(72, -12, 65536 * 20, (1, 8, 40)), chunks=[dls_cdl(cdl_const(1))]),
+        dls_rgn((0, 127), saw, chunks=[dls_cdl(cdl_const(0))]),        # (its condition is false)
+    ], larts=[organ]))
+    d.instruments.append(dls_instrument(b'GM2 Rhythm', 120 << 8, 0, [dls_rgn((0, 127), square)]))
+    d.instruments.append(dls_instrument(b'XG voice', 3, 4, [dls_rgn((0, 127), square, wsmp=dls_wsmp(60))]))
+    # the Key Number generator (x 0.5): FluidSynth takes the instrument's
+    # from a second articulation list only
+    keynum = dls_lart([dls_art([conn(SRC_KEY, SRC_NONE, DST_KEYNUMBER, 0, 6400),
+                                conn(SRC_NONE, SRC_NONE, DST_EG1_RELEASE, 0, -4000)])])
+    split = [dls_rgn((0, 40), saw), dls_rgn((41, 127), long_sine)]
+    d.instruments.append(dls_instrument(b'Keynum two', 0, 40, split, larts=[
+        keynum, dls_lart([dls_art([conn(SRC_NONE, SRC_NONE, DST_PAN, 0, 300)])])]))
+    d.instruments.append(dls_instrument(b'Keynum one', 0, 41, split, larts=[keynum]))
+    d.instruments.append(dls_instrument(b'Kit 3', 1 << 8, 2, [dls_rgn((30, 60), sine, wsmp=dls_wsmp(48))],
+                                        drums=True))
+    # (the drum channel's program 0; LSB 1, as Piano is at bank 0 program 0)
+    d.instruments.append(dls_instrument(b'Standard', 1, 0, [dls_rgn((35, 59), square), dls_rgn((60, 81), sine)],
+                                        drums=True))
+    return d
+
+
+def dls_instrument_files():
+    d = make_test_dls()
+    write('test.dls', d.build())
+    long_sine = len(d.waves) - 1
+
+    # instruments that fail the file
+    def one(*args, **kwargs):
+        b = make_dls()
+        b.instruments = [dls_instrument(*args, **kwargs)]
+        return b
+
+    rgn = [dls_rgn((0, 127), 0)]
+    write('dls_insh.dls', one(b'Short insh', 0, 0, rgn, insh_size=8).build())
+    write('dls_wlnk.dls', one(b'Bad link', 0, 0, [dls_rgn((0, 127), 9)]).build())
+    # (no samples, and a region without a wave link)
+    write('dls_at.dls', one(b'No link', 0, 0, [dls_rgn((0, 127), 0, wlnk=False)]).build(cues=[]))
+    false = dls_cdl(cdl_const(0))
+    art = dls_art([conn(SRC_NONE, SRC_NONE, DST_PAN, 0, 100)])
+    # (FluidSynth fails the file where a false condition should bypass the articulation)
+    write('dls_lart_cdl.dls', one(b'False lart', 0, 0, rgn, larts=[dls_lart([false, art])]).build())
+    write('dls_rgn_lartcdl.dls', one(b'False region lart', 0, 0, [
+        dls_rgn((0, 127), 0, chunks=[dls_lart([false, art])])]).build())
+    write('dls_art_cbsize.dls', one(b'Art cbSize', 0, 0, rgn, larts=[dls_lart([dls_art([], cbsize=4)])]).build())
+    write('dls_art_size.dls', one(b'Art size', 0, 0, rgn, larts=[
+        dls_lart([dls_art([conn(SRC_NONE, SRC_NONE, DST_PAN, 0, 1)], size=12)])]).build())
+    write('dls_art_count.dls', one(b'Art count', 0, 0, rgn, larts=[
+        dls_lart([dls_art([], count=0x20000000)])]).build())
+    write('dls_lart_notlist.dls', one(b'Plain lart', 0, 0, rgn, chunks=[dls_ck(b'lart', b'')]).build())
+
+    # warnings: every connection block the loader ignores or changes, and
+    # unknown and ignored chunks at each level
+    b = make_dls()
+    odd = dls_lart([dls_art([
+        conn(SRC_RPN1, SRC_NONE, DST_PITCH, 0, 100), conn(SRC_RPN2, SRC_NONE, DST_PITCH, 0, 100),
+        conn(SRC_EG1, SRC_NONE, DST_FILTER_CUTOFF, 0, 100),
+        conn(SRC_LFO, SRC_NONE, DST_PITCH, trn(TRN_CONVEX, src_inv=True), 10),       # unipolar, transformed
+        conn(SRC_LFO, SRC_NONE, DST_PAN, trn(src_bip=True), 10),                     # not a generator
+        conn(SRC_VIBRATO, SRC_NONE, DST_PITCH, trn(TRN_CONCAVE), 10),
+        conn(SRC_VIBRATO, SRC_NONE, DST_GAIN, trn(src_bip=True), 10),
+        conn(SRC_EG2, SRC_NONE, DST_PITCH, trn(src_bip=True), 10), conn(SRC_EG2, SRC_NONE, DST_PAN, 0, 10),
+        conn(SRC_CC7, SRC_NONE, DST_GAIN, trn(out=TRN_CONCAVE), -100),               # output transform moved
+        conn(SRC_CC11, SRC_CC1, DST_GAIN, trn(out=TRN_CONVEX), -100),                # not moved
+        conn(0x50, SRC_NONE, DST_PITCH, 0, 10), conn(SRC_CC1, 0x83, DST_PITCH, 0, 10),
+        conn(SRC_CC1, SRC_NONE, DST_PITCH, trn(5), 10), conn(SRC_CC1, SRC_CC10, DST_PITCH, trn(ctl=6), 10),
+        conn(SRC_NONE, SRC_CC1, DST_FILTER_Q, trn(ctl=TRN_CONVEX, ctl_bip=True), 20),   # control as source
+        conn(SRC_CC1, SRC_NONE, DST_LEFT, 0, 10), conn(SRC_NONE, SRC_NONE, DST_EG1_SHUTDOWN, 0, 10),
+        conn(SRC_NONE, SRC_NONE, DST_RESERVED, 0, 10), conn(SRC_NONE, SRC_NONE, DST_EG2_RESERVED, 0, 10),
+        conn(SRC_NONE, SRC_NONE, 0x1234, 0, 10), conn(SRC_NONE, SRC_NONE, DST_NONE, 0, 10),
+        conn(SRC_KEY, SRC_NONE, DST_KEYNUMBER, trn(TRN_CONCAVE), 6400),            # not linear: a modulator
+        conn(SRC_CC1, SRC_NONE, DST_PITCH, 0, 10), conn(SRC_CC1, SRC_NONE, DST_PITCH, 0, 20),   # replaced
+        conn(SRC_VELOCITY, SRC_NONE, DST_GAIN, trn(TRN_SWITCH), -100),             # made negative
+        conn(SRC_NONE, SRC_NONE, DST_EG1_SUSTAIN, 0, 300), conn(SRC_NONE, SRC_NONE, DST_EG1_SUSTAIN, 0, 300),
+    ]), dls_ck(b'abcd', b'xy'), dls_list(b'zzzz', [])])
+    level1 = dls_lart([dls_art([conn(SRC_CC1, SRC_LFO, DST_PITCH, 0, 10),
+                                conn(SRC_VIBRATO, SRC_NONE, DST_PITCH, 0, 10)], level1=True, as_list=True)],
+                      level1=True)
+    keynum = dls_lart([dls_art([conn(SRC_KEY, SRC_NONE, DST_KEYNUMBER, 0, 6400)])])
+    crs1 = dls_ck(b'crs1', b'\0' * 28, size=0)                     # (its size is taken to be 28)
+    b.instruments.append(dls_instrument(b'Odd', 0, 1, [
+        dls_rgn((0, 59), 0, chunks=[keynum, dls_lart([dls_art([conn(SRC_NONE, SRC_NONE, DST_PAN, 0, 10)])]),
+                                    dls_ck(b'abcd', b''), crs1, dls_ck(b'crs2', b''), dls_info(b'rgn info')],
+                before=[dls_ck(b'wsmp', b'\0' * 20)]),
+        dls_rgn((60, 127), 2, wsmp=dls_wsmp(60, 0, 0, (5, 4, 30))),     # unknown loop type
+        dls_ck(b'abcd', b'1'), crs1, dls_ck(b'crs2', b''),
+        dls_list(b'rgn ', [dls_ck(b'wlnk', struct.pack('<HHII', 0, 0, 1, 1))]),   # no rgnh
+    ], larts=[odd, level1], chunks=[dls_ck(b'dlid', DLSID_UNKNOWN), crs1, dls_ck(b'crs2', b''),
+                                    dls_ck(b'abcd', b'')]))
+    b.instruments += [crs1, dls_ck(b'crs2', b''), dls_ck(b'zyxw', b'12')]
+    write('dls_art.dls', b.build())
+
+    # samples: one without data (which fails validation), one whose loop
+    # is out of the data, one without a name, one with a long one
+    b = Dls()
+    b.wave([dls_fmt(16, 22050), dls_data([]), dls_info(b'Empty \xe9chantillon with a long name')])
+    b.wave([dls_fmt(16, 22050), dls_wsmp(60, 0, 0, (0, 10, 100000)), dls_data(dls_values('saw', 32, 16, 50)),
+            dls_info(b'Bad loop')])
+    b.wave([dls_fmt(8, 22050), dls_wsmp(67, 0, 0, (1, 0, 0)), dls_data(dls_values('square', 32, 8, 50), 8)])
+    b.wave([dls_fmt(16, 44100), dls_wsmp(60, -50, 0, (0, 30, 2)), dls_data(dls_values('sine', 40, 10, 60)),
+            dls_info(b'A sample with a name of more than twenty characters')])
+    b.instruments.append(dls_instrument(b'Samples', 0, 0, [
+        dls_rgn((0, 61), 0), dls_rgn((62, 65), 1), dls_rgn((66, 69), 2), dls_rgn((70, 127), 3)]))
+    write('dls_samples.dls', b.build())
+
+    # more than 16 instruments (std::sort's insertion sort's limit), in
+    # no order, no two at one bank and program
+    b = make_dls()
+    b.instruments = []
+    for i in range(20):
+        prog_ = (i * 7) % 20
+        bank = ((i * 3) % 4) << 8 | (i % 3)
+        b.instruments.append(dls_instrument(b'I%02d' % i, bank, prog_, [dls_rgn((0, 127), i % 3)],
+                                            drums=i % 5 == 4))
+    write('dls_sort.dls', b.build())
+
+    # MobileBAE's instrument aliasing (pgal): the drum note table and
+    # aliases of melodic instruments, two of them missing
+    table = list(range(128))
+    table[36], table[82], table[100] = 40, 50, 0
+    aliases = [((0, 3), (0, 0)), ((1 << 7 | 5, 81), (0, 80)), ((0, 9), (0, 8)), ((0, 10), (2 << 7 | 1, 7))]
+    write('dls_pgal.dls', make_dls().build(after=[dls_pgal(table, aliases)]))
+    write('dls_pgal_nover.dls', make_dls().build(before=[dls_pgal(range(128), aliases[:1], None)]))
+    write('dls_pgal_small.dls', make_dls().build(after=[dls_ck(b'pgal', b'\0' * 100)]))
+    # (the aliases go on past the end of the file)
+    write('dls_pgal_short.dls', make_dls().build(after=[dls_pgal(table, aliases[:1], count=3)]))
+    return long_sine
+
+
 CASES = [
     # name, soundfont, MIDI file, rate, frame limit, settings
     ('basic', 'test.sf2', 'basic.mid', 44100, 400000, ''),
@@ -982,6 +1269,7 @@ def cases():
 def main():
     soundfonts()
     dls_files()
+    dls_instrument_files()
     midi_files()
     cases()
 
