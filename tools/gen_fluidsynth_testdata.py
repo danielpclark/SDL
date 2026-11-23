@@ -6,14 +6,16 @@ Everything here is synthetic, made by this script: a small SoundFont 2.04
 generators FluidSynth implements, and modulators, linked ones among them),
 MIDI files exercising the synth's channel messages, SYSEX handling,
 monophonic modes, NRPNs and the player, deliberately broken SoundFonts and
-MIDI files, and `cases.txt`, the list of renderings the test compares (a
-SoundFont, a MIDI file, a sample rate, a frame limit and settings). No
-instrument data comes from anywhere else.
+MIDI files, DLS files (written from the DLS specifications: broken ones,
+and ones without instruments), and `cases.txt`, the list of renderings the
+test compares (a SoundFont, a MIDI file, a sample rate, a frame limit and
+settings). No instrument data comes from anywhere else.
 
 The output is deterministic (integer arithmetic and a fixed LCG), so
 regenerating the files gives the same bytes. If they change, the
-reference output (`testdata/reference.txt`), made by a C program built
-from upstream SDL_mixer's FluidSynth and SDL3, must be regenerated too.
+reference outputs (`testdata/reference.txt`, and `testdata/reference_dls.txt`
+for the DLS files), made by C programs built from upstream SDL_mixer's
+FluidSynth and SDL3, must be regenerated too.
 
 usage: tools/gen_fluidsynth_testdata.py [OUTDIR]
 """
@@ -604,6 +606,288 @@ def soundfonts():
     write('sf2_badsm24.sf2', make_soundfont().build(sm24_len=10))
 
 
+# --- DLS --------------------------------------------------------------------
+
+# Written from the MMA's Downloadable Sounds specifications (DLS Level 1 and
+# Level 2.2): a DLS file is a RIFF form of type 'DLS ' holding a collection
+# header ('colh': the number of instruments), the instruments ('LIST'
+# 'lins' of 'LIST' 'ins ', each with an instrument header 'insh' and its
+# regions, 'LIST' 'lrgn' of 'LIST' 'rgn ' with a region header 'rgnh', an
+# optional wave sample chunk 'wsmp' and a wave link 'wlnk'), the pool table
+# ('ptbl': the offsets of the waves in the wave pool) and the wave pool
+# ('LIST' 'wvpl' of 'LIST' 'wave', each a WAVE file's format 'fmt ', data
+# and optional 'wsmp'), with names in 'LIST' 'INFO' 'INAM' chunks.
+# Conditional chunks ('cdl ') hold expressions over the DLSIDs of
+# dls2.h, which decide whether what holds them is used. A chunk's size
+# doesn't count the pad byte that keeps the next chunk at an even offset.
+#
+# The test files here stop at the instruments: the broken files fail
+# before them, and the files that read everything else have no 'lins'.
+
+def dls_ck(cid, data, size=None):
+    """A chunk with the given data and, if given, a size other than the
+    data's (a corrupt one), padded to an even length."""
+    n = len(data) if size is None else size
+    return cid + struct.pack('<I', n) + data + (b'\0' if len(data) % 2 else b'')
+
+
+def dls_list(ltype, chunks, size=None):
+    return dls_ck(b'LIST', ltype + b''.join(chunks), size)
+
+
+def dls_info(name, other=()):
+    """An INFO list: other entries, then the name (INAM, NUL-terminated)."""
+    return dls_list(b'INFO', list(other) + [dls_ck(b'INAM', name + b'\0')])
+
+
+def dls_fmt(bits=16, rate=22050, channels=1, tag=1):
+    """A WAVEFORMAT: PCM (tag 1) of the given sample size, rate and
+    channels."""
+    align = channels * bits // 8
+    return dls_ck(b'fmt ', struct.pack('<HHIIHH', tag, channels, rate, rate * align, align, bits))
+
+
+def dls_wsmp(unity=60, fine=0, gain=0, loop=None, cbsize=20, loop_cbsize=16, loops=None, size=None):
+    """A wave sample chunk: the unity note, fine tune (cents), gain
+    (1/65536 cB) and at most one loop (type, start, length); cbsize,
+    loop_cbsize and loops override the structure's own (the corrupt
+    ones)."""
+    nloops = (1 if loop else 0) if loops is None else loops
+    data = struct.pack('<IHhiII', cbsize, unity, fine, gain, 0, nloops)
+    if loop:
+        data += struct.pack('<IIII', loop_cbsize, *loop)
+    return dls_ck(b'wsmp', data, size)
+
+
+def dls_data(values, bits=16, size=None):
+    """A data chunk of 16-bit samples, or 8-bit ones (unsigned, 128 being
+    0), from 16-bit values."""
+    if bits == 16:
+        data = b''.join(struct.pack('<h', v) for v in values)
+    else:
+        data = bytes((v >> 8) + 128 for v in values)
+    return dls_ck(b'data', data, size)
+
+
+def dls_values(kind, n, period, amp, seed=1):
+    """n 16-bit samples of a waveform (see wave())."""
+    return [v >> 8 for v in wave(kind, n, period, amp, seed)]
+
+
+def dls_ins(name, bank, prog, regions, drums=False):
+    """An instrument: its bank (MSB << 8 | LSB), program, drum flag and
+    regions (key range and wave index, and a wsmp chunk or None)."""
+    rgns = []
+    for (lo, hi), index, wsmp in regions:
+        chunks = [dls_ck(b'rgnh', struct.pack('<HHHHHH', lo, hi, 0, 127, 0, 0))]
+        if wsmp:
+            chunks.append(wsmp)
+        chunks.append(dls_ck(b'wlnk', struct.pack('<HHII', 0, 0, 1, index)))
+        rgns.append(dls_list(b'rgn ', chunks))
+    locale = struct.pack('<II', bank | (0x80000000 if drums else 0), prog)
+    insh = dls_ck(b'insh', struct.pack('<I', len(regions)) + locale)
+    return dls_list(b'ins ', [insh, dls_list(b'lrgn', rgns), dls_info(name)])
+
+
+# DLSIDs (dls2.h: Data1, Data2, Data3, Data4)
+def dlsid(d1, d2, d3, *d4):
+    return struct.pack('<IHH8B', d1, d2, d3, *d4)
+
+
+DLSID_GM = dlsid(0x178f2f24, 0xc364, 0x11d1, 0xa7, 0x60, 0x00, 0x00, 0xf8, 0x75, 0xac, 0x12)
+DLSID_GS = dlsid(0x178f2f25, 0xc364, 0x11d1, 0xa7, 0x60, 0x00, 0x00, 0xf8, 0x75, 0xac, 0x12)
+DLSID_XG = dlsid(0x178f2f26, 0xc364, 0x11d1, 0xa7, 0x60, 0x00, 0x00, 0xf8, 0x75, 0xac, 0x12)
+DLSID_DLS1 = dlsid(0x178f2f27, 0xc364, 0x11d1, 0xa7, 0x60, 0x00, 0x00, 0xf8, 0x75, 0xac, 0x12)
+DLSID_DLS2 = dlsid(0xf14599e5, 0x4689, 0x11d2, 0xaf, 0xa6, 0x00, 0xaa, 0x00, 0x24, 0xd8, 0xb6)
+DLSID_MEMORY = dlsid(0x178f2f28, 0xc364, 0x11d1, 0xa7, 0x60, 0x00, 0x00, 0xf8, 0x75, 0xac, 0x12)
+DLSID_MANUFACTURER = dlsid(0xb03e1181, 0x8095, 0x11d2, 0xa1, 0xef, 0x00, 0x60, 0x08, 0x33, 0xdb, 0xd8)
+DLSID_PRODUCT = dlsid(0xb03e1182, 0x8095, 0x11d2, 0xa1, 0xef, 0x00, 0x60, 0x08, 0x33, 0xdb, 0xd8)
+DLSID_RATE = dlsid(0x2a91f713, 0xa4bf, 0x11d2, 0xbb, 0xdf, 0x00, 0x60, 0x08, 0x33, 0xdb, 0xd8)
+DLSID_UNKNOWN = dlsid(0x12345678, 0x9abc, 0xdef0, 1, 2, 3, 4, 5, 6, 7, 8)
+
+# conditional chunk opcodes
+CDL_AND, CDL_OR, CDL_XOR, CDL_ADD, CDL_SUBTRACT, CDL_MULTIPLY, CDL_DIVIDE = 1, 2, 3, 4, 5, 6, 7
+CDL_LOGICAL_AND, CDL_LOGICAL_OR, CDL_LT, CDL_LE, CDL_GT, CDL_GE, CDL_EQ, CDL_NOT = 8, 9, 10, 11, 12, 13, 14, 15
+
+
+def cdl_op(op):
+    return struct.pack('<H', op)
+
+
+def cdl_const(v):
+    return struct.pack('<HI', 0x10, v & 0xFFFFFFFF)
+
+
+def cdl_query(guid):
+    return struct.pack('<H', 0x11) + guid
+
+
+def cdl_supported(guid):
+    return struct.pack('<H', 0x12) + guid
+
+
+class Dls:
+    """Builds a DLS file: its waves and instruments, with the top-level
+    chunks tests corrupt given to build()."""
+
+    def __init__(self):
+        self.waves = []         # LIST wave chunks
+        self.instruments = []   # LIST ins chunks
+
+    def wave(self, chunks):
+        self.waves.append(dls_list(b'wave', chunks))
+        return len(self.waves) - 1
+
+    def instrument(self, *args, **kwargs):
+        self.instruments.append(dls_ins(*args, **kwargs))
+
+    def cues(self):
+        """The waves' offsets in the pool."""
+        offsets, pos = [], 0
+        for w in self.waves:
+            offsets.append(pos)
+            pos += len(w)
+        return offsets
+
+    def build(self, before=(), after=(), drop=(), replace=None, cues=None, ptbl_cbsize=8, form=b'DLS ',
+              riff_size=None, tail=b''):
+        """The file: before, the standard chunks (but those dropped or
+        replaced), after, in a RIFF form whose size is riff_size if given,
+        and tail after it."""
+        cues = self.cues() if cues is None else cues
+        chunks = {
+            'vers': dls_ck(b'vers', struct.pack('<II', 0x00020002, 0)),
+            'dlid': dls_ck(b'dlid', dlsid(0x0a9e7f3c, 0x5d21, 0x4b6e, 0x9f, 0x40, 0x12, 0x8c, 0x77, 0x1d, 0x05, 0xe3)),
+            'colh': dls_ck(b'colh', struct.pack('<I', len(self.instruments))),
+            'INFO': dls_info(b'Synthetic DLS', [dls_ck(b'ICMT', b'made by gen_fluidsynth_testdata.py')]),
+            'lins': dls_list(b'lins', self.instruments),
+            'ptbl': dls_ck(b'ptbl', struct.pack('<II', ptbl_cbsize, len(cues)) + b'\0' * (ptbl_cbsize - 8) +
+                           b''.join(struct.pack('<I', c) for c in cues)),
+            'wvpl': dls_list(b'wvpl', self.waves),
+        }
+        chunks.update(replace or {})
+        body = list(before) + [c for k, c in chunks.items() if k not in drop] + list(after)
+        data = form + b''.join(body)
+        size = len(data) if riff_size is None else riff_size
+        return b'RIFF' + struct.pack('<I', size) + data + tail
+
+
+def make_dls():
+    d = Dls()
+    sine = d.wave([dls_fmt(16, 22050), dls_wsmp(60, 0, 0, (0, 8, 40)), dls_data(dls_values('sine', 48, 24, 70)),
+                   dls_info(b'Sine 16')])
+    square = d.wave([dls_info(b'Square 8 bit'), dls_ck(b'dlid', DLSID_UNKNOWN), dls_fmt(8, 11025),
+                     dls_ck(b'guid', DLSID_UNKNOWN), dls_ck(b'fact', struct.pack('<I', 48)),
+                     dls_ck(b'cue ', struct.pack('<I', 0)), dls_data(dls_values('square', 48, 16, 40), 8)])
+    # (cbSize fields below the structures' sizes, as some files have them)
+    saw = d.wave([dls_fmt(16, 32000), dls_wsmp(67, -10, -65536 * 6, (1, 4, 30), cbsize=12, loop_cbsize=8),
+                  dls_data(dls_values('saw', 40, 20, 50)), dls_info(b'Saw', [dls_ck(b'ICMT', b'odd')])])
+    noise = d.wave([dls_fmt(16, 22050), dls_ck(b'smpl', b'\0' * 36), dls_list(b'wavu', [dls_ck(b'abcd', b'')]),
+                    dls_wsmp(60, 5, 0, (2, 0, 16)), dls_data(dls_values('noise', 32, 1, 60, seed=7))])
+    d.instrument(b'Piano', 0, 0, [((0, 63), sine, None), ((64, 127), saw, None)])
+    d.instrument(b'Square lead', 0, 80, [((0, 127), square, dls_wsmp(72))])
+    d.instrument(b'Kit', 0, 8, [((35, 81), noise, None)], drums=True)
+    return d
+
+
+def dls_files():
+    d = make_dls()
+    good = d.build()
+    nolins = dict(drop=('lins',))
+
+    # the header
+    write('dls_short.dls', good[:11])
+    write('dls_notriff.dls', b'RIFX' + good[4:])
+    write('dls_notdls.dls', d.build(form=b'sfbk'))
+    write('dls_badform.dls', d.build(form=b'\xe9L\0S'))
+    write('dls_toolong.dls', d.build(riff_size=len(good) - 8 + 100))
+    write('dls_hint.dls', d.build(riff_size=len(good)))
+    write('dls_extra.dls', d.build(tail=b'more', **nolins))
+
+    # the top level: every chunk read, unknown ones, a ptbl with a larger
+    # cbSize, then no instruments
+    write('dls_nolins.dls', d.build(ptbl_cbsize=12, after=[
+        dls_ck(b'zzzz', b'abc'), dls_list(b'junk', [dls_ck(b'abcd', b'1234')]), dls_ck(b'x\xe9\0y', b'')], **nolins))
+    write('dls_nowvpl.dls', d.build(drop=('wvpl',)))
+    write('dls_badlist.dls', d.build(before=[b'LIST' + struct.pack('<I', 2) + b'ab']))
+    write('dls_truncchunk.dls', d.build(after=[b'abcd']))
+    write('dls_colh.dls', d.build(replace={'colh': dls_ck(b'colh', struct.pack('<II', 3, 0))}))
+    write('dls_info.dls', d.build(replace={'INFO': dls_list(b'INFO', [b'LIST' + struct.pack('<I', 2) + b'ab'])}))
+    write('dls_ptbl_cbsize.dls', d.build(replace={'ptbl': dls_ck(b'ptbl', struct.pack('<II', 4, 0))}))
+    write('dls_ptbl_cues.dls', d.build(replace={'ptbl': dls_ck(b'ptbl', struct.pack('<II', 8, 0x40000000))}))
+    write('dls_ptbl_size.dls', d.build(replace={'ptbl': dls_ck(b'ptbl', struct.pack('<III', 8, 2, 0))}))
+    write('dls_wvpl_chunk.dls', d.build(replace={'wvpl': dls_ck(b'wvpl', b''.join(d.waves))}, **nolins))
+    write('dls_wvpl_size.dls', d.build(replace={'wvpl': dls_list(b'wvpl', d.waves, 4 + len(b''.join(d.waves)) + 64)}))
+
+    # conditional chunks
+    def cdl(*ops, **kwargs):
+        return d.build(before=[dls_ck(b'cdl ', b''.join(ops))], **kwargs)
+
+    def check(ops, expected):
+        return list(ops) + [cdl_const(expected), cdl_op(CDL_EQ), cdl_op(CDL_LOGICAL_AND)]
+
+    ops = [cdl_const(1)]
+    ops += check([cdl_const(0xF0F0), cdl_const(0x0FF0), cdl_op(CDL_AND)], 0x00F0)
+    ops += check([cdl_const(0xF000), cdl_const(0x000F), cdl_op(CDL_OR)], 0xF00F)
+    ops += check([cdl_const(0xFF00), cdl_const(0x0FF0), cdl_op(CDL_XOR)], 0xF0F0)
+    ops += check([cdl_const(0xFFFFFFFF), cdl_const(2), cdl_op(CDL_ADD)], 1)
+    ops += check([cdl_const(7), cdl_const(5), cdl_op(CDL_SUBTRACT)], 5 - 7)
+    ops += check([cdl_const(0x10000), cdl_const(0x10001), cdl_op(CDL_MULTIPLY)], 0x10000)
+    ops += check([cdl_const(3), cdl_const(100), cdl_op(CDL_DIVIDE)], 33)
+    ops += check([cdl_const(0), cdl_const(9), cdl_op(CDL_LOGICAL_AND)], 0)
+    ops += check([cdl_const(0), cdl_const(9), cdl_op(CDL_LOGICAL_OR)], 1)
+    for op, expected in ((CDL_LT, 1), (CDL_LE, 1), (CDL_GT, 0), (CDL_GE, 0)):
+        ops += check([cdl_const(2), cdl_const(1), cdl_op(op)], expected)
+    for op, expected in ((CDL_LT, 0), (CDL_LE, 1), (CDL_GT, 0), (CDL_GE, 1), (CDL_EQ, 1)):
+        ops += check([cdl_const(4), cdl_const(4), cdl_op(op)], expected)
+    ops += check([cdl_const(0), cdl_op(CDL_NOT)], 1)
+    ops += check([cdl_const(5), cdl_op(CDL_NOT)], 0)
+    for guid in (DLSID_GM, DLSID_GS, DLSID_XG, DLSID_DLS1, DLSID_DLS2, DLSID_MEMORY, DLSID_MANUFACTURER,
+                 DLSID_PRODUCT, DLSID_RATE):
+        ops += check([cdl_supported(guid)], 1)
+    # (FluidSynth's QUERY pushes the "supported" flag over the value)
+    ops += check([cdl_query(DLSID_GM), cdl_op(CDL_EQ)], 1)
+    ops += check([cdl_query(DLSID_MANUFACTURER), cdl_op(CDL_SUBTRACT)], 1 - 0x4000)
+    ops += check([cdl_query(DLSID_MEMORY), cdl_op(CDL_SUBTRACT)], 1 - 0xFFFFFFFF // 4 * 3)
+    write('dls_cdl_ops.dls', cdl(*ops, **nolins))
+    write('dls_cdl_false.dls', cdl(cdl_const(0)))
+    # 44100 - the rate: false at 44.1 kHz (see dls_cdl_ops.dls for the QUERY)
+    write('dls_cdl_rate.dls', cdl(cdl_query(DLSID_RATE), cdl_op(CDL_SUBTRACT), cdl_const(44099), cdl_op(CDL_ADD),
+                                  **nolins))
+    write('dls_cdl_overflow.dls', cdl(*[cdl_const(1)] * 65))
+    write('dls_cdl_empty.dls', cdl())
+    write('dls_cdl_div0.dls', cdl(cdl_const(0), cdl_const(5), cdl_op(CDL_DIVIDE)))
+    write('dls_cdl_opcode.dls', cdl(cdl_const(1), cdl_op(0x13)))
+    write('dls_cdl_query.dls', cdl(cdl_const(1), cdl_query(DLSID_UNKNOWN)))
+    write('dls_cdl_supported.dls', cdl(cdl_supported(DLSID_UNKNOWN)))
+    write('dls_cdl_end.dls', cdl(cdl_op(0x10) + b'\0\0'))
+
+    # waves
+    def broken(index, chunks):
+        b = make_dls()
+        b.waves[index] = dls_list(b'wave', chunks)
+        return b.build()
+
+    values = dls_values('sine', 16, 8, 50)
+    write('dls_wave_format.dls', broken(1, [dls_fmt(16, 22050, 1, 2), dls_data(values)]))
+    write('dls_wave_channels.dls', broken(1, [dls_fmt(16, 22050, 2), dls_data(values)]))
+    write('dls_wave_bits.dls', broken(1, [dls_fmt(24, 22050), dls_data(values)]))
+    write('dls_wave_order.dls', broken(1, [dls_data(values), dls_fmt(16, 22050)]))
+    write('dls_wave_nodata.dls', broken(1, [dls_fmt(16, 22050), dls_info(b'No data')]))
+    write('dls_wave_align.dls', broken(1, [dls_fmt(16, 22050), dls_ck(b'data', b'\1' * 33)]))
+    write('dls_wave_short.dls', broken(3, [dls_fmt(16, 22050), dls_data(values, size=5000)]))
+    write('dls_wave_loops.dls', broken(1, [dls_fmt(16, 22050), dls_wsmp(60, loop=(0, 0, 8), loops=2),
+                                           dls_data(values)]))
+    write('dls_wave_wsmp.dls', broken(1, [dls_fmt(16, 22050), dls_wsmp(60, loop=(0, 0, 8), size=40),
+                                          dls_data(values)]))
+    cues = d.cues()
+    # (a cue at the first wave's wsmp chunk, after its fmt chunk; one at
+    # the second wave's INFO list; one past the end)
+    write('dls_wave_notlist.dls', d.build(cues=[cues[0], cues[0] + 12 + 24] + cues[2:]))
+    write('dls_wave_list.dls', d.build(cues=[cues[0], cues[1] + 12] + cues[2:]))
+    write('dls_wave_cue.dls', d.build(cues=[cues[0], 0x10000] + cues[2:]))
+
+
 CASES = [
     # name, soundfont, MIDI file, rate, frame limit, settings
     ('basic', 'test.sf2', 'basic.mid', 44100, 400000, ''),
@@ -697,6 +981,7 @@ def cases():
 
 def main():
     soundfonts()
+    dls_files()
     midi_files()
     cases()
 

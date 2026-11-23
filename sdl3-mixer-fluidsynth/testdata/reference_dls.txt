@@ -1,0 +1,272 @@
+  log1 Exception thrown in fluid_dls_font constructor
+  log1 exc: Not a DLS file. Expected header identifier 'DLS ' but found '?L
+dls_badform.dls 44100 sfont=null
+  log1 Exception thrown in fluid_dls_font constructor
+  log1 exc: Exception thrown while reading RIFF form
+  log1  exc: Bad LIST header: size < 4
+dls_badlist.dls 44100 sfont=null
+  log1 Exception thrown in fluid_dls_font constructor
+  log1 exc: Exception thrown while reading RIFF form
+  log1  exc: visit in LIST 'DLS ' ofs=0x0 -> 'cdl ' ofs=0xc
+  log1   exc: CDL division by zero
+dls_cdl_div0.dls 44100 sfont=null
+  log1 Exception thrown in fluid_dls_font constructor
+  log1 exc: Exception thrown while reading RIFF form
+  log1  exc: visit in LIST 'DLS ' ofs=0x0 -> 'cdl ' ofs=0xc
+  log1   exc: CDL division by zero
+dls_cdl_div0.dls 48000 sfont=null
+  log1 Exception thrown in fluid_dls_font constructor
+  log1 exc: Exception thrown while reading RIFF form
+  log1  exc: visit in LIST 'DLS ' ofs=0x0 -> 'cdl ' ofs=0xc
+  log1   exc: CDL stack underflow
+dls_cdl_empty.dls 44100 sfont=null
+  log1 Exception thrown in fluid_dls_font constructor
+  log1 exc: Exception thrown while reading RIFF form
+  log1  exc: visit in LIST 'DLS ' ofs=0x0 -> 'cdl ' ofs=0xc
+  log1   exc: CDL stack underflow
+dls_cdl_empty.dls 48000 sfont=null
+  log1 Exception thrown in fluid_dls_font constructor
+  log1 exc: Exception thrown while reading RIFF form
+  log1  exc: visit in LIST 'DLS ' ofs=0x0 -> 'cdl ' ofs=0xc
+  log1   exc: CDL chunk too early end of chunk
+dls_cdl_end.dls 44100 sfont=null
+  log1 Exception thrown in fluid_dls_font constructor
+  log1 exc: Exception thrown while reading RIFF form
+  log1  exc: visit in LIST 'DLS ' ofs=0x0 -> 'cdl ' ofs=0xc
+  log1   exc: CDL chunk too early end of chunk
+dls_cdl_end.dls 48000 sfont=null
+  log1 Exception thrown in fluid_dls_font constructor
+  log1 exc: Exception thrown while reading RIFF form
+  log1  exc: visit in LIST 'DLS ' ofs=0x0 -> 'cdl ' ofs=0xc
+  log1   exc: DLS toplevel CDL bypasses the sound library
+dls_cdl_false.dls 44100 sfont=null
+  log1 Exception thrown in fluid_dls_font constructor
+  log1 exc: Exception thrown while reading RIFF form
+  log1  exc: visit in LIST 'DLS ' ofs=0x0 -> 'cdl ' ofs=0xc
+  log1   exc: DLS toplevel CDL bypasses the sound library
+dls_cdl_false.dls 48000 sfont=null
+  log1 Exception thrown in fluid_dls_font constructor
+  log1 exc: Exception thrown while reading RIFF form
+  log1  exc: visit in LIST 'DLS ' ofs=0x0 -> 'cdl ' ofs=0xc
+  log1   exc: Unknown CDL opcode 0x0013
+dls_cdl_opcode.dls 44100 sfont=null
+  log1 Exception thrown in fluid_dls_font constructor
+  log1 exc: Exception thrown while reading RIFF form
+  log1  exc: visit in LIST 'DLS ' ofs=0x0 -> 'cdl ' ofs=0xc
+  log1   exc: Unknown CDL opcode 0x0013
+dls_cdl_opcode.dls 48000 sfont=null
+  log2 DLS wsmp chunk cbSize < 20. The file is probably corrupted.
+  log2 DLS wsmp chunk loop cbSize < 16. The file is probably corrupted.
+  log2 Unknown DLS chunk in LIST[wave] 'smpl'
+  log2 Unknown DLS chunk in LIST[wave] 'wavu'
+  log1 Exception thrown in fluid_dls_font constructor
+  log1 exc: Exception thrown while parsing instruments
+  log1  exc: DLS does not contain a LIST[lins] chunk
+dls_cdl_ops.dls 44100 sfont=null
+  log2 DLS wsmp chunk cbSize < 20. The file is probably corrupted.
+  log2 DLS wsmp chunk loop cbSize < 16. The file is probably corrupted.
+  log2 Unknown DLS chunk in LIST[wave] 'smpl'
+  log2 Unknown DLS chunk in LIST[wave] 'wavu'
+  log1 Exception thrown in fluid_dls_font constructor
+  log1 exc: Exception thrown while parsing instruments
+  log1  exc: DLS does not contain a LIST[lins] chunk
+dls_cdl_ops.dls 48000 sfont=null
+  log1 Exception thrown in fluid_dls_font constructor
+  log1 exc: Exception thrown while reading RIFF form
+  log1  exc: visit in LIST 'DLS ' ofs=0x0 -> 'cdl ' ofs=0xc
+  log1   exc: CDL stack overflow
+dls_cdl_overflow.dls 44100 sfont=null
+  log1 Exception thrown in fluid_dls_font constructor
+  log1 exc: Exception thrown while reading RIFF form
+  log1  exc: visit in LIST 'DLS ' ofs=0x0 -> 'cdl ' ofs=0xc
+  log1   exc: CDL stack overflow
+dls_cdl_overflow.dls 48000 sfont=null
+  log2 Unknown CDL query {12345678-9abc-def0-0102-030405060708}
+  log1 Exception thrown in fluid_dls_font constructor
+  log1 exc: Exception thrown while reading RIFF form
+  log1  exc: visit in LIST 'DLS ' ofs=0x0 -> 'cdl ' ofs=0xc
+  log1   exc: CDL query for unsupported DLSID, pc=0x6
+dls_cdl_query.dls 44100 sfont=null
+  log2 Unknown CDL query {12345678-9abc-def0-0102-030405060708}
+  log1 Exception thrown in fluid_dls_font constructor
+  log1 exc: Exception thrown while reading RIFF form
+  log1  exc: visit in LIST 'DLS ' ofs=0x0 -> 'cdl ' ofs=0xc
+  log1   exc: CDL query for unsupported DLSID, pc=0x6
+dls_cdl_query.dls 48000 sfont=null
+  log1 Exception thrown in fluid_dls_font constructor
+  log1 exc: Exception thrown while reading RIFF form
+  log1  exc: visit in LIST 'DLS ' ofs=0x0 -> 'cdl ' ofs=0xc
+  log1   exc: DLS toplevel CDL bypasses the sound library
+dls_cdl_rate.dls 44100 sfont=null
+  log2 DLS wsmp chunk cbSize < 20. The file is probably corrupted.
+  log2 DLS wsmp chunk loop cbSize < 16. The file is probably corrupted.
+  log2 Unknown DLS chunk in LIST[wave] 'smpl'
+  log2 Unknown DLS chunk in LIST[wave] 'wavu'
+  log1 Exception thrown in fluid_dls_font constructor
+  log1 exc: Exception thrown while parsing instruments
+  log1  exc: DLS does not contain a LIST[lins] chunk
+dls_cdl_rate.dls 48000 sfont=null
+  log2 Unknown CDL query {12345678-9abc-def0-0102-030405060708}
+  log1 Exception thrown in fluid_dls_font constructor
+  log1 exc: Exception thrown while reading RIFF form
+  log1  exc: visit in LIST 'DLS ' ofs=0x0 -> 'cdl ' ofs=0xc
+  log1   exc: DLS toplevel CDL bypasses the sound library
+dls_cdl_supported.dls 44100 sfont=null
+  log2 Unknown CDL query {12345678-9abc-def0-0102-030405060708}
+  log1 Exception thrown in fluid_dls_font constructor
+  log1 exc: Exception thrown while reading RIFF form
+  log1  exc: visit in LIST 'DLS ' ofs=0x0 -> 'cdl ' ofs=0xc
+  log1   exc: DLS toplevel CDL bypasses the sound library
+dls_cdl_supported.dls 48000 sfont=null
+  log1 Exception thrown in fluid_dls_font constructor
+  log1 exc: Exception thrown while reading RIFF form
+  log1  exc: visit in LIST 'DLS ' ofs=0x0 -> 'colh' ofs=0x34
+  log1   exc: DLS colh chunk size is not 4 bytes
+dls_colh.dls 44100 sfont=null
+  log2 DLS file has extra data after RIFF chunk, ignoring.
+  log2 DLS wsmp chunk cbSize < 20. The file is probably corrupted.
+  log2 DLS wsmp chunk loop cbSize < 16. The file is probably corrupted.
+  log2 Unknown DLS chunk in LIST[wave] 'smpl'
+  log2 Unknown DLS chunk in LIST[wave] 'wavu'
+  log1 Exception thrown in fluid_dls_font constructor
+  log1 exc: Exception thrown while parsing instruments
+  log1  exc: DLS does not contain a LIST[lins] chunk
+dls_extra.dls 44100 sfont=null
+  log1 Exception thrown in fluid_dls_font constructor
+  log1 exc: DLS file is too short! Outermost RIFF chunk reports a payload size of 1476 bytes, but there are only 1468 bytes left in the file. (Hint: Try changing the hexadecimal little-endian size of the RIFF chunk from C4050000 to BC050000 using a hex editor.)
+dls_hint.dls 44100 sfont=null
+  log1 Exception thrown in fluid_dls_font constructor
+  log1 exc: Exception thrown while reading RIFF form
+  log1  exc: visit in LIST 'DLS ' ofs=0x0 -> LIST 'INFO' ofs=0x40
+  log1   exc: Bad LIST header: size < 4
+dls_info.dls 44100 sfont=null
+  log2 Ignoring unknown top-level DLS chunk 'zzzz' ofs=0x3fa
+  log2 Ignoring unknown top-level DLS chunk LIST 'junk' ofs=0x406
+  log2 Ignoring unknown top-level DLS chunk 'x?
+  log2 DLS wsmp chunk cbSize < 20. The file is probably corrupted.
+  log2 DLS wsmp chunk loop cbSize < 16. The file is probably corrupted.
+  log2 Unknown DLS chunk in LIST[wave] 'smpl'
+  log2 Unknown DLS chunk in LIST[wave] 'wavu'
+  log1 Exception thrown in fluid_dls_font constructor
+  log1 exc: Exception thrown while parsing instruments
+  log1  exc: DLS does not contain a LIST[lins] chunk
+dls_nolins.dls 44100 sfont=null
+  log1 Exception thrown in fluid_dls_font constructor
+  log1 exc: Not a DLS file. Expected header identifier 'DLS ' but found 'sfbk'
+dls_notdls.dls 44100 sfont=null
+  log1 Exception thrown in fluid_dls_font constructor
+  log1 exc: Not a RIFF file
+dls_notriff.dls 44100 sfont=null
+  log1 Exception thrown in fluid_dls_font constructor
+  log1 exc: Exception thrown while parsing samples
+  log1  exc: DLS does not contain a LIST[wvpl] chunk
+dls_nowvpl.dls 44100 sfont=null
+  log1 Exception thrown in fluid_dls_font constructor
+  log1 exc: Exception thrown while reading RIFF form
+  log1  exc: visit in LIST 'DLS ' ofs=0x0 -> 'ptbl' ofs=0x25a
+  log1   exc: DLS ptbl chunk has invalid cbSize
+dls_ptbl_cbsize.dls 44100 sfont=null
+  log1 Exception thrown in fluid_dls_font constructor
+  log1 exc: Exception thrown while reading RIFF form
+  log1  exc: visit in LIST 'DLS ' ofs=0x0 -> 'ptbl' ofs=0x25a
+  log1   exc: Too many poolcue records are contained in the ptbl chunk.
+dls_ptbl_cues.dls 44100 sfont=null
+  log1 Exception thrown in fluid_dls_font constructor
+  log1 exc: Exception thrown while reading RIFF form
+  log1  exc: visit in LIST 'DLS ' ofs=0x0 -> 'ptbl' ofs=0x25a
+  log1   exc: DLS ptbl chunk has corrupted size
+dls_ptbl_size.dls 44100 sfont=null
+  log1 Exception thrown in fluid_dls_font constructor
+  log1 exc: File too short! (< 12 bytes)
+dls_short.dls 44100 sfont=null
+  log1 Exception thrown in fluid_dls_font constructor
+  log1 exc: DLS file is too short! Outermost RIFF chunk reports a payload size of 1568 bytes, but there are only 1468 bytes left in the file.
+dls_toolong.dls 44100 sfont=null
+  log1 Exception thrown in fluid_dls_font constructor
+  log1 exc: Exception thrown while reading RIFF form
+  log1  exc: Failed when reading chunk
+dls_truncchunk.dls 44100 sfont=null
+  log1 Exception thrown in fluid_dls_font constructor
+  log1 exc: Exception thrown while parsing samples
+  log1  exc: Exception thrown while parsing LIST[wave] at offset 0x35a, ptbl index 1
+  log1   exc: visit in LIST 'wave' ofs=0x35a -> 'data' ofs=0x37e
+  log1    exc: DLS data chunk not align to bitsPerSample
+dls_wave_align.dls 44100 sfont=null
+  log1 Exception thrown in fluid_dls_font constructor
+  log1 exc: Exception thrown while parsing samples
+  log1  exc: Exception thrown while parsing LIST[wave] at offset 0x35a, ptbl index 1
+  log1   exc: visit in LIST 'wave' ofs=0x35a -> 'fmt ' ofs=0x366
+  log1    exc: Unsupported wave bits per sample 24
+dls_wave_bits.dls 44100 sfont=null
+  log1 Exception thrown in fluid_dls_font constructor
+  log1 exc: Exception thrown while parsing samples
+  log1  exc: Exception thrown while parsing LIST[wave] at offset 0x35a, ptbl index 1
+  log1   exc: visit in LIST 'wave' ofs=0x35a -> 'fmt ' ofs=0x366
+  log1    exc: Unsupported wave channel count 2
+dls_wave_channels.dls 44100 sfont=null
+  log1 Exception thrown in fluid_dls_font constructor
+  log1 exc: Exception thrown while parsing samples
+  log1  exc: Exception thrown while parsing LIST[wave] at offset 0x10286, ptbl index 1
+  log1   exc: Failed when reading chunk
+dls_wave_cue.dls 44100 sfont=null
+  log1 Exception thrown in fluid_dls_font constructor
+  log1 exc: Exception thrown while parsing samples
+  log1  exc: Exception thrown while parsing LIST[wave] at offset 0x35a, ptbl index 1
+  log1   exc: visit in LIST 'wave' ofs=0x35a -> 'fmt ' ofs=0x366
+  log1    exc: Unsupported wave format 2 (without libsndfile)
+dls_wave_format.dls 44100 sfont=null
+  log1 Exception thrown in fluid_dls_font constructor
+  log1 exc: Exception thrown while parsing samples
+  log1  exc: Exception thrown while parsing LIST[wave] at offset 0x366, ptbl index 1
+  log1   exc: Expected chunk LIST[wave], got LIST[INFO]
+dls_wave_list.dls 44100 sfont=null
+  log1 Exception thrown in fluid_dls_font constructor
+  log1 exc: Exception thrown while parsing samples
+  log1  exc: Exception thrown while parsing LIST[wave] at offset 0x35a, ptbl index 1
+  log1   exc: visit in LIST 'wave' ofs=0x35a -> 'wsmp' ofs=0x37e
+  log1    exc: DLS wsmp chunk has more than one loop
+dls_wave_loops.dls 44100 sfont=null
+  log1 Exception thrown in fluid_dls_font constructor
+  log1 exc: Exception thrown while parsing samples
+  log1  exc: Exception thrown while parsing LIST[wave] at offset 0x35a, ptbl index 1
+  log1   exc: DLS data chunk must exist in wave chunk
+dls_wave_nodata.dls 44100 sfont=null
+  log1 Exception thrown in fluid_dls_font constructor
+  log1 exc: Exception thrown while parsing samples
+  log1  exc: Exception thrown while parsing LIST[wave] at offset 0x2aa, ptbl index 1
+  log1   exc: Expected chunk LIST[wave], got wsmp
+dls_wave_notlist.dls 44100 sfont=null
+  log1 Exception thrown in fluid_dls_font constructor
+  log1 exc: Exception thrown while parsing samples
+  log1  exc: Exception thrown while parsing LIST[wave] at offset 0x35a, ptbl index 1
+  log1   exc: visit in LIST 'wave' ofs=0x35a -> 'data' ofs=0x366
+  log1    exc: DLS fmt chunk must exist in wave chunk and be prior to data chunk
+dls_wave_order.dls 44100 sfont=null
+  log2 DLS wsmp chunk cbSize < 20. The file is probably corrupted.
+  log2 DLS wsmp chunk loop cbSize < 16. The file is probably corrupted.
+  log1 fcbs::fread failed when reading DLS data chunk
+  log1 Exception thrown in fluid_dls_font constructor
+  log1 exc: Exception thrown while parsing samples
+  log1  exc: Exception thrown while parsing LIST[wave] at offset 0x4ec, ptbl index 3
+  log1   exc: visit in LIST 'wave' ofs=0x4ec -> 'data' ofs=0x510
+  log1    exc: std::exception
+dls_wave_short.dls 44100 sfont=null
+  log1 Exception thrown in fluid_dls_font constructor
+  log1 exc: Exception thrown while parsing samples
+  log1  exc: Exception thrown while parsing LIST[wave] at offset 0x35a, ptbl index 1
+  log1   exc: visit in LIST 'wave' ofs=0x35a -> 'wsmp' ofs=0x37e
+  log1    exc: DLS wsmp chunk in wave chunk has corrupted size
+dls_wave_wsmp.dls 44100 sfont=null
+  log2 Nonstandard 'wvpl' chunk; 'LIST[wvpl]' is legal
+  log2 DLS wsmp chunk cbSize < 20. The file is probably corrupted.
+  log2 DLS wsmp chunk loop cbSize < 16. The file is probably corrupted.
+  log2 Unknown DLS chunk in LIST[wave] 'smpl'
+  log2 Unknown DLS chunk in LIST[wave] 'wavu'
+  log1 Exception thrown in fluid_dls_font constructor
+  log1 exc: Exception thrown while parsing instruments
+  log1  exc: DLS does not contain a LIST[lins] chunk
+dls_wvpl_chunk.dls 44100 sfont=null
+  log1 Exception thrown in fluid_dls_font constructor
+  log1 exc: Exception thrown while parsing samples
+  log1  exc: DLS wvpl chunk exceeds file size
+dls_wvpl_size.dls 44100 sfont=null
