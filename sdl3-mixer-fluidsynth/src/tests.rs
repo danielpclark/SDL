@@ -479,6 +479,26 @@ fn gentables() {
     );
 }
 
+/// The DLS default modulators are SoundFont 2 default modulators with
+/// other amounts, as `fluid_synth_init()` makes them.
+#[test]
+fn dls_default_mods() {
+    use crate::synth::modulator::FluidMod;
+    use crate::synth::synth::*;
+    for (dls, sf2, amount) in [
+        (&DLS_DEFAULT_REVERB_MOD, &DEFAULT_REVERB_MOD, 1000.0),
+        (&DLS_DEFAULT_CHORUS_MOD, &DEFAULT_CHORUS_MOD, 1000.0),
+        (
+            &DLS_DEFAULT_PITCH_BEND_MOD,
+            &DEFAULT_PITCH_BEND_MOD,
+            12800.0,
+        ),
+    ] {
+        assert_eq!(*dls, FluidMod { amount, ..*sf2 });
+        assert_ne!(dls.amount, sf2.amount);
+    }
+}
+
 fn synth_with(sf: &Arc<[u8]>) -> Synth {
     let settings = Settings::new();
     let synth = Synth::new(&settings).unwrap();

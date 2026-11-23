@@ -421,6 +421,27 @@ pub(crate) static CUSTOM_BALANCE_MOD: FluidMod = def_mod(
     FLUID_PEAK_ATTENUATION as f64, /* Amount: 960 */
 );
 
+/// `fluid_mod_clone()` then `fluid_mod_set_amount()`, as `fluid_synth_init()`
+/// makes the DLS-specific default modulators.
+const fn dls_default_mod(m: FluidMod, amount: f64) -> FluidMod {
+    FluidMod { amount, ..m }
+}
+
+/* DLS specific modulators (used by the DLS loader's default modulator list) */
+
+// CC 91 -> reverb send 100%
+#[allow(dead_code)]
+pub(crate) static DLS_DEFAULT_REVERB_MOD: FluidMod = dls_default_mod(DEFAULT_REVERB_MOD, 1000.0);
+
+// CC 93 -> chorus send 100%
+#[allow(dead_code)]
+pub(crate) static DLS_DEFAULT_CHORUS_MOD: FluidMod = dls_default_mod(DEFAULT_CHORUS_MOD, 1000.0);
+
+// pitch wheel --(rpn 0)-> pitch 12800 cents
+#[allow(dead_code)]
+pub(crate) static DLS_DEFAULT_PITCH_BEND_MOD: FluidMod =
+    dls_default_mod(DEFAULT_PITCH_BEND_MOD, 12800.0);
+
 /* custom_breath2att_modulator is not a default modulator specified in SF2
  * it is intended to replace default_vel2att_mod on demand using
  * API fluid_set_breath_mode() or command shell setbreathmode.
