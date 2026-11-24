@@ -1,0 +1,81 @@
+name: diag-pipewire
+on:
+  push:
+    branches: [claude/diag-pipewire-rec]
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
+  RUST_BACKTRACE: 1
+  RUST_TEST_NOCAPTURE: 1
+  SDL_ASSERT: abort
+jobs:
+  pw:
+    strategy:
+      fail-fast: false
+      matrix:
+        ref: [main, claude/gdk-core]
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ matrix.ref }}
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.99"
+      - name: Install the test environment
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb libgl1 libgl1-mesa-dri libegl1 libgles2 \
+            mesa-vulkan-drivers libvulkan1 libxtst6 libwayland-client0 \
+            libwayland-egl1 libwayland-cursor0 libxkbcommon0 sway \
+            pulseaudio pulseaudio-utils pipewire pipewire-bin wireplumber \
+            libudev1 libasound2t64 libdbus-1-3 dbus-daemon tzdata locales
+          XDG_RUNTIME_DIR="$RUNNER_TEMP/xdg" tools/ci/start-pipewire.sh
+      - name: Versions
+        run: |
+          cat /etc/os-release | head -3
+          echo "ImageVersion=$ImageVersion"
+          dpkg -l | grep -E 'pipewire|wireplumber|libspa' | awk '{print $2, $3}'
+          wpctl status
+      - run: cargo test -p sdl3 --lib --no-run
+      - name: The test alone, 5 times
+        continue-on-error: true
+        run: |
+          fails=0
+          for i in 1 2 3 4 5; do
+            echo "::group::alone $i"
+            cargo test -q -p sdl3 --lib -- --exact audio::drivers::pipewire::tests::playback_recording_and_hotplug_through_a_server || fails=$((fails+1))
+            echo "::endgroup::"
+          done
+          echo "alone fails=$fails"
+          test $fails = 0
+      - name: The pipewire modules, 3 times
+        continue-on-error: true
+        run: |
+          fails=0
+          for i in 1 2 3; do
+            cargo test -q -p sdl3 --lib -- pipewire || fails=$((fails+1))
+          done
+          echo "module fails=$fails"
+          test $fails = 0
+      - name: The whole library, 2 times
+        continue-on-error: true
+        run: |
+          fails=0
+          for i in 1 2; do
+            cargo test -q -p sdl3 --lib > lib.log 2>&1 || fails=$((fails+1))
+            grep -E 'panicked|the source recorded|test result|FAILED|PipeWire' lib.log || true
+          done
+          echo "lib fails=$fails"
+          test $fails = 0
+      - name: The test alone with PipeWire debug output
+        continue-on-error: true
+        run: |
+          PIPEWIRE_DEBUG=3 cargo test -q -p sdl3 --lib -- --exact audio::drivers::pipewire::tests::playback_recording_and_hotplug_through_a_server 2>&1 | tail -300
+      - name: Server state and log
+        if: always()
+        run: |
+          wpctl status || true
+          pw-cli ls Node || true
+          tail -200 "$XDG_RUNTIME_DIR/pipewire.log" || true
