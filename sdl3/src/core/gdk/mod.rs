@@ -14,6 +14,7 @@
 //! Windows' (`appnotify.h`), not the runtime's.
 
 pub(crate) mod sys;
+pub(crate) mod xsapi;
 
 use std::ffi::c_void;
 use std::sync::{Mutex, MutexGuard};
