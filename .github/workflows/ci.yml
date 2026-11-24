@@ -330,10 +330,13 @@ jobs:
           SDL3_TEST_REQUIRE: ${{ runner.os == 'Linux' && env.LINUX_REQUIRE || runner.os == 'Windows' && env.WINDOWS_REQUIRE || '' }}
       # The library's tests with the `gdk` feature (upstream's WinGDK
       # build): the runner has no Gaming Runtime (no Gaming Services), so
-      # the GDK's core checks its paths without it (sdl3/src/core/gdk/).
-      - name: cargo test -p sdl3 --features gdk --lib
+      # the GDK's core checks its paths without it (sdl3/src/core/gdk/), and
+      # run_app() as a program's entry point (sdl3/tests/gdk_main.rs) must
+      # show upstream's message box (which the program reads and dismisses)
+      # and return -1 without calling the main function.
+      - name: cargo test -p sdl3 --features gdk --lib --test gdk_main
         if: matrix.toolchain == 'pinned' && runner.os == 'Windows'
-        run: cargo test -p sdl3 --features gdk --lib
+        run: cargo test -p sdl3 --features gdk --lib --test gdk_main
         env:
           SDL3_TEST_SKIP_LOG: ${{ runner.temp }}/skips.tsv
           SDL3_TEST_REQUIRE: ${{ env.WINDOWS_REQUIRE }}
