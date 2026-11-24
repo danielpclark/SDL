@@ -345,12 +345,12 @@ pub(crate) fn unregister_change_notifications() {
     // SAFETY: plm is the registration (or null, as upstream's).
     unsafe { UnregisterAppStateChangeNotification(plm) };
     {
-        let notifications = change_notifications();
+        // Note (upstream): upstream leaves plmSuspendComplete set, so a
+        // later SDL_GDKSuspendComplete() signals a closed handle (or
+        // another object that has its value by then). Here it's cleared.
+        let event = std::mem::take(&mut change_notifications().suspend_complete);
         // SAFETY: the event is ours (or null: then it fails).
-        unsafe { CloseHandle(notifications.suspend_complete as HANDLE) };
-        // FIXME (upstream): plmSuspendComplete stays set, so a later
-        // SDL_GDKSuspendComplete() signals a closed handle (or another
-        // object that has its value by then).
+        unsafe { CloseHandle(event as HANDLE) };
     }
 
     // Unregister constrain/unconstrain handling
