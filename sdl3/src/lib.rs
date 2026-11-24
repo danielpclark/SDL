@@ -290,6 +290,10 @@ pub(crate) mod test_support {
             "gameinput",
             "a GameInput DLL with the v3 API (the redistributable, or a recent inbox one)",
         ),
+        (
+            "gdk-runtime",
+            "the Gaming Runtime (xgameruntime.dll, which Gaming Services installs), for the gdk feature",
+        ),
         ("wgl", "opengl32.dll with a WGL pixel format and context"),
         ("d3d11", "d3d11.dll and dxgi.dll with a Direct3D 11 device"),
         ("d3d12", "d3d12.dll and dxgi.dll with a Direct3D 12 device"),

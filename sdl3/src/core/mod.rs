@@ -19,6 +19,10 @@ pub(crate) mod apple;
 /// functions, `SDL_ExitProcess()`).
 #[cfg(target_os = "emscripten")]
 pub(crate) mod emscripten;
+/// The Microsoft GDK for PC's parts (`src/core/gdk/`): upstream's WinGDK
+/// build, the `gdk` feature.
+#[cfg(all(windows, feature = "gdk"))]
+pub(crate) mod gdk;
 /// Where upstream builds with `SDL_USE_LIBDBUS` (and the other
 /// `core/linux/` pieces).
 #[cfg(all(
