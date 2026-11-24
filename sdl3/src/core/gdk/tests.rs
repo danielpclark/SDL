@@ -128,7 +128,10 @@ fn hardware_gdk_runtime() {
     let runtime = match runtime() {
         Ok(runtime) => runtime,
         Err(e) => {
-            skip("gdk-runtime", format_args!("no Gaming Runtime here ({e})"));
+            skip(
+                "gdk-runtime",
+                format_args!("no usable Gaming Runtime here ({e})"),
+            );
             return;
         }
     };

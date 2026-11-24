@@ -1067,6 +1067,67 @@ display server, as root on a virtual console:
 * `SDL_MAIN_NEEDED` (WinGDK's, as iOS's and Android's) isn't
   translated: `init::init()` doesn't need `run_app()` first.
 
+### `core/gdk` and `sdl3::gdk`
+
+`src/core/gdk/SDL_gdk.cpp` is `sdl3/src/core/gdk/mod.rs`, and the GDK
+functions of `SDL_system.h` and `SDL_main.h` are the public `sdl3::gdk`
+(only with the feature on Windows: no stubs elsewhere): `task_queue()`
+(`SDL_GetGDKTaskQueue()`), `default_user()` (`SDL_GetGDKDefaultUser()`)
+and `suspend_complete()` (`SDL_GDKSuspendComplete()`). The Windows event
+pump ends with `core::gdk::dispatch_task_queue()`, as `WIN_PumpEvents()`
+ends with `GDK_DispatchTaskQueue()`.
+
+* **The Gaming Runtime is loaded, never linked.** Upstream links the
+  GDK's `xgameruntime.lib`; here `core/gdk/sys.rs` loads
+  `xgameruntime.dll` (which Gaming Services installs in System32) by name
+  through `SharedObject`, the first time it's needed, and keeps it. Its
+  declarations come from Microsoft's MIT headers and documentation only
+  (see LICENSING.md, "The Microsoft GDK (WinGDK)"). Without it (Wine, the
+  CI runners) the task queue fails with upstream's "[GDK] Could not
+  create global task queue" and the default user with "XUserAddAsync:
+  ..." (`E_GAMERUNTIME_DLL_NOT_FOUND`, which has no system message), as
+  upstream's calls fail when the runtime's library isn't there.
+* **The handles are owned.** `task_queue()` gives a `TaskQueue`, whose
+  drop is `XTaskQueueCloseHandle()`, and `default_user()` a `User`, whose
+  drop is `XUserCloseHandle()`: what upstream's documentation tells the
+  caller to do with the out parameter. `as_raw()` gives the handle (the
+  opaque `XTaskQueueHandle` and `XUserHandle` of `SDL_system.h`) for the
+  GDK's own functions, valid while the value lives.
+* **Every caller gets a reference of its own** (`Note (upstream)`):
+  upstream's first caller gets the global queue's own handle, "so they
+  can clean it up", which leaves the queue the event pump dispatches
+  dangling once they close it. Here the global reference is SDL's,
+  created under a lock (upstream's first call isn't thread-safe) and
+  released by `core::gdk::quit_task_queue()` (terminate, dispatch,
+  close), which `SDL_RunApp()`'s teardown does with the first handle
+  upstream. The pump dispatches through a reference of its own, without
+  the lock, so a completion can ask for the queue.
+* **The default user waits without spinning** (`Note (upstream)`):
+  `XAsyncGetStatus(block, true)`, as `XAsync.h` documents, in place of
+  upstream's loop on `XUserAddResult()` while it returns `E_PENDING`.
+* **The notifications.** `register_change_notifications()` and
+  `unregister_change_notifications()` (`GDK_RegisterChangeNotifications()`
+  and `GDK_UnregisterChangeNotifications()`, for `run_app()`) register
+  Windows' application-state notifications (`appnotify.h`, through
+  `windows-sys`). The handlers are `extern "system"` functions, which
+  abort the process on a panic. The suspend handler sends
+  `SDL_EVENT_DID_ENTER_BACKGROUND` and waits, without a timeout as
+  upstream, for `suspend_complete()`: it waits on a reference of its own
+  to the event, holding no lock of SDL's, so `suspend_complete()` (which
+  takes the notifications' lock) can't wait on it. The constrained
+  handler moves the keyboard focus from Windows' thread, as upstream's
+  (`FIXME (upstream)`: not the event thread). The registrations' errors
+  aren't in upstream's messages (`FIXME (upstream)`).
+* **The teardown** (`Note (upstream)`) clears the suspend event it
+  closes (upstream's stays set, for a later `SDL_GDKSuspendComplete()` to
+  signal), and skips a null registration:
+  `UnregisterAppStateChangeNotification(NULL)` crashes on Windows, and a
+  failed registration's is null (Wine's `RegisterAppStateChangeNotification()`
+  is a stub, `ERROR_CALL_NOT_IMPLEMENTED`), as is Windows Server's
+  constrained registration of an unpackaged program (with success). The
+  registrations are cleared once unregistered, so a second teardown does
+  nothing.
+
 ## OpenXR
 
 The GPU API's OpenXR functions are `sdl3/src/gpu/xr/`: `mod.rs` is
