@@ -190,8 +190,9 @@ license (its EULA) isn't accepted for this repository.
     diagnostic machine (never committed); and
   * Microsoft's public documentation of the GDK (the XUser reference:
     `XUserHandle`, `XUserAddOptions`, `XUserAddAsync()`,
-    `XUserAddResult()`, `XUserCloseHandle()`; the Gaming Runtime's error
-    codes).
+    `XUserAddResult()`, `XUserCloseHandle()`; XGameRuntimeInit's
+    `XGameRuntimeInitialize()` and `XGameRuntimeUninitialize()`; the
+    Gaming Runtime's error codes).
 
   As for the other declarations above, they carry interface facts
   (names, layouts, values, function types), not the headers' expression.

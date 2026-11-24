@@ -1,9 +1,9 @@
 // The parts of the Microsoft GDK's API that src/core/gdk/SDL_gdk.cpp of
 // Simple DirectMedia Layer uses, declared by hand: the task queue and the
 // asynchronous calls from XTaskQueue.h and XAsync.h of microsoft/libHttpClient
-// (Copyright (c) Microsoft Corporation, MIT License), and XUser's from
-// Microsoft's public documentation of the GDK. See docs/LICENSING.md, "The
-// Microsoft GDK (WinGDK)".
+// (Copyright (c) Microsoft Corporation, MIT License), and XUser's and
+// XGameRuntimeInit's from Microsoft's public documentation of the GDK. See
+// docs/LICENSING.md, "The Microsoft GDK (WinGDK)".
 // Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
 // This is an altered (translated) version of the original software; see LICENSE.txt.
 
@@ -21,8 +21,10 @@
 //! headers, which are the GDK's own (`XTaskQueue.h`, `XAsync.h`), and
 //! XUser's from Microsoft's documentation of the GDK (`XUserHandle`,
 //! `XUserAddOptions`, `XUserAddAsync()`, `XUserAddResult()`,
-//! `XUserCloseHandle()`, the Gaming Runtime's error codes). No part of the
-//! GDK itself (its headers, libraries or DLLs' export tables) was read.
+//! `XUserCloseHandle()`; `XGameRuntimeInitialize()`,
+//! `XGameRuntimeUninitialize()`; the Gaming Runtime's error codes). No
+//! part of the GDK itself (its headers, libraries or DLLs' export tables)
+//! was read.
 
 #![allow(non_camel_case_types, non_snake_case)]
 
@@ -33,6 +35,13 @@ use windows_sys::core::HRESULT;
 
 use crate::error::Result;
 use crate::loadso::SharedObject;
+
+// --- XGameRuntimeInit.h (from the documentation) ---
+
+/// `XGameRuntimeInitialize()`.
+pub(crate) type XGameRuntimeInitializeFn = unsafe extern "system" fn() -> HRESULT;
+/// `XGameRuntimeUninitialize()`.
+pub(crate) type XGameRuntimeUninitializeFn = unsafe extern "system" fn();
 
 // --- XTaskQueue.h ---
 
@@ -178,6 +187,8 @@ pub(crate) const XGAMERUNTIME_DLL: &str = "xgameruntime.dll";
 #[derive(Debug)]
 pub(crate) struct Runtime {
     _library: SharedObject,
+    pub(crate) XGameRuntimeInitialize: XGameRuntimeInitializeFn,
+    pub(crate) XGameRuntimeUninitialize: XGameRuntimeUninitializeFn,
     pub(crate) XTaskQueueCreate: XTaskQueueCreateFn,
     pub(crate) XTaskQueueDuplicateHandle: XTaskQueueDuplicateHandleFn,
     pub(crate) XTaskQueueDispatch: XTaskQueueDispatchFn,
@@ -198,6 +209,8 @@ impl Runtime {
         // SAFETY: each type is the function's, as declared above.
         unsafe {
             Ok(Runtime {
+                XGameRuntimeInitialize: library.function("XGameRuntimeInitialize")?,
+                XGameRuntimeUninitialize: library.function("XGameRuntimeUninitialize")?,
                 XTaskQueueCreate: library.function("XTaskQueueCreate")?,
                 XTaskQueueDuplicateHandle: library.function("XTaskQueueDuplicateHandle")?,
                 XTaskQueueDispatch: library.function("XTaskQueueDispatch")?,

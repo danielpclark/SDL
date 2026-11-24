@@ -90,6 +90,8 @@ pub mod dialog;
 pub mod error;
 pub mod events;
 pub mod filesystem;
+#[cfg(all(windows, feature = "gdk"))]
+pub mod gdk;
 pub mod gpu;
 pub mod guid;
 pub mod haptic;
