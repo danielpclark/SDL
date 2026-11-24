@@ -180,26 +180,37 @@ license (its EULA) isn't accepted for this repository.
   Services installs, is loaded by name at run time, as the system's
   GameInput is (upstream links the GDK's `xgameruntime.lib`). It is
   part of the user's system, never of this repository.
+* **Xbox Live.** `Microsoft.Xbox.Services.C.Thunks.dll` (with the
+  `libHttpClient.dll` and `XCurl.dll` it needs), which a game ships beside
+  its executable, is loaded by its path in the application's directory,
+  only there, at run time (upstream links the GDK's
+  `Microsoft.Xbox.Services.C.Thunks.lib`); without it Xbox Live isn't
+  initialized. It is the application's, never this repository's.
 * **The declarations.** What SDL uses of the GDK's API is declared by
-  hand in `sdl3/src/core/gdk/sys.rs`, from two kinds of public sources
-  only:
+  hand in `sdl3/src/core/gdk/sys.rs` and `sdl3/src/core/gdk/xsapi.rs`,
+  from two kinds of public sources only:
   * Microsoft's MIT-licensed headers of `microsoft/libHttpClient`
-    (`Include/XTaskQueue.h`, `Include/XAsync.h`: the task queue and
-    `XAsyncBlock`, the same API the GDK's runtime has), whose layouts
-    the tests check against a C++ program built with those headers on a
-    diagnostic machine (never committed); and
+    (`Include/XTaskQueue.h`, `Include/XAsync.h`: the task queue,
+    `XTaskQueueSetCurrentProcessTaskQueue()` and `XAsyncBlock`, the same
+    API the GDK's runtime has) and `microsoft/xbox-live-api`
+    (`Include/xsapi-c/xbox_live_global_c.h`: `XblInitArgs` in its
+    `HC_PLATFORM_GDK` variant, `XblInitialize()`, `XblCleanupAsync()`;
+    its MIT build of the thunks DLL names the DLL and exports those by
+    name), whose layouts the tests check against C++ programs built with
+    those headers on a diagnostic machine (never committed); and
   * Microsoft's public documentation of the GDK (the XUser reference:
     `XUserHandle`, `XUserAddOptions`, `XUserAddAsync()`,
     `XUserAddResult()`, `XUserCloseHandle()`; XGameRuntimeInit's
-    `XGameRuntimeInitialize()` and `XGameRuntimeUninitialize()`; the
-    Gaming Runtime's error codes).
+    `XGameRuntimeInitialize()` and `XGameRuntimeUninitialize()`;
+    `XGameGetXboxTitleId()`; the Gaming Runtime's error codes).
 
   As for the other declarations above, they carry interface facts
   (names, layouts, values, function types), not the headers' expression.
 * **The application-state notifications** (`appnotify.h`:
   `RegisterAppStateChangeNotification()` and the others) are Windows',
   through `windows-sys`.
-* **SDL's code.** Upstream's `src/core/gdk/` is under the zlib license,
+* **SDL's code.** Upstream's `src/core/gdk/` and
+  `src/main/gdk/SDL_sysmain_runapp.cpp` are under the zlib license,
   as the rest of SDL, and so is its translation.
 
 ## OpenXR (the GPU API's OpenXR functions)
