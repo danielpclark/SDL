@@ -168,6 +168,39 @@ from the NDK's headers: `<android/log.h>`, `<android/asset_manager.h>`,
 are AOSP's, under the Apache License 2.0 (`jni.h` is libnativehelper's),
 but the OpenSL ES ones, which are the Khronos Group's.
 
+## The Microsoft GDK (WinGDK)
+
+The `gdk` feature is upstream's WinGDK build (the Microsoft GDK for PC).
+By the maintainer's decisions of 2026-11-23, no part of the GDK is
+downloaded, read, linked or shipped, here or on any CI branch: not its
+headers, not its libraries, not its DLLs' export tables. The GDK's
+license (its EULA) isn't accepted for this repository.
+
+* **The Gaming Runtime.** `xgameruntime.dll`, which Windows' Gaming
+  Services installs, is loaded by name at run time, as the system's
+  GameInput is (upstream links the GDK's `xgameruntime.lib`). It is
+  part of the user's system, never of this repository.
+* **The declarations.** What SDL uses of the GDK's API is declared by
+  hand in `sdl3/src/core/gdk/sys.rs`, from two kinds of public sources
+  only:
+  * Microsoft's MIT-licensed headers of `microsoft/libHttpClient`
+    (`Include/XTaskQueue.h`, `Include/XAsync.h`: the task queue and
+    `XAsyncBlock`, the same API the GDK's runtime has), whose layouts
+    the tests check against a C++ program built with those headers on a
+    diagnostic machine (never committed); and
+  * Microsoft's public documentation of the GDK (the XUser reference:
+    `XUserHandle`, `XUserAddOptions`, `XUserAddAsync()`,
+    `XUserAddResult()`, `XUserCloseHandle()`; the Gaming Runtime's error
+    codes).
+
+  As for the other declarations above, they carry interface facts
+  (names, layouts, values, function types), not the headers' expression.
+* **The application-state notifications** (`appnotify.h`:
+  `RegisterAppStateChangeNotification()` and the others) are Windows',
+  through `windows-sys`.
+* **SDL's code.** Upstream's `src/core/gdk/` is under the zlib license,
+  as the rest of SDL, and so is its translation.
+
 ## OpenXR (the GPU API's OpenXR functions)
 
 The GPU API's OpenXR functions load the Khronos OpenXR loader at run
