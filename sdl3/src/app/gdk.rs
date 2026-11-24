@@ -92,15 +92,20 @@ pub(super) fn run_app(main_function: impl FnOnce(&[String]) -> i32) -> i32 {
             crate::log::info!(Category::Application, "{e}");
         }
 
-        if register_change_notifications().is_err() {
-            // FIXME (upstream): this returns without the teardown below:
-            // the notifications registered so far (and the suspend event)
-            // stay, as do the task queue, Xbox Live and the runtime.
-            return -1;
+        match register_change_notifications() {
+            // Note (upstream): upstream returns -1 here without the
+            // teardown below: the notifications registered so far (and the
+            // suspend event) stay, as do the task queue, Xbox Live and the
+            // runtime. Fixed here: the main function isn't called, and the
+            // teardown runs (unregister_change_notifications() skips what
+            // wasn't registered). (SDL_SetError(): nothing reads it here,
+            // so it's logged.)
+            Err(e) => crate::log::error!(Category::Application, "{e}"),
+            Ok(()) => {
+                // Run the application main() code
+                result = super::call_main_function(main_function);
+            }
         }
-
-        // Run the application main() code
-        result = super::call_main_function(main_function);
 
         unregister_change_notifications();
 
