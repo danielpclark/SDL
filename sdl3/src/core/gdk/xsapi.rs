@@ -6,7 +6,7 @@
 // Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
 // This is an altered (translated) version of the original software; see LICENSE.txt.
 
-//! Xbox Live's initialization, and its library's loader.
+//! Xbox Live's initialization and cleanup, and its library's loader.
 //!
 //! Upstream links the GDK's `Microsoft.Xbox.Services.C.Thunks.lib`, whose
 //! DLL the application ships beside its executable (with `libHttpClient.dll`
@@ -29,7 +29,7 @@ use std::sync::Mutex;
 
 use windows_sys::core::HRESULT;
 
-use super::sys::XTaskQueueHandle;
+use super::sys::{XAsyncBlock, XTaskQueueHandle};
 use crate::error::Result;
 use crate::loadso::SharedObject;
 
@@ -54,6 +54,11 @@ pub(crate) struct XblInitArgs {
 /// `XblInitialize()` (`STDAPI`).
 pub(crate) type XblInitializeFn = unsafe extern "system" fn(args: *const XblInitArgs) -> HRESULT;
 
+/// `XblCleanupAsync()` (`STDAPI`): Xbox Live's teardown, done when the
+/// call is.
+pub(crate) type XblCleanupAsyncFn =
+    unsafe extern "system" fn(async_block: *mut XAsyncBlock) -> HRESULT;
+
 /// Xbox Live's library, loaded from the application's directory only.
 pub(crate) const XBOX_SERVICES_THUNKS_DLL: &str = "Microsoft.Xbox.Services.C.Thunks.dll";
 
@@ -62,6 +67,7 @@ pub(crate) const XBOX_SERVICES_THUNKS_DLL: &str = "Microsoft.Xbox.Services.C.Thu
 pub(crate) struct XboxServices {
     _library: SharedObject,
     pub(crate) XblInitialize: XblInitializeFn,
+    pub(crate) XblCleanupAsync: XblCleanupAsyncFn,
 }
 
 impl XboxServices {
@@ -79,6 +85,7 @@ impl XboxServices {
         unsafe {
             Ok(XboxServices {
                 XblInitialize: library.function("XblInitialize")?,
+                XblCleanupAsync: library.function("XblCleanupAsync")?,
                 _library: library,
             })
         }
