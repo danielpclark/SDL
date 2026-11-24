@@ -129,6 +129,15 @@ harness = false
 name = "cocoa_metal"
 harness = false
 
+# WinGDK's SDL_RunApp() (the `gdk` feature) as a program's entry point:
+# without the Gaming Runtime, upstream's message box (which the program
+# reads and dismisses) and -1. A program of its own: run_app() sets up
+# process-wide state.
+[[test]]
+name = "gdk_main"
+harness = false
+required-features = ["gdk"]
+
 # Emscripten's main callbacks, timers and SDL_RunApp(), which the browser's
 # event loop runs after `main` returns, and which end the program: a
 # program of its own, run under node.
