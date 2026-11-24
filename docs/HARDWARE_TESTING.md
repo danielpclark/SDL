@@ -45,7 +45,7 @@ Every skip names one *capability* (the list is `CAPABILITIES` in
 | `locales` | Linux | glibc's `localedef` and its locale sources in `/usr/share/i18n/locales` (the tests compile the locales they read the date and time formats of) |
 | `xinput` | Windows | an XInput DLL (`XInput1_4.dll` ships with Windows) |
 | `gameinput` | Windows | a GameInput DLL with the v3 API (one that exports `GameInputInitialize`): the GameInput redistributable's `GameInputRedist.dll`, or a recent enough `GameInput.dll` from Windows (an older inbox one only has the v0 API) |
-| `gdk-runtime` | Windows (the `gdk` feature) | the Gaming Runtime, `xgameruntime.dll`, which Gaming Services (from the Microsoft Store) installs in `System32`, exporting the functions SDL calls; the GDK itself isn't needed. Wine and the CI runners have none (the tests of the `gdk` feature check the paths without it there); see [Windows 11](#windows-11) |
+| `gdk-runtime` | Windows (the `gdk` feature) | the Gaming Runtime, `xgameruntime.dll`, which Gaming Services (from the Microsoft Store) installs in `System32`, exporting by name the functions SDL calls (whether it does is still open); the GDK itself isn't needed. Wine and the CI runners have none (the tests of the `gdk` feature check the paths without it there); see [Windows 11](#windows-11), which also says what to report |
 | `wgl` | Windows | `opengl32.dll` with a pixel format and context (GDI Generic's 1.1 is enough for most checks; Mesa's, below, for all of them); the hardware check wants the GPU's driver, not GDI Generic |
 | `d3d11` | Windows | `d3d11.dll` and `dxgi.dll` with a Direct3D 11 device (feature level 11.0 or 11.1) and a swap chain on a window: a GPU driver, WARP, or Wine's d3d11 (wined3d on Mesa) |
 | `d3d12` | Windows | `d3d12.dll` and `dxgi.dll` with a Direct3D 12 device (feature level 11.0) for the GPU API's backend: a GPU driver, WARP, or Wine's d3d12 (vkd3d on a Vulkan driver, with an X server for DXGI); the DXIL checks need shader model 6, which vkd3d under Wine 9 lacks (they skip there) |
@@ -728,10 +728,11 @@ redistributable fixes that.
 Without GameInput the joystick listing leaves out "GameInput alone".
 
 The `gdk` feature (upstream's WinGDK build) needs the Gaming Runtime,
-`xgameruntime.dll`, for its task queue and default user: Gaming Services
-installs it (the Xbox app, or Gaming Services from the Microsoft Store).
-The GDK itself isn't needed. Its checks, `run_app()` as a program's entry
-point, and the hardware checks of the runtime's paths are:
+`xgameruntime.dll`, for its task queue, default user and `run_app()`:
+Gaming Services installs it (the Xbox app, or Gaming Services from the
+Microsoft Store). The GDK itself isn't needed (see "The Microsoft GDK for
+PC" in the README). Its checks, `run_app()` as a program's entry point,
+and the hardware checks of the runtime's paths are:
 
 ```powershell
 cargo test -p sdl3 --features gdk --lib --test gdk_main
@@ -740,15 +741,51 @@ cargo test -p sdl3 --features gdk --lib hardware_gdk_ -- --ignored --nocapture
 Remove-Item Env:SDL3_TEST_REQUIRE
 ```
 
-`gdk_main` expects upstream's "Gaming Runtime library not found" message
-box without the runtime (it presses the box's button itself); with the
-runtime, the main function's result.
+* `--lib`: without the runtime (Wine, the CI runners), the task queue's,
+  the default user's and `run_app()`'s failures, upstream's messages and
+  the teardown; the notifications and the suspend handler's wait for
+  `suspend_complete()` (called directly: nothing here makes Windows
+  suspend a test program); the renderer's and the GPU device's
+  suspension. With the runtime, the tests of the paths without it say so
+  in a note and leave them to the hardware checks.
+* `gdk_main` (a program of its own, which prints its lines): without the
+  runtime, upstream's "Gaming Runtime library not found" message box (it
+  presses the box's button itself) and -1. With the runtime's library,
+  the main function's result, 7, or -1 and a message box when the
+  runtime doesn't start: the line `gdk_main: run_app returned ...;
+  message boxes: ...` has the box's text, which is what to report.
+* `core::gdk::tests::hardware_gdk_runtime` and
+  `app::gdk::tests::hardware_gdk_run_app` (the hardware checks, listed
+  [above](#hardware-checks-cargo-test------ignored)): the runtime
+  initialized, SDL's task queue, the default user (which may show the
+  sign-in UI), and `run_app()` with the runtime, Xbox Live left out
+  without a `MicrosoftGame.config` beside the test program, its teardown.
 
-Without the runtime (Wine, the CI runners) they check the paths without
-it and skip as `gdk-runtime`. The runtime's functions are looked up by
-their names in `xgameruntime.dll`: when one isn't found, the skip says
-which (`Failed loading XTaskQueueCreate: ...`), and that is what to
-report.
+Not checked anywhere: a real suspension (Windows' notification on a
+suspended game) and Xbox Live itself (a title id, and
+`Microsoft.Xbox.Services.C.Thunks.dll` beside the program).
+
+**The open question these checks answer.** The runtime is loaded by name
+(`LoadLibraryW("xgameruntime.dll")`, as the maintainer decided), and its
+functions are looked up by their names, which nothing here could check:
+no Gaming Runtime runs under Wine or on the CI runners, and the GDK's
+export tables are off limits. So the first thing a PC with Gaming
+Services tells is whether `xgameruntime.dll` exports, by name, the
+thirteen functions SDL calls: `XGameRuntimeInitialize`,
+`XGameRuntimeUninitialize`, `XGameGetXboxTitleId`, `XTaskQueueCreate`,
+`XTaskQueueDuplicateHandle`, `XTaskQueueDispatch`,
+`XTaskQueueCloseHandle`, `XTaskQueueTerminate`,
+`XTaskQueueSetCurrentProcessTaskQueue`, `XAsyncGetStatus`,
+`XUserAddAsync`, `XUserAddResult` and `XUserCloseHandle`. They're looked
+up in that order; the first one missing fails the load, and with
+`SDL3_TEST_REQUIRE=gdk-runtime` the hardware checks fail on it, naming
+it (`Failed loading XTaskQueueCreate: ...`; `Failed loading
+xgameruntime.dll: ...` when the library itself doesn't load). If that
+happens, report it back, with the line and the Gaming Services version
+(`Get-AppxPackage *GamingServices*`), and stop there: loading the
+system's runtime by name can't work then, and the maintainer has to
+choose another route. Don't work around it (no GDK download, no reading
+of the DLL's export table: see LICENSING.md).
 
 A plain `cargo test` only shows the output of failing tests, so the
 `note: skipping` lines of the first two commands stay hidden. To see them,
@@ -799,6 +836,11 @@ section: run the commands above in order, then report:
   the camera's formats and frame rate, the controllers each joystick driver
   lists, and the controller check's output (which driver claimed it, the
   gamepad mapping, the button and axis events, the rumble result);
+* with Gaming Services, the `gdk` feature's runs: `gdk_main`'s lines,
+  what the GDK hardware checks printed (`XGameRuntimeInitialize`'s
+  result, the task queues, the default user or its error, the main
+  function's line, the log's Xbox Live line), and, above all, any
+  `Failed loading ...` (see above);
 * any failure with its full panic message and backtrace
   (`$env:RUST_BACKTRACE = "1"`).
 
