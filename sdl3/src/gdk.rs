@@ -14,6 +14,34 @@
 //! closes its reference (`XTaskQueueCloseHandle()`), and dropping a
 //! [`User`] closes its handle (`XUserCloseHandle()`), as upstream's
 //! documentation tells the caller to do.
+//!
+//! # Suspension
+//!
+//! When Windows suspends the application, [`run_app`](crate::app::run_app)'s
+//! notification sends `SDL_EVENT_DID_ENTER_BACKGROUND`
+//! ([`EventType::DID_ENTER_BACKGROUND`](crate::events::EventType::DID_ENTER_BACKGROUND))
+//! from a thread of Windows', and waits there, without a timeout, until the
+//! application calls [`suspend_complete`]. The event isn't queued: only an
+//! event watch ([`events::add_watch`](crate::events::add_watch)) sees it, on
+//! that thread. So, as upstream's README-gdk.md describes:
+//!
+//! 1. At start-up, add an event watch for `DID_ENTER_BACKGROUND` and
+//!    `WILL_ENTER_FOREGROUND` that tells the render thread (with a user
+//!    event, [`events::push`](crate::events::push), as upstream's testgdk
+//!    does) rather than suspending anything itself.
+//! 2. For `DID_ENTER_BACKGROUND`, the render thread stops drawing, calls
+//!    [`Renderer::gdk_suspend`](crate::render::Renderer::gdk_suspend) for
+//!    each renderer (the render API) or
+//!    [`gpu::Device::gdk_suspend`](crate::gpu::Device::gdk_suspend) (the GPU
+//!    API), and then [`suspend_complete`], which lets the suspension go on.
+//! 3. For `WILL_ENTER_FOREGROUND` (sent without a wait), the render thread
+//!    calls [`Renderer::gdk_resume`](crate::render::Renderer::gdk_resume) or
+//!    [`gpu::Device::gdk_resume`](crate::gpu::Device::gdk_resume) before it
+//!    draws again.
+//!
+//! On WinGDK the renderer's and the device's calls do nothing, as
+//! upstream's: only the Xbox's Direct3D 12, which isn't translated, has
+//! work to suspend. [`suspend_complete`] is the one that matters there.
 
 use std::fmt;
 use std::ptr::NonNull;
@@ -120,11 +148,14 @@ pub fn default_user() -> Result<User> {
 }
 
 /// Let the suspension go on, once the application has handled
-/// `SDL_EVENT_DID_ENTER_BACKGROUND` (in an event watch, where the event is
-/// sent: it isn't queued). Until then the suspend handler waits, without a
-/// timeout. (Upstream's renderer and GPU suspensions, which do nothing on
-/// WinGDK, come before it.) Nothing happens when no suspend handler is
-/// registered. Translation of `SDL_GDKSuspendComplete()`.
+/// `SDL_EVENT_DID_ENTER_BACKGROUND` (which only an event watch sees: it
+/// isn't queued). Until then the suspend handler waits, without a timeout.
+/// Call it on the render thread once drawing has stopped, after
+/// [`Renderer::gdk_suspend`](crate::render::Renderer::gdk_suspend) or
+/// [`gpu::Device::gdk_suspend`](crate::gpu::Device::gdk_suspend), not in the
+/// event watch itself (see [Suspension](crate::gdk#suspension)). Nothing
+/// happens when no suspend handler is registered. Translation of
+/// `SDL_GDKSuspendComplete()`.
 pub fn suspend_complete() {
     core_gdk::suspend_complete();
 }
