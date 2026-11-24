@@ -47,7 +47,10 @@
 //!   swapchains, whose images are externally managed textures
 //!   ([`device`]).
 //!
-//! The Xbox (GDK) code is not translated.
+//! The Xbox (GDK) code is not translated. Its entry points,
+//! `SDL_GDKSuspendGPU()` and `SDL_GDKResumeGPU()`, are here with the `gdk`
+//! feature (upstream's WinGDK build) as `Device::gdk_suspend()` and
+//! `Device::gdk_resume()`, which do nothing there, as upstream's.
 
 mod commands;
 pub(crate) mod d3d;
@@ -1311,5 +1314,40 @@ impl GpuDriver for D3D12Renderer {
 
     fn supports_sample_count(&self, format: TextureFormat, sample_count: SampleCount) -> bool {
         self.supports_sample_count_internal(format, sample_count)
+    }
+}
+
+// GDK-specific APIs
+
+#[cfg(feature = "gdk")]
+impl super::Device {
+    /// Suspend the device's GPU work for a suspension of the application
+    /// (`SDL_EVENT_DID_ENTER_BACKGROUND`). Call it on the application's
+    /// render thread, once it has stopped drawing, and before
+    /// [`gdk::suspend_complete`](crate::gdk::suspend_complete); make no
+    /// other call of the GPU API until [`gdk_resume`](Self::gdk_resume).
+    /// [`crate::gdk`] has the whole sequence. Translation of
+    /// `SDL_GDKSuspendGPU()`.
+    ///
+    /// It does nothing on WinGDK, as upstream's: only the Xbox's Direct3D
+    /// 12 (`ID3D12CommandQueue::SuspendX()` under the device's submit
+    /// lock), which isn't translated, has anything to suspend.
+    pub fn gdk_suspend(&self) {
+        // (the Xbox's SuspendX() path isn't translated: SDL_PLATFORM_XBOXONE
+        // and SDL_PLATFORM_XBOXSERIES are never defined here)
+    }
+
+    /// Resume the device's GPU work when the application comes back
+    /// (`SDL_EVENT_WILL_ENTER_FOREGROUND`). Call it on the application's
+    /// render thread, before any other call of the GPU API. Translation of
+    /// `SDL_GDKResumeGPU()`.
+    ///
+    /// It does nothing on WinGDK, as upstream's: only the Xbox's Direct3D
+    /// 12 (`ID3D12CommandQueue::ResumeX()`, then the frame interval and
+    /// frame events set again), which isn't translated, has anything to
+    /// resume.
+    pub fn gdk_resume(&self) {
+        // (the Xbox's ResumeX(), SetFrameIntervalX() and
+        // ScheduleFrameEventX() path isn't translated, as above)
     }
 }
