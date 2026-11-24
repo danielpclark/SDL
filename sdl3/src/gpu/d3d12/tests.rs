@@ -3432,6 +3432,48 @@ mod with_command_buffers {
         assert_eq!(lock(&renderer.command_buffer_pool).len(), available);
     }
 
+    /// WinGDK's suspension and resumption (`SDL_GDKSuspendGPU()`,
+    /// `SDL_GDKResumeGPU()`) leave a Direct3D 12 device as it was: they do
+    /// nothing there, as upstream's (only the Xbox's, not translated,
+    /// suspend the command queue).
+    #[test]
+    #[cfg(feature = "gdk")]
+    fn gdk_suspend_and_resume_leave_the_device_working() {
+        let _l = crate::test_support::test_lock();
+        let _v = Video::init();
+        let Some(device) = front_end_device() else {
+            return;
+        };
+        use TextureUsageFlags as U;
+
+        // The application's sequence: its work done, suspended, resumed.
+        let target = rgba_texture(&device, 4, 4, U::COLOR_TARGET | U::SAMPLER, 1);
+        let mut cb = device.acquire_command_buffer().unwrap();
+        cb.begin_render_pass(&[clear_target(&target, BLUE_F)], None)
+            .unwrap()
+            .end();
+        submit_and_wait(&device, cb);
+        device.gdk_suspend();
+        device.gdk_resume();
+
+        // What was drawn before is there, and the device draws, uploads
+        // and downloads after, through another handle too (as the GPU
+        // renderer's), and after a second suspension.
+        assert_eq!(texture_pixels(&device, &target, 0, 4, 4), solid(4, 4, BLUE));
+        let handle = device.clone();
+        handle.gdk_suspend();
+        handle.gdk_resume();
+        fill_texture(&handle, &target, 0, 4, 4, &solid(4, 4, RED));
+        assert_eq!(texture_pixels(&device, &target, 0, 4, 4), solid(4, 4, RED));
+        let mut cb = device.acquire_command_buffer().unwrap();
+        cb.begin_render_pass(&[clear_target(&target, BLUE_F)], None)
+            .unwrap()
+            .end();
+        submit_and_wait(&device, cb);
+        assert_eq!(texture_pixels(&device, &target, 0, 4, 4), solid(4, 4, BLUE));
+        device.wait_for_idle().unwrap();
+    }
+
     #[test]
     fn upload_copy_and_download_buffers_and_textures() {
         let _l = crate::test_support::test_lock();
