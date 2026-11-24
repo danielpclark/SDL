@@ -1,8 +1,9 @@
 // The parts of the Microsoft GDK's API that src/core/gdk/SDL_gdk.cpp of
-// Simple DirectMedia Layer uses, declared by hand: the task queue and the
-// asynchronous calls from XTaskQueue.h and XAsync.h of microsoft/libHttpClient
-// (Copyright (c) Microsoft Corporation, MIT License), and XUser's and
-// XGameRuntimeInit's from Microsoft's public documentation of the GDK. See
+// and src/main/gdk/SDL_sysmain_runapp.cpp of Simple DirectMedia Layer use,
+// declared by hand: the task queue and the asynchronous calls from
+// XTaskQueue.h and XAsync.h of microsoft/libHttpClient (Copyright (c)
+// Microsoft Corporation, MIT License), and XUser's, XGameRuntimeInit's and
+// XGame's from Microsoft's public documentation of the GDK. See
 // docs/LICENSING.md, "The Microsoft GDK (WinGDK)".
 // Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
 // This is an altered (translated) version of the original software; see LICENSE.txt.
@@ -22,7 +23,8 @@
 //! XUser's from Microsoft's documentation of the GDK (`XUserHandle`,
 //! `XUserAddOptions`, `XUserAddAsync()`, `XUserAddResult()`,
 //! `XUserCloseHandle()`; `XGameRuntimeInitialize()`,
-//! `XGameRuntimeUninitialize()`; the Gaming Runtime's error codes). No
+//! `XGameRuntimeUninitialize()`; `XGameGetXboxTitleId()`; the Gaming
+//! Runtime's error codes). No
 //! part of the GDK itself (its headers, libraries or DLLs' export tables)
 //! was read.
 
@@ -42,6 +44,12 @@ use crate::loadso::SharedObject;
 pub(crate) type XGameRuntimeInitializeFn = unsafe extern "system" fn() -> HRESULT;
 /// `XGameRuntimeUninitialize()`.
 pub(crate) type XGameRuntimeUninitializeFn = unsafe extern "system" fn();
+
+// --- XGame.h (from the documentation) ---
+
+/// `XGameGetXboxTitleId()`: the title id of the game's `MicrosoftGame.config`
+/// (`HRESULT_FROM_WIN32(ERROR_NOT_FOUND)` when it sets none).
+pub(crate) type XGameGetXboxTitleIdFn = unsafe extern "system" fn(title_id: *mut u32) -> HRESULT;
 
 // --- XTaskQueue.h ---
 
@@ -93,6 +101,11 @@ pub(crate) type XTaskQueueDispatchFn = unsafe extern "system" fn(
 ) -> bool;
 /// `XTaskQueueCloseHandle()` (`STDAPI_(void)`).
 pub(crate) type XTaskQueueCloseHandleFn = unsafe extern "system" fn(queue: XTaskQueueHandle);
+/// `XTaskQueueSetCurrentProcessTaskQueue()` (`STDAPI_(void)`): the process
+/// task queue becomes a duplicate of the queue's handle (or none, with
+/// null), and the previous one's handle is closed.
+pub(crate) type XTaskQueueSetCurrentProcessTaskQueueFn =
+    unsafe extern "system" fn(queue: XTaskQueueHandle);
 /// `XTaskQueueTerminate()`.
 pub(crate) type XTaskQueueTerminateFn = unsafe extern "system" fn(
     queue: XTaskQueueHandle,
@@ -189,11 +202,13 @@ pub(crate) struct Runtime {
     _library: SharedObject,
     pub(crate) XGameRuntimeInitialize: XGameRuntimeInitializeFn,
     pub(crate) XGameRuntimeUninitialize: XGameRuntimeUninitializeFn,
+    pub(crate) XGameGetXboxTitleId: XGameGetXboxTitleIdFn,
     pub(crate) XTaskQueueCreate: XTaskQueueCreateFn,
     pub(crate) XTaskQueueDuplicateHandle: XTaskQueueDuplicateHandleFn,
     pub(crate) XTaskQueueDispatch: XTaskQueueDispatchFn,
     pub(crate) XTaskQueueCloseHandle: XTaskQueueCloseHandleFn,
     pub(crate) XTaskQueueTerminate: XTaskQueueTerminateFn,
+    pub(crate) XTaskQueueSetCurrentProcessTaskQueue: XTaskQueueSetCurrentProcessTaskQueueFn,
     pub(crate) XAsyncGetStatus: XAsyncGetStatusFn,
     pub(crate) XUserAddAsync: XUserAddAsyncFn,
     pub(crate) XUserAddResult: XUserAddResultFn,
@@ -211,11 +226,14 @@ impl Runtime {
             Ok(Runtime {
                 XGameRuntimeInitialize: library.function("XGameRuntimeInitialize")?,
                 XGameRuntimeUninitialize: library.function("XGameRuntimeUninitialize")?,
+                XGameGetXboxTitleId: library.function("XGameGetXboxTitleId")?,
                 XTaskQueueCreate: library.function("XTaskQueueCreate")?,
                 XTaskQueueDuplicateHandle: library.function("XTaskQueueDuplicateHandle")?,
                 XTaskQueueDispatch: library.function("XTaskQueueDispatch")?,
                 XTaskQueueCloseHandle: library.function("XTaskQueueCloseHandle")?,
                 XTaskQueueTerminate: library.function("XTaskQueueTerminate")?,
+                XTaskQueueSetCurrentProcessTaskQueue: library
+                    .function("XTaskQueueSetCurrentProcessTaskQueue")?,
                 XAsyncGetStatus: library.function("XAsyncGetStatus")?,
                 XUserAddAsync: library.function("XUserAddAsync")?,
                 XUserAddResult: library.function("XUserAddResult")?,
