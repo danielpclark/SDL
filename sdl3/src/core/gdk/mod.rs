@@ -333,17 +333,24 @@ pub(crate) fn register_change_notifications() -> Result<()> {
 /// `GDK_UnregisterChangeNotifications()`.
 pub(crate) fn unregister_change_notifications() {
     // (the registrations are unregistered without the lock, which the
-    // handlers take)
+    // handlers take; they're cleared, so that a second call does nothing)
     let (plm, cplm) = {
-        let notifications = change_notifications();
-        (notifications.plm, notifications.cplm)
+        let mut notifications = change_notifications();
+        (
+            std::mem::take(&mut notifications.plm),
+            std::mem::take(&mut notifications.cplm),
+        )
     };
 
     // Unregister suspend/resume handling
-    // FIXME (upstream): UnregisterAppStateChangeNotification() crashes
-    // on Windows with a null registration (a failed registration's).
-    // SAFETY: plm is the registration (or null, as upstream's).
-    unsafe { UnregisterAppStateChangeNotification(plm) };
+    // Note (upstream): upstream unregisters the registrations whatever
+    // they are, and UnregisterAppStateChangeNotification() crashes on
+    // Windows with a null one: a failed registration's (Wine's stubs
+    // give one too), or none made. A null registration is skipped here.
+    if plm != 0 {
+        // SAFETY: plm is the registration, unregistered once.
+        unsafe { UnregisterAppStateChangeNotification(plm) };
+    }
     {
         // Note (upstream): upstream leaves plmSuspendComplete set, so a
         // later SDL_GDKSuspendComplete() signals a closed handle (or
@@ -354,8 +361,12 @@ pub(crate) fn unregister_change_notifications() {
     }
 
     // Unregister constrain/unconstrain handling
-    // SAFETY: cplm is the registration (or null, as upstream's).
-    unsafe { UnregisterAppConstrainedChangeNotification(cplm) };
+    // (a null registration is skipped as above: Windows Server gives an
+    // unpackaged program one, with success)
+    if cplm != 0 {
+        // SAFETY: cplm is the registration, unregistered once.
+        unsafe { UnregisterAppConstrainedChangeNotification(cplm) };
+    }
 }
 
 /// Let a suspension the suspend handler is waiting for go on. Translation
