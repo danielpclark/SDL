@@ -264,6 +264,11 @@ Android builds too (checking and linting need no NDK), and with the
 Android SDK and NDK the tests run on the Android emulator, as processes
 and as apps: see [below](#android).
 
+On Windows, the `gdk` feature builds upstream's WinGDK configuration
+(the Microsoft GDK for PC) with nothing more to install; running it needs
+the Gaming Runtime that Gaming Services installs: see
+[below](#the-microsoft-gdk-for-pc-the-gdk-feature).
+
 Tests of the platform backends that need something from the system (an X
 server, a PipeWire server, a GPU, a camera, a macOS window server session)
 skip with a note when it's missing; [docs/HARDWARE_TESTING.md](docs/HARDWARE_TESTING.md) lists what
@@ -708,6 +713,146 @@ mode's details) are in "Android emulator" in
 elsewhere (upstream's C, built with Gradle) the same way, its `SDL_Log()`
 lines its output: that is how the app programs' expected traces, which
 are upstream's C's, were made.
+
+### The Microsoft GDK for PC (the `gdk` feature)
+
+The `gdk` feature, off by default, builds SDL as upstream's WinGDK
+configuration: the Microsoft GDK's build of SDL for desktop Windows
+(upstream's `SDL_PLATFORM_WINGDK`, in place of `SDL_PLATFORM_WIN32`).
+This section is the crate's counterpart of upstream's
+`docs/README-gdk.md`. On other targets the feature does nothing; the
+Xbox consoles (upstream's GDKX) aren't translated (see
+[above](#what-is-translated-so-far)).
+
+```toml
+[dependencies]
+sdl3 = { version = "3.5.0", features = ["gdk"] }
+```
+
+**Nothing is linked, and nothing is needed to build.** Upstream's
+WinGDK project links the GDK's `xgameruntime.lib` and
+`Microsoft.Xbox.Services.C.Thunks.lib`. Here no part of the GDK is
+downloaded, linked or read: what SDL calls is declared by hand from
+Microsoft's MIT-licensed headers and public documentation (see
+[docs/LICENSING.md](docs/LICENSING.md#the-microsoft-gdk-wingdk)), and
+the two libraries are loaded at run time. `cargo build --features
+sdl3/gdk` works on the MSVC and GNU Windows targets with nothing more
+installed (CI lints both).
+
+**What it needs at run time:**
+
+* **The Gaming Runtime**, `xgameruntime.dll`, which Windows' Gaming
+  Services installs in `System32` (the Xbox app installs it, or Gaming
+  Services from the Microsoft Store). The game doesn't ship it. SDL loads
+  it by name the first time it's needed and keeps it loaded. Without it
+  `run_app()` stops (below), and `gdk::task_queue()` and
+  `gdk::default_user()` fail.
+* **For Xbox Live**, `Microsoft.Xbox.Services.C.Thunks.dll` (with the
+  `libHttpClient.dll` and `XCurl.dll` it needs) next to the executable:
+  SDL loads it from the application's directory
+  (`filesystem::get_base_path()`) only. The game ships it (upstream's
+  build links its import library). Xbox Live also needs the game's title id,
+  from its `MicrosoftGame.config`. Without the title id, the log says
+  "[GDK] Unable to get titleid. Will not call XblInitialize. Check
+  MicrosoftGame.config!", as upstream's error does; without the DLL,
+  "[GDK] Note: Xbox Live isn't initialized without
+  Microsoft.Xbox.Services.C.Thunks.dll in the application's directory
+  (...)". Either way the game runs without Xbox Live.
+
+GameInput, which upstream's WinGDK build links, is loaded at run time
+here, as without the feature, and the drivers are the same as without
+it.
+
+**What changes:**
+
+* `init::platform()` is "WinGDK", and `init::device_form_factor()`
+  unknown, as upstream's.
+* `sdl3::gdk`: `task_queue()` (`SDL_GetGDKTaskQueue()`), a reference to
+  SDL's global async task queue, closed when dropped (every call gives a
+  reference of its own); its work runs on the system's thread pool, and
+  the Windows event pump dispatches its completions, so pump events.
+  `default_user()` (`SDL_GetGDKDefaultUser()`) blocks until the default
+  user is signed in, and may show the sign-in UI; the `User` it gives is
+  closed when dropped. `as_raw()` gives either handle to the GDK's own
+  functions. `suspend_complete()` ends a suspension (below).
+* `app::run_app()` is WinGDK's `SDL_RunApp()`, and a GDK game's `main`
+  should go through it (upstream's `SDL_MAIN_NEEDED` isn't translated:
+  `init::init()` works without it, but then nothing initializes the
+  runtime or reports a suspension):
+
+  ```rust
+  fn main() {
+      std::process::exit(sdl3::app::run_app(|_args| {
+          // the game (its arguments are the command line's)
+          0
+      }));
+  }
+  ```
+
+  It initializes the Gaming Runtime, makes SDL's task queue the
+  process's, initializes Xbox Live (above), registers the
+  application-state notifications, runs the main function, and gives its
+  result back once it has undone all of it (the notifications, Xbox
+  Live's cleanup, SDL's task queue, the runtime). The process's task
+  queue still refers to SDL's queue afterwards, terminated: don't use it
+  after `run_app()` returns.
+* **Without the runtime**, `run_app()` shows upstream's "Fatal Error"
+  message box, "[GDK] Gaming Runtime library not found
+  (xgameruntime.dll)", which waits for the user to press OK, and returns
+  -1 without calling the main function. When the runtime is there but
+  doesn't start (`XGameRuntimeInitialize()` fails, SDL's task queue can't
+  be made, or the library lacks a function SDL calls), the box says
+  "[GDK] Could not initialize - aborting: " and the error, and it returns
+  -1 the same way. A failed registration of the notifications is logged,
+  and it returns -1 without calling the main function.
+
+**Suspension.** When Windows suspends the game, `run_app()`'s
+notification sends `EventType::DID_ENTER_BACKGROUND` from a thread of
+Windows', and holds the suspension there, without a timeout, until the
+game calls `gdk::suspend_complete()`. The event isn't queued: only an
+event watch sees it, on that thread. As upstream's README-gdk.md lays it
+out:
+
+1. At start-up, add an event watch (`events::add_watch()`) for
+   `DID_ENTER_BACKGROUND` and `WILL_ENTER_FOREGROUND` that only tells
+   the render thread (with a user event, `events::push()`), and doesn't
+   suspend anything itself or call `suspend_complete()`.
+2. On `DID_ENTER_BACKGROUND`, the render thread stops drawing, calls
+   `Renderer::gdk_suspend()` for each renderer (the render API) or
+   `gpu::Device::gdk_suspend()` (the GPU API), then
+   `gdk::suspend_complete()`, which lets the suspension go on.
+3. On `WILL_ENTER_FOREGROUND` (sent without a wait), it calls
+   `Renderer::gdk_resume()` or `gpu::Device::gdk_resume()` before it draws
+   again.
+
+On WinGDK the renderer's and the device's calls do nothing, as
+upstream's (only the Xbox's Direct3D 12 has work to suspend), but they
+belong there; `suspend_complete()` is the one that matters. A game that
+never calls it stays suspended.
+
+**Checks.** The tests with the feature check the paths without the
+runtime (Wine and the Windows CI runners have none):
+
+```sh
+cargo test -p sdl3 --features gdk --lib --test gdk_main
+```
+
+`gdk_main` runs `run_app()` as its program's entry point and expects the
+"Gaming Runtime library not found" box, which it presses itself; with
+the runtime, the main function's result. On a PC with Gaming Services,
+the hardware checks of the runtime's paths run with the `gdk-runtime`
+capability required (see "Windows 11" in
+[docs/HARDWARE_TESTING.md](docs/HARDWARE_TESTING.md#windows-11), which
+also says what to report):
+
+```powershell
+$env:SDL3_TEST_REQUIRE = "gdk-runtime"
+cargo test -p sdl3 --features gdk --lib hardware_gdk_ -- --ignored --nocapture
+Remove-Item Env:SDL3_TEST_REQUIRE
+```
+
+Packaging the game (its `MicrosoftGame.config`, an MSIX package) is the
+GDK's tools' business, not the crate's.
 
 ## Using it
 
