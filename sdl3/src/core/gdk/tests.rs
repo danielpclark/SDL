@@ -61,6 +61,13 @@ fn the_notifications_register_and_unregister() {
     // (the closed event isn't left set: nothing to signal)
     assert_eq!(change_notifications().suspend_complete, 0);
     suspend_complete();
+
+    // the registrations are cleared, and a null one isn't unregistered
+    // (UnregisterAppStateChangeNotification(NULL) crashes on Windows): a
+    // second teardown does nothing
+    assert_eq!(change_notifications().plm, 0);
+    assert_eq!(change_notifications().cplm, 0);
+    unregister_change_notifications();
 }
 
 #[test]
