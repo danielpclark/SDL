@@ -1176,6 +1176,48 @@ counterpart, as on Win32: the arguments are `std::env::args()`.
   duplicates the handle), never given back: after `run_app()` it's a
   terminated queue, and the handle stays open at exit.
 
+### The renderer's and the GPU device's suspension
+
+`SDL_GDKSuspendRenderer()` and `SDL_GDKResumeRenderer()` (`SDL_render.c`)
+are `Renderer::gdk_suspend()` and `Renderer::gdk_resume()`;
+`SDL_GDKSuspendGPU()` and `SDL_GDKResumeGPU()` (the end of
+`SDL_gpu_d3d12.c`, outside its `SDL_GPU_D3D12` block) are
+`gpu::Device::gdk_suspend()` and `gpu::Device::gdk_resume()`, in
+`sdl3/src/gpu/d3d12/mod.rs`. They're only there with the feature on
+Windows: upstream's empty ones for the other platforms
+(`SDL_core_unsupported.c`) have no counterpart.
+
+* **They do nothing on WinGDK, as upstream's.** The renderer's run the
+  driver's `GDKSuspendRenderer` and `GDKResumeRenderer` hooks when it has
+  them (`RenderDriver::gdk_suspend()` and `gdk_resume()`, whose default
+  does nothing, as a NULL hook). On WinGDK only the GPU renderer has them,
+  and they're its device's. The device's are empty: what upstream's do
+  (`SuspendX()` and `ResumeX()` on the Direct3D 12 command queue under
+  the submit lock, the frame interval and frame events set again) is the
+  Xbox's, as are the Direct3D 12 renderer's hooks, and isn't translated.
+  So is upstream's B10, the Xbox `SDL_GDKSuspendGPU()` reading
+  `device->driverData` before it checks `device` for NULL: the device is
+  a reference here.
+* **The renderer's give the check's error.** Upstream's return nothing;
+  their `CHECK_RENDERER_MAGIC()` sets the error. Here they return a
+  `Result`, failing as the renderer's other calls do once its window is
+  destroyed ("Renderer's window has been destroyed, can't use further").
+  The device's can't fail (upstream's only fails on the Xbox, for a NULL
+  device) and return nothing.
+* **Where they go**, as upstream's README-gdk.md says: the suspend
+  handler sends `SDL_EVENT_DID_ENTER_BACKGROUND` from Windows' thread, and
+  the event isn't queued, so an event watch sees it and tells the render
+  thread (testgdk pushes a user event). The render thread stops drawing,
+  suspends its renderers or its device, then calls
+  `gdk::suspend_complete()`, which the handler waits for. For
+  `SDL_EVENT_WILL_ENTER_FOREGROUND` it resumes them before it draws again.
+  `sdl3::gdk`'s documentation has the sequence.
+* **Tests.** With the feature: the device on Direct3D 12 (vkd3d under
+  Wine, WARP on the CI runners) and on the front end's mock backend, which
+  they don't reach; the GPU renderer on Vulkan and Direct3D 12, and the
+  software renderer on a surface and a window: each draws after the calls
+  as before, and a renderer whose window is destroyed gets the error.
+
 ## OpenXR
 
 The GPU API's OpenXR functions are `sdl3/src/gpu/xr/`: `mod.rs` is
