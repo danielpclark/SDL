@@ -13,7 +13,7 @@
 
 use std::ffi::CString;
 
-use crate::core::gdk::sys::{runtime, XAsyncBlock, E_GAMERUNTIME_DLL_NOT_FOUND};
+use crate::core::gdk::sys::{runtime, XAsyncBlock, E_GAMERUNTIME_DLL_NOT_FOUND, XGAMERUNTIME_DLL};
 use crate::core::gdk::xsapi::{xbox_services, XblInitArgs, XBOX_SERVICES_THUNKS_DLL};
 use crate::core::gdk::{
     get_task_queue, quit_task_queue, register_change_notifications, unregister_change_notifications,
@@ -30,20 +30,50 @@ pub(super) fn run_app(main_function: impl FnOnce(&[String]) -> i32) -> i32 {
     // on Win32: see super::call_main_function())
 
     let mut result = -1;
-    // (upstream links the runtime: there XGameRuntimeInitialize() returns
-    // E_GAMERUNTIME_DLL_NOT_FOUND when its library isn't found; here that's
-    // the loader's failure)
-    let runtime = runtime();
-    let hr = match runtime {
-        // SAFETY: no preconditions; uninitialized below.
-        Ok(runtime) => unsafe { (runtime.XGameRuntimeInitialize)() },
-        Err(_) => E_GAMERUNTIME_DLL_NOT_FOUND,
-    };
-
-    // (SDL_GetGDKTaskQueue(): a reference of run_app's own)
-    let initialized = match runtime {
-        Ok(runtime) if hr >= 0 => get_task_queue().ok().map(|queue| (runtime, queue)),
-        _ => None,
+    // Note (upstream): when the runtime is initialized and the task queue
+    // fails, upstream leaves the runtime initialized, and its message box
+    // says "Could not initialize" without what failed (as it does when
+    // XGameRuntimeInitialize() fails with another error than
+    // E_GAMERUNTIME_DLL_NOT_FOUND). Fixed here: the runtime is
+    // uninitialized, and the message box gives the error (the queue's,
+    // XGameRuntimeInitialize()'s, or the loader's for a function the
+    // library lacks); a missing library keeps upstream's message.
+    // (the error for the message box, or None for a missing library)
+    let mut failure = None;
+    let initialized = match runtime() {
+        Ok(runtime) => {
+            // SAFETY: no preconditions; uninitialized below.
+            let hr = unsafe { (runtime.XGameRuntimeInitialize)() };
+            if hr == E_GAMERUNTIME_DLL_NOT_FOUND {
+                None
+            } else if hr < 0 {
+                failure = Some(error_from_hresult(Some("XGameRuntimeInitialize"), hr));
+                None
+            } else {
+                // (SDL_GetGDKTaskQueue(): a reference of run_app's own)
+                match get_task_queue() {
+                    Ok(queue) => Some((runtime, queue)),
+                    Err(e) => {
+                        failure = Some(e);
+                        // SAFETY: initialized above.
+                        unsafe { (runtime.XGameRuntimeUninitialize)() };
+                        None
+                    }
+                }
+            }
+        }
+        // (upstream links the runtime: there XGameRuntimeInitialize()
+        // returns E_GAMERUNTIME_DLL_NOT_FOUND when its library isn't found;
+        // here that's the loader's failure to load it)
+        Err(e) => {
+            if !e
+                .to_string()
+                .starts_with(&format!("Failed loading {XGAMERUNTIME_DLL}"))
+            {
+                failure = Some(e);
+            }
+            None
+        }
     };
     if let Some((runtime, task_queue)) = initialized {
         let mut titleid: u32 = 0;
@@ -150,26 +180,20 @@ pub(super) fn run_app(main_function: impl FnOnce(&[String]) -> i32) -> i32 {
 
         // SAFETY: initialized above.
         unsafe { (runtime.XGameRuntimeUninitialize)() };
+    } else if let Some(e) = failure {
+        let _ = show_simple_message_box(
+            MessageBoxFlags::ERROR,
+            "Fatal Error",
+            &format!("[GDK] Could not initialize - aborting: {e}"),
+            None,
+        );
     } else {
-        // FIXME (upstream): when the runtime was initialized and the task
-        // queue failed, the runtime isn't uninitialized, and the message
-        // doesn't say what failed (nor does it when
-        // XGameRuntimeInitialize() fails with another error).
-        if hr == E_GAMERUNTIME_DLL_NOT_FOUND {
-            let _ = show_simple_message_box(
-                MessageBoxFlags::ERROR,
-                "Fatal Error",
-                "[GDK] Gaming Runtime library not found (xgameruntime.dll)",
-                None,
-            );
-        } else {
-            let _ = show_simple_message_box(
-                MessageBoxFlags::ERROR,
-                "Fatal Error",
-                "[GDK] Could not initialize - aborting",
-                None,
-            );
-        }
+        let _ = show_simple_message_box(
+            MessageBoxFlags::ERROR,
+            "Fatal Error",
+            "[GDK] Gaming Runtime library not found (xgameruntime.dll)",
+            None,
+        );
     }
 
     result
