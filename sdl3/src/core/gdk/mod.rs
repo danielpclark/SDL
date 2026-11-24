@@ -414,5 +414,19 @@ pub(crate) fn get_default_user() -> Result<XUserHandle> {
     Ok(user)
 }
 
+/// Whether SDL's global task queue is made (for `run_app()`'s checks).
+#[cfg(test)]
+pub(crate) fn has_global_task_queue() -> bool {
+    *global_task_queue() != 0
+}
+
+/// Whether any application-state notification (or the suspend event) is
+/// registered (for `run_app()`'s checks).
+#[cfg(test)]
+pub(crate) fn has_change_notifications() -> bool {
+    let notifications = change_notifications();
+    notifications.plm != 0 || notifications.cplm != 0 || notifications.suspend_complete != 0
+}
+
 #[cfg(test)]
 mod tests;

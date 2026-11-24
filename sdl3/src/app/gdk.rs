@@ -198,3 +198,75 @@ pub(super) fn run_app(main_function: impl FnOnce(&[String]) -> i32) -> i32 {
 
     result
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::hints::{self, Priority};
+    use crate::test_support::{skip, test_lock};
+
+    /// What run_app() leaves behind: no queue, no registration, no event.
+    fn assert_torn_down() {
+        assert!(!crate::core::gdk::has_global_task_queue());
+        assert!(!crate::core::gdk::has_change_notifications());
+    }
+
+    #[test]
+    fn run_app_fails_cleanly_without_the_runtime() {
+        let _l = test_lock();
+        if runtime().is_ok() {
+            eprintln!("note: the Gaming Runtime is here: hardware_gdk_run_app checks run_app()");
+            return;
+        }
+        // (the message box isn't shown: no video driver can show one; the
+        // integration test sdl3/tests/gdk_main.rs sees the real one)
+        hints::set_with_priority(hints::VIDEO_DRIVER, Some("dummy"), Priority::Override).unwrap();
+        let mut called = false;
+        let result = run_app(|_args| {
+            called = true;
+            0
+        });
+        hints::reset(hints::VIDEO_DRIVER);
+        assert_eq!(result, -1);
+        assert!(!called, "the main function ran without the runtime");
+        assert_torn_down();
+    }
+
+    /// run_app() with the Gaming Runtime (Gaming Services): the main
+    /// function runs with SDL's queue made (the process's too) and the
+    /// notifications registered, and its result comes back; all of it is
+    /// undone after. Without a `MicrosoftGame.config` (a title id) beside the
+    /// test program Xbox Live is skipped, with upstream's message in the
+    /// log; with one, without `Microsoft.Xbox.Services.C.Thunks.dll` there,
+    /// with a note.
+    #[test]
+    #[ignore = "hardware: needs the Gaming Runtime (Gaming Services)"]
+    fn hardware_gdk_run_app() {
+        let _l = test_lock();
+        if let Err(e) = runtime() {
+            skip(
+                "gdk-runtime",
+                format_args!("no usable Gaming Runtime here ({e})"),
+            );
+            return;
+        }
+        // (checked after run_app(): a panic in the main function would skip
+        // its teardown)
+        let mut seen = None;
+        let result = run_app(|args| {
+            println!("main function: {args:?}");
+            let queue = crate::gdk::task_queue();
+            println!("task queue: {queue:?}");
+            crate::core::gdk::dispatch_task_queue();
+            seen = Some((
+                crate::core::gdk::has_global_task_queue(),
+                crate::core::gdk::has_change_notifications(),
+                queue.is_ok(),
+            ));
+            7
+        });
+        assert_eq!(result, 7);
+        assert_eq!(seen, Some((true, true, true)));
+        assert_torn_down();
+    }
+}
