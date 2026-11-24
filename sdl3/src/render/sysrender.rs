@@ -634,6 +634,12 @@ pub(crate) trait RenderBackend {
     fn metal_command_encoder(&mut self) -> Option<usize> {
         None
     }
+    /// `GDKSuspendRenderer` (WinGDK); does nothing when not implemented.
+    #[cfg(all(windows, feature = "gdk"))]
+    fn gdk_suspend(&mut self) {}
+    /// `GDKResumeRenderer` (WinGDK); does nothing when not implemented.
+    #[cfg(all(windows, feature = "gdk"))]
+    fn gdk_resume(&mut self) {}
     /// `WindowEvent`: a window event for the renderer's window.
     fn window_event(&mut self, _event_type: crate::events::EventType) {}
     /// `DestroyRenderer`: clean up renderer-specific resources.
