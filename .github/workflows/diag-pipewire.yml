@@ -13,13 +13,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        ref: [main, claude/gdk-core]
+        ref: [main]
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v5
         with:
           ref: ${{ matrix.ref }}
+      - uses: actions/checkout@v5
+        with:
+          path: diag
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: "1.99"
@@ -31,7 +34,7 @@ jobs:
             libwayland-egl1 libwayland-cursor0 libxkbcommon0 sway \
             pulseaudio pulseaudio-utils pipewire pipewire-bin wireplumber \
             libudev1 libasound2t64 libdbus-1-3 dbus-daemon tzdata locales
-          XDG_RUNTIME_DIR="$RUNNER_TEMP/xdg" tools/ci/start-pipewire.sh
+          XDG_RUNTIME_DIR="$RUNNER_TEMP/xdg" diag/tools/ci/start-pipewire.sh
       - name: Versions
         run: |
           cat /etc/os-release | head -3
@@ -79,3 +82,5 @@ jobs:
           wpctl status || true
           pw-cli ls Node || true
           tail -200 "$XDG_RUNTIME_DIR/pipewire.log" || true
+          echo "start errors: $(grep -c 'Start error' "$XDG_RUNTIME_DIR/pipewire.log")"
+          grep -E 'Start error|no matching params|in error' "$XDG_RUNTIME_DIR/pipewire.log" | head -5 || true

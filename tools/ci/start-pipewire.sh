@@ -47,7 +47,7 @@ pw-cli create-node adapter '{ factory.name=support.null-audio-sink
     node.name=ci-sink node.description="CI sink" media.class=Audio/Sink
     object.linger=true audio.position=[FL FR] }' >/dev/null
 pw-cli create-node adapter '{ factory.name=support.null-audio-sink
-    node.name=ci-source node.description="CI source" media.class=Audio/Source
+    node.name=ci-source node.description="CI source" media.class=Audio/Source/Virtual
     object.linger=true audio.position=[FL FR] }' >/dev/null
 
 # Wait for WirePlumber to pick the defaults.
