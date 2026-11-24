@@ -30,7 +30,7 @@ use windows_sys::Win32::UI::Shell::{
 };
 
 use self::sys::{
-    runtime, XAsyncBlock, XTaskQueueHandle, XUserHandle, E_GAMERUNTIME_DLL_NOT_FOUND, E_PENDING,
+    runtime, XAsyncBlock, XTaskQueueHandle, XUserHandle, E_GAMERUNTIME_DLL_NOT_FOUND,
     XTASKQUEUE_DISPATCH_MODE_MANUAL, XTASKQUEUE_DISPATCH_MODE_THREAD_POOL,
     XTASKQUEUE_PORT_COMPLETION, XUSER_ADD_OPTIONS_ADD_DEFAULT_USER_ALLOWING_UI,
 };
@@ -385,16 +385,16 @@ pub(crate) fn get_default_user() -> Result<XUserHandle> {
         return Err(error_from_hresult(Some("XUserAddAsync"), result));
     }
 
+    // Note (upstream): upstream calls XUserAddResult() until it stops
+    // returning E_PENDING, a busy wait on a CPU for as long as the sign-in
+    // takes. Here the call is waited for as XAsync.h documents
+    // (XAsyncGetStatus() with wait, which returns once it's done: no
+    // completion callback is set), and then its result is read.
+    // SAFETY: block is the call's.
+    unsafe { (runtime.XAsyncGetStatus)(&mut block, true) };
     let mut user: XUserHandle = std::ptr::null_mut();
-    // FIXME (upstream): a busy wait, on a CPU, for as long as the sign-in
-    // takes.
-    let result = loop {
-        // SAFETY: block is the call's; user is a valid out pointer.
-        let result = unsafe { (runtime.XUserAddResult)(&mut block, &mut user) };
-        if result != E_PENDING {
-            break result;
-        }
-    };
+    // SAFETY: block is the call's; user is a valid out pointer.
+    let result = unsafe { (runtime.XUserAddResult)(&mut block, &mut user) };
     if result < 0 {
         return Err(error_from_hresult(Some("XUserAddResult"), result));
     }
