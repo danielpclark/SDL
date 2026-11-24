@@ -96,6 +96,7 @@ doesn't have, and print what they find (so run them with `--nocapture`):
 | `joystick::windows::tests::hardware_joysticks_per_driver` | Windows | lists the joysticks and gamepads (name, GUID, gamepad type) each joystick driver finds: with the default drivers, with every driver enabled, and with each of HIDAPI, RawInput, DirectInput, XInput, Windows.Gaming.Input and GameInput alone (GameInput alone skips as `gameinput` where GameInput isn't usable). Zero controllers is fine |
 | `joystick::windows::tests::hardware_controller_input` | Windows | opens the first controller through the default drivers and prints its name, driver, GUID, VID:PID, axes/buttons/hats and gamepad mapping; asks for a button press and release, then a full stick (or axis) movement, waiting up to 30 seconds for each; then sends a short rumble and prints whether the controller supports it. Run it on its own, as below |
 | `core::gdk::tests::hardware_gdk_runtime` (`cargo test -p sdl3 --features gdk --lib hardware_gdk_runtime -- --ignored --nocapture`) | Windows | with the Gaming Runtime (else it skips, `gdk-runtime`): `XGameRuntimeInitialize()` (its result printed), SDL's global task queue given out twice, the references closed, the queue dispatched and given out again (still open), quit (terminated, dispatched, closed) and made again; then the default user (`default_user()`, which may show the sign-in UI: its handle, or the error, printed). It needs no part of the GDK: a program loads the runtime by name |
+| `app::gdk::tests::hardware_gdk_run_app` (`cargo test -p sdl3 --features gdk --lib hardware_gdk_run_app -- --ignored --nocapture`) | Windows | with the Gaming Runtime (else it skips, `gdk-runtime`): `run_app()` (WinGDK's `SDL_RunApp()`) runs the main function with SDL's task queue made (and made the process's) and the application-state notifications registered, gives its result back, and undoes all of it. Without a `MicrosoftGame.config` beside the test program there's no title id, so Xbox Live is skipped with upstream's message in the log (with one, and without `Microsoft.Xbox.Services.C.Thunks.dll` beside the program, with a note) |
 | `audio::drivers::coreaudio::tests::hardware_default_playback_and_recording` | macOS | lists the CoreAudio devices; plays half a second of a quiet 440 Hz tone on the default playback device (it must drain), then records half a second from the default recording device, printing formats, timing and the peak level. A recording of pure silence (no microphone permission, see below) skips |
 | `camera::coremedia::tests::hardware_capture_from_the_first_camera` | macOS | the camera check through AVFoundation (an iPhone's cameras: [below](#the-camera-on-an-iphone)) |
 | `joystick::darwin::tests::hardware_joysticks_per_driver` | macOS | lists the controllers the HIDAPI, IOKit and MFi (GameController) drivers see, together and each alone. Zero controllers is fine |
@@ -729,15 +730,19 @@ Without GameInput the joystick listing leaves out "GameInput alone".
 The `gdk` feature (upstream's WinGDK build) needs the Gaming Runtime,
 `xgameruntime.dll`, for its task queue and default user: Gaming Services
 installs it (the Xbox app, or Gaming Services from the Microsoft Store).
-The GDK itself isn't needed. Its checks, and the hardware check of the
-runtime's paths, are:
+The GDK itself isn't needed. Its checks, `run_app()` as a program's entry
+point, and the hardware checks of the runtime's paths are:
 
 ```powershell
-cargo test -p sdl3 --features gdk --lib
+cargo test -p sdl3 --features gdk --lib --test gdk_main
 $env:SDL3_TEST_REQUIRE = "gdk-runtime"
-cargo test -p sdl3 --features gdk --lib hardware_gdk_runtime -- --ignored --nocapture
+cargo test -p sdl3 --features gdk --lib hardware_gdk_ -- --ignored --nocapture
 Remove-Item Env:SDL3_TEST_REQUIRE
 ```
+
+`gdk_main` expects upstream's "Gaming Runtime library not found" message
+box without the runtime (it presses the box's button itself); with the
+runtime, the main function's result.
 
 Without the runtime (Wine, the CI runners) they check the paths without
 it and skip as `gdk-runtime`. The runtime's functions are looked up by

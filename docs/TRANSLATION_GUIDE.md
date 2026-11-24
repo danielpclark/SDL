@@ -1128,6 +1128,54 @@ ends with `GDK_DispatchTaskQueue()`.
   registrations are cleared once unregistered, so a second teardown does
   nothing.
 
+### `run_app()` on WinGDK
+
+`src/main/gdk/SDL_sysmain_runapp.cpp` is `sdl3/src/app/gdk.rs`, which
+`app::run_app()` calls with the feature on Windows (in place of Win32's
+`SDL_CallMainFunction()`): `XGameRuntimeInitialize()`, SDL's task queue
+made the process's (`XTaskQueueSetCurrentProcessTaskQueue()`), the title
+id (`XGameGetXboxTitleId()`) and Xbox Live, the notifications around the
+main function, and the teardown. `WIN_CheckDefaultArgcArgv()` has no
+counterpart, as on Win32: the arguments are `std::env::args()`.
+
+* **Without the runtime** (the loader fails to load `xgameruntime.dll`:
+  upstream's `E_GAMERUNTIME_DLL_NOT_FOUND`) it shows upstream's "Fatal
+  Error" box, "[GDK] Gaming Runtime library not found
+  (xgameruntime.dll)", and returns -1 without calling the main function.
+  `sdl3/tests/gdk_main.rs` (a program of its own, with the feature) checks
+  that on the CI runners: it reads the box from the process's windows and
+  presses its button.
+* **Xbox Live** (the maintainer's decision D4): upstream links the GDK's
+  `Microsoft.Xbox.Services.C.Thunks.lib`; here
+  `sdl3/src/core/gdk/xsapi.rs` loads `Microsoft.Xbox.Services.C.Thunks.dll`
+  by its path in the application's directory (`get_base_path()`), only
+  there. Without it Xbox Live isn't initialized, with an info line in the
+  log ("[GDK] Note: Xbox Live isn't initialized without ..."). The SCID is
+  upstream's (`00000000-0000-0000-0000-0000` and the title id in hex).
+  `XblInitArgs` is the MIT header's `HC_PLATFORM_GDK` variant (`queue`,
+  `scid`), the one upstream's build sees (`_GAMING_DESKTOP`).
+* **Errors nothing reads.** Upstream's `SDL_SetError()` for a missing
+  title id ("Check MicrosoftGame.config!") and for a failed registration
+  has no reader here (there's no `SDL_GetError()`): they're logged.
+* **The teardown.** Upstream terminates, dispatches and closes the queue's
+  first handle, which is SDL's global one there; here `run_app()` closes
+  its own reference and `core::gdk::quit_task_queue()` does upstream's
+  with SDL's.
+* **Fixed** (`Note (upstream)`): a failed registration returns without the
+  teardown upstream (B4; here the main function isn't called and the
+  teardown runs); `XblInitialize()`'s result is ignored and
+  `XblCleanupAsync()` never called upstream (B5; here a failure is logged,
+  and a successful initialization is cleaned up before the queue, waited
+  for with `XAsyncGetStatus(block, true)`); and when the queue fails
+  upstream leaves the runtime initialized behind "[GDK] Could not
+  initialize - aborting" (B6; here the runtime is uninitialized, and the
+  box gives the error: the queue's, `XGameRuntimeInitialize()`'s, or the
+  loader's for a function the library lacks).
+* **Kept** (`FIXME (upstream)`): the process task queue keeps its own
+  reference to SDL's queue (`XTaskQueueSetCurrentProcessTaskQueue()`
+  duplicates the handle), never given back: after `run_app()` it's a
+  terminated queue, and the handle stays open at exit.
+
 ## OpenXR
 
 The GPU API's OpenXR functions are `sdl3/src/gpu/xr/`: `mod.rs` is
