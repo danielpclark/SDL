@@ -26,12 +26,14 @@
 //! with no window, `SDL_CreateGPURenderer()` with a NULL window), to
 //! draw into render targets.
 //!
-//! What isn't translated:
+//! With the `gdk` feature (upstream's WinGDK build), the renderer's GDK
+//! suspension and resumption (`Renderer::gdk_suspend()` and
+//! `Renderer::gdk_resume()`) are its device's (`gpu::Device::gdk_suspend()`
+//! and `gpu::Device::gdk_resume()`), as upstream's.
 //!
-//! * the other creation properties upstream hands the GPU API (the
-//!   renderer's for the device it makes, the texture's for the GPU textures
-//!   it makes): the front end takes only the ones above;
-//! * the GDK suspend and resume functions (there is no GDK platform layer).
+//! What isn't translated: the other creation properties upstream hands the
+//! GPU API (the renderer's for the device it makes, the texture's for the
+//! GPU textures it makes): the front end takes only the ones above.
 //!
 //! The front end only makes renderers with sRGB output yet, so the linear
 //! output path here is kept for when it does.
@@ -2567,6 +2569,18 @@ impl RenderBackend for GpuRenderer {
     /// and a destroyed target's handle finds no texture.)
     fn destroy_texture(&mut self, texture: &mut TextureData) {
         texture.internal = None;
+    }
+
+    /// Translation of `GPU_GDKSuspendRenderer()`: the device's suspension.
+    #[cfg(all(windows, feature = "gdk"))]
+    fn gdk_suspend(&mut self) {
+        self.device.gdk_suspend();
+    }
+
+    /// Translation of `GPU_GDKResumeRenderer()`: the device's resumption.
+    #[cfg(all(windows, feature = "gdk"))]
+    fn gdk_resume(&mut self) {
+        self.device.gdk_resume();
     }
 
     /// Translation of `GPU_SetVSync()`.

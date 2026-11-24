@@ -2685,6 +2685,60 @@ fn gpu_renderer_without_a_window_on(backend: Backend) {
     drop(device);
 }
 
+#[test]
+#[cfg(all(windows, feature = "gdk"))]
+fn gpu_renderer_gdk_suspend_and_resume() {
+    gpu_renderer_gdk_suspend_and_resume_on(Backend::Vulkan);
+}
+
+/// WinGDK's renderer suspension and resumption (`SDL_GDKSuspendRenderer()`,
+/// `SDL_GDKResumeRenderer()`) are the device's, which do nothing there, as
+/// upstream's: the renderer draws after them as before. Once its window is
+/// gone they fail, as the renderer's other calls do.
+#[cfg(all(windows, feature = "gdk"))]
+fn gpu_renderer_gdk_suspend_and_resume_on(backend: Backend) {
+    let _l = crate::test_support::test_lock();
+    let video = Video::init(backend);
+    let Some((window, mut r)) = video.gpu_renderer(W, H) else {
+        return;
+    };
+    let scene = |r: &mut Renderer| {
+        r.set_draw_color(12, 34, 56, 255);
+        r.clear().unwrap();
+        r.set_draw_color(200, 100, 50, 255);
+        r.render_fill_rect(Some(&FRect::new(4.0, 5.0, 20.0, 10.0)))
+            .unwrap();
+    };
+    compare("before the suspension", &mut r, 0, scene);
+    r.present().unwrap();
+
+    // The application's sequence: a frame presented, suspended, resumed.
+    r.gdk_suspend().unwrap();
+    r.gdk_resume().unwrap();
+    compare("after the resumption", &mut r, 0, scene);
+    r.present().unwrap();
+
+    // The device's own, through the renderer's device, and twice.
+    let device = r.gpu_renderer_device().unwrap();
+    assert_eq!(device.driver(), backend.driver());
+    device.gdk_suspend();
+    device.gdk_resume();
+    r.gdk_suspend().unwrap();
+    r.gdk_resume().unwrap();
+    compare("after the device's", &mut r, 0, scene);
+    r.present().unwrap();
+    drop(device);
+
+    window.destroy();
+    for result in [r.gdk_suspend(), r.gdk_resume()] {
+        assert_eq!(
+            result.unwrap_err().message(),
+            "Renderer's window has been destroyed, can't use further"
+        );
+    }
+    drop(r);
+}
+
 /// The device tests again on the Direct3D 12 backend, with the DXIL
 /// shaders.
 #[cfg(windows)]
@@ -2744,6 +2798,12 @@ mod d3d12 {
     #[test]
     fn gpu_renderer_without_a_window() {
         super::gpu_renderer_without_a_window_on(Backend::D3d12);
+    }
+
+    #[test]
+    #[cfg(feature = "gdk")]
+    fn gpu_renderer_gdk_suspend_and_resume() {
+        super::gpu_renderer_gdk_suspend_and_resume_on(Backend::D3d12);
     }
 }
 

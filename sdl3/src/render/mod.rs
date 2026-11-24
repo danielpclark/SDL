@@ -2466,6 +2466,42 @@ impl Renderer {
     pub fn texture_address_mode(&self) -> (TextureAddressMode, TextureAddressMode) {
         (self.texture_address_mode_u, self.texture_address_mode_v)
     }
+
+    /// Suspend the renderer's work for a suspension of the application
+    /// (`SDL_EVENT_DID_ENTER_BACKGROUND`), with the `gdk` feature. Call it
+    /// on the application's render thread, once it has stopped drawing, and
+    /// before [`gdk::suspend_complete`](crate::gdk::suspend_complete); make
+    /// no other call of the renderer until [`gdk_resume`](Self::gdk_resume).
+    /// [`crate::gdk`] has the whole sequence. Translation of
+    /// `SDL_GDKSuspendRenderer()`.
+    ///
+    /// The driver's suspension runs if it has one: the GPU renderer's is
+    /// its device's ([`gpu::Device::gdk_suspend`](crate::gpu::Device::gdk_suspend)),
+    /// which does nothing on WinGDK, as upstream's (only the Xbox's Direct3D
+    /// 12, not translated, suspends anything). It fails as the renderer's
+    /// other calls do once its window is destroyed.
+    #[cfg(all(windows, feature = "gdk"))]
+    pub fn gdk_suspend(&mut self) -> Result<()> {
+        self.sync_window()?;
+        self.backend.gdk_suspend();
+        Ok(())
+    }
+
+    /// Resume the renderer's work when the application comes back
+    /// (`SDL_EVENT_WILL_ENTER_FOREGROUND`), with the `gdk` feature. Call it
+    /// on the application's render thread, before any other call of the
+    /// renderer. Translation of `SDL_GDKResumeRenderer()`.
+    ///
+    /// The driver's resumption runs if it has one: the GPU renderer's is
+    /// its device's ([`gpu::Device::gdk_resume`](crate::gpu::Device::gdk_resume)),
+    /// which does nothing on WinGDK, as upstream's. It fails as the
+    /// renderer's other calls do once its window is destroyed.
+    #[cfg(all(windows, feature = "gdk"))]
+    pub fn gdk_resume(&mut self) -> Result<()> {
+        self.sync_window()?;
+        self.backend.gdk_resume();
+        Ok(())
+    }
 }
 
 impl Drop for Renderer {
