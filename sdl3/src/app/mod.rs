@@ -1,7 +1,8 @@
 // Rust translation of src/main/SDL_main_callbacks.c, SDL_main_callbacks.h,
 // SDL_runapp.c, src/main/generic/SDL_sysmain_callbacks.c and
 // include/SDL3/SDL_main.h from Simple DirectMedia Layer (the Emscripten
-// ones are in emscripten.rs, the iOS ones in uikit.rs).
+// ones are in emscripten.rs, the iOS ones in uikit.rs, WinGDK's
+// SDL_RunApp() in gdk.rs).
 // Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
 // This is an altered (translated) version of the original software; see LICENSE.txt.
 
@@ -19,7 +20,9 @@
 //! [`run_app`] runs `UIApplicationMain()`, which calls the main function
 //! once the app has launched and never returns, and a `CADisplayLink`
 //! runs the main callbacks' iterations, once the main function has
-//! returned to the run loop, until SDL quits and the process exits. The
+//! returned to the run loop, until SDL quits and the process exits. With
+//! the `gdk` feature on Windows (upstream's WinGDK), [`run_app`] sets up
+//! the Gaming Runtime around the main function. The
 //! other platforms that need their own main loop (consoles) arrive with
 //! their platform layers.
 
@@ -54,6 +57,8 @@ use crate::timer;
 
 #[cfg(target_os = "emscripten")]
 mod emscripten;
+#[cfg(all(windows, feature = "gdk"))]
+mod gdk;
 #[cfg(all(target_vendor = "apple", not(target_os = "macos")))]
 mod uikit;
 #[cfg(all(target_os = "emscripten", feature = "emscripten-persistent-path"))]
@@ -521,6 +526,16 @@ pub(crate) fn run_app_with_args(
 /// [`std::process::exit`]. The main function's result isn't the process's
 /// exit status. A panic in the main function aborts the process (it's
 /// called from Objective-C).
+///
+/// On Windows with the `gdk` feature (upstream's WinGDK), this initializes
+/// the Gaming Runtime (`xgameruntime.dll`, loaded at run time), makes SDL's
+/// task queue the process's, initializes Xbox Live when the game has a
+/// title id (its `MicrosoftGame.config`) and
+/// `Microsoft.Xbox.Services.C.Thunks.dll` is in the application's
+/// directory, and registers the application-state notifications (see
+/// `gdk::suspend_complete()`) around the main function, undoing it
+/// all after. Without the Gaming Runtime it shows an error message box and
+/// returns -1 without calling the main function.
 #[cfg(not(all(target_os = "emscripten", feature = "emscripten-persistent-path")))]
 pub fn run_app(main_function: impl FnOnce(&[String]) -> i32) -> i32 {
     #[cfg(target_os = "emscripten")]
@@ -531,9 +546,14 @@ pub fn run_app(main_function: impl FnOnce(&[String]) -> i32) -> i32 {
     {
         crate::video::drivers::uikit::appdelegate::run_app(main_function)
     }
+    #[cfg(all(windows, feature = "gdk"))]
+    {
+        gdk::run_app(main_function)
+    }
     #[cfg(not(any(
         target_os = "emscripten",
-        all(target_vendor = "apple", not(target_os = "macos"))
+        all(target_vendor = "apple", not(target_os = "macos")),
+        all(windows, feature = "gdk")
     )))]
     {
         call_main_function(main_function)
