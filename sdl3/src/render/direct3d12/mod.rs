@@ -18,7 +18,11 @@
 //!
 //! What isn't translated:
 //!
-//! * the Xbox (GDK) paths, which upstream compiles for the Xbox only.
+//! * the Xbox (GDK) paths, which upstream compiles for the Xbox only;
+//!   among them the `GDKSuspendRenderer` and `GDKResumeRenderer` hooks
+//!   (`SuspendX()` and `ResumeX()` on the command queue), so with the `gdk`
+//!   feature (WinGDK) `Renderer::gdk_suspend()` and
+//!   `Renderer::gdk_resume()` do nothing for this renderer, as upstream's.
 //!
 //! Textures can wrap the application's resources
 //! ([`TextureCreateInfo::d3d12_texture`](crate::render::TextureCreateInfo::d3d12_texture)

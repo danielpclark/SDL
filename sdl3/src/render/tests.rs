@@ -587,6 +587,63 @@ fn renderer_basics() {
     assert!(r.into_surface().is_some());
 }
 
+// WinGDK's renderer suspension and resumption (`SDL_GDKSuspendRenderer()`,
+// `SDL_GDKResumeRenderer()`) run the driver's hooks if it has them: the
+// software renderer has none, so they do nothing and it draws after them,
+// on a surface or a window. Once the renderer's window is gone they fail,
+// as upstream's CHECK_RENDERER_MAGIC() does.
+#[test]
+#[cfg(all(windows, feature = "gdk"))]
+fn gdk_suspend_and_resume_without_driver_hooks() {
+    use crate::events::window::WindowFlags;
+    use crate::hints;
+    use crate::init::{self, InitFlags};
+
+    let _l = crate::test_support::test_lock();
+    let red = Color::new(255, 0, 0, 255);
+    let blue = Color::new(0, 0, 255, 255);
+    let pixel = |r: &mut Renderer| {
+        let px = r.read_pixels(Some(&Rect::new(2, 2, 1, 1))).unwrap();
+        px.read_pixel(0, 0).unwrap()
+    };
+
+    let mut r = Renderer::software(Surface::new(8, 8, PixelFormat::ARGB8888).unwrap()).unwrap();
+    r.set_draw_color(255, 0, 0, 255);
+    r.clear().unwrap();
+    r.gdk_suspend().unwrap();
+    r.gdk_resume().unwrap();
+    assert_eq!(pixel(&mut r), red);
+    r.set_draw_color(0, 0, 255, 255);
+    r.clear().unwrap();
+    assert_eq!(pixel(&mut r), blue);
+    drop(r);
+
+    init::quit(); // (in case an earlier test failed halfway)
+    hints::set(hints::VIDEO_DRIVER, "dummy").unwrap();
+    init::init(InitFlags::VIDEO).unwrap();
+    let (window, mut r) = create_window_and_renderer("gdk", 8, 8, WindowFlags::default()).unwrap();
+    assert_eq!(r.name(), SOFTWARE_RENDERER);
+    r.set_draw_color(255, 0, 0, 255);
+    r.clear().unwrap();
+    r.present().unwrap();
+    r.gdk_suspend().unwrap();
+    r.gdk_resume().unwrap();
+    r.set_draw_color(0, 0, 255, 255);
+    r.clear().unwrap();
+    assert_eq!(pixel(&mut r), blue);
+    r.present().unwrap();
+    window.destroy();
+    for result in [r.gdk_suspend(), r.gdk_resume()] {
+        assert_eq!(
+            result.unwrap_err().message(),
+            "Renderer's window has been destroyed, can't use further"
+        );
+    }
+    drop(r);
+    init::quit();
+    hints::reset(hints::VIDEO_DRIVER);
+}
+
 // The software renderer draws two triangles that make an axis aligned,
 // uniformly colored quad as a rect, but only when the texture coordinates
 // are in [0, 1]; otherwise they are drawn as triangles, with the clamping
