@@ -52,6 +52,14 @@ fn global_task_queue() -> MutexGuard<'static, usize> {
 /// completions dispatched by the event pump), creating the queue the first
 /// time. The caller closes it with `XTaskQueueCloseHandle()`. Translation
 /// of `SDL_GetGDKTaskQueue()`.
+///
+/// Note (upstream): upstream gives the first caller the global queue's own
+/// handle ("so they can clean it up"), which leaves the queue SDL
+/// dispatches dangling once they close it, as the documentation tells
+/// them to (and the next call duplicates a closed handle). Here every
+/// caller gets a reference of its own, and the global one is SDL's,
+/// released by [`quit_task_queue`]. The lock makes the first call's
+/// creation thread-safe too (upstream's isn't).
 pub(crate) fn get_task_queue() -> Result<XTaskQueueHandle> {
     let mut global = global_task_queue();
 
@@ -73,24 +81,43 @@ pub(crate) fn get_task_queue() -> Result<XTaskQueueHandle> {
             return Err(Error::new("[GDK] Could not create global task queue"));
         }
         *global = queue as usize;
+    }
 
-        // The initial call gets the non-duplicated handle so they can clean it up
-        // FIXME (upstream): which leaves the global handle dangling once
-        // they do, as the documentation tells them to (and the next call
-        // duplicates a closed handle).
-        Ok(queue)
-    } else {
-        // Duplicate the global task queue handle into outTaskQueue
-        let runtime =
-            runtime().map_err(|_| Error::new("[GDK] Unable to acquire global task queue"))?;
-        let mut queue: XTaskQueueHandle = std::ptr::null_mut();
-        // SAFETY: the global handle is open; queue is a valid out pointer.
-        let hr =
-            unsafe { (runtime.XTaskQueueDuplicateHandle)(*global as XTaskQueueHandle, &mut queue) };
-        if hr < 0 {
-            return Err(Error::new("[GDK] Unable to acquire global task queue"));
-        }
-        Ok(queue)
+    // Duplicate the global task queue handle into outTaskQueue
+    let runtime = runtime().map_err(|_| Error::new("[GDK] Unable to acquire global task queue"))?;
+    let mut queue: XTaskQueueHandle = std::ptr::null_mut();
+    // SAFETY: the global handle is open; queue is a valid out pointer.
+    let hr =
+        unsafe { (runtime.XTaskQueueDuplicateHandle)(*global as XTaskQueueHandle, &mut queue) };
+    if hr < 0 {
+        return Err(Error::new("[GDK] Unable to acquire global task queue"));
+    }
+    Ok(queue)
+}
+
+/// Terminate the global task queue, dispatch what completes, and close
+/// SDL's handle of it (the references given out stay open until their
+/// owners close them); the next [`get_task_queue`] makes a new queue.
+/// Upstream's `SDL_RunApp()` does this with the first caller's handle,
+/// which is the global one there (see [`get_task_queue`]).
+pub(crate) fn quit_task_queue() {
+    let queue = std::mem::take(&mut *global_task_queue()) as XTaskQueueHandle;
+    if queue.is_null() {
+        return;
+    }
+    let Ok(runtime) = runtime() else {
+        return;
+    };
+
+    // (upstream's comment, in SDL_RunApp():)
+    // !!! FIXME: This follows the docs exactly, but for some reason still leaks handles on exit?
+    // Terminate the task queue and dispatch any pending tasks
+    // SAFETY: the handle is SDL's, closed once, here.
+    unsafe {
+        (runtime.XTaskQueueTerminate)(queue, false, std::ptr::null_mut(), None);
+        while (runtime.XTaskQueueDispatch)(queue, XTASKQUEUE_PORT_COMPLETION, 0) {}
+
+        (runtime.XTaskQueueCloseHandle)(queue);
     }
 }
 
