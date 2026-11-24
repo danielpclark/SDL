@@ -1053,7 +1053,9 @@ display server, as root on a virtual console:
   GDK is downloaded, read or linked. The Xbox consoles (GDKX:
   `SDL_PLATFORM_XBOXONE`, `SDL_PLATFORM_XBOXSERIES`) aren't translated:
   their SDK is under NDA, with headers and shader compilers that aren't
-  public, and there's no target to build or test them on.
+  public, and there's no target to build or test them on. Building and
+  running with the feature (what it needs at run time, `run_app()`, the
+  suspension, the checks) is in the README, "The Microsoft GDK for PC".
 * Upstream's `SDL_PLATFORM_WIN32`-only branches in code WinGDK shares
   with Win32 (the mouse's inverted cursor pixels, the HIDAPI drivers'
   Windows quirks, ...) are lost on WinGDK, which is the same desktop
