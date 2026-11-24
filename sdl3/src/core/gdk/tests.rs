@@ -29,6 +29,7 @@ fn the_task_queue_and_the_default_user_fail_without_the_runtime() {
     // (no queue was made: nothing to dispatch)
     assert_eq!(*global_task_queue(), 0);
     dispatch_task_queue();
+    quit_task_queue();
 
     // E_GAMERUNTIME_DLL_NOT_FOUND has no system message
     let e = get_default_user().unwrap_err().to_string();
@@ -97,8 +98,9 @@ fn the_suspend_handler_waits_for_suspend_complete() {
 }
 
 /// The Gaming Runtime's paths, on a machine that has it (Gaming Services):
-/// the runtime initialized, SDL's global task queue made, given out and
-/// dispatched, and the default user (which may show the sign-in UI).
+/// the runtime initialized, SDL's global task queue made, given out,
+/// dispatched, given out again once the references are closed, quit and
+/// made again, and the default user (which may show the sign-in UI).
 #[test]
 #[ignore = "hardware: needs the Gaming Runtime (Gaming Services)"]
 fn hardware_gdk_runtime() {
@@ -122,11 +124,21 @@ fn hardware_gdk_runtime() {
     let first = crate::gdk::task_queue().unwrap();
     let second = crate::gdk::task_queue().unwrap();
     println!("task queues: {:p}, {:p}", first.as_raw(), second.as_raw());
-    dispatch_task_queue();
+    drop(first);
     drop(second);
-    // (upstream's: the first is the global queue itself, which closing
-    // would leave dangling)
-    std::mem::forget(first);
+    dispatch_task_queue();
+    // (the global queue is still open: SDL's reference)
+    let third = crate::gdk::task_queue().unwrap();
+    dispatch_task_queue();
+    // (terminated and closed; the next call makes a new queue, while the
+    // reference given out stays open until it's dropped)
+    quit_task_queue();
+    assert_eq!(*global_task_queue(), 0);
+    drop(third);
+    let fourth = crate::gdk::task_queue().unwrap();
+    dispatch_task_queue();
+    drop(fourth);
+    quit_task_queue();
 
     match crate::gdk::default_user() {
         Ok(user) => println!("default user: {:p}", user.as_raw()),

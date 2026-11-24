@@ -64,9 +64,9 @@ impl Drop for TaskQueue {
 /// A reference to SDL's global async task queue, which is made the first
 /// time. Translation of `SDL_GetGDKTaskQueue()`.
 ///
-/// FIXME (upstream): the first call's value is the global queue's own
-/// reference, which dropping it closes, leaving the queue SDL dispatches
-/// dangling.
+/// Every call gives a reference of its own. (Upstream's first call gives
+/// the global queue's own handle, which closing it leaves dangling: see
+/// "Windows and the GDK" in the repository's docs/TRANSLATION_GUIDE.md.)
 pub fn task_queue() -> Result<TaskQueue> {
     let queue = core_gdk::get_task_queue()?;
     // (a successful call gives a handle)
