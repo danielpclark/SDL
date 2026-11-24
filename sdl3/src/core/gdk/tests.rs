@@ -58,6 +58,9 @@ fn the_notifications_register_and_unregister() {
     }
     assert_ne!(change_notifications().suspend_complete, 0);
     unregister_change_notifications();
+    // (the closed event isn't left set: nothing to signal)
+    assert_eq!(change_notifications().suspend_complete, 0);
+    suspend_complete();
 }
 
 #[test]
@@ -95,6 +98,16 @@ fn the_suspend_handler_waits_for_suspend_complete() {
     handler.join().unwrap();
 
     unregister_change_notifications();
+    // a late suspension has no event to wait on: it doesn't wait
+    let (done_tx, done_rx) = mpsc::channel();
+    let handler = std::thread::spawn(move || {
+        // SAFETY: as above.
+        unsafe { app_state_change(true, std::ptr::null()) };
+        done_tx.send(()).unwrap();
+    });
+    assert_eq!(rx.recv().unwrap(), EventType::DID_ENTER_BACKGROUND);
+    done_rx.recv_timeout(Duration::from_secs(10)).unwrap();
+    handler.join().unwrap();
 }
 
 /// The Gaming Runtime's paths, on a machine that has it (Gaming Services):
