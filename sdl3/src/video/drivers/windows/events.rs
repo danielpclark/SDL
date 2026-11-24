@@ -3622,6 +3622,9 @@ pub(crate) fn pump_events(videodata: &VideoData) {
     }
 
     keyboard::update_ime_candidates(videodata);
+
+    #[cfg(feature = "gdk")]
+    crate::core::gdk::dispatch_task_queue();
 }
 
 /// The application's window class. Translation of `app_registered`,
