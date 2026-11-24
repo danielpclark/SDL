@@ -297,7 +297,7 @@ mod tests {
                 assert!(e.to_string().starts_with("Failed loading "), "{e}");
                 crate::test_support::skip(
                     "gdk-runtime",
-                    format_args!("no Gaming Runtime here ({e})"),
+                    format_args!("no usable Gaming Runtime here ({e})"),
                 );
                 // (tried again, failing the same way)
                 assert!(runtime().is_err());
