@@ -42,12 +42,16 @@ until pw-cli info 0 >/dev/null 2>&1; do
 done
 nohup wireplumber >>"$log" 2>&1 &
 
-# The driver lists only nodes with a name and a description.
+# The driver lists only nodes with a name and a description. The source is
+# a null sink as Audio/Source/Virtual (PipeWire's virtual source, which the
+# driver lists as upstream's does): as plain Audio/Source, PipeWire 1.6
+# can't start it ("Start error: Operation not supported"), and a recording
+# stream gets nothing until a 5-second fallback.
 pw-cli create-node adapter '{ factory.name=support.null-audio-sink
     node.name=ci-sink node.description="CI sink" media.class=Audio/Sink
     object.linger=true audio.position=[FL FR] }' >/dev/null
 pw-cli create-node adapter '{ factory.name=support.null-audio-sink
-    node.name=ci-source node.description="CI source" media.class=Audio/Source
+    node.name=ci-source node.description="CI source" media.class=Audio/Source/Virtual
     object.linger=true audio.position=[FL FR] }' >/dev/null
 
 # Wait for WirePlumber to pick the defaults.
