@@ -328,6 +328,15 @@ jobs:
           # of skipping.
           SDL3_TEST_SKIP_LOG: ${{ runner.temp }}/skips.tsv
           SDL3_TEST_REQUIRE: ${{ runner.os == 'Linux' && env.LINUX_REQUIRE || runner.os == 'Windows' && env.WINDOWS_REQUIRE || '' }}
+      # The library's tests with the `gdk` feature (upstream's WinGDK
+      # build): the runner has no Gaming Runtime (no Gaming Services), so
+      # the GDK's core checks its paths without it (sdl3/src/core/gdk/).
+      - name: cargo test -p sdl3 --features gdk --lib
+        if: matrix.toolchain == 'pinned' && runner.os == 'Windows'
+        run: cargo test -p sdl3 --features gdk --lib
+        env:
+          SDL3_TEST_SKIP_LOG: ${{ runner.temp }}/skips.tsv
+          SDL3_TEST_REQUIRE: ${{ env.WINDOWS_REQUIRE }}
       # The console input reader on a virtual console (sdl3/tests/evdev_vt.rs,
       # which skips as `vt` in the run above, as the runner user): as root,
       # on tty3 (the runner's free console), through
