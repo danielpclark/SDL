@@ -13,11 +13,12 @@
 
 use std::ffi::CString;
 
-use crate::core::gdk::sys::{runtime, E_GAMERUNTIME_DLL_NOT_FOUND};
+use crate::core::gdk::sys::{runtime, XAsyncBlock, E_GAMERUNTIME_DLL_NOT_FOUND};
 use crate::core::gdk::xsapi::{xbox_services, XblInitArgs, XBOX_SERVICES_THUNKS_DLL};
 use crate::core::gdk::{
     get_task_queue, quit_task_queue, register_change_notifications, unregister_change_notifications,
 };
+use crate::core::windows::error_from_hresult;
 use crate::error::Error;
 use crate::log::Category;
 use crate::video::messagebox::{show_simple_message_box, MessageBoxFlags};
@@ -58,6 +59,8 @@ pub(super) fn run_app(main_function: impl FnOnce(&[String]) -> i32) -> i32 {
         // Try to get the title ID and initialize Xbox Live
         // (the SCID's buffer lives until the end, as upstream's)
         let mut _scid_buffer = None;
+        // (Xbox Live's library, once XblInitialize() succeeded)
+        let mut xbox_live = None;
         // SAFETY: titleid is a valid out pointer.
         let hr = unsafe { (runtime.XGameGetXboxTitleId)(&mut titleid) };
         if hr >= 0 {
@@ -72,11 +75,20 @@ pub(super) fn run_app(main_function: impl FnOnce(&[String]) -> i32) -> i32 {
             // it, Xbox Live isn't initialized, and the application is told)
             match xbox_services() {
                 Ok(xbl) => {
-                    // FIXME (upstream): XblInitialize()'s result isn't
-                    // checked, and XblCleanupAsync() is never called.
+                    // Note (upstream): upstream ignores XblInitialize()'s
+                    // result and never calls XblCleanupAsync(), so Xbox
+                    // Live's work and connections outlive the queue it was
+                    // given. Fixed here: a failure is logged, and a
+                    // successful initialization is cleaned up below.
                     // SAFETY: xbl_args and its strings outlive the call (the
                     // SCID is copied).
-                    let _ = unsafe { (xbl.XblInitialize)(&xbl_args) };
+                    let hr = unsafe { (xbl.XblInitialize)(&xbl_args) };
+                    if hr >= 0 {
+                        xbox_live = Some(xbl);
+                    } else {
+                        let e = error_from_hresult(Some("XblInitialize"), hr);
+                        crate::log::warn!(Category::Application, "[GDK] {e}");
+                    }
                 }
                 Err(e) => crate::log::info!(
                     Category::Application,
@@ -108,6 +120,26 @@ pub(super) fn run_app(main_function: impl FnOnce(&[String]) -> i32) -> i32 {
         }
 
         unregister_change_notifications();
+
+        // (Xbox Live's teardown, waited for, before its queue's: the
+        // cleanup's work runs on the queue's thread pool, and its end
+        // signals the wait without a dispatch)
+        if let Some(xbl) = xbox_live {
+            let mut block = XAsyncBlock {
+                queue: task_queue,
+                ..XAsyncBlock::default()
+            };
+            // SAFETY: block stays here until the call is done (below).
+            let mut hr = unsafe { (xbl.XblCleanupAsync)(&mut block) };
+            if hr >= 0 {
+                // SAFETY: block is the call's.
+                hr = unsafe { (runtime.XAsyncGetStatus)(&mut block, true) };
+            }
+            if hr < 0 {
+                let e = error_from_hresult(Some("XblCleanupAsync"), hr);
+                crate::log::warn!(Category::Application, "[GDK] {e}");
+            }
+        }
 
         // (upstream terminates, dispatches and closes the queue's first
         // handle, which is SDL's global one there: here run_app closes its
