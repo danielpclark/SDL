@@ -3492,6 +3492,34 @@ fn passes_are_not_tracked_without_debug_mode() {
     cb.submit().unwrap();
 }
 
+// WinGDK
+
+/// `SDL_GDKSuspendGPU()` and `SDL_GDKResumeGPU()` aren't the backends'
+/// (upstream's are Direct3D 12's, for the Xbox only): on WinGDK they don't
+/// reach a backend, in debug mode or not, and the device works after.
+#[test]
+#[cfg(all(windows, feature = "gdk"))]
+fn gdk_suspend_and_resume_reach_no_backend() {
+    let _f = Fixture::new(true);
+    let asserts = Asserts::catch();
+    for debug_mode in [true, false] {
+        let device = Device::new(ShaderFormat::SPIRV, debug_mode, None).unwrap();
+        take_log();
+        device.gdk_suspend();
+        device.gdk_resume();
+        assert!(take_log().is_empty());
+
+        let target = color_texture(&device);
+        let mut cb = device.acquire_command_buffer().unwrap();
+        cb.begin_render_pass(&[ColorTargetInfo::new(&target)], None)
+            .unwrap()
+            .end();
+        cb.submit().unwrap();
+        assert!(!take_log().is_empty());
+    }
+    assert!(asserts.take().is_empty());
+}
+
 // OpenXR
 
 /// The OpenXR entry points reach the backend with the application's
